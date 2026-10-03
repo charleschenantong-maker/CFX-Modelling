@@ -14,6 +14,15 @@ COURSE.register({
   这一模块讲清楚每一步的选择与失败模式。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：预训练就是「反复做题、对答案、改错」，重复几十万次；<br />
+    这一讲讲的就是<em>怎么改错改得又快又稳</em>（优化器、学习率、精度），以及改错过程中最容易炸的地方。<br />
+    <strong>读完你能回答</strong>：loss 突然从 2.1 跳到 3.6 该怎么办？为什么训练用 bf16 而不是 fp16？为什么个人不可能预训练 7B？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -121,7 +130,7 @@ COURSE.register({
 
 <h3>6. 预算估算：从 FLOPs 到 GPU 小时</h3>
 \[
-\text{GPU 小时} \;=\; \frac{C}{\text{峰值 FLOPs/s} \times \text{MFU} \times 3600}
+\text{GPU-hours} \;=\; \frac{C}{\text{peak FLOPs/s} \times \text{MFU} \times 3600}
 \]
 <p>
   其中 <span class="t" data-tterm="MFU" data-d="Model FLOPs Utilization：实际达到的算力占硬件峰值的比例，LLM 预训练常见 35%–50%。">MFU</span>
@@ -130,7 +139,7 @@ COURSE.register({
   单张 A100（bf16 峰值约 \(3.1\times10^{14}\) FLOP/s）在 40% MFU 下：
 </p>
 \[
-\frac{4.2\times10^{22}}{3.1\times10^{14}\times0.4\times3600} \approx 9.4\times10^{4}\ \text{GPU 小时}
+\frac{4.2\times10^{22}}{3.1\times10^{14}\times0.4\times3600} \approx 9.4\times10^{4}\ \text{GPU-hours}
 \]
 <p>按每小时 2 美元算，约 19 万美元。<strong>这就是为什么个人不可能预训练 7B 模型——这是本课程最重要的预算结论。</strong></p>
 

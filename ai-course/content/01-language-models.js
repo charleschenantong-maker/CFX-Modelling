@@ -9,9 +9,24 @@ COURSE.register({
   tags: ["核心", "概率", "必做"],
   body: String.raw`
 <p class="lead">
-  大模型的第一性描述极其朴素：它输出的是<strong>词表上的概率分布</strong>。
-  「智能」「推理」「涌现」这些词都建立在这件事之上。这一模块把这件事写成公式，并给出唯一的训练信号。
+  大模型最底层的描述其实非常朴素：<strong>它每一步只做一件事——给词表里的每个 token 打一个概率。</strong>
+  「智能」「推理」「涌现」这些词，全都建立在这件事之上。这一讲把这个直觉写成可以计算的公式，
+  并告诉你训练信号到底从哪来。
 </p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口（先读这 20 行）</h4>
+  <p>
+    如果你还没读<a href="#mP">预备课 P</a>，建议先花 20 分钟读它：那里用输入法联想讲清了「概率分布」，
+    用天气预报讲清了「softmax」，用下山讲清了「梯度下降」。
+  </p>
+  <p>
+    <strong>这一讲要建立的直觉</strong>：模型不是「想好一句话再打出来」，而是<em>一个字一个字地掷骰子</em>，
+    每一步都重新算一遍概率。<br />
+    <strong>读完你能回答</strong>：为什么一个标量的损失（loss）就足以改进整个模型？
+    以及为什么「模型答错了」往往不是因为它不懂，而是因为它在这一步的概率分配不够好。
+  </p>
+</section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
@@ -41,7 +56,8 @@ COURSE.register({
   <p>训练用<strong>交叉熵</strong>（等价于最大似然）。对单个样本：</p>
   \[ \mathcal{L}(\theta) \;=\; -\frac{1}{T}\sum_{t=1}^{T} \log p_\theta\big(x_t \mid x_{<t}\big) \]
   <p>把它展开成对词表的求和，就看出它其实是「真实分布」与「模型分布」的 KL 散度加一个常数：</p>
-  \[ \mathcal{L} = \underbrace{H(p)}_{\text{数据本身的熵}} + D_{\mathrm{KL}}\big(p \,\|\, p_\theta\big) \]
+  \[ \mathcal{L} = \underbrace{H(p)}_{\text{entropy of the data}} + D_{\mathrm{KL}}\big(p \,\|\, p_\theta\big) \]
+  <p class="hint">（式中的 <code>entropy of the data</code> 就是「数据本身的熵」，中文说明见下方正文。）</p>
   <p>
     所以最小化交叉熵 = 最小化模型分布与真实分布的 KL 距离。
     <strong>数据本身的熵 \(H(p)\) 是下界</strong>——这解释了两件事：

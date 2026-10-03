@@ -99,7 +99,7 @@ COURSE.register({
     Anthropic 的提示缓存（prompt cache）存活时间约为 <strong>5 分钟</strong>，并且<strong>绑定到具体账号</strong>。
     如果在同一个线程中途切换账号（或同一批顺序工具调用之间切换），缓存随之失效：
   </p>
-  \[ \text{重写成本} \approx c_{\text{in}} \times T_{\text{prefix}}, \qquad T_{\text{prefix}} \text{ 可达 } 8\times10^{5} \text{ tokens} \]
+  \[ \text{rewrite cost} \approx c_{\text{in}} \times T_{\text{prefix}}, \qquad T_{\text{prefix}} \le 8\times10^{5}\ \text{tokens} \]
   <p>
     记录中的表述是：切换账号会强制重写高达 80 万 token 的前缀。
     因此代理<strong>必须把每个会话固定到同一账号</strong>——

@@ -49,10 +49,10 @@ COURSE.register({
 <table class="tbl">
   <thead><tr><th>资源</th><th>本质</th><th>最适合的用途</th><th>注意</th></tr></thead>
   <tbody>
-    <tr><td><strong>Codex Plus</strong>（$200 档）</td><td>固定月费换大体量推理额度</td><td>大重构、长任务链、批量代码审查</td><td>个人编码与内部自动化；不要承载公开流量</td></tr>
-    <tr><td><strong>Google AI Pro ×3</strong></td><td>含 Colab 算力与 Gemini 额度</td><td><strong>真正的训练实验</strong>（GPU/TPU notebook）</td><td>免费层 Colab 只有单核 TPU v5e-1，跑不了 SPMD 多设备并行</td></tr>
+    <tr><td><strong>Codex Plus</strong>（$20/月）</td><td>订阅内推理额度，与「工作」共享同一个池子</td><td>代码任务主力：重构、调试、批量审查；<strong>按难度选模型</strong></td><td>每 5 小时 + 每周<strong>双重窗口</strong>；实时余量看「设置 → 用量」</td></tr>
+    <tr><td><strong>Google AI Pro ×3</strong></td><td>每月 Colab <strong>计算单元</strong> + Gemini 额度</td><td><strong>真正的训练实验</strong>（GPU/TPU notebook）</td><td>余额耗尽会退回免费层策略；<strong>三个账号不能合并来绕过限额</strong>（违反 Colab 政策）</td></tr>
     <tr><td><strong>opencode / OpenRouter 免费额度</strong></td><td>模型路由与试用额度</td><td>原型、对比不同模型、跑小任务</td><td>额度波动大，别写进关键路径</td></tr>
-    <tr><td><strong>Claude Pro</strong>（计划中）</td><td>订阅制推理额度</td><td>长上下文数学推导、论文精读、写作</td><td>额度按 5 小时 / 7 天滚动窗口分配，且有分层上限</td></tr>
+    <tr><td><strong>Claude Pro</strong>（$20/月，已订阅）</td><td>按「用量」计量的订阅额度（不是消息条数）</td><td>长上下文数学推导、论文精读、写作</td><td>5 小时 + 每周窗口；用 <code>/usage</code> 查；周上限自 2026-09-14 起永久 +25%</td></tr>
     <tr><td><strong>Hugging Face</strong></td><td>模型 / 数据集 / 训练库 / 文档</td><td>TRL 做对齐、datasets 取数据、Hub 存检查点</td><td>注意数据集许可与污染</td></tr>
     <tr><td><strong>YouTube / 访谈记录</strong></td><td>工程经验与经济学</td><td>建立「怎么用」的直觉（第 11–15 模块）</td><td>量级参考，不是精确报价</td></tr>
   </tbody>
@@ -71,7 +71,38 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>4. 怎么读</h3>
+<h3>4. 两种用法：先通读，之后当手册</h3>
+<p>
+  这份材料是按「<strong>读一遍 → 之后反复查</strong>」设计的。两种用法差别很大，先想清楚你现在处于哪一种。
+</p>
+<table class="tbl">
+  <thead><tr><th>阶段</th><th>怎么用</th><th>主要看哪些</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>第一次：通读</strong><br />（约 6–10 小时）</td>
+      <td>按顺序读 00 → P → 01 → … → 16，每讲结束做自测；折叠的「深入」可以先跳过，
+          等真正用到时再回来</td>
+      <td>正文 18 讲；每讲 20–40 分钟。零基础务必先读 <strong>P 预备课</strong></td>
+    </tr>
+    <tr>
+      <td><strong>之后：当手册查</strong><br />（每次 1–3 分钟）</td>
+      <td>用顶部搜索框（快捷键 <code>/</code>）按关键词定位；或直接翻附录：
+          公式、数字、超参、命令、排错决策都在 <a href="#appF">附录 F 速查手册</a>，
+          术语在 <a href="#appA">附录 A 术语表</a>（240 条，按 14 类分好）</td>
+      <td>附录 A（术语）、附录 F（七张速查表）、每讲顶部的「本讲速查」</td>
+    </tr>
+  </tbody>
+</table>
+<p>为了让「查」这一步足够快，页面专门做了这几件事：</p>
+<ul>
+  <li><strong>本讲速查</strong>：每讲顶部有一个可展开的小目录，列出该讲所有小节，一键跳到任意一节。</li>
+  <li><strong>关键词搜索</strong>：搜标题、正文与公式；<code>↑ ↓</code> 选择、<code>Enter</code> 跳转（快捷键 <code>/</code>）。</li>
+  <li><strong>术语悬浮</strong>：正文里带虚线的词，鼠标停上去就显示中英对照定义，不用翻附录。</li>
+  <li><strong>回到顶部</strong>：右下角按钮，长文里随时回到开头。</li>
+  <li><strong>打印 / 导出 PDF</strong>：右上角按钮会自动展开全部折叠内容，适合离线当参考书翻。</li>
+</ul>
+
+<h3>5. 界面怎么用</h3>
 <ul>
   <li><strong>左侧目录</strong>会跟着滚动高亮；点圆圈「标记为已读完」，进度会存在浏览器本地。</li>
   <li><strong>搜索框</strong>（快捷键 <code>/</code>）搜标题、正文与公式；<code>↑ ↓</code> 选择，<code>Enter</code> 跳转。</li>
@@ -92,7 +123,7 @@ COURSE.register({
   </ol>
 </section>
 
-<h3>5. 数学符号约定</h3>
+<h3>6. 数学符号约定</h3>
 <table class="tbl small">
   <thead><tr><th>符号</th><th>含义</th><th>典型出现位置</th></tr></thead>
   <tbody>
@@ -106,7 +137,7 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>6. 建议节奏（12 周，每周 6–8 小时）</h3>
+<h3>7. 建议节奏（12 周，每周 6–8 小时）</h3>
 <table class="tbl small">
   <thead><tr><th>周</th><th>模块</th><th>产出（可放进申请材料）</th></tr></thead>
   <tbody>

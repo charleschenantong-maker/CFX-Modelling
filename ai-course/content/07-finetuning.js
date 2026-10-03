@@ -14,6 +14,16 @@ COURSE.register({
   这一模块把每个台阶的<strong>数据形态、目标函数、适用条件</strong>列清楚，并对应到 TRL 的具体 trainer。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：预训练像「上完大学」，微调像「入职培训」，对齐像「按公司规范做事」；
+    LoRA 则是<em>不重印整本书，只贴几张便签</em>——书的原内容不动，便签改变你读它的方式。<br />
+    <strong>这一讲要建立的直觉</strong>：先判断你缺的是<em>知识</em>还是<em>行为</em>；知识优先检索，行为才用微调。<br />
+    <strong>读完你能回答</strong>：SFT、DPO、GRPO 各自需要什么数据？为什么 DPO 能省掉奖励模型？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>

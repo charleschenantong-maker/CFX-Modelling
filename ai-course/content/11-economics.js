@@ -1,184 +1,305 @@
-/* content/11-economics.js — 模块 11：订阅套利经济学 */
+/* content/11-economics.js — 模块 11：订阅经济学（按你的真实订阅重写） */
 COURSE.register({
   id: "m11",
   part: 4,
   num: "11",
-  title: "订阅套利经济学：$200 为什么能换到数千美元的推理",
-  en: "The Token Arbitrage Economics",
-  minutes: 30,
-  tags: ["经济", "订阅", "必做"],
+  title: "你的订阅经济学：$20 档的三本账，以及访谈数字哪里不适用",
+  en: "Your Subscription Economics ($20 tiers)",
+  minutes: 35,
+  tags: ["经济", "订阅", "必读"],
   body: String.raw`
 <p class="lead">
-  这一模块的内容来自 Theo 的访谈记录：他把「订阅额度」当成一种可计算的资源做配置。
-  数值是<strong>量级参考</strong>而非精确报价，但其中的推理结构非常值得学——
-  它本质上是「边际成本、机会成本与套利」的应用题。
+  这一模块回答一个非常具体的问题：<strong>你手上这三份订阅（Codex Plus $20、Claude Pro $20、Google AI Pro）
+  到底能换来多少工作？</strong>同时纠正一个常见误解——网上流传的「$200 换 $8000 推理」是<em>另一个档位</em>的数字，
+  直接用在你身上会高估一个数量级。
 </p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：订阅额度不是钱包里的钱，而是<em>三把不同的尺子</em>——
+    消息条数（Codex）、用量（Claude）、计算单元（Colab），量出来的东西不能互相换算。<br />
+    <strong>这一讲要建立的直觉</strong>：先搞清「额度按什么计量、窗口怎么滚动、在哪里查看」，再谈省钱。<br />
+    <strong>读完你能回答</strong>：为什么访谈里「$200 换 $8000」的数字不适用于你的 $20 档？三个 Google AI Pro 账号为什么不能合并用？
+  </p>
+</section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
-    同样付 200 美元：走 API 得到 200 美元的算力；买个人订阅，可能换到价值数千美元的推理量。
-    这个差额从哪来？平台为什么愿意补贴？作为用户，应该怎样配置才不浪费？
+    同样每月 20 美元，走 API 只能买到 20 美元的算力；订阅却能让你连续几小时使用最强模型。
+    差额从哪来？为什么平台愿意补贴？以及最关键：<strong>我的额度什么时候会用完？</strong>
   </p>
 </section>
 
-<h3>1. 核心数字（按访谈记录的量级）</h3>
+<h3>1. 先建立正确的心智模型：订阅额度不是钱，是三把不同的尺子</h3>
 <table class="tbl">
-  <thead><tr><th>项目</th><th>记录中的量级</th><th>含义</th></tr></thead>
+  <thead><tr><th>订阅</th><th>额度用什么计量</th><th>窗口结构</th><th>在哪里看</th></tr></thead>
   <tbody>
-    <tr><td>API 付费</td><td>$200 → 恰好 $200 算力</td><td>按 token 计费，线性、无补贴</td></tr>
-    <tr><td>Claude Pro / Max（$200 档）</td><td>≈ $8,000 等价 token 价值</td><td>约 <strong>40 倍</strong>补贴</td></tr>
-    <tr><td>其中 Fable 类旗舰模型的额度上限</td><td>约为总价值的一半 → ≈ $4,000</td><td>平台对旗舰模型单独设限，避免补贴被单一模型吃光</td></tr>
-    <tr><td>OpenAI Codex（$200 档）</td><td>≈ $12,000 等价推理</td><td>且记录称<strong>不在旗舰与较小模型之间分层限额</strong></td></tr>
-    <tr><td>重置带来的额外额度</td><td>30 天内最多 14 次重置，平均每 2–3 天一次</td><td>把「每周额度」压成「约 3 天周期」，等效月价值可上探到 ≈ $24,000</td></tr>
-    <tr><td>前沿实验室的毛利</td><td>约 95%（其余约 5% 覆盖硬件折旧、服务器更换、电费）</td><td>解释了为什么有能力长期补贴</td></tr>
+    <tr>
+      <td><strong>ChatGPT Plus（含 Codex）$20/月</strong></td>
+      <td><strong>消息／任务条数</strong>，且按模型不同而不同</td>
+      <td>5 小时窗口 <strong>+</strong> 每周窗口<strong>双重约束</strong>（两个窗口都要有余量才能继续）</td>
+      <td>设置 → 用量（Settings → Usage）</td>
+    </tr>
+    <tr>
+      <td><strong>Claude Pro $20/月</strong></td>
+      <td><strong>「用量」</strong>（不是消息数），按 token 折算，具体折算规则不公开</td>
+      <td>5 小时窗口 <strong>+</strong> 每周窗口</td>
+      <td>Claude Code 里输入 <code>/usage</code></td>
+    </tr>
+    <tr>
+      <td><strong>Google AI Pro ×3</strong></td>
+      <td><strong>Colab 计算单元（compute units）</strong>余额，按机器类型扣费</td>
+      <td>每月发放一次；余额耗尽后退回免费层策略</td>
+      <td>Colab 设置 → 订阅／资源</td>
+    </tr>
   </tbody>
 </table>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>把它写成一个可以算的模型</h4>
-  <p>设月费 \(F\)、等效倍率 \(m\)、每月重置次数 \(n\)、每次重置恢复的额度比例 \(r\)。若单次重置近似「补回 3 天的额度」，则</p>
-  \[ V_{\text{total}} \;\approx\; F\cdot m \;+\; n \cdot \frac{F\cdot m}{30}\cdot 3 \cdot r \]
-  <p>代入 \(F=200,\ m=40,\ n=14,\ r=1\)：\(V_{\text{total}} \approx 8000 + 14\times 800 \approx 19{,}200\) 美元。</p>
-  <p><strong>每美元换到的推理量</strong> = \(V_{\text{total}}/F \approx 96\)。这就是「套利」的量化形式：
-  同样的钱，在订阅制下换到的推理量是 API 计价下的一到两个数量级。</p>
-  <p class="hint">下面这个计算器就是上面这个式子的实现，可以自己改参数看敏感性。</p>
-  <div class="calc" data-calc="arbitrage"></div>
-</section>
+<p>
+  <strong>为什么这个区分重要？</strong>因为「额度」不是余额宝里的钱，而是三把结构不同的尺子：
+  消息数会因为你选更大的模型而立刻缩水；用量按 token 计所以你贴进去多长的上下文都算钱；
+  计算单元按机器等级扣，A100 一小时扣掉的是 T4 的很多倍。
+  <em>不理解这一点，就会出现「月初很宽裕、月中突然什么都干不了」的假象。</em>
+</p>
 
-<h3>2. 折扣为什么会存在：平台侧的算术</h3>
+<h3>2. Codex（Plus 档）的官方额度</h3>
+<p>
+  OpenAI 官方帮助中心给出的口径是：<strong>「工作」与 Codex 共享同一套套餐额度</strong>，
+  并且<strong>不承诺固定条数</strong>——同样一条消息，选不同的模型、不同的推理强度、多步骤任务，消耗完全不同。
+  官方只给出「每 5 小时窗口内的估算条数区间」：
+</p>
+<table class="tbl small">
+  <thead><tr><th>模型</th><th>Plus 档每 5 小时估算条数</th><th>定位</th></tr></thead>
+  <tbody>
+    <tr><td>GPT-6 Astra</td><td><strong>5 – 45</strong></td><td>能力最强，适合疑难排查、复杂问题</td></tr>
+    <tr><td>GPT-5.6 Sol</td><td>10 – 100</td><td>能力与效率兼顾，日常主力</td></tr>
+    <tr><td>GPT-5.6 Terra</td><td>25 – 200</td><td>速度与成本平衡，起草与常规改动</td></tr>
+    <tr><td>GPT-5.6 Luna</td><td>250 – 2 000</td><td>快速廉价，适合抽取、分类、短编辑</td></tr>
+    <tr><td>GPT-5.5 / 5.4 / 5.4 mini</td><td>15–80 / 20–100 / 60–350</td><td>旧型号，额度更宽</td></tr>
+  </tbody>
+</table>
+<p><strong>三个立刻可用的结论：</strong></p>
+<ol>
+  <li><strong>换模型是最有效的省额度手段</strong>，而且它是<em>同一个池子</em>：Astra 用掉的比例远高于 Luna。
+      把「查询、分类、整理」交给便宜模型，把 Astra 留给真正难的问题，你的有效产能会提高数倍。</li>
+  <li><strong>推理强度（reasoning effort）也会吃掉额度</strong>。官方明确说：更高推理强度不一定更好，但通常更贵。
+      遇到简单任务先降档，别默认拉满。</li>
+  <li><strong>5 小时窗口与每周窗口要同时有余量</strong>。这意味着你不能把一天的活全堆在一个 5 小时里连轴干——
+      即使每周总额还有剩余，也会被 5 小时上限卡住。</li>
+</ol>
+
+<h3>3. Claude Pro 的官方口径</h3>
 <ul>
-  <li><strong>规模与折旧</strong>：算力是重资产，折旧与电费是固定支出。空闲的 GPU 等于持续亏损，
-      所以用「限时、限量、不可转让」的订阅把闲置产能卖出去，边际成本极低。</li>
-  <li><strong>市场份额</strong>：订阅补贴是获客成本。用户把工作流迁移到某个平台之后，切换成本很高。</li>
-  <li><strong>窗口限制</strong>：真正的约束不是「月总量」，而是 <strong>5 小时滚动窗口</strong>与 <strong>7 天上限</strong>。
-      平台用时间窗把重度用户的峰值拉平。</li>
+  <li>Claude Code 的额度同样分<strong>5 小时窗口</strong>与<strong>每周窗口</strong>，按「用量」而非条数计量，
+      具体折算不公开（用 <code>/usage</code> 查看你自己的剩余量）。</li>
+  <li>2026 年 5 月 13 日到 9 月 13 日期间有过一次<strong>周上限 +50% 的促销</strong>；
+      促销结束后从 <strong>2026 年 9 月 14 日</strong>起，Pro/Max/Team 的<strong>周上限永久比促销前高 25%</strong>。
+      <em>5 小时上限不受这次调整影响。</em></li>
+  <li>旗舰模型（例如 Fable 系列）在部分档位有单独的额度安排——这类「模型级上限」需要看你账户里显示的实际数字。</li>
 </ul>
 <section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>$100 档的「陷阱」</h4>
+  <h4><span class="ic">⚠</span>务必自己核对</h4>
   <p>
-    记录中的观察：$100 档提供约 50% 的月度总池，但<strong>滚动 5 小时窗口的上限被砍到 25%</strong>。
-    后果是：总量看似够用，但你会在连续高强度使用时更早撞上节流，
-    很难把额度「烧干净」——单位有效产能反而更差。
+    平台会调整额度、促销与重置规则（上面那条促销就是例子）。本模块给出的是<strong>结构与已查到的官方口径</strong>，
+    <strong>你的真实上限只在两个地方</strong>：Codex 的「设置 → 用量」，以及 Claude Code 的 <code>/usage</code>。
+    养成每周记录一次的习惯，这比记住任何二手数字都有用。
   </p>
-  <p><strong>可迁移的决策原则</strong>：比较套餐时，要看<em>限制的形状</em>（滚动窗口、峰值上限），而不是只看月度总量。
-    这与比较云主机时「不能只看 vCPU 数，还要看突发积分」是同一类思维。</p>
 </section>
 
-<h3>3. 限额比例：把窗口换算成可用的工作容量</h3>
-<p>记录中给出的一个换算关系：在 20× 档位上，<strong>把 5 小时滚动窗口用满 100%，相当于 7 天旗舰额度的 40%</strong>，
-也只占完整 7 天总配额的 20%。这可以写成一条简单的规划式：</p>
-\[ \text{可用窗口数} \approx \frac{1}{0.40} = 2.5 \quad(\text{即 7 天内大约只能把 5 小时窗口打满 2–3 次}) \]
+<h3>4. Google AI Pro：Colab 计算单元</h3>
 <p>
-  于是「什么时候用最贵的模型」就变成了一个调度问题：把旗舰模型留给真正需要长链推理的任务，
-  其余工作交给中等模型或本地模型。
+  从 2026 年 9 月 22 日起，Google 把 Colab 的付费权益并入 Google AI 订阅：
+  <strong>符合条件的 Google AI 订阅者会按月获得 Colab 计算单元</strong>，并能访问更强的 GPU/TPU；
+  更高档位（AI Ultra）额外提供<strong>后台连续执行</strong>与 Premium GPU——也就是关掉浏览器标签页训练还能继续跑。
 </p>
-
-<h3>4. 边界：什么会被封号</h3>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>零公开流量规则（最重要的合规红线）</h4>
-  <p>
-    记录中的明确表述：订阅池化<strong>只用于个人编码和内部自动化</strong>。
-    把面向公众的生产 API 流量导向池化的个人订阅，违反服务条款，会招致迅速封号。
-  </p>
-  <ul>
-    <li><strong>越界</strong>：对外提供 API 服务、把额度转售、把订阅当作产品后端、抓取模型输出用于蒸馏。</li>
-    <li><strong>通常安全</strong>：自己的开发、自己的自动化脚本、个人学习与研究实验、内部工具。</li>
-    <li><strong>判断标准</strong>：请求是否来自「不特定的第三方」？是否有商业转售？是否会与模型蒸馏相关？</li>
-  </ul>
-  <p><em>平台政策会变化，最终以官方服务条款为准。本模块只提供判断框架，请在动手前自行核对最新条款（见附录 D）。</em></p>
-</section>
-
-<h3>5. 隐私设置：让个人账号向企业条款靠拢</h3>
-<p>
-  记录中提到一个具体操作：在 Codex 中进入 <strong>Settings → Data Controls</strong>，关闭
-  <strong>「Improve the model for everyone」</strong>。这样个人账号的数据隐私条款在功能上与企业团队账号趋同——
-  对处理课程材料、研究数据与个人项目的人来说，这是必要的一步。
-</p>
-<p>
-  对应地，在任何平台上都要确认三件事：<em>你的输入是否被用于训练？保留多久？能否关闭？</em>
-  如果找不到开关，就假设数据会被用于训练，并据此决定要不要上传敏感内容。
-</p>
-
-<h3>6. 你的配置建议</h3>
 <table class="tbl small">
-  <thead><tr><th>资源</th><th>推荐用途</th><th>不要用来做</th></tr></thead>
+  <thead><tr><th>档位</th><th>大致能力</th><th>对训练意味着什么</th></tr></thead>
   <tbody>
-    <tr><td>Codex Plus</td><td>长任务链、代码审查、批量重构；配合第 14 模块的 85/15 分工</td><td>当成 GPU 训练算力（它是推理额度）</td></tr>
-    <tr><td>Google AI Pro ×3</td><td>Colab 上的训练与实验、Gemini 长文档阅读</td><td>把三个账号的额度当成一个池（各自独立，需分别管理）</td></tr>
-    <tr><td>计划中的 Claude Pro</td><td>长上下文数学推导、论文精读、写作</td><td>驱动面向公众的 API</td></tr>
-    <tr><td>opencode / OpenRouter 免费额度</td><td>原型、模型对比、小任务</td><td>关键路径（额度会波动）</td></tr>
-    <tr><td>Colab / Kaggle 算力</td><td>真正的训练与实验</td><td>跑「只是看看」的脚本（浪费会话额度）</td></tr>
+    <tr><td>免费层（无计算单元余额）</td><td>T4 级 GPU（视可用性）、最长约 12 小时、空闲即断开</td><td>能跑完本课程 30–90 分钟级的实验</td></tr>
+    <tr><td>Google AI Pro（含计算单元）</td><td>更高优先级、更强机器、更长会话</td><td>能跑稍大的微调与更长的预训练实验</td></tr>
+    <tr><td>Google AI Ultra</td><td>后台连续执行 + Premium GPU（最长 24 小时）</td><td>能跑「离开电脑也不中断」的长任务</td></tr>
   </tbody>
 </table>
+<p>
+  <strong>额度耗尽的后果要提前知道</strong>：Colab 官方说明，付费用户的计算单元余额用完后，
+  会<strong>退回免费层的策略与限制</strong>（而不是继续无限使用）。所以月底前要把关键实验跑完，
+  或者把长任务拆成能在一次会话内完成的片段（这正是模块 10 讲的实验设计纪律）。
+</p>
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>关于你有 3 个 Google AI Pro 账号——一条重要的合规提醒</h4>
+  <p>
+    Google Colab 的使用政策里，被明确列为<strong>禁止</strong>的行为包括：
+    「<strong>使用多个账号来规避访问限制或资源用量限制</strong>」（using multiple accounts to work around access
+    or resource usage restrictions）。
+  </p>
+  <p>
+    也就是说：<strong>三个账号不能当成一个三倍大的额度池来用</strong>。
+    合规的用法是：每个账号用于它自己的学习/项目用途；
+    不要为了绕开某一天的限额而在账号之间轮换同一类重负载任务。
+  </p>
+  <p>
+    顺带列出与学习者最相关的其他几条禁止项：托管网站/文件服务、连接远程代理、
+    加密货币挖矿、P2P 下载、生成深度伪造内容、以及用容器化等手段规避反滥用策略。
+    <em>你写论文用的 notebook 完全在允许范围内；把它变成「免费 GPU 服务器」就越线了。</em>
+  </p>
+</section>
+
+<h3>5. 访谈里的数字，哪些适用、哪些不适用</h3>
+<p>
+  你给我的访谈记录讨论的是 <strong>$200 档</strong>（Claude Max / Codex Pro 级）的套利结构。
+  那些「$8,000 / $12,000 等价推理」「一个月 $24,000」属于<strong>那个档位</strong>的量级。
+  把它直接搬到 $20 档会高估约一个数量级。但其中的<em>结构</em>仍然成立：
+</p>
+<table class="tbl">
+  <thead><tr><th>访谈里的说法</th><th>对 $20 档是否成立</th><th>修正后的说法</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>订阅远比 API 划算（约 40×）</td>
+      <td><strong>方向成立，倍数更小</strong></td>
+      <td>订阅的「每美元等效推理量」仍显著高于 API，但倍数随档位下降；用下面的计算器按你自己的用量估</td>
+    </tr>
+    <tr>
+      <td>$200 Claude 订阅 ≈ $8,000 token 价值</td>
+      <td><strong>不适用于 $20 档</strong></td>
+      <td>这是 $200 档的量级；$20 档请以「每 5 小时条数区间」为锚点</td>
+    </tr>
+    <tr>
+      <td>Codex 不在旗舰与小模型之间分层限额</td>
+      <td><strong>与官方数据不符</strong></td>
+      <td>官方表格显示<em>不同模型的每 5 小时条数差别极大</em>（Astra 5–45 vs Luna 250–2000），只是它们共享同一个池子</td>
+    </tr>
+    <tr>
+      <td>$100 档「陷阱」：5 小时窗口只有 25%</td>
+      <td><strong>不适用于你</strong></td>
+      <td>这是针对特定中间档位的观察；你的 $20 档直接按官方区间估算即可</td>
+    </tr>
+    <tr>
+      <td>重置会「清空计时器」（OpenAI）</td>
+      <td><strong>成立，且已核实</strong></td>
+      <td>官方说明：使用一次完整预存重置会恢复 5 小时与每周配额，<strong>并改变你的每周重置日期</strong></td>
+    </tr>
+    <tr>
+      <td>银行重置（banked reset）可留到以后再触发</td>
+      <td><strong>成立</strong></td>
+      <td>官方说明：重置机会保存在账户里直到使用或过期；只有确实恢复了某个周期才会被消耗</td>
+    </tr>
+    <tr>
+      <td>前沿实验室约 95% 毛利</td>
+      <td>量级参考</td>
+      <td>属于行业估算，不是官方披露；用来理解「为什么能补贴」即可，不要当成财务事实引用</td>
+    </tr>
+    <tr>
+      <td>零公开流量规则</td>
+      <td><strong>完全成立，且是红线</strong></td>
+      <td>个人订阅用于个人编码与内部自动化；接公开流量、转售、用于蒸馏会触发封禁</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>6. 把额度换算成工作量的计算器</h3>
+<p>
+  下面这个计算器<strong>把假设全部摊开</strong>：你填「每月大概推进多少任务」「每个任务平均多少 token」
+  「混合 API 单价」，它算出这些工作如果用 API 要花多少钱，从而得到订阅的等效倍数。
+  数字不重要，<em>结构</em>才重要——改一个参数就能看出哪一项最影响结论。
+</p>
+<div class="calc" data-calc="subvalue"></div>
+<p class="hint">
+  参考量级：一次「有真实上下文的中等任务」（读几个文件、改代码、跑一轮验证）常见在 5 万–30 万 token；
+  混合单价按你所用模型的输入/输出价格加权估计（例如输入 $3/M、输出 $15/M，比例 4:1 时混合约 $5.4/M）。
+</p>
+
+<h3>7. 你的配置建议（更新版）</h3>
+<table class="tbl small">
+  <thead><tr><th>资源</th><th>推荐用法</th><th>不要用来做</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Codex Plus $20</strong></td><td>代码任务的主力：重构、调试、批量审查；<strong>按任务难度选模型</strong>（难题 Astra，杂活 Luna/Terra）</td><td>当成 GPU 训练算力（它是推理额度）；也不要默认拉满推理强度</td></tr>
+    <tr><td><strong>Claude Pro $20</strong></td><td>长上下文阅读与写作：论文精读、数学推导复核、报告润色；用 <code>/usage</code> 盯额度</td><td>驱动面向公众的 API 服务</td></tr>
+    <tr><td><strong>Google AI Pro ×3</strong></td><td>真正跑训练与实验的算力（Colab 计算单元）；三份分别服务于不同项目/身份</td><td><strong>不要合并成一个额度池来绕开限额</strong>（违反 Colab 政策）</td></tr>
+    <tr><td>opencode / OpenRouter 免费额度</td><td>原型、模型对比、非关键任务</td><td>关键路径（额度会波动）</td></tr>
+    <tr><td>Kaggle</td><td>想体验 8 设备 SPMD 并行时唯一的免费去处（TPU v5e-8）</td><td>需要长期稳定会话的任务</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>三条可以立刻执行的习惯</h4>
+  <ol>
+    <li><strong>每周记一次额度快照</strong>：Codex「设置 → 用量」、Claude 的 <code>/usage</code>、Colab 计算单元余额，
+        写进 <code>notes/quota.md</code>。两周后你就能预测自己什么时候会用完。</li>
+    <li><strong>按难度路由模型</strong>：把当天任务先分档（难 / 中 / 杂活），再决定用哪个模型。这一条通常能省下 50% 以上额度。</li>
+    <li><strong>重任务放在窗口开头</strong>：既然 5 小时窗口会滚动重置，就把最需要 Astra 的任务放在一个窗口的起点，
+        杂活填进窗口尾部。</li>
+  </ol>
+</section>
 
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>把经济学的语言用到你的项目上</h4>
-  <p>
-    这套「边际成本 / 机会成本 / 套利」的思维，直接适用于你的 crossfade 项目：
-  </p>
   <ul>
-    <li><strong>边际成本</strong>：多采集 100 条标注数据的成本 vs. 多训练一个模型的成本——哪个更可能提升指标？</li>
-    <li><strong>机会成本</strong>：花两周调一个复杂模型，等价于放弃多少轮听测？</li>
-    <li><strong>套利</strong>：如果某个特征（如 ΔLUFS）几乎免费就能测量，而它能解释大部分方差，那么用它替代昂贵的特征工程就是套利。</li>
+    <li><strong>边际成本</strong>：多标注 100 条数据 vs 多训一个模型——哪个更可能提升指标？（答案通常是前者）</li>
+    <li><strong>机会成本</strong>：花两周调复杂模型，等于放弃多少轮听测？</li>
+    <li><strong>套利</strong>：如果某个特征（如 ΔLUFS）几乎免费可测，却能解释大部分方差，那么用它替代昂贵特征工程就是套利。</li>
   </ul>
-  <p><em>在申请材料里，这种「用成本结构解释技术决策」的写法，比单纯罗列技术名词更有说服力。</em></p>
+  <p><em>在申请材料里，用成本结构解释技术决策，比罗列技术名词更有说服力。</em></p>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">为什么 $100 档在记录中被认为「更难用满」？</p>
+  <p class="q">在 Codex Plus 档里，同样一条消息用 Luna 而不是 Astra，对额度的影响是？</p>
   <ul class="opts">
-    <li>因为它的月度总量只有 $200 档的 25%</li>
-    <li data-ok>它的月度总量约为一半，但滚动 5 小时窗口限额被压到 25%，更容易撞上节流</li>
-    <li>因为它不支持旗舰模型</li>
-    <li>因为它的重置次数更少</li>
+    <li>没有区别，因为共享同一个池子</li>
+    <li data-ok>差别很大：官方估算 Luna 每 5 小时可用 250–2000 条，而 Astra 只有 5–45 条，说明两者消耗同一池子的速度相差一到两个数量级</li>
+    <li>Luna 更贵，因为它更快</li>
+    <li>只有 Pro 档才有区别</li>
   </ul>
   <p class="why">
-    约束的形状比总量更重要。窗口限额决定了你在一次高强度会话中能推进多少工作，
-    而节流一旦触发，剩余额度就无法被有效利用。
+    「共享同一个池子」与「不同模型消耗速度不同」并不矛盾——正因为共享，选便宜模型才能让你在同一个窗口里做更多事。
+    这也是访谈记录里「不在旗舰与小模型之间分层限额」这句话需要修正的地方。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">下列哪种用法最可能触发封号？</p>
+  <p class="q">你有 3 个 Google AI Pro 账号。下面哪种做法符合 Colab 政策？</p>
   <ul class="opts">
-    <li>用自己的订阅跑个人项目的自动化脚本</li>
-    <li>用自己的订阅做课程作业与文献阅读</li>
-    <li data-ok>把个人订阅额度接到一个面向公众的网站后端提供 API 服务</li>
-    <li>在自己的笔记本上做实验</li>
+    <li>一个账号的计算单元用完就换另一个继续跑同一个长任务</li>
+    <li data-ok>三个账号各自用于不同的学习/项目用途，不为了绕开限额而轮换重负载</li>
+    <li>三个账号同时开同一个训练以加快速度</li>
+    <li>把三个账号给同学一起用，共同分摊任务</li>
   </ul>
   <p class="why">
-    记录中的红线是「零公开流量」：订阅池化用于个人编码与内部自动化。
-    面向不特定第三方提供服务属于违反条款，且通常伴随转售或蒸馏风险。
+    Colab 明确禁止「使用多个账号规避访问或资源用量限制」。合规边界是<em>用途分离</em>，而不是<em>额度合并</em>；
+    同时开三个相同任务也属于绕过资源限制的典型形态。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">月费 $200、等效倍率 40、每月 14 次重置、每次重置约补回 3 天额度。等效月价值约为？</p>
+  <p class="q">关于「每周窗口」与「5 小时窗口」同时存在这件事，正确的理解是？</p>
   <ul class="opts">
-    <li>$8,000</li>
-    <li>$11,200</li>
-    <li data-ok>约 $19,200</li>
-    <li>约 $56,000</li>
+    <li>只要每周还有余量，就可以不受限制地连续使用</li>
+    <li data-ok>两个窗口都要有余量才能继续；即使每周总额充足，也可能在 5 小时窗口内先撞上限</li>
+    <li>5 小时窗口只是显示用的，不影响使用</li>
+    <li>每周窗口只在 Pro 档生效</li>
   </ul>
   <p class="why">
-    基础额度 \(200\times40 = 8000\)；每次重置补回 \(8000/30\times3 = 800\)，14 次即 11,200；
-    合计约 19,200 美元。<em>注意这是量级估算，用于理解结构，不是对任何平台的报价承诺。</em>
+    官方说明是「如果两种限额同时适用，你需要在两个时段内均有剩余配额才能继续使用」。
+    这条约束直接决定了你的工作节奏：把重任务分散到不同窗口，而不是一口气连轴用。
   </p>
 </div>
 
-<div class="acc" data-t="深入：什么时候订阅反而不划算？" data-badge="决策">
+<div class="acc" data-t="深入：为什么二手的「额度数字」总是错的" data-badge="方法">
   <div class="acc-body">
-    <p>订阅制在「持续、分散、交互式」的使用下占优；但在下面三种情形，API 或自建更划算：</p>
     <ol>
-      <li><strong>突发且总量巨大</strong>：一次性处理 10 万条独立请求。订阅的窗口限制会让你排队数周，而 API 可以并行买满。</li>
-      <li><strong>需要确定性延迟与配额保证</strong>：产品级 SLA 不能用「个人额度」承载——这也是条款上的红线。</li>
-      <li><strong>可以用更小的模型</strong>：把 90% 的调用降到 3B 本地模型，边际成本接近电费，剩下的难题才交给旗舰模型。
-          这是「分级路由」的经济学版本。</li>
+      <li><strong>档位不同</strong>：$20 / $100 / $200 三档的额度结构完全不同（访谈讲的是最高档）。</li>
+      <li><strong>时间不同</strong>：平台随时调整（Claude 在 2026 年 5–9 月做过 +50% 促销，之后永久 +25%）。</li>
+      <li><strong>计量不同</strong>：消息数、用量、计算单元是三种完全不同的尺子，不能互相换算。</li>
+      <li><strong>任务不同</strong>：同一个模型，多步骤任务与单轮问答的消耗能差好几倍。</li>
+      <li><strong>模型更名</strong>：访谈里的模型代称与实际发布名称常常对不上。</li>
     </ol>
-    <p>决策口诀：<strong>把额度留给不可替代的推理，把可替代的调用赶到便宜或本地的地方。</strong></p>
+    <p>
+      <strong>正确做法</strong>：把二手数字当作「结构提示」，把官方页面与你自己账户里的用量页当作「事实来源」。
+      本模块的每一处额度说法都给了官方链接，请以链接内容为准。
+    </p>
   </div>
 </div>
 `

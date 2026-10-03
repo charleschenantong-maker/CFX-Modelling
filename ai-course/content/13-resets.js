@@ -55,7 +55,7 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>把它写成一个优化问题</h4>
   <p>设周期长度 \(T\)、额度上限 \(Q\)、你在窗口内的使用量 \(u(t)\)。当期未用额度 \(Q-\int u\) <strong>不会结转</strong>，则：</p>
-  \[ \text{有效产出} = \int_0^T v\big(u(t)\big)\,dt, \qquad v' > 0,\ v'' < 0 \]
+  \[ \text{useful output} = \int_0^T v\big(u(t)\big)\,dt, \qquad v' > 0,\ v'' < 0 \]
   <p>
     因为 \(v\) 边际递减，把额度平均分配到全周期并不最优——
     <strong>应当把额度投给边际价值最高的任务</strong>；而在周期末尾仍有剩余时，

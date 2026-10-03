@@ -13,6 +13,16 @@ COURSE.register({
   甚至某些看起来很蠢的失败。这一模块讲清楚 tokenizer 的算法、特殊 token、以及三种训练数据格式。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：tokenizer 就是「把句子拆成乐高积木」的那把刀——刀口位置不同，
+    同样一句话会被拆成不同数量、不同形状的积木。<br />
+    <strong>这一讲要建立的直觉</strong>：模型看不见文字，只看见一串整数；而切法决定了成本、上下文长度，甚至模型犯某些「低级错误」的原因。<br />
+    <strong>读完你能回答</strong>：为什么同一段中文，在不同模型上「更贵」？为什么微调时必须让 chat template 与推理时完全一致？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -42,7 +52,8 @@ COURSE.register({
     <dt>压缩率</dt><dd>字符数 / token 数。越高越省上下文与成本；但对模型来说，单个 token 的预测难度变大。</dd>
   </dl>
   <p>上下文长度是<em>以 token 计的</em>，所以它对应的真实文本量是：</p>
-  \[ \text{文本量} \approx \frac{\text{context length}}{\text{fertility}} \ \text{个词} \]
+  \[ \text{text amount} \approx \frac{\text{context length}}{\text{fertility}} \quad (\text{words}) \]
+  <p class="hint">读作：上下文窗口能装下的文字量 ≈ 窗口长度 ÷ fertility（平均一个词被切成几个 token）。</p>
   <p>成本同理。若 API 定价为每百万 token \(c\) 元，一段 \(M\) 个词的文本的输入成本约为 \(c \cdot \text{fertility}\cdot M / 10^6\)。
   <strong>中文在按 token 计费的体系里通常更贵</strong>，因为同一语义需要更多 token——这不是价格歧视，而是分词效率差异。</p>
 </section>

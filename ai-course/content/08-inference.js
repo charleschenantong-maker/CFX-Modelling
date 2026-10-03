@@ -13,6 +13,16 @@ COURSE.register({
   这一模块讲采样、量化、批处理，以及一个对第 12 模块至关重要的机制：<strong>前缀缓存</strong>。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：训练像「一次性把菜谱写进厨师脑子里」，推理像「餐厅出餐」——
+    出餐速度取决于厨房流水线（批处理）而不是菜谱本身；这一讲讲的都是出餐效率与成本。<br />
+    <strong>这一讲要建立的直觉</strong>：解码阶段几乎不用算力，时间花在<em>把权重从显存读出来</em>。<br />
+    <strong>读完你能回答</strong>：为什么温度、top-p 会改变输出风格？为什么并发 32 个请求并不比 1 个慢多少？为什么切账号会让缓存失效？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -79,9 +89,9 @@ def sample_next(logits, T=1.0, top_p=0.95):
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>为什么批处理能同时提高吞吐而不牺牲延迟</h4>
   <p>解码阶段每生成一个 token 都要把<strong>全部权重</strong>从显存读一遍，时间约为</p>
-  \[ t_{\text{step}} \approx \frac{\text{模型字节数}}{\text{显存带宽}} \]
+  \[ t_{\text{step}} \approx \frac{\text{model bytes}}{\text{memory bandwidth}} \]
   <p>这个时间与批大小<strong>几乎无关</strong>（只要显存装得下 KV Cache）。于是：</p>
-  \[ \text{吞吐} \approx \frac{\text{批大小}}{t_{\text{step}}} \]
+  \[ \text{throughput} \approx \frac{B}{t_{\text{step}}} \]
   <p>
     把批大小从 1 提到 32，吞吐接近线性增长，而单个请求的 ITL 基本不变——
     这就是「批处理几乎是免费的算力」的原因。代价是显存：KV Cache 随批大小线性增长（模块 03 的公式）。
@@ -103,7 +113,8 @@ def sample_next(logits, T=1.0, top_p=0.95):
 
 <h3>5. 成本估算</h3>
 \[
-\text{每次请求成本} \approx \frac{c_{\text{in}}\cdot T_{\text{in}} + c_{\text{out}}\cdot T_{\text{out}}}{10^{6}} \quad(\text{按每百万 token 单价})
+\text{cost per request} \approx \frac{c_{\text{in}}\cdot T_{\text{in}} + c_{\text{out}}\cdot T_{\text{out}}}{10^{6}}
+\quad(\text{with prices per million tokens})
 \]
 <p>四个立刻能用的省钱手段，按收益排序：</p>
 <ol>

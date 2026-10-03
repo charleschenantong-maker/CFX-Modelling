@@ -453,7 +453,7 @@ Qwen2.5-BPE  tokens= 6,xxx  cost=$0.0031  每 8192 上下文可放 1.31 份该�
     \[ N_{\text{emb}} = Vd + Td \]
     \[ N_{\text{attn}} = \underbrace{3d^2}_{qkv} + \underbrace{d^2}_{proj},\qquad
        N_{\text{mlp}} = \underbrace{d\cdot 4d + 4d}_{fc_1} + \underbrace{4d\cdot d + d}_{fc_2} \]
-    \[ N_{\text{block}} = N_{\text{attn}} + N_{\text{mlp}} + \underbrace{2\cdot 2d}_{\text{两个 LayerNorm}}
+    \[ N_{\text{block}} = N_{\text{attn}} + N_{\text{mlp}} + \underbrace{2\cdot 2d}_{\text{2 LayerNorms}}
        \;=\; 12d^2 + 9d \]
     \[ N_{\text{total}} = Vd + Td + L\,(12d^2 + 9d) + 2d \]
     <p>

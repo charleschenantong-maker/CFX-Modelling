@@ -13,6 +13,16 @@ COURSE.register({
   但围绕它衍生出的工程（FlashAttention、KV Cache、GQA、RoPE）几乎决定了推理成本。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：注意力就是在图书馆查资料——你带着问题（query）走进书库，
+    每本书有标签（key），先比较匹配程度，再按匹配程度把内容（value）按比例取回来。<br />
+    <strong>这一讲要建立的直觉</strong>：每个词都能「回头看」全句，并自己决定该看谁、看多重。<br />
+    <strong>读完你能回答</strong>：那个吓人的公式里，每个字母在干什么？为什么序列长一倍，计算量要涨四倍？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -205,7 +215,8 @@ print("每行和为 1:", np.allclose(A.sum(1), 1))</code></pre>
     </ul>
     <p>
       算力几乎用不上，时间花在「把权重从显存搬到计算单元」。
-      所以推理速度的经验公式是 \( \text{tokens/s} \approx \dfrac{\text{显存带宽}}{\text{模型字节数}} \)。
+      所以推理速度的经验公式是 \( \text{tokens/s} \approx \dfrac{\text{memory bandwidth}}{\text{model bytes}} \)
+      （分子是显存带宽，分母是模型字节数）。
       这解释了三件事：量化能提速（字节数变小）、批处理能提高吞吐（同一次权重读取服务多个序列）、
       以及为什么小模型在消费级显卡上也能跑得很快。
     </p>

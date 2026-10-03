@@ -206,7 +206,7 @@ COURSE.register({
     <li>全局批 256，激活约 140 MiB</li>
   </ul>
   <p class="why">
-    算式一：全局批 \(= \text{微批} \times \text{累积步数} \times \text{数据并行度} = 4 \times 8 \times 8 = 256\)。
+    算式一：全局批 \(= \text{micro-batch} \times \text{accum steps} \times \text{DP degree} = 4 \times 8 \times 8 = 256\)。
     算式二：\(8 \times 1024 \times 12 \times 10 \times 768 \times 2\) B \(\approx 1.5\times10^{9}\) B \(\approx 1.4\) GiB。
     第一项把累加当成了乘法；第二项漏乘数据并行度；第四项少了一个数量级。
     两个要点：<strong>梯度累积把峰值激活拉回微批尺度</strong>（代价是同样的数据量下更多串行的前反向步），
@@ -360,7 +360,7 @@ COURSE.register({
     模型只要学到「这位艺人的制作特征」就能刷分，分数会系统性高估跨艺人泛化能力——
     这就是数据泄露。分组交叉验证让整组同进同出，留一艺人则是最贴近应用场景的协议。
     第一项恰好是泄露的来源；第三项把最坏情况上界当成了预测：
-    VC 界形如 误差 \(\le\) 经验误差 \(+ O(\sqrt{\text{容量}/n})\)，
+    VC 界形如 误差 \(\le\) 经验误差 \(+ O(\sqrt{h/n})\)，
     在 \(n \approx 250\) 时界的数值通常远大于实际误差，它的价值在于解释「为什么容量必须小」；
     第四项错在 50 条样本连一个像样的置信区间都撑不起（二项比例的 95% 区间宽度约 \(\pm 14\) 个百分点）。
   </p>

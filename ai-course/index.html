@@ -414,6 +414,29 @@ footer b{color:var(--ink-2)}
 .katex{font-size:1.02em}
 .katex-display{margin:16px 0 !important; overflow-x:auto; overflow-y:hidden; padding:2px 0}
 
+/* mini toc (reference) */
+.mini-toc{border:1px solid var(--line); background:var(--surface-2); border-radius:var(--radius-sm);
+  padding:8px 13px; margin:8px 0 20px; font-size:13.5px}
+.mini-toc summary{cursor:pointer; font-family:var(--font-mono); font-size:12.5px; color:var(--muted)}
+.mini-toc summary:hover{color:var(--accent)}
+.mini-toc ol{margin:9px 0 3px; padding-left:22px; color:var(--ink-2);
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:2px 18px}
+.mini-toc li{margin:2px 0}
+.mini-toc a{color:var(--ink-2); border-bottom:0}
+.mini-toc a:hover{color:var(--accent)}
+
+/* back to top */
+#toTop{position:fixed; right:22px; bottom:24px; z-index:75; width:42px; height:42px; border-radius:50%;
+  border:1px solid var(--line); background:var(--surface); color:var(--ink-2); cursor:pointer;
+  font-size:17px; line-height:1; box-shadow:var(--shadow-md);
+  opacity:0; transform:translateY(var(--distance-base)) scale(var(--scale-small)); pointer-events:none;
+  transition:opacity var(--duration-fast) var(--ease-smooth-out),
+             transform var(--duration-fast) var(--ease-smooth-out),
+             color var(--duration-quick) var(--ease-in-out),
+             border-color var(--duration-quick) var(--ease-in-out)}
+#toTop.show{opacity:1; transform:none; pointer-events:auto}
+#toTop:hover{border-color:var(--accent); color:var(--accent)}
+
 @media (max-width:1000px){
   .shell{grid-template-columns:1fr; padding:0 20px 70px}
   .side{position:static; height:auto; border-right:0; border-bottom:1px solid var(--line);
@@ -423,7 +446,7 @@ footer b{color:var(--ink-2)}
   .search-wrap{min-width:120px}
 }
 @media print{
-  .topbar,.side,.mod-foot,.readbar,#tt,#results{display:none !important}
+  .topbar,.side,.mod-foot,.readbar,#tt,#results,#toTop,.mini-toc{display:none !important}
   .shell{display:block; padding:0}
   main{padding:0}
   .mod{break-inside:avoid-page; border-bottom:0}
@@ -472,9 +495,10 @@ footer b{color:var(--ink-2)}
     <p class="lede">
       这是一门写给<em>数学系申请者</em>的 LLM 入门课：从 next-token prediction 的概率分解，
       一路走到预训练、对齐、推理部署、算力与订阅经济学、多线程智能体舰队，
-      最后全部接回你的 <em>Mathematical Crossfade Modelling</em> 研究项目。
+      最后把全部知识接回你的 <em>Mathematical Crossfade Modelling</em> 研究指南。
+      <strong>零基础友好</strong>：不知道注意力、梯度、损失是什么也没关系，预备课会手把手把它们讲一遍。
     </p>
-    <p class="meta">17 个模块 · 5 个附录 · 内嵌自测与计算器 · 离线可读（KaTeX 已本地化）</p>
+    <p class="meta">18 讲 + 6 个附录 · 内嵌自测与计算器 · 离线可读（KaTeX 已本地化）· 额度数据取自官方文档</p>
   </div>
   <div class="hero-cards reveal-stagger" id="heroCards">
     <div class="hero-card"><b id="statMods">17</b><span>模块：底座 → 训练 → 算力 → 系统 → 项目</span></div>
@@ -508,6 +532,7 @@ footer b{color:var(--ink-2)}
 </footer>
 
 <div id="tt" role="tooltip"></div>
+<button id="toTop" title="回到顶部" aria-label="回到顶部">↑</button>
 
 <script src="assets/katex/katex.min.js"></script>
 <script src="assets/katex/contrib/auto-render.min.js"></script>
@@ -547,7 +572,7 @@ window.COURSE = (function () {
   /* ---------- render ---------- */
   const PART_NAMES = {
     0: '0 · 导读', 1: 'I · 底座', 2: 'II · 训练与推理', 3: 'III · 算力与工具',
-    4: 'IV · 经济与基础设施', 5: 'V · 收束', 9: '附录'
+    4: 'IV · 经济与基础设施', 5: 'V · 收束', 9: '附录 · 速查'
   };
 
   function renderNav() {
@@ -597,6 +622,23 @@ window.COURSE = (function () {
       frag.appendChild(sec);
     });
     root.innerHTML = ''; root.appendChild(frag);
+  }
+
+  /* ---------- mini table of contents (reference use) ---------- */
+  function buildMiniToc() {
+    $$('.mod').forEach(sec => {
+      const hs = $$('h3', sec);
+      if (hs.length < 2) return;
+      const box = document.createElement('details');
+      box.className = 'mini-toc';
+      const items = hs.map((h, i) => {
+        h.id = sec.id + '-s' + (i + 1);
+        return '<li><a href="#' + h.id + '">' + esc(h.textContent.trim()) + '</a></li>';
+      }).join('');
+      box.innerHTML = '<summary>本讲速查 · ' + hs.length + ' 节（点击展开）</summary><ol>' + items + '</ol>';
+      const body = $('.mod-body', sec);
+      if (body) body.insertBefore(box, body.firstChild);
+    });
   }
 
   /* ---------- math ---------- */
@@ -707,14 +749,14 @@ window.COURSE = (function () {
         '</div><div class="out" id="out"></div>';
       bind(root);
     },
-    arbitrage: function (root) {
+    subvalue: function (root) {
       root.innerHTML =
-        '<h4>订阅套利计算器</h4><p class="hint">把「订阅月费」换算成「等价 API 推理额度」。倍率取访谈中的量级（Claude Pro ≈ 40×，Codex ≈ 60×），再把月中重置计入。</p>' +
+        '<h4>订阅等效价值计算器</h4><p class="hint">把「订阅」换算成「如果这些活走 API 要花多少钱」。假设全部摊开，改任何一个参数都能看出哪一项最影响结论。</p>' +
         '<div class="fields">' +
-        f('月费 (USD)', 'fee', 200, 1, 5000, 10) +
-        f('等价倍率 (×)', 'mult', 40, 1, 200, 1) +
-        f('每月重置次数', 'resets', 0, 0, 40, 1) +
-        f('每次重置恢复比例 (%)', 'ratio', 100, 1, 100, 5) +
+        f('月费 (USD)', 'fee', 20, 1, 5000, 1) +
+        f('每月推进的任务数', 'tasks', 120, 1, 100000, 10) +
+        f('每个任务平均 token 数', 'tokens', 120000, 1000, 5000000, 10000) +
+        f('混合 API 单价 ($/M token)', 'price', 6, 0.1, 200, 0.5) +
         '</div><div class="out" id="out"></div>';
       bind(root);
     }
@@ -740,15 +782,16 @@ window.COURSE = (function () {
           o('激活值（含重计算系数）', act.toFixed(1) + ' GB') +
           o('合计（不含通信缓冲）', tot.toFixed(1) + ' GB');
       } else {
-        const fee = g('fee'), mult = g('mult'), n = g('resets'), ratio = g('ratio') / 100;
-        const base = fee * mult;
-        const extra = n * base * ratio / 30 * 30 / 30 * 0 + n * (base / 30) * ratio * 3; // 每次重置≈+3天额度
-        const total = base + extra;
+        const fee = g('fee'), tasks = g('tasks'), tk = g('tokens'), price = g('price');
+        const totalTokens = tasks * tk / 1e6;
+        const apiCost = totalTokens * price;
+        const mult = fee > 0 ? apiCost / fee : 0;
+        const perTask = tasks > 0 ? apiCost / tasks : 0;
         html =
-          o('月基础等价额度', '$' + Math.round(base).toLocaleString()) +
-          o('重置带来的增量', '$' + Math.round(extra).toLocaleString()) +
-          o('每月等效总价值', '$' + Math.round(total).toLocaleString()) +
-          o('每美元换到的推理', '$' + (total / fee).toFixed(0) + ' / $1');
+          o('每月总 token 量', totalTokens.toFixed(1) + ' M') +
+          o('等效 API 花费', '$' + Math.round(apiCost).toLocaleString()) +
+          o('等效倍数', mult.toFixed(1) + ' ×') +
+          o('平均每个任务', '$' + perTask.toFixed(2));
       }
       out.innerHTML = html;
       $$('b', out).forEach(b => { b.classList.add('pop'); setTimeout(() => b.classList.remove('pop'), 180); });
@@ -866,6 +909,14 @@ window.COURSE = (function () {
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
     onScroll();
+
+    const toTop = $('#toTop');
+    if (toTop) {
+      const toggleTop = () => toTop.classList.toggle('show', window.scrollY > 700);
+      window.addEventListener('scroll', toggleTop, { passive: true });
+      toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+      toggleTop();
+    }
   }
 
   /* ---------- stats + hero reveal ---------- */
@@ -887,6 +938,7 @@ window.COURSE = (function () {
     initTheme();
     $('.nav') && null;
     renderNav(); renderSections();
+    buildMiniToc();
     buildIndex();
     wireAccordions(); wireQuizzes();
     renderMath();
@@ -912,6 +964,7 @@ window.COURSE = (function () {
 
 <!-- ===================== content modules (order matters) ==================== -->
 <script src="content/00-orientation.js"></script>
+<script src="content/00b-primer.js"></script>
 <script src="content/01-language-models.js"></script>
 <script src="content/02-tokenization.js"></script>
 <script src="content/03-attention.js"></script>
@@ -933,5 +986,6 @@ window.COURSE = (function () {
 <script src="content/92-appendix-c-resources.js"></script>
 <script src="content/93-appendix-d-compliance.js"></script>
 <script src="content/94-appendix-e-exam.js"></script>
+<script src="content/95-appendix-f-cheatsheet.js"></script>
 </body>
 </html>

@@ -14,6 +14,16 @@ COURSE.register({
   这一模块给出四种切法的分工、代价，以及 JAX 里怎么写。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：一队人抬一块大石头。石头可以按<em>人</em>切（每个人抬一份，数据并行），
+    也可以按<em>部位</em>切（有人抬左边有人抬右边，张量并行）——切法不同，喊口号（通信）的次数差很多。<br />
+    <strong>这一讲要建立的直觉</strong>：并行不是「卡越多越快」，而是「把最贵的通信放在最快的连接上」。<br />
+    <strong>读完你能回答</strong>：为什么张量并行通常只能待在一台机器内部？JAX 里那三行 Mesh 代码在声明什么？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -38,9 +48,9 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>通信量：为什么张量并行不能跨机</h4>
   <p><strong>数据并行</strong>每步只需一次梯度 all-reduce，通信量约为 \(2N\) 个参数（ring all-reduce 的经典结果）：</p>
-  \[ \text{通信量}_{\text{DP}} \approx 2N \ \text{个元素} \quad(\text{与卡数几乎无关}) \]
+  \[ \text{Comm}_{\text{DP}} \approx 2N \ \text{elements} \quad(\text{almost independent of the number of GPUs}) \]
   <p><strong>张量并行</strong>每层都要通信激活，共 \(2L\) 次，且与批量大小成正比：</p>
-  \[ \text{通信量}_{\text{TP}} \approx 2L \cdot B \cdot S \cdot d \ \text{个元素} \]
+  \[ \text{Comm}_{\text{TP}} \approx 2L \cdot B \cdot S \cdot d \ \text{elements} \]
   <p>
     当 \(L=32\)、\(B\cdot S = 10^{4}\)、\(d=4096\) 时，TP 的通信量比 DP 高两个数量级。
     这就是「TP 必须待在 NVLink 域内」的量化理由——跨机 InfiniBand 的延迟会把它吃光。

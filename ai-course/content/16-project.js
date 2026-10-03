@@ -9,9 +9,27 @@ COURSE.register({
   tags: ["项目", "申请", "必做"],
   body: String.raw`
 <p class="lead">
-  前面十五个模块都是工具。这一模块把它们<strong>映射到你的八个检查点</strong>，
-  给出 Checkpoint 7 的完整技术方案，以及一份可以直接照着做的 12 周计划。
+  前面十八讲是<strong>能力储备</strong>；你的《Mathematical Crossfade Modelling for Glass Player》是<strong>产出</strong>。
+  两者是<strong>两条并行的轨道</strong>，不是一件事——这一讲讲清它们在哪里交汇、在哪里必须分开，
+  并给出 Checkpoint 7 的完整技术方案与一份 12 周计划。
 </p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>两条轨道：请分开推进</h4>
+  <table class="tbl small">
+    <thead><tr><th></th><th>轨道甲：研究指南（PDF）</th><th>轨道乙：本课程</th></tr></thead>
+    <tbody>
+      <tr><td><strong>目标</strong></td><td>产出一个可辩护的数学模型 + 可运行引擎 + 答辩材料</td><td>建立 LLM 与训练的完整能力，能读论文、能跑实验</td></tr>
+      <tr><td><strong>推进方式</strong></td><td>按 8 个检查点（CP1–CP8）线性推进，每个检查点有明确产出</td><td>按 18 讲推进，每讲配自测与动手实验</td></tr>
+      <tr><td><strong>评价标准</strong></td><td>数学严谨性、实证证据、可复现性</td><td>能否独立跑通、能否识别常见错误</td></tr>
+      <tr><td><strong>它不负责</strong></td><td>不负责教你 Transformer、TRL、Colab（那是轨道乙）</td><td>不负责替你做 crossfade 的数学（那是轨道甲）</td></tr>
+    </tbody>
+  </table>
+  <p><strong>只在这三处交汇</strong>：① CP1 要工具与基线 → 用本课程 10 的实验纪律；
+     ② CP5/CP7 要特征与学习实验 → 用 02 的特征视角、07 的模型阶梯、09 的评估协议；
+     ③ CP8 要可复现与答辩 → 用 14 的流水线与 16 的 viva 问题清单。</p>
+  <p><em>反过来说：不要在写研究报告时试图把 Transformer 原理塞进去，也不要在学课程时试图顺手完成检查点。</em></p>
+</section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
@@ -51,7 +69,7 @@ COURSE.register({
   <h4><span class="ic">∑</span>形式化</h4>
   <p>学习目标：从成对特征预测最优过渡时长</p>
   \[ x = \big[\ \Delta\text{BPM},\ d_{\text{Tonnetz}},\ \Delta\text{LUFS},\ \text{SpectralFluxContrast}\ \big]^\top \in \mathbb{R}^4,
-     \qquad T^* \in [2.0,\ 16.0]\ \text{秒} \]
+     \qquad T^* \in [2.0,\ 16.0]\ \text{seconds} \]
   <p>模型阶梯（每一级都必须跑，且必须报告相对上一级的增量）：</p>
   <table class="tbl small">
     <thead><tr><th>级别</th><th>模型</th><th>自由度</th><th>预期结论</th></tr></thead>

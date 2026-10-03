@@ -13,6 +13,16 @@ COURSE.register({
   这一模块把整个前向拆成可手算的部件，让你在买卡、开 notebook、写实验计划之前就能估出预算。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：把 Transformer 想成一条流水线，原料是 token，成品是概率；
+    这一讲要算的是这条流水线上<em>有多少个旋钮</em>（参数），以及跑一次要花多少内存与算力。<br />
+    <strong>这一讲要建立的直觉</strong>：参数量、显存、算力都可以用三个字母（\(L\)、\(d\)、\(B\)）在纸上估出来。<br />
+    <strong>读完你能回答</strong>：「7B 模型」到底数的是哪些张量？为什么单卡 24 GB 微调 7B 全参数在数学上不可能？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -41,10 +51,10 @@ COURSE.register({
   <h4><span class="ic">∑</span>参数量公式（背下来）</h4>
   <p>设隐藏维度 \(d\)、层数 \(L\)、词表大小 \(|\mathcal{V}|\)、FFN 中间维度 \(d_{ff}\)。单层参数：</p>
   \[
-  \underbrace{4d^2}_{\text{注意力}(W_Q,W_K,W_V,W_O)}
+  \underbrace{4d^2}_{\text{attention }(W_Q,W_K,W_V,W_O)}
   \;+\;
   \underbrace{3\,d\,d_{ff}}_{\text{SwiGLU}(W_{\text{gate}},W_{\text{up}},W_{\text{down}})}
-  \;\approx\; 12\,d^2 \quad (\text{取 } d_{ff} \approx \tfrac{8}{3}d)
+  \;\approx\; 12\,d^2 \quad (\text{with } d_{ff} \approx \tfrac{8}{3}d)
   \]
   <p>整模型（词嵌入与输出层共享权重时）：</p>
   \[ N \;\approx\; 12\,L\,d^2 \;+\; |\mathcal{V}|\,d \]
@@ -194,7 +204,8 @@ print(f"手算 {est/1e9:.3f} B   实际 {real/1e9:.3f} B   误差 {abs(est-real)
   <div class="acc-body">
     <p>反向传播需要前向的中间结果。每个 block 里要保存的激活包括：归一化输出、Q/K/V、注意力输出、MLP 中间激活（\(d_{ff}\) 维，比 \(d\) 大）、以及各残差和。</p>
     <p>粗略量级：每个 token 每层需要保存约 \(10\)–\(20\) 个 \(d\) 维向量。于是</p>
-    \[ \text{激活显存} \approx c \cdot B \cdot S \cdot L \cdot d \cdot \text{bytes}, \qquad c \approx 10\text{–}20 \]
+    \[ M_{\text{act}} \approx c \cdot B \cdot S \cdot L \cdot d \cdot \text{bytes}, \qquad c \approx 10\text{–}20 \]
+    <p class="hint">\(M_{\text{act}}\) 就是「激活显存」，系数 \(c\) 表示每个 token 每层大约要存多少个 \(d\) 维向量。</p>
     <p>
       代入 7B、\(B\cdot S = 16384\)、bf16：\(16 \times 16384 \times 32 \times 4096 \times 2 \approx 6.9\times10^{10}\) 字节 ≈ <strong>69 GB</strong>。
       这就是必须做

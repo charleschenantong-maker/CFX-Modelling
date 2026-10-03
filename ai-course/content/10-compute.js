@@ -27,13 +27,26 @@ COURSE.register({
   <thead><tr><th>平台</th><th>典型硬件</th><th>限制</th><th>最适合</th></tr></thead>
   <tbody>
     <tr><td>Colab 免费层</td><td>T4 16 GB / 单核 TPU v5e-1</td><td>会话易断、无持久磁盘、单卡无法 SPMD 多设备并行</td><td>教学实验、小模型、LoRA</td></tr>
-    <tr><td>Google AI Pro 附带的 Colab 额度</td><td>更高优先级与更长会话，可能含 A100/L4 档</td><td>额度以官方说明为准，会随政策变化</td><td>稍大的微调、长一点的训练</td></tr>
+    <tr><td>Google AI Pro（含 Colab 计算单元）</td><td>按月发放计算单元 + 更高优先级与更强机器；更高档位（AI Ultra）支持后台连续执行</td><td>计算单元耗尽后退回免费层策略；额度随政策变化</td><td>稍大的微调、以及可以离开电脑的长任务</td></tr>
     <tr><td>Kaggle Notebooks</td><td>T4 ×2 / P100 / <strong>TPU v5e-8</strong></td><td>每周约 30 小时配额、需手机验证</td><td><strong>唯一能免费体验 8 设备 SPMD 的地方</strong></td></tr>
     <tr><td>Hugging Face Jobs / Spaces</td><td>按需 GPU、ZeroGPU</td><td>额度有限、任务化</td><td>跑一次脚本、做 demo</td></tr>
     <tr><td>本地显卡（如有）</td><td>8–24 GB</td><td>受散热与内存限制</td><td>反复迭代、调试、小模型全流程</td></tr>
     <tr><td>按需云（RunPod / Vast 等）</td><td>A100 / H100</td><td>按小时计费；数据中心 IP 有合规风险</td><td>一次性大实验</td></tr>
   </tbody>
 </table>
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>Colab 的三条硬规则（学生最常踩）</h4>
+  <ol>
+    <li><strong>计算单元用完 = 退回免费层</strong>，不是「继续无限用」。所以长任务要能拆成一次会话内跑完的片段，
+        并把检查点写到 Google Drive 或 Hugging Face Hub。</li>
+    <li><strong>禁止用多个账号规避额度限制</strong>。你有三个 Google AI Pro 账号，正确做法是
+        <em>按用途分开</em>（例如一个用于课程实验、一个用于项目），而不是在限额用尽后换号继续同一类重负载。</li>
+    <li><strong>禁止把 Colab 当服务器</strong>：托管网站/文件服务、连接远程代理、挖矿、P2P、分布式 worker
+        （无正计算单元余额时）都在禁止列表内。</li>
+  </ol>
+  <p><em>写 notebook、跑实验、做教学演示完全在允许范围内；越线的分界线是「把它变成免费的通用算力」。</em></p>
+</section>
+
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>必须自己核实的两件事</h4>
   <ol>

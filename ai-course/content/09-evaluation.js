@@ -13,6 +13,16 @@ COURSE.register({
   核心问题只有一个：<strong>你观察到的提升，是真实信号还是噪声与捷径？</strong>
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：评估就是「防止自欺」。你调了半天参数终于让分数变好——
+    这一讲教你分辨那是<em>真本事</em>还是<em>背下了答案</em>。<br />
+    <strong>这一讲要建立的直觉</strong>：任何「变好了」的结论都要过三道门——数据怎么切的、波动有多大、随机的运气能不能复现同样的提升。<br />
+    <strong>读完你能回答</strong>：为什么必须按艺人分组？什么是置换检验，它为什么能识破「假信号」？
+  </p>
+</section>
+
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
@@ -37,7 +47,7 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>偏差-方差分解与正则化</h4>
   <p>期望泛化误差可以分解为三部分：</p>
-  \[ \mathbb{E}\big[(y - \hat f(x))^2\big] = \underbrace{\text{噪声}}_{\sigma^2} + \underbrace{\big(\mathbb{E}[\hat f] - f\big)^2}_{\text{偏差}^2} + \underbrace{\mathrm{Var}(\hat f)}_{\text{方差}} \]
+  \[ \mathbb{E}\big[(y - \hat f(x))^2\big] = \underbrace{\text{noise}}_{\sigma^2} + \underbrace{\big(\mathbb{E}[\hat f] - f\big)^2}_{\text{bias}^2} + \underbrace{\mathrm{Var}(\hat f)}_{\text{variance}} \]
   <p>岭回归的闭式解显示正则化如何换掉方差：</p>
   \[ \hat w = (X^\top X + \lambda I)^{-1} X^\top y \]
   <p>
