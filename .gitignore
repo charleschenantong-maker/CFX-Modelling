@@ -1,0 +1,7 @@
+# Windows 系统文件
+desktop.ini
+Thumbs.db
+
+# 临时文件
+*.tmp
+*~
