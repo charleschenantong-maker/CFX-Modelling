@@ -51,11 +51,16 @@ COURSE.register({
   <h4><span class="ic">∑</span>参数量公式（背下来）</h4>
   <p>设隐藏维度 \(d\)、层数 \(L\)、词表大小 \(|\mathcal{V}|\)、FFN 中间维度 \(d_{ff}\)。单层参数：</p>
   \[
-  \underbrace{4d^2}_{\text{attention }(W_Q,W_K,W_V,W_O)}
+  \underbrace{4d^2}_{\text{attn}}
   \;+\;
-  \underbrace{3\,d\,d_{ff}}_{\text{SwiGLU}(W_{\text{gate}},W_{\text{up}},W_{\text{down}})}
-  \;\approx\; 12\,d^2 \quad (\text{with } d_{ff} \approx \tfrac{8}{3}d)
+  \underbrace{3\,d\,d_{ff}}_{\text{FFN}}
+  \;\approx\; 12\,d^2,
+  \qquad d_{ff} \approx \tfrac{8}{3}d
   \]
+  <p class="hint">
+    其中 attn 部分 = \(W_Q, W_K, W_V, W_O\) 四个 \(d\times d\) 投影（用 GQA 时 K/V 更小）；
+    FFN 部分 = SwiGLU 的 \(W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}\) 三个矩阵。
+  </p>
   <p>整模型（词嵌入与输出层共享权重时）：</p>
   \[ N \;\approx\; 12\,L\,d^2 \;+\; |\mathcal{V}|\,d \]
   <p>若使用 GQA（\(h_{kv}\) 组 KV），注意力部分降为 \(2d^2 + 2d\,h_{kv}d_{\text{head}}\)，其余不变。</p>
@@ -99,7 +104,101 @@ COURSE.register({
   </p>
 </section>
 
-<h3>3. 现代变体清单（知道名字与动机即可）</h3>
+<h3>3. 把公式用到真实模型上：Llama-3-8B 逐项核对</h3>
+<p>
+  上面两条公式是「手算规则」。真实模型的 config 里还有一些细节会让结果偏离几个百分点——
+  把它们算清楚，你才算真的会用这两条公式。下面是 Llama-3-8B 的公开 config（已对照 Hugging Face 上的
+  <code>config.json</code> 逐字段核对）：
+</p>
+<table class="tbl small">
+  <thead><tr><th>字段</th><th>值</th><th>含义</th></tr></thead>
+  <tbody>
+    <tr><td><code>hidden_size</code> \(d\)</td><td>4096</td><td>隐藏维度</td></tr>
+    <tr><td><code>num_hidden_layers</code> \(L\)</td><td>32</td><td>层数</td></tr>
+    <tr><td><code>num_attention_heads</code></td><td>32</td><td>Q 头数；每头 \(d_{\text{head}} = 4096/32 = 128\)</td></tr>
+    <tr><td><code>num_key_value_heads</code></td><td>8</td><td><strong>GQA</strong>：K/V 只有 8 组，每 4 个 Q 头共享一组</td></tr>
+    <tr><td><code>intermediate_size</code> \(d_{ff}\)</td><td>14336</td><td>FFN 中间维度（注意：<em>不是</em> \(8d/3 \approx 10923\)）</td></tr>
+    <tr><td><code>vocab_size</code></td><td>128256</td><td>词表大小</td></tr>
+    <tr><td><code>tie_word_embeddings</code></td><td>false</td><td><strong>输入 embedding 与输出头不共享参数</strong></td></tr>
+    <tr><td><code>rope_theta</code></td><td>500000</td><td>RoPE 基频（原始论文用 10000，调大有利于长上下文）</td></tr>
+    <tr><td><code>hidden_act</code> / <code>rms_norm_eps</code></td><td>silu / 1e-5</td><td>SwiGLU 的激活函数；RMSNorm 的数值稳定项</td></tr>
+  </tbody>
+</table>
+
+<h4>3.1 逐部件相加（建议拿计算器跟着核一遍）</h4>
+<table class="tbl small">
+  <thead><tr><th>部件</th><th>张量形状</th><th>参数量</th></tr></thead>
+  <tbody>
+    <tr><td>\(W_Q\)</td><td>4096 × 4096</td><td>16.78 M</td></tr>
+    <tr><td>\(W_K\)</td><td>4096 × (8 × 128 = 1024)</td><td>4.19 M</td></tr>
+    <tr><td>\(W_V\)</td><td>4096 × 1024</td><td>4.19 M</td></tr>
+    <tr><td>\(W_O\)</td><td>4096 × 4096</td><td>16.78 M</td></tr>
+    <tr><td>SwiGLU \(W_{\text{gate}}\) / \(W_{\text{up}}\)</td><td>4096 × 14336，两个</td><td>117.44 M</td></tr>
+    <tr><td>SwiGLU \(W_{\text{down}}\)</td><td>14336 × 4096</td><td>58.72 M</td></tr>
+    <tr><td><strong>单层合计</strong></td><td></td><td><strong>218.1 M</strong></td></tr>
+    <tr><td>× 32 层</td><td></td><td>6.979 B</td></tr>
+    <tr><td>词嵌入</td><td>128256 × 4096</td><td>0.525 B</td></tr>
+    <tr><td>输出头（<em>不</em>共享）</td><td>128256 × 4096</td><td>0.525 B</td></tr>
+    <tr><td>RMSNorm 增益（32×2 + 1 = 65 个）</td><td>65 × 4096</td><td>0.0003 B</td></tr>
+    <tr><td><strong>总计</strong></td><td></td><td><strong>≈ 8.03 B</strong> ✓</td></tr>
+  </tbody>
+</table>
+<p>规则估算 \(12Ld^2 + |\mathcal{V}|d = 6.44 + 0.53 = 6.97\) B，与真实值差约 1.06 B。差在哪？三处，都要能解释：</p>
+<ol>
+  <li><strong>GQA 让注意力变小</strong>：规则按 \(4d^2 = 67.1\) M 算，实际只有 41.9 M——
+      K/V 从 32 头降到 8 头，每层省下 25.2 M。</li>
+  <li><strong>FFN 比规则更大</strong>：规则假设 \(d_{ff} = 8d/3 \approx 10923\)，实际 14336，
+      每层多出 \(3 \times 4096 \times (14336-10923) \approx 42.0\) M。</li>
+  <li><strong>词嵌入不共享</strong>：规则只算一份 \(|\mathcal{V}|d\)，实际两份，多出 0.525 B。</li>
+</ol>
+<p>
+  三项相加：\(32 \times (-25.2 + 42.0)\ \text{M} + 525\ \text{M} \approx 1.06\) B，
+  正好把 6.97 B 补到 8.03 B。<strong>规则给你五分钟估出量级；逐项核对让你敢在报告里写下具体数字。</strong>
+  这两件事是两种能力，缺一不可。
+</p>
+
+<h4>3.2 三个部件的精确定义（写报告时要能默写）</h4>
+<p><strong>RMSNorm</strong>——Llama 系列使用的归一化，只按均方根缩放，<em>不减均值、不设偏置</em>：</p>
+\[ \mathrm{RMSNorm}(x) = \frac{x}{\sqrt{\tfrac1d\sum_{i=1}^{d} x_i^2 + \epsilon}} \odot g, \qquad g \in \mathbb{R}^{d} \]
+<p>
+  对比 LayerNorm：\(\mathrm{LN}(x) = \frac{x-\mu}{\sigma}\odot g + b\)。
+  RMSNorm 少了求均值和一组 bias，在 GPU 上更快；在 LLM 上质量相当。
+  这是「工程上更省、质量不掉」的典型案例，也是 2019 年后几乎所有开源模型的默认选择。
+</p>
+<p><strong>SwiGLU</strong>——门控前馈网络：</p>
+\[ \mathrm{SwiGLU}(x) = W_{\text{down}}\Big(\mathrm{SiLU}(W_{\text{gate}}\,x) \odot W_{\text{up}}\,x\Big),
+   \qquad \mathrm{SiLU}(z) = z\,\sigma(z) \]
+<p>
+  记法：\(W_{\text{gate}}\) 决定「放行多少」，\(W_{\text{up}}\) 提供「内容」，逐元素相乘（\(\odot\)）后再降维。
+  这就是它有 3 个矩阵、而不是经典 FFN 的 2 个的原因。
+</p>
+<p><strong>GQA</strong>——分组查询注意力的形状约定：</p>
+\[ Q \in \mathbb{R}^{B\times T\times (h\,d_h)},\qquad K, V \in \mathbb{R}^{B\times T\times (h_{kv}\,d_h)},\qquad h_{kv} \mid h \]
+<p>
+  每 \(h/h_{kv}\) 个 Q 头共享一组 K/V。\(h_{kv} = h\) 就是经典多头（MHA），\(h_{kv} = 1\) 就是 MQA。
+  GQA 的收益全部体现在推理上：KV Cache 缩小到 \(h_{kv}/h\)，并发能力提高同样的倍数。
+</p>
+
+<h4>3.3 激活值显存：为什么系数是 10–20</h4>
+<p>反向传播需要前向的中间结果。以一个 pre-norm 的 block 为例，每个 token 需要保存的张量大致有：</p>
+<table class="tbl small">
+  <thead><tr><th>要保存的量</th><th>等价「\(d\) 维向量」个数</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>RMSNorm 输出（注意力前）</td><td>1</td><td>归一化后的输入</td></tr>
+    <tr><td>Q / K / V 投影</td><td>1 + 0.25 + 0.25</td><td>K/V 只有 \(h_{kv}/h = 1/4\) 的宽度</td></tr>
+    <tr><td>注意力输出 + 残差后</td><td>2</td><td>需要算梯度</td></tr>
+    <tr><td>RMSNorm 输出（MLP 前）</td><td>1</td><td>第二个归一化</td></tr>
+    <tr><td>MLP 的 gate / up 激活</td><td>2 × 3.5</td><td>中间维度 \(d_{ff} \approx 3.5d\)</td></tr>
+    <tr><td>MLP 输出 + 残差后</td><td>2</td><td>每个 block 的出口</td></tr>
+  </tbody>
+</table>
+<p>
+  合计约 \(1 + 1.5 + 2 + 1 + 7 + 2 = 14.5\) 个 \(d\) 维向量，
+  所以经验系数取 \(c \approx 10\text{–}20\)（不同实现保存的张量集合略有差异）。
+  再乘 bf16 的 2 字节，就得到每 token 每层的激活字节数——这是模块 04 开头那个估算式的来源。
+</p>
+
+<h3>4. 现代变体清单（知道名字与动机即可）</h3>
 <table class="tbl small">
   <thead><tr><th>部件</th><th>经典做法</th><th>现代做法</th><th>动机</th></tr></thead>
   <tbody>

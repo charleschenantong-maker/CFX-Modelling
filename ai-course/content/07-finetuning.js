@@ -79,6 +79,52 @@ COURSE.register({
   </p>
 </section>
 
+<h4>3.1 为什么「低秩」就够用：一个可检验的说法</h4>
+<p>
+  LoRA 的前提假设是：<strong>把预训练模型适配到下游任务，所需的权重变化 \(\Delta W\) 是低秩的</strong>。
+  直觉是——预训练已经学会了「怎么理解语言」，微调只需要在其中做小幅调整（改变风格、格式、领域词汇），
+  这种调整不需要动用到 \(4096\times4096\) 个自由度。
+</p>
+<p>
+  这个假设有一个可检验的后果：如果你把 \(\Delta W\) 做奇异值分解，它的能量应该集中在少数几个奇异值上。
+  原始论文正是用这个实验来支持低秩假设的。你也可以在自己的微调上验证：训练完把 \(\Delta W\) 取出来做 SVD，
+  看前 8 个奇异值占了多少能量。<em>这是一个很好的「小成本、真结论」实验。</em>
+</p>
+
+<h4>3.2 一个 7B 模型的 LoRA 参数量实算</h4>
+<p>以 Llama-3-8B 的维度（\(d = 4096\)、\(d_{ff} = 14336\)、\(h_{kv} = 8\)、\(d_{\text{head}} = 128\)、32 层）为例，取 \(r = 16\)：</p>
+<table class="tbl small">
+  <thead><tr><th>目标模块</th><th>原矩阵形状</th><th>LoRA 参数量 \(r(d+k)\)</th><th>× 32 层</th></tr></thead>
+  <tbody>
+    <tr><td>\(W_Q\)</td><td>4096 × 4096</td><td>\(16 \times 8192 = 131{,}072\)</td><td>4.19 M</td></tr>
+    <tr><td>\(W_K\)</td><td>4096 × 1024（GQA）</td><td>\(16 \times 5120 = 81{,}920\)</td><td>2.62 M</td></tr>
+    <tr><td>\(W_V\)</td><td>4096 × 1024</td><td>81,920</td><td>2.62 M</td></tr>
+    <tr><td>\(W_O\)</td><td>4096 × 4096</td><td>131,072</td><td>4.19 M</td></tr>
+    <tr><td><strong>仅注意力</strong></td><td></td><td>425,984 / 层</td><td><strong>13.6 M（占 8.03B 的 0.17%）</strong></td></tr>
+    <tr><td>加上 MLP 的 gate / up / down</td><td>4096×14336 等</td><td>884,736 / 层</td><td>+28.3 M</td></tr>
+    <tr><td><strong>注意力 + MLP</strong></td><td></td><td></td><td><strong>≈ 41.9 M（0.52%）</strong></td></tr>
+  </tbody>
+</table>
+<p>
+  这张表解释了社区里的经验规则：<strong>只挂 Q/V 最省但常常最弱；挂上全部注意力投影是默认起点；
+  效果不够再加 MLP</strong>。而「挂 MLP」的参数量是注意力的两倍多——所以要按需加，而不是一把全挂。
+</p>
+
+<h4>3.3 训练完可以「合并」回原权重</h4>
+<p>因为 \(\Delta W = \frac{\alpha}{r}BA\) 是确定性的矩阵，推理前可以直接合并：</p>
+\[ W_{\text{merge}} = W_0 + \frac{\alpha}{r}\,B A \]
+<p>
+  合并后模型结构与原模型完全一致，<strong>推理时不增加任何延迟与显存</strong>。
+  这是 LoRA 相对 adapter（插入额外层，推理必须带着走）的最大工程优势。
+  代价是：合并之后就很难再切换回原来的基座，做多任务时需要保留多个 adapter 或按需合并。
+</p>
+<p>
+  另外两个常被忽略的细节：<strong>(1) \(B\) 初始化为 0</strong>，所以训练开始时 \(\Delta W = 0\)，
+  模型精确等于原模型——这让 LoRA 的起步非常安全；
+  <strong>(2) \(\alpha/r\) 只是缩放</strong>，它不改变参数量，但会改变有效学习率，
+  所以调 \(r\) 时通常同时按比例调 \(\alpha\)（常见做法是固定 \(\alpha = 2r\)）。
+</p>
+
 <h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
 <p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答与被拒绝的回答。</p>
 <section class="blk blk-m">
@@ -94,6 +140,48 @@ COURSE.register({
     这正是它成为主流的原因——不需要在线采样，不需要奖励模型，训练像 SFT 一样稳定。
   </p>
 </section>
+
+<h4>4.1 三步推导：为什么奖励模型可以「约掉」</h4>
+<p><strong>第一步</strong>：写出带 KL 约束的优化目标（既要奖励高，又不能偏离参考模型太远）：</p>
+\[ \max_\theta\ \mathbb{E}_{y\sim p_\theta}\big[r(x,y)\big] - \beta\, D_{\mathrm{KL}}\big(p_\theta \,\|\, p_{\text{ref}}\big) \]
+<p>
+  这个目标有<strong>闭式最优解</strong>（这是变分法/玻尔兹曼分布的标准结论）：
+  \(p^*(y|x) \propto p_{\text{ref}}(y|x)\,e^{r(x,y)/\beta}\)，写成带配分函数 \(Z(x)\) 的形式：
+</p>
+\[ p^*(y|x) = \frac{1}{Z(x)}\,p_{\text{ref}}(y|x)\,\exp\!\Big(\frac{r(x,y)}{\beta}\Big) \]
+<p>
+  <strong>第二步</strong>：把上式反解出奖励。这一步给出了一个非常有用的视角——
+  奖励可以用「策略与参考模型的对数概率比」表示：
+</p>
+\[ r(x,y) = \beta\,\log\frac{p^*(y|x)}{p_{\text{ref}}(y|x)} + \beta\,\log Z(x) \]
+<p>
+  右边第二项 \(\beta\log Z(x)\) <strong>只依赖输入 \(x\)，不依赖回答 \(y\)</strong>。
+  <strong>第三步</strong>：把它代进 Bradley–Terry 偏好模型
+  \(P(y_w \succ y_l) = \sigma\big(r(x,y_w) - r(x,y_l)\big)\)——两个回答相减时，
+  这个只含 \(x\) 的项<strong>精确抵消</strong>，于是得到只含策略与参考模型对数概率的损失（即上一节的 \(\mathcal{L}_{\text{DPO}}\)）。
+</p>
+<p>
+  <strong>这就是「DPO 省掉了什么」的准确答案</strong>：它省掉的是<em>显式</em>奖励模型与在线采样，
+  但代价是奖励被<em>隐式地</em>定义成
+  \(\hat r(x,y) = \beta\log\frac{p_\theta(y|x)}{p_{\text{ref}}(y|x)} + \text{const}\)。
+  训练日志里看到的 <code>rewards/chosen</code> 与 <code>rewards/rejected</code> 就是这两个量。
+</p>
+
+<h4>4.2 \(\beta\) 在控制什么，以及 DPO 的固有限制</h4>
+<ul>
+  <li><strong>\(\beta\) 越小</strong>：允许策略偏离参考模型越远，优化更激进，容易过拟合偏好数据、损失多样性。</li>
+  <li><strong>\(\beta\) 越大</strong>：更贴近参考模型，变化保守，可能学不动。</li>
+  <li>常用起点 \(\beta = 0.1\)。判断是否过头的方法：看 chosen 与 rejected 的奖励差是否持续拉开，
+      同时<strong>独立评估集</strong>的表现有没有变差——只看训练日志一定会「越来越好」。</li>
+</ul>
+<p><strong>DPO 的三个固有局限</strong>（面试常问）：</p>
+<ol>
+  <li><strong>只能用离线数据</strong>：它优化的是「这份数据里被选中的回答」，
+      但真正想要的是「模型自己采样出来的回答里更好的那些」。数据分布与策略分布会逐渐错位。</li>
+  <li><strong>没有探索</strong>：PPO/GRPO 会不断采样新回答并从奖励里学习，DPO 只是拟合固定的偏好对。</li>
+  <li><strong>对数据质量极其敏感</strong>：偏好对里的标注噪声会被直接学成「这就是好的」。</li>
+</ol>
+<p>所以实践中的顺序通常是：<strong>先用 SFT 把行为对齐 → 有偏好对就用 DPO 微调 → 若答案可自动验证（数学、代码）则改用 GRPO。</strong></p>
 <table class="tbl small">
   <thead><tr><th>方法</th><th>需要的数据</th><th>关键点</th><th>TRL 文档</th></tr></thead>
   <tbody>

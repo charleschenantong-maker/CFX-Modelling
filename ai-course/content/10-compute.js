@@ -28,7 +28,7 @@ COURSE.register({
   <tbody>
     <tr><td>Colab 免费层</td><td>T4 16 GB / 单核 TPU v5e-1</td><td>会话易断、无持久磁盘、单卡无法 SPMD 多设备并行</td><td>教学实验、小模型、LoRA</td></tr>
     <tr><td>Google AI Pro（含 Colab 计算单元）</td><td>按月发放计算单元 + 更高优先级与更强机器；更高档位（AI Ultra）支持后台连续执行</td><td>计算单元耗尽后退回免费层策略；额度随政策变化</td><td>稍大的微调、以及可以离开电脑的长任务</td></tr>
-    <tr><td>Kaggle Notebooks</td><td>T4 ×2 / P100 / <strong>TPU v5e-8</strong></td><td>每周约 30 小时配额、需手机验证</td><td><strong>唯一能免费体验 8 设备 SPMD 的地方</strong></td></tr>
+    <tr><td>Kaggle Notebooks</td><td>T4 ×2 / P100 / <strong>TPU v5e-8</strong></td><td>每周有 GPU/TPU 配额（约 30 小时量级，会调整，以 Kaggle 界面为准）；需手机验证</td><td><strong>免费体验 8 设备 SPMD 并行的主要去处</strong></td></tr>
     <tr><td>Hugging Face Jobs / Spaces</td><td>按需 GPU、ZeroGPU</td><td>额度有限、任务化</td><td>跑一次脚本、做 demo</td></tr>
     <tr><td>本地显卡（如有）</td><td>8–24 GB</td><td>受散热与内存限制</td><td>反复迭代、调试、小模型全流程</td></tr>
     <tr><td>按需云（RunPod / Vast 等）</td><td>A100 / H100</td><td>按小时计费；数据中心 IP 有合规风险</td><td>一次性大实验</td></tr>

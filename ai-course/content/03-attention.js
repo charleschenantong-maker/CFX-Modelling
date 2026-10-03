@@ -57,6 +57,108 @@ COURSE.register({
   </p>
 </section>
 
+<h4>1.1 把「除以 \(\sqrt{d_k}\)」的推导写完整</h4>
+<p>
+  上一节说「点积的方差是 \(d_k\)」，这里给出完整推理。设 \(q, k \in \mathbb{R}^{d_k}\)，
+  各分量 \(q_i, k_i\) 相互独立、均值为 0、方差为 1（这是初始化后和前几层归一化后的常见近似）。那么：
+</p>
+\[ \mathbb{E}[q \cdot k] = \mathbb{E}\Big[\sum_{i=1}^{d_k} q_i k_i\Big] = \sum_{i=1}^{d_k} \mathbb{E}[q_i]\,\mathbb{E}[k_i] = 0 \]
+\[ \mathrm{Var}[q \cdot k] = \sum_{i=1}^{d_k} \mathrm{Var}[q_i k_i]
+   = \sum_{i=1}^{d_k} \mathbb{E}[q_i^2]\,\mathbb{E}[k_i^2] = \sum_{i=1}^{d_k} 1 = d_k \]
+<p>
+  所以点积的标准差是 \(\sqrt{d_k}\)。当 \(d_k = 128\) 时，未缩放的点积典型落在 \(\pm 11\) 之间；
+  而 softmax 对输入的尺度极其敏感——输入差 10 与差 1，输出分布会从「几乎均匀」变成「几乎 one-hot」。
+</p>
+<p>
+  更精确地说：softmax 的雅可比矩阵含因子 \(p_i(\delta_{ij} - p_j)\)。当某个 \(p_i \to 1\) 时，
+  该行所有偏导 \(\to 0\)，梯度消失。<strong>除以 \(\sqrt{d_k}\) 就是把点积的方差重新标定到 1，
+  让 softmax 工作在还有梯度的区间里。</strong>这不是「防止数值溢出」这种工程细节，而是训练能否进行的问题。
+</p>
+
+<h4>1.2 张量形状：一次注意力里到底流动着什么</h4>
+<p>以 Llama-3-8B 的规格为例（\(d = 4096\)、\(h = 32\)、\(d_{\text{head}} = 128\)、\(h_{kv} = 8\)，批 \(B = 2\)、序列 \(T = 1024\)）：</p>
+<table class="tbl small">
+  <thead><tr><th>张量</th><th>形状</th><th>元素数</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>输入 \(X\)</td><td>(2, 1024, 4096)</td><td>8.4 M</td><td>每个位置一个 4096 维向量</td></tr>
+    <tr><td>\(Q\)</td><td>(2, 32, 1024, 128)</td><td>8.4 M</td><td>32 个 Q 头</td></tr>
+    <tr><td>\(K\) / \(V\)</td><td>(2, 8, 1024, 128)</td><td>2.1 M</td><td>只有 8 组（GQA），宽度是 Q 的 1/4</td></tr>
+    <tr><td>注意力分数 \(QK^\top\)</td><td>(2, 32, 1024, 1024)</td><td><strong>67.1 M</strong></td><td>这是 \(O(T^2)\) 的来源</td></tr>
+    <tr><td>输出</td><td>(2, 1024, 4096)</td><td>8.4 M</td><td>拼接所有头后投影</td></tr>
+  </tbody>
+</table>
+<p>
+  注意第 4 行：<strong>分数矩阵的元素数（67 M）是输入（8.4 M）的 8 倍</strong>，
+  而且当 \(T\) 从 1024 涨到 8192 时它会涨到 64 倍。如果把它物化到显存，
+  fp16 下就是 \(2 \times 32 \times 8192^2 \times 2\ \text{B} = 8.6\) GB——
+  仅仅为了算一次注意力。<em>这就是 FlashAttention 要解决的问题。</em>
+</p>
+
+<h4>1.3 为什么用 softmax，而不是「直接选最相关的那个」</h4>
+<p>
+  一个自然的想法是硬检索：只看相似度最高的那个位置（hard attention）。它的问题是不可微——
+  「选出最大值」这个操作本身没有梯度，无法通过反向传播学习「该问什么、该怎么答」。
+</p>
+<p>
+  \(\mathrm{softmax}\) 是 \(\arg\max\) 的<strong>光滑近似</strong>：温度越低越接近 one-hot，
+  温度越高越接近平均。于是模型可以同时做到两件事——<em>选出最重要的位置</em>（前向行为）
+  和<em>通过梯度学习如何选择</em>（反向训练）。这个「用可微的软操作替代不可微的硬操作」的思路，
+  在整个深度学习里反复出现（软注意力、可微渲染、Gumbel-Softmax 采样）。
+</p>
+
+<h4>1.4 FlashAttention：把 \(O(T^2)\) 的显存变成 \(O(T)\)</h4>
+<p>
+  核心观察是：GPU 的算力很快，但显存读写很慢。朴素实现把 \(T\times T\) 的分数矩阵写回显存、
+  再读出来做 softmax，瓶颈全在带宽上。FlashAttention 做三件事：
+</p>
+<ol>
+  <li><strong>分块</strong>：把 \(Q\)、\(K\)、\(V\) 切成能放进片上 SRAM 的小块，在片内完成整段计算，不落盘。</li>
+  <li><strong>在线 softmax</strong>：softmax 需要全局最大值与总和，但分块时还不知道全局值。它用递推维护
+      「当前最大值 \(m\)」与「当前指数和 \(\ell\)」，每读一块就修正一次：
+      \[ m_{\text{new}} = \max(m_{\text{old}}, \max(s_{\text{block}})), \qquad
+         \ell_{\text{new}} = e^{m_{\text{old}}-m_{\text{new}}}\,\ell_{\text{old}} + \sum_j e^{s_j - m_{\text{new}}} \]
+      \[ O_{\text{new}} = e^{m_{\text{old}}-m_{\text{new}}}\,O_{\text{old}} + e^{s_{\text{block}}-m_{\text{new}}} V_{\text{block}} \]
+      最后输出 \(O / \ell\)。数学上与一次性 softmax 完全等价，只是换了计算顺序。
+  </li>
+  <li><strong>反向重算</strong>：不在前向保存分数矩阵，反向时按块重新算一遍（用算力换显存）。</li>
+</ol>
+<p>
+  结果：显存从 \(O(T^2)\) 降到 \(O(T)\)，速度通常还更快。
+  <strong>这是一个「用更好的计算顺序换取更少的数据搬运」的经典案例</strong>——
+  同样的思想后来出现在几乎所有高效 kernel 里。
+</p>
+
+<h4>1.5 KV Cache：把数字算到具体模型上</h4>
+<p>用 Llama-3-8B 的规格（\(L = 32\)、\(h_{kv} = 8\)、\(d_{\text{head}} = 128\)）和 fp16（2 字节）：</p>
+<table class="tbl small">
+  <thead><tr><th>层级</th><th>计算</th><th>结果</th></tr></thead>
+  <tbody>
+    <tr><td>每 token 每层</td><td>\(2 \times 8 \times 128 \times 2\ \text{B}\)</td><td><strong>4 KB</strong>（K 与 V 各 2 KB）</td></tr>
+    <tr><td>每 token 全部 32 层</td><td>\(4\ \text{KB} \times 32\)</td><td><strong>128 KB</strong></td></tr>
+    <tr><td>一条 8k 上下文的序列</td><td>\(128\ \text{KB} \times 8192\)</td><td><strong>≈ 1 GiB</strong></td></tr>
+    <tr><td>批 16 条同时解码</td><td>\(1\ \text{GiB} \times 16\)</td><td><strong>≈ 16 GiB</strong></td></tr>
+  </tbody>
+</table>
+<p>
+  最后一行值得停一下：<strong>8k 上下文、批 16 时，KV Cache 与模型权重一样大</strong>（bf16 的 8B 权重约 16 GB）。
+  这解释了三件事：（1）长上下文推理的显存瓶颈往往不是权重而是缓存；（2）GQA 把 K/V 头数降到 1/4，
+  缓存直接省 4 倍；（3）KV Cache 量化（到 int8）是非常划算的优化。
+</p>
+
+<h4>1.6 RoPE 的旋转矩阵与「相对位置」性质</h4>
+<p>RoPE 把 \(d\) 维空间两两配对，每一对 \((2i, 2i+1)\) 用一个二维旋转矩阵，旋转角度与该维度的频率和位置成正比：</p>
+\[ \theta_i = \text{base}^{-2i/d}, \qquad
+   R(\theta_i, m) = \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix} \]
+<p>把位置 \(m\) 的 query 与位置 \(n\) 的 key 分别旋转后做点积，利用旋转矩阵的正交性得到：</p>
+\[ \big\langle R_m q,\; R_n k \big\rangle = \big\langle q,\; R_{n-m}\, k \big\rangle \]
+<p>
+  也就是说<strong>注意力分数只依赖相对距离 \(n-m\)</strong>，与绝对位置无关——这正是它外推性较好的原因。
+  另一个实践细节：基频 <code>base</code> 的取值会影响长上下文能力。
+  原始 RoPE 用 \(10000\)，而 Llama-3 用的是 \(500000\)（见模块 04 的 config 表）——
+  基频越大，不同维度的旋转速度差别越缓，位置编码在更长的序列上越平滑。
+  「位置插值」「YaRN」「NTK 缩放」这些长上下文技巧，本质上都是在改这一族频率。
+</p>
+
 <h3>2. 多头：把 \(d\) 切成 \(h\) 份</h3>
 <p>
   单头注意力只能学一种「相似度」。多头把 \(d\) 维表示分成 \(h\) 个子空间并行做注意力，再拼接投影回 \(d\) 维：

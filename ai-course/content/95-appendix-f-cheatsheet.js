@@ -45,6 +45,13 @@ COURSE.register({
     <tr><td>\(\text{RMSE}_{\text{LOOCV}}^2 = \frac1N\sum_i\big(\tfrac{y_i-\hat y_i}{1-h_{ii}}\big)^2\)</td><td>留一交叉验证的 \(O(Nd^2)\) 捷径</td><td>09 / 16</td><td>真的跑 N 次重训</td></tr>
     <tr><td>\(R(f) \le R_{\text{emp}} + \sqrt{\tfrac{h(\ln(2N/h)+1)-\ln(\eta/4)}{N}}\)</td><td>VC 泛化界；\(N=250\) 时是空的</td><td>09</td><td>拿它当精确误差估计</td></tr>
     <tr><td>\(t_{\text{step}} \approx \dfrac{\text{model bytes}}{\text{memory bandwidth}}\)</td><td>解码速度上限（带宽受限）</td><td>03 / 08</td><td>以为提速要靠更多算力</td></tr>
+    <tr><td>\(\mathrm{SE} = \sigma/\sqrt{N}\)</td><td>均值的不确定度；做实验前先算它，判断「多大的差别才测得出来」</td><td>09</td><td>拿小于 1 SE 的改进当结论</td></tr>
+    <tr><td>\(\mathrm{df}(\lambda) = \sum_j \frac{\sigma_j^2}{\sigma_j^2+\lambda}\)</td><td>岭回归的有效自由度（\(\sigma_j\) 为 \(X\) 的奇异值）</td><td>09</td><td>以为「加了特征」就等于「增加了有效容量」</td></tr>
+    <tr><td>\(\mathrm{RMSNorm}(x)=\frac{x}{\sqrt{\frac1d\sum x_i^2+\epsilon}}\odot g\)</td><td>Llama 系列归一化：不减均值、无 bias</td><td>04</td><td>与 LayerNorm 混写</td></tr>
+    <tr><td>\(\mathrm{SwiGLU}(x)=W_{\text{down}}(\mathrm{SiLU}(W_{\text{gate}}x)\odot W_{\text{up}}x)\)</td><td>门控 FFN，3 个矩阵的来源</td><td>04</td><td>按 2 个矩阵算参数量</td></tr>
+    <tr><td>\(\langle R_m q, R_n k\rangle = \langle q, R_{n-m}k\rangle\)</td><td>RoPE 只依赖相对位置</td><td>03</td><td>以为位置编码改变的是 token 向量本身</td></tr>
+    <tr><td>\(\hat r(x,y)=\beta\log\frac{p_\theta(y|x)}{p_{\text{ref}}(y|x)}\)</td><td>DPO 的隐式奖励（日志里的 rewards/chosen）</td><td>07</td><td>以为 DPO 完全没有奖励概念</td></tr>
+    <tr><td>\(s=\frac{w_{\max}-w_{\min}}{2^b-1}\)</td><td>分组仿射量化的步长；误差上界是 \(s/2\)</td><td>08</td><td>以为误差与位宽成线性关系</td></tr>
   </tbody>
 </table>
 
@@ -62,6 +69,22 @@ COURSE.register({
     <tr><td>解码吞吐</td><td>批大小 ÷ 单步时间</td><td>批 1→32，吞吐近线性涨，单请求延迟不变</td></tr>
     <tr><td>推理算力</td><td>每 token ≈ \(2N\) FLOPs</td><td>用于估服务成本</td></tr>
     <tr><td>数据量经验值</td><td>微调：几百–几万条；预训练：token ≈ 20×参数量起</td><td>过训练是常态（Llama-3-8B ≈ 1875×）</td></tr>
+  </tbody>
+</table>
+
+<h4>2.1 Llama-3-8B 逐项核对（已对照公开 config，可直接引用）</h4>
+<table class="tbl small">
+  <thead><tr><th>项目</th><th>数值</th><th>备注</th></tr></thead>
+  <tbody>
+    <tr><td>config</td><td>\(L=32,\ d=4096,\ h=32,\ h_{kv}=8,\ d_{ff}=14336,\ |\mathcal{V}|=128256,\ \text{rope\_theta}=5\times10^{5}\)</td><td>GQA；<code>tie_word_embeddings=false</code></td></tr>
+    <tr><td>单层注意力（GQA）</td><td>41.9 M</td><td>\(4d^2\) 会高估到 67.1 M</td></tr>
+    <tr><td>单层 SwiGLU</td><td>176.2 M</td><td>因 \(d_{ff}=14336 > 8d/3\)</td></tr>
+    <tr><td>单层合计</td><td>218.1 M</td><td>×32 = 6.979 B</td></tr>
+    <tr><td>词嵌入 + 输出头</td><td>0.525 B × 2</td><td>不共享，所以比规则多 0.525 B</td></tr>
+    <tr><td><strong>总计</strong></td><td><strong>≈ 8.03 B</strong></td><td>规则式 \(12Ld^2+|\mathcal{V}|d\) 给 6.97 B，差 1.06 B</td></tr>
+    <tr><td>KV Cache</td><td>4 KB/token/层；128 KB/token；8k 上下文 ≈ 1 GiB；批 16 ≈ 16 GiB</td><td>fp16</td></tr>
+    <tr><td>训练显存下限</td><td>≈ 16 字节/参数 + 激活</td><td>bf16 权重/梯度 + fp32 优化器状态与主权重</td></tr>
+    <tr><td>LoRA（r=16）</td><td>仅注意力 13.6 M（0.17%）；加 MLP 41.9 M（0.52%）</td><td>合并后推理零额外开销</td></tr>
   </tbody>
 </table>
 

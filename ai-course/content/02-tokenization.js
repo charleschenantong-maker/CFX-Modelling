@@ -58,6 +58,56 @@ COURSE.register({
   <strong>中文在按 token 计费的体系里通常更贵</strong>，因为同一语义需要更多 token——这不是价格歧视，而是分词效率差异。</p>
 </section>
 
+<h4>1.1 手算一次 BPE：四步就能看出它在干什么</h4>
+<p>
+  教材里最经典的迷你语料是这四个词（数字是出现次数）：<code>low</code>×5、<code>lower</code>×2、
+  <code>newest</code>×6、<code>widest</code>×3。每个词先拆成字母，并在词尾加一个结束标记 <code>&lt;/w&gt;</code>。
+</p>
+<table class="tbl small">
+  <thead><tr><th>步骤</th><th>最高频的相邻对</th><th>频次</th><th>合并后新增的 token</th><th>语料里发生的变化</th></tr></thead>
+  <tbody>
+    <tr><td>初始</td><td>—</td><td>—</td><td>单字母 + <code>&lt;/w&gt;</code></td><td><code>newest</code> → <code>n e w e s t &lt;/w&gt;</code></td></tr>
+    <tr><td>1</td><td>(e, s)</td><td>9</td><td><code>es</code></td><td><code>n e w es t &lt;/w&gt;</code></td></tr>
+    <tr><td>2</td><td>(es, t)</td><td>9</td><td><code>est</code></td><td><code>n e w est &lt;/w&gt;</code></td></tr>
+    <tr><td>3</td><td>(est, <code>&lt;/w&gt;</code>)</td><td>9</td><td><code>est&lt;/w&gt;</code></td><td><code>n e w est&lt;/w&gt;</code></td></tr>
+    <tr><td>4</td><td>(l, o)</td><td>7</td><td><code>lo</code></td><td><code>lo w &lt;/w&gt;</code>、<code>lo w e r &lt;/w&gt;</code></td></tr>
+  </tbody>
+</table>
+<p>
+  频次从哪来：<code>newest</code> 出现 6 次、<code>widest</code> 出现 3 次，它们的结尾都是 <code>est&lt;/code>…，
+  所以 <code>(e,s)</code> 一共 9 次。并列最高频时按固定顺序打破平局（真实实现里这一步是确定性的，保证可复现）。
+</p>
+<p><strong>三个结论：</strong></p>
+<ol>
+  <li>合并规则是<em>按学习到的顺序</em>贪心应用的，不是按频次重新排序——所以同一个词在不同 tokenizer 下切法不同。</li>
+  <li>常见词尾、常见前缀会被合成一个 token，罕见词则被切成多块。这就是为什么英文的 fertility 比中文低。</li>
+  <li>真实 tokenizer 的训练语料是几十亿到几万亿字符，但<strong>算法和上面这张表完全一样</strong>。</li>
+</ol>
+
+<h4>1.2 为什么用「字节级」而不是「字符级」</h4>
+<p>
+  <code>byte-level</code> BPE 的起点不是字符，而是 <strong>UTF-8 字节</strong>（256 个）。
+  好处是<strong>任何 Unicode 文本都能被编码，永远不会出现「未知词」</strong>——
+  哪怕是 emoji、罕见汉字、混合脚本，都能拆成字节再合并。
+</p>
+<p>
+  代价是：一个汉字在 UTF-8 里占 3 个字节，如果不被合并，就会被切成 3 个 token。
+  中文模型的中文分词效率，本质上取决于它的词表里合并了多少常用汉字与词组。
+  <em>这解释了一个常见现象：同一个开源模型，在中文上「更贵、更短上下文」，根源在词表而不在模型能力。</em>
+</p>
+
+<h4>1.3 tokenizer 学到的 vs 模型学到的</h4>
+<p>两者经常被混为一谈，其实是两阶段、两份产物：</p>
+<table class="tbl small">
+  <thead><tr><th></th><th>tokenizer</th><th>模型</th></tr></thead>
+  <tbody>
+    <tr><td>产物</td><td>合并规则 + 词表（通常几 MB）</td><td>几十亿个权重（几 GB）</td></tr>
+    <tr><td>怎么来的</td><td>统计频率的贪心合并，<strong>没有梯度</strong></td><td>梯度下降，最小化交叉熵</td></tr>
+    <tr><td>能改吗</td><td>一旦更换，模型 embedding 全部失效</td><td>可以继续预训练/微调</td></tr>
+    <tr><td>影响什么</td><td>成本、上下文长度、罕见词表现</td><td>能力、知识、行为</td></tr>
+  </tbody>
+</table>
+
 <h3>2. 词表大小是一场权衡</h3>
 <table class="tbl">
   <thead><tr><th>选择</th><th>好处</th><th>代价</th></tr></thead>
