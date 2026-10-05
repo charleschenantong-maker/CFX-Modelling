@@ -224,6 +224,12 @@ api.upload_folder(folder_path="out-sft/final", repo_id="your-name/mini-sft-demo"
   </ol>
 </section>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先拿标量热身：为什么反向恰好是前向的 2 倍</h4>
+  <p>忘掉矩阵，只看 \(y = x\,w\)。前向 1 次乘法；反向收到上游梯度 \(g\) 后要算两个数：\(\partial\mathcal{L}/\partial x = g\,w\) 与 \(\partial\mathcal{L}/\partial w = x\,g\)——2 次乘法。</p>
+  <p>1 次对 2 次，这就是 2N 对 4N 的全部直觉；矩阵版只是把每次标量乘法换成 GEMM（\(GW^T\) 传梯度、\(X^TG\) 算权重梯度）。LLM 回报：6N 定理的 6 就是 \(6 = 2 + 4\)，MFU 账本里吞吐乘的正是这个 6。</p>
+</section>
+
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>为什么反向传播严格是 \( 4N \) FLOPs？——矩阵微积分严格证明</h4>
   <p>许多初学者直觉上认为反向传播应该与前向对称（以为也是 2N）。这里给出数学系标准的多元微积分链式法则推导：</p>
@@ -259,7 +265,8 @@ api.upload_folder(folder_path="out-sft/final", repo_id="your-name/mini-sft-demo"
   \[ \text{Total FLOPs} = 6 \cdot N \cdot D \]
   <p class="small">
     注：(1) 若开启激活重计算（Activation Checkpointing / Gradient Checkpointing）以显存换计算，在反向时需要把前向重新计算一遍，总计算量上升为 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
-    (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \)，单 Token 平摊计算量为 \( 4 T d \)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。
+    (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \)，单 Token 平摊计算量为 \( 4 T d \)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
+    (3) 长上下文守卫：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
   </p>
 </section>
 

@@ -14,6 +14,24 @@ COURSE.register({
   这一模块讲清楚三件事——想更久为什么有用、什么时候会饱和、以及你为它付出的 token 与显存代价。
 </p>
 
+<h3>0. 先把“推理”变成可验收的任务</h3>
+<p>
+  测试时计算的价值不在于让模型写出更长的草稿，而在于<strong>多花计算换来更高的可验证成功率</strong>。
+  先选有明确答案或判分器的任务，再决定要不要多采样、投票、搜索或过程奖励；开放式写作通常只会变贵，不会自动变可靠。
+</p>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>四个数字先于任何搜索公式</h4>
+  <table class="tbl small">
+    <thead><tr><th>数字</th><th>含义</th><th>用来决定什么</th></tr></thead>
+    <tbody>
+      <tr><td>单次正确率 (p)</td><td>一个独立样本答对的概率</td><td>多采样是否有上限收益</td></tr>
+      <tr><td>验证器准确率 (q)</td><td>判分器把对错分开的能力</td><td>搜索会不会把验证器的错误放大</td></tr>
+      <tr><td>每次成本 (c)</td><td>延迟、token 或 GPU 时间</td><td>是否值得增加样本数</td></tr>
+      <tr><td>固定任务集</td><td>同一批可重复题目</td><td>区分能力提升与运气</td></tr>
+    </tbody>
+  </table>
+</section>
+
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
@@ -160,6 +178,43 @@ COURSE.register({
   </table>
   <p>因为 \(2.546>2.017>1.560\)，下一步选 C。访问 C 后更新 \(N_C\) 与 \(Q_C\)，再重算；这就是树搜索的“展开—评估—回传”循环。</p>
 </section>
+
+<div class="acc" data-t="深入：探索项根号里为什么是 ln N 除以 N_i（Hoeffding 置信半径）" data-badge="进阶">
+  <div class="acc-body">
+    <p>
+      <strong>crossfade 决策先行：你的项目用不上树搜索——但要用它的结论。</strong>
+      音频问答里中间步骤无法被程序打分（「好不好听」没有裁判），\(q\) 接近随机，
+      此时搜索退化成昂贵的随机游走。记住本块唯一能带走的结论：
+      <strong>当验证器不可靠时，加分支不如加验证器</strong>（第 7 节已量化）。
+      下面是给想看懂 MCTS 论文的人准备的推导，跳过不影响后续章节。
+      部署视角：一次 UCB 选分支的计算量可忽略，真正的账单是被选中的分支要多生成整条链——
+      分支 \(b\)、深度 \(d\) 下 token 成本约 \(b^d\) 量级（第 3 节已算：\(b=3\)、\(d=4\) 时 121 次评估对 4 次）。
+      什么时候不值：分支的 \(Q_i\) 本身噪声极大（过程奖励模型不准）时，公式会一本正经地探索噪声——
+      此时先回第 3 节修裁判，而不是调 \(c\)。
+    </p>
+    <p>
+      先把每个高级词翻译成大白话：分支 \(i\) 是搜索树上一个还没走完的选项；
+      \(Q_i\) 是它过去走过的平均分（利用）；\(N_i\) 是它被走过几次；
+      \(N\) 是它父亲一共被走过几次；\(c\) 是你愿意为「试试冷门」付多少钱的旋钮，常用 \(\sqrt{2}\)。
+      根号项 \(\sqrt{\ln N / N_i}\) 是「不确定性」：一个分支被访问得越少（\(N_i\) 小），
+      它的真实水平就越不确定，上浮空间就越大——公式用加法把这种不确定性直接折成分数。
+    </p>
+    <p>
+      为什么偏偏是 \(\ln N\) 除以 \(N_i\) 再开方？来自 Hoeffding 不等式：
+      \(N_i\) 次独立试探的平均分偏离真值超过 \(\epsilon\) 的概率不超过 \(2e^{-2N_i\epsilon^2}\)。
+      令这个上界等于随父亲访问次数衰减的 \(2N^{-4}\)（父亲见得越多，对每个孩子的要求越严），
+      解 \(2e^{-2N_i\epsilon^2} = 2N^{-4}\) 得 \(\epsilon = \sqrt{2\ln N / N_i}\)——
+      这就是 \(c = \sqrt{2}\) 的来源。\(N_i\) 写在分母里，所以访问越少的分支探索项越大；
+      \(\ln N\) 长得极慢，所以父亲访问再多，也不会逼你去试一个已经被验证很差的分支。
+    </p>
+    <p>
+      回到上面的表：C 只被访问 1 次，不确定性最大（2.146），即使平均分最低也被选中——
+      这正是「探索」的定义。访问 C 之后 \(N_C\) 变成 2，它的探索项立刻掉到 1.517 量级，
+      下一次就轮到真正分高的分支。用一句话记：
+      <strong>UCB1 不是选最好的，而是选「最有可能被低估的」。</strong>
+    </p>
+  </div>
+</div>
 
 <h3>3. 过程奖励与结果奖励：谁来当裁判</h3>
 <p>
@@ -557,8 +612,8 @@ COURSE.register({
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：30 秒的模拟 + 一个真模型评估协议</h4>
-  <p><strong>实验 A（纯 CPU，秒级）：</strong>验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。</p>
-<pre><code>from math import lgamma, exp
+  <p><strong>实验一（纯 CPU，秒级）：</strong>验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。</p>
+<pre><code>from math import lgamma, exp, log
 
 <span class="cm"># [逐行剖析] 1. 数值稳定对数二项式系数 ln(C(n, k))</span>
 def log_comb(n, k):
@@ -571,18 +626,45 @@ def p_majority(N, p):
     k_min = N // 2 + 1
     total = 0.0
     for k in range(k_min, N + 1):
-        ln_prob = log_comb(N, k) + k * (p if p > 0 else 1e-12) + (N - k) * (1 - p if p < 1 else 1e-12)
+        ln_prob = log_comb(N, k) + k * log(p if p > 0 else 1e-12) + (N - k) * log(1 - p if p < 1 else 1e-12)
         total += exp(ln_prob)
     return total
 
 print("孔多塞陪审团多数投票胜率解析解:")
 for N in (1, 3, 5, 9, 21):
-    print(f"N={N:2d} | 单次胜率 p=0.60 -> 投票胜率 P={p_majority(N, 0.60):.4f}")</code></pre>
+    print(f"N={N:2d} | 单次胜率 p=0.60 -> 投票胜率 P={p_majority(N, 0.60):.4f}")
+<span class="cm"># 自检：概率必须落在 [0, 1] 内。p=0.60 时 N=9 应得 P≈0.7334；若看到 P>1，说明把 k*log(p) 写成了 k*p</span>
+assert all(0.0 &lt;= p_majority(N, 0.60) &lt;= 1.0 for N in (1, 3, 5, 9, 21))</code></pre>
+<pre><code><span class="cm"># [逐行剖析] 3. 错误一致性 s：N 条全错时，它们错成同一个答案的概率</span>
+<span class="cm"># 数学机制: P_vote(N,p,s) = s*p + (1-s)*p_majority(N,p)</span>
+<span class="cm"># s=0 错误相互独立（投票最有效）；s=1 错误完全撞车（投票退化为单次采样）</span>
+import random
+def trial(N, p, s, reps=20000):
+    win = 0
+    for _ in range(reps):
+        if random.random() &lt; s:
+            win += random.random() &lt; p   <span class="cm"># 完全相关：N 条坍缩成一次抽样</span>
+        else:
+            win += sum(random.random() &lt; p for _ in range(N)) &gt; N // 2
+    return win / reps
+
+for s in (0.0, 0.5, 0.8, 1.0):
+    print(f"s={s:.1f} -> 投票胜率约 {trial(9, 0.60, s):.3f}")</code></pre>
+  <p>
+    <strong>先定符号 \(s\)（错误一致性强度）</strong>：\(N\) 条采样里，错误答案「撞到同一个错误选项上」的概率就是 \(s\)。
+    \(s = 0\) 表示错误相互独立（投票最有效）；\(s = 1\) 表示错误永远撞车（多数投票退化为单次采样）。
+    上面第二段代码的混合模型是 \(P_{\text{vote}}(N,p,s) = s\cdot p + (1-s)\cdot p_{\text{maj}}(N,p)\)。
+    手算 \(p = 0.60\)、\(N = 9\)（此时 \(p_{\text{maj}} \approx 0.733\)）：\(s = 0\) 时投票胜率 0.733；
+    \(s = 0.5\) 时 \(0.5\times0.6+0.5\times0.733 = 0.667\)；
+    \(s = 0.8\) 时 0.627；\(s = 1\) 时只剩 0.600——与单次采样完全一样，多花的 8 次采样钱全白花。
+  </p>
   <p>
     <strong>要观察的东西</strong>：覆盖率稳定在 0.94 附近，而投票准确率随 \(s\) 上升而崩塌——
     这就是「覆盖率不等于交付质量」的最小可复现证据。
+    真实模型的错误天然带一致性（同一个误解会被重复采样到），所以线上投票的收益永远低于独立假设下的公式值；
+    先在 20–50 道自己的题上测出 \(s\) 的量级，再决定加 \(n\) 还是换验证器。
   </p>
-  <p><strong>实验 C（免费 Colab，几分钟）：用真模型测你自己的 \(p\) 与 \(q\)。</strong>协议如下。</p>
+  <p><strong>实验二（免费 Colab，几分钟）：用真模型测你自己的 \(p\) 与 \(q\)。</strong>协议如下。</p>
 <pre><code>!pip -q install "transformers" "datasets"
 
 from transformers import pipeline

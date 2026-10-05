@@ -15,6 +15,20 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
+  <h4><span class="ic">✓</span>训练日志先看症状，再看公式</h4>
+  <table class="tbl small">
+    <thead><tr><th>日志症状</th><th>常见原因</th><th>先做的一步检查</th></tr></thead>
+    <tbody>
+      <tr><td>loss 变成 NaN</td><td>精度溢出、学习率过大、梯度异常</td><td>切到 bf16，打印梯度范数，暂时降低学习率</td></tr>
+      <tr><td>loss 突然尖峰</td><td>脏数据、异常长样本、恢复训练时状态不一致</td><td>记录尖峰 batch 的样本 ID、长度和 token 统计</td></tr>
+      <tr><td>训练集下降，验证集不动</td><td>过拟合、数据泄漏或验证集太小</td><td>固定验证集，检查重复样本和 train/val 切分</td></tr>
+      <tr><td>loss 几乎不动</td><td>标签错位、学习率太小、参数没有更新</td><td>确认 targets 是输入右移一位，并检查参数梯度非零</td></tr>
+    </tbody>
+  </table>
+  <p>这些现象比记住某个最优超参数更可迁移；公式用来解释现象，排障顺序才是训练能否跑通的关键。</p>
+</section>
+
+<section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
     <strong>一句话类比</strong>：预训练就是「反复做题、对答案、改错」，重复几十万次；<br />
@@ -78,6 +92,12 @@ COURSE.register({
   第二步 \(m_2 = 0.9\,m_1 + 0.1\,g_2\)，仍然被初值拖累。
   如果直接用 \(m_t\) 当梯度，训练初期的有效步长会被人为压小。
 </p>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先拿标量热身：第一步的动量被压扁了 10 倍</h4>
+  <p>设第一步梯度 \(g_1 = 5\)，\(\beta_1 = 0.9\)，初值 \(m_0 = 0\)，则 \(m_1 = 0.9 \times 0 + 0.1 \times 5 = 0.5\)——只有真实梯度的十分之一。</p>
+  <p>偏置校正把它除回去：\(0.5 / (1 - 0.9) = 0.5 / 0.1 = 5\)，恰好还原。若不校正，warmup 前几百步的有效学习率会被人为压小一个量级，loss 曲线开头那段平坦多半是它。</p>
+  <p>LLM 回报：这就是 warmup 必须和偏置校正一起看的原因——省的是训练前几千步炸掉重来的 GPU 小时数。</p>
+</section>
 <p>把递推展开就能看清偏差有多大：</p>
 \[ m_t = (1-\beta_1)\sum_{i=1}^{t}\beta_1^{\,t-i}\,g_i
    \qquad\Longrightarrow\qquad
@@ -128,12 +148,16 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>对象</th><th>精度</th><th>每参数字节</th><th>为什么</th></tr></thead>
   <tbody>
-    <tr><td>前向/反向的权重、激活、梯度</td><td>bf16</td><td>2 / 2 / 2</td><td>矩阵乘用它最快</td></tr>
+    <tr><td>前向/反向的权重、梯度</td><td>bf16</td><td>2 / 2</td><td>矩阵乘用它最快</td></tr>
     <tr><td>优化器状态（\(m\), \(v\)）</td><td>fp32</td><td>8</td><td>累积量需要精度，否则更新会抖动</td></tr>
     <tr><td>fp32 主权重副本</td><td>fp32</td><td>4</td><td>更新在 fp32 里做，避免小步长被 bf16 舍入吃掉</td></tr>
-    <tr><td><strong>合计</strong></td><td></td><td><strong>16</strong></td><td>这就是「训练显存 = 16 字节/参数」的来源</td></tr>
+    <tr><td><strong>合计</strong></td><td></td><td><strong>2 + 2 + 8 + 4 = 16</strong></td><td>这就是「训练显存 = 16 字节/参数」的来源</td></tr>
   </tbody>
 </table>
+<p>
+  注：上表是「参数常驻」部分；激活是另算的现场量，量级约为 \(B \cdot T \cdot L \cdot d\) 再乘每元素字节数，
+  随 batch、序列长度、层数、维度线性增长——长上下文训练里激活才是显存杀手，具体算法见模块 08 的 KV Cache 算账。
+</p>
 <p>
   <strong>loss scaling 只在 fp16 上需要</strong>：fp16 的指数位只有 5 位，最小正规数约 \(6\times10^{-5}\)，
   小梯度会下溢成 0。做法是先把损失放大 \(2^{k}\) 倍，反向后再除回来。
@@ -209,6 +233,10 @@ COURSE.register({
     <strong>这条推理链条值得写进你的申请材料——它展示了「用微积分做工程决策」的能力。</strong>
   </p>
 </section>
+
+<p><strong>先看结论再看推导</strong>：下面这块草稿纸只证明一件事——在 \(C = 6ND\) 的预算下，最优配比是 \(D \approx 20N\)（7B 配约 140B token）。
+拉格朗日乘子 \(\lambda\) 在这里只是一个记账工具：它把约束 \(ND = K\) 折进目标函数，让你能对 \(N\) 与 \(D\) 分别求导找极值；消去 \(\lambda\) 后剩下的就是配比公式。
+LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多少卡一眼就有数。</p>
 
 <section class="blk blk-lab">
   <h4><span class="ic">✎</span>草稿纸演算：Chinchilla 的解析极值点</h4>
@@ -393,6 +421,23 @@ for step, (x, y) in enumerate(loader):
   <p class="why">
     Chinchilla 最优是<strong>固定训练算力</strong>下的最优。一旦把推理成本纳入总成本，最优解就会向「小模型 + 多数据」移动。
     Llama-3-8B 用约 15T token 训练，远超 Chinchilla 比例，正是这个逻辑。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">Adam 里 \(\beta_1 = 0.9\)、\(m_0 = 0\)，第一步梯度 \(g_1 = 5\)。此时 \(m_1\) 与偏置校正后的 \(\hat m_1\) 分别是？</p>
+  <ul class="opts">
+    <li>\(m_1 = 5\)，\(\hat m_1 = 5\)：动量初值就是梯度本身</li>
+    <li>\(m_1 = 4.5\)，\(\hat m_1 = 45\)：把 \((1-\beta_1)\) 错乘成 \(\beta_1\) 又多除了一次</li>
+    <li data-ok>\(m_1 = 0.5\)，\(\hat m_1 = 5\)：\(m_1 = 0.1 \times 5\)，再除以 \((1-0.9) = 0.1\) 还原</li>
+    <li>\(m_1 = 0.5\)，\(\hat m_1 = 0.5\)：偏置校正只影响 \(v\) 不影响 \(m\)</li>
+  </ul>
+  <p class="why">
+    \(m_1 = 0.9 \times 0 + 0.1 \times 5 = 0.5\)，只有真梯度的 10%；
+    \(\hat m_1 = 0.5/0.1 = 5\) 恰好无偏。第一个选项忘了初值 0 的拖累；
+    第二个把系数弄反；第四个错在 \(m\) 与 \(v\) 都要校正。
+    训练初期不用校正，有效步长会被压小一个量级，warmup 段的 loss 平坦多半源于此。
   </p>
 </div>
 

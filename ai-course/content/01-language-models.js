@@ -16,6 +16,18 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先把交叉熵翻译成模型使用者的话</h4>
+  <p>
+    训练时模型每次只需要回答一个问题：<strong>在已经看到的上下文下，下一个真实 token 给了多大概率？</strong>
+    如果真实答案拿到的概率是 0.5，单步损失约为 0.69；如果只有 0.01，损失约为 4.61。损失变小，意味着模型把更多概率质量放到了正确答案上。
+    这比先背下概率空间的符号更重要，因为它直接告诉你日志里的 loss 在测什么。
+  </p>
+  <p>
+    困惑度只是把平均损失换回“等效候选数”：\(\mathrm{PPL}=e^{\mathcal{L}}\)。PPL=10 不表示模型真的只会十个词，而表示在这批数据上，它的平均不确定性大约像在十个等可能选项中选择。
+  </p>
+</section>
+
+<section class="blk blk-tip">
   <h4><span class="ic">✓</span>学习目标：建立概率测度与信息几何的严密桥梁</h4>
   <p>
     阅读完本讲后，你将能够做到：
@@ -63,6 +75,15 @@ COURSE.register({
 <p>
   在引入复杂神经网络之前，最朴素的自回归假设是<strong>一阶马尔可夫链（Bigram 语言模型）</strong>：
   假设当前词出现的概率仅依赖于紧邻的前一个词，即 \(P(x_t \mid x_1, \dots, x_{t-1}) = P(x_t \mid x_{t-1})\)。
+</p>
+
+<p>
+  答案先行，不用先看证明：<strong>极大似然的最优解就是“数个数再归一化”</strong>，
+  即 \(p_{ij}^{*} = N_{ij} / \sum_{k} N_{ik}\)。
+  拿最小的玩具语料 <code>aba</code> 验证：相邻对只有 \((a, b)\) 与 \((b, a)\) 各出现 1 次，
+  所以 \(P(b \mid a) = 1/1 = 1\)，\(P(a \mid b) = 1/1 = 1\)——
+  这个二元模型是完全确定的：看见 \(a\) 必出 \(b\)，看见 \(b\) 必出 \(a\)，它的条件熵是 0。
+  下面的拉格朗日乘子推导只是在证明“数个数”恰好就是最优解，请把证明当成对直觉的盖章，而不是结论本身。
 </p>
 
 <section class="blk blk-m">
@@ -119,6 +140,31 @@ MLE 转移矩阵：P_ij = N_ij / sum_k N_ik
   <dt>KL 散度 (Relative Entropy)</dt><dd>\(D_{\mathrm{KL}}(p \parallel q) = \sum_i p_i \ln \frac{p_i}{q_i} = H(p, q) - H(p)\)。由模型拟合不准引起的额外冗余代价。</dd>
 </dl>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>直觉先行：一枚硬币加一个二元语料，摸到熵的手感</h4>
+  <p>
+    <strong>一句话直觉</strong>：熵就是“平均惊诧程度”。公平硬币正反各一半，
+    每次结果的自信息都是 \(-\ln(1/2) = \ln 2 \approx 0.693\)，平均下来熵也是 \(0.693\) nats——
+    换成 bit 单位恰好是 1 bit（单位换算见本节末尾）。
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>玩具分布</th><th>概率</th><th>熵（nats）</th><th>熵（bits）</th></tr></thead>
+    <tbody>
+      <tr><td>公平硬币</td><td>\([0.5, 0.5]\)</td><td>\(0.693\)</td><td>\(1.000\)</td></tr>
+      <tr><td>偏置硬币</td><td>\([0.9, 0.1]\)</td><td>\(0.325\)</td><td>\(0.469\)</td></tr>
+      <tr><td>语料 <code>aba</code> 的 bigram</td><td>见 \(a\) 必出 \(b\)</td><td>\(0.000\)</td><td>\(0.000\)</td></tr>
+    </tbody>
+  </table>
+  <p>
+    偏置硬币的手算：\(-(0.9 \ln 0.9 + 0.1 \ln 0.1) \approx -(-0.0948 - 0.2303) = 0.325\) nats，
+    除以 \(\ln 2\) 得 \(0.469\) bits——越确定，熵越小；而 <code>aba</code> 的转移完全确定，熵直接是 0。
+    <strong>LLM payoff</strong>：训练损失永远甩不掉数据本身的熵 \(H(p)\)，
+    所以不同数据集、不同分词器下的绝对 loss 不可比；读日志时，loss 长期停在一个平台，
+    先问“是不是已经接近这个语料的熵下界”，再问“模型是不是不够大”。
+    下面的吉布斯不等式只是把“\(D_{\mathrm{KL}}\) 非负”这句直觉写成证明。
+  </p>
+</section>
+
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密证明：吉布斯不等式（信息散度非负性）</h4>
   <p>
@@ -154,6 +200,14 @@ MLE 转移矩阵：P_ij = N_ij / sum_k N_ik
     \[ \mathcal{L} = H(p, q) = H(p) + D_{\mathrm{KL}}(p \parallel q) \ge H(p) \]
     无论模型网络参数量多大、训练算力多么充裕，<strong>训练损失的极限下界被自然语言本身的熵 \(H(p)\) 死死卡住</strong>。
     不同任务语料（如散文 vs 规整代码）由于自身熵 \(H(p)\) 差异巨大，绝对 Loss 没有任何可比性！
+  </p>
+  <p>
+    <strong>单位换算（读日志与读论文时天天用）</strong>：本讲全用自然对数 \(\ln\)，单位叫
+    <strong>nat</strong>；若换成以 2 为底的对数 \(\log_{2}\)，单位叫 <strong>bit</strong>，
+    两者只差一个常数因子 \(\ln 2 \approx 0.693\)，即 \(H_{\mathrm{bits}} = H_{\mathrm{nats}} / \ln 2\)。
+    例：验证损失 \(1.2\) nats/token 换成比特是 \(1.2 / 0.693 \approx 1.73\) bits/token，
+    而困惑度两种写法一致：\(\mathrm{PPL} = e^{1.2} = 2^{1.73} \approx 3.3\)。
+    所以比较两篇论文的熵或损失时，先看它是 nats 还是 bits——差一个 \(\ln 2\) 就会差出“模型变强近一半”的假象。
   </p>
 </section>
 
@@ -192,6 +246,24 @@ sum_i p_i ln(q_i/p_i) &lt;= sum_i(q_i-p_i)
     在计算机 float32 体系中，\(e^{89} \approx 10^{38}\) 就已接近上限，若某 logit 达到 100，直接计算 <code>np.exp(z)</code> 会产生 <code>inf</code>。
     利用平移不变性，标准做法是令标量 \(c = \max_k z_k\)。
     平移后的最大分量为 \(z_i - \max(z) \le 0\)，所有指数项满足 \(0 &lt; e^{z_i - c} \le 1\)，<strong>从数学上彻底根除了指数爆炸（溢出）</strong>！
+  </p>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>直觉先行：两个分值就够看清 Softmax 与残差梯度</h4>
+  <p>
+    <strong>一句话直觉</strong>：Softmax 只关心分值之差。取最小的非平凡例子 \(z = [2, 1]\)：
+    \(e^{2} \approx 7.389\)，\(e^{1} \approx 2.718\)，和 \(S \approx 10.107\)，
+    得 \(p \approx [0.7311, 0.2689]\)——分差 1 恰好对应概率比 \(e^{1} \approx 2.718\)。
+  </p>
+  <p>
+    <strong>灵敏度手算</strong>：\(p_1(1 - p_1) \approx 0.7311 \times 0.2689 \approx 0.1966\)，
+    所以把 \(z_1\) 推高 \(0.1\)，\(p_1\) 约上升 \(0.0197\)（线性近似，可用计算器复核）。
+    若真值是第一类（\(y = [1, 0]\)），残差梯度 \(p - y \approx [-0.2689, 0.2689]\)：
+    梯度下降沿负梯度走，恰好把 \(z_1\) 往上推、把 \(z_2\) 往下压。
+    <strong>LLM payoff</strong>：每个训练 token 发出的学习信号就是这个残差向量；
+    自信但答错（\(|p - y|\) 接近 1）时梯度最猛，这也是读梯度范数日志时判断“模型是否还在学新东西”的依据。
+    下面的雅可比推导只是把“灵敏度 \(= 0.197\)”写成一般公式 \(p_i(\delta_{ij} - p_j)\)。
   </p>
 </section>
 
@@ -408,6 +480,36 @@ print(f"神经网络优化达到的损失: {loss.item():.4f}")</code></pre>
   </ul>
   <p class="why">
     因为 Softmax 具有平移不变性 \(\mathrm{softmax}(z - c) = \mathrm{softmax}(z)\)。令 \(c = \max_k z_k\) 后，指数项的最大自变量为 \(0\)，\(e^0 = 1\)，所有指数项满足 \(0 &lt; e^{z_i - c} \le 1\)，彻底避免了 <code>exp(z)</code> 发生浮点溢出变为 <code>inf</code> 的惨剧。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">论文 A 报告验证熵为 \(0.693\) nats/token，论文 B 报告为 \(1.0\) bits/token。谁的数据更不确定？</p>
+  <ul class="opts">
+    <li>B 更不确定，因为 1.0 大于 0.693</li>
+    <li>A 更不确定，因为 nats 是更大的单位</li>
+    <li data-ok>两者完全一样：\(0.693\) nats 除以 \(\ln 2\) 恰好是 \(1.0\) bit</li>
+    <li>无法比较，nats 与 bits 度量的是不同的量</li>
+  </ul>
+  <p class="why">
+    \(H_{\mathrm{bits}} = H_{\mathrm{nats}} / \ln 2 = 0.693 / 0.693 = 1.0\) bit，两边是同一个熵。
+    跨论文比较前必须先统一单位，否则“\(0.693\) 对 \(1.0\)”会伪装成 30% 的差距；同理困惑度两种写法一致，\(\mathrm{PPL} = e^{0.693} = 2^{1.0} = 2\)。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">玩具语料只有一个词 <code>aba</code>（统计相邻对，不加起止符）。按极大似然，\(P(b \mid a)\) 与 \(P(a \mid b)\) 各是多少？</p>
+  <ul class="opts">
+    <li>都是 0.5，因为有两个不同的字母</li>
+    <li data-ok>都是 1：\((a,b)\) 与 \((b,a)\) 各出现 1 次，归一化后 \(1/1 = 1\)</li>
+    <li>\(P(b \mid a) = 2/3\)，因为语料里有两个 a</li>
+    <li>无法计算，语料太短导致分母为零</li>
+  </ul>
+  <p class="why">
+    相邻对只有 \((a,b)\)、\((b,a)\) 各 1 次，所以 \(N_{ab} = 1\) 且 a 开头的行和为 1，\(P(b \mid a) = 1/1 = 1\)；同理 \(P(a \mid b) = 1\)。
+    这就是“数个数再归一化”：分母是行和（以该词开头的所有对数），不是语料总词数；确定性转移的条件熵为 0。
   </p>
 </div>
 `

@@ -16,6 +16,24 @@ COURSE.register({
   「序列」这个词意味着什么。
 </p>
 
+<h3>0. 先问“为什么换架构”，再看新架构的方程</h3>
+<p>
+  新架构只有在旧架构的瓶颈明确时才有意义：上下文太长、KV cache 太大、吞吐不够，或输入已经不是纯文本。
+  先画出任务的输入形状、目标输出、序列长度和延迟预算；如果这些没有变，换成更前沿的名字通常不会带来可验证收益。
+</p>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>架构选择的最小决策表</h4>
+  <table class="tbl small">
+    <thead><tr><th>观察到的问题</th><th>可能的方向</th><th>不要跳过的对照</th></tr></thead>
+    <tbody>
+      <tr><td>长序列显存随 (T^2) 爆炸</td><td>稀疏注意力、线性注意力或状态空间模型</td><td>同一数据和上下文长度下的质量与吞吐</td></tr>
+      <tr><td>KV cache 成为主要成本</td><td>MQA / GQA / MLA 等 KV 压缩</td><td>长上下文检索和多轮对话的回归集</td></tr>
+      <tr><td>输入包含图像、音频或表格</td><td>多模态编码器与投影层</td><td>纯文本基线和跨模态对齐错误</td></tr>
+      <tr><td>任务本身只有短序列</td><td>先保留成熟的 dense Transformer</td><td>简单模型的成本、可解释性和维护性</td></tr>
+    </tbody>
+  </table>
+</section>
+
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
@@ -178,6 +196,39 @@ COURSE.register({
 </p>
 
 <section class="blk blk-m">
+  <h4><span class="ic">∑</span>结论先行：离散化结果与选择性机制（推导折叠在下方）</h4>
+  <p>
+    下面两条是本节唯一需要带走的定理结论；完整的变易常数证明、\(N=2\) 手算与步长极值分析都在下方的折叠块里：
+  </p>
+  <p>
+    <strong>定理 1（ZOH 精确离散化）</strong>：
+    在零阶保持假设下，连续系统等价于离散递推 \(h_{k+1} = \bar{A} h_k + \bar{B} x_k\)，其中
+  </p>
+  \[ \bar{A} = \exp(\Delta A), \qquad \bar{B} = A^{-1}(\exp(\Delta A) - I) B \]
+  <p>
+    <strong>定理 2（Mamba 选择性机制）</strong>：
+    把 \(B\)、\(C\) 与步长 \(\Delta\) 变成当前输入的实时函数，
+  </p>
+  \[ B_t = W_B x_t, \qquad C_t = W_C x_t, \qquad \Delta_t = \mathrm{softplus}(W_{\Delta} x_t + b_{\Delta}) \]
+  <p>
+    记住形状：\(\Delta_t > 0\) 是标量门控——它趋近 0 时状态直通（记住），显著增大时状态清零（遗忘）。
+    背后的极值推演见折叠块。
+  </p>
+</section>
+
+<div class="acc" data-t="深入：从连续SSM、ZOH离散化到Mamba选择性机制" data-badge="进阶">
+  <div class="acc-body">
+    <p>
+      <strong>crossfade 决策先行：流式音频处理选 Mamba 类递推，多段音色对比必须加注意力。</strong>
+      原因各一句话：实时逐帧处理时，SSM 的隐状态只有固定 \(O(N)\) 个数，不随已播时长增长，
+      内存恒定、解码吞吐约为同规模 Transformer 的 5 倍（见第 2 节的论文数字）——适合播放器的逐帧流式通路。
+      但 crossfade 的「多段音色对比」（A 段第 3 秒与 B 段第 40 秒是否同调）是<em>索引型</em>回忆，
+      有损状态会把它磨平，此时必须用混合架构补全局注意力层（见第 3 节与第 8 节）。
+      代价也要先说：选择性机制破坏了时不变性，S4 的 FFT 并行训练失效，
+      训练侧需要硬件感知的并行扫描内核（状态驻留 SRAM）；没有条件写或调这类内核时，不要自研，优先用混合架构的现成实现。
+      下面是完整的连续积分、矩阵指数与变易常数推导，以及 \(N=2\) 手算与 \(\Delta_t\) 极值分析——第一次读可跳过。
+    </p>
+<section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与符号约定（连续时间 SSM、ZOH 与矩阵指数）</h4>
   <p>
     <strong>前置定义 1（连续时间线性定常状态空间方程）：</strong>
@@ -336,6 +387,8 @@ COURSE.register({
     利用算子的结合律，在现代 GPU 上可通过<strong>硬件感知前缀扫描（Parallel Associative Scan）</strong>在 SRAM 内部实现 \(O(\log T)\) 时间跨度的并行极速训练！
   </p>
 </section>
+  </div>
+</div>
 
 <h3>3. 线性注意力、滑窗与混合架构</h3>
 <p>
@@ -380,6 +433,45 @@ COURSE.register({
   设计空间里的旋钮不是「要不要注意力」，而是「每几层放一个全局注意力层」。
 </p>
 
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>位置外推：YaRN 为什么按频率分档缩放</h4>
+  <p>
+    <strong>crossfade 决策先行：你的序列只有一两千帧，用不上 YaRN——但要知道它什么时候会骗你。</strong>
+    凡是「训练 4K、直接跑 128K」的开源权重，超长部分的相对位置都是外推出来的；
+    如果你的评测恰好落在外推区，掉点来自位置编码而不是模型变笨。
+    部署视角：YaRN 这类缩放不改变权重 GB 与单 token 算力，只改变长上下文的质量衰减曲线；
+    代价是一次短微调（约 0.1% token 量级），推理侧只多一张逐位置的缩放常数表，tok/s 几乎不动。
+    下面先给能直接用的结论，推导折起来了。
+  </p>
+  <p>
+    先把三个词翻译成人话：RoPE 给每个维度配了一个旋转频率，高频分量转得快（看清邻居），
+    低频分量转得慢（感知远距离）；直接把位置编号拉长，等于让所有频率都转出训练时见过的圈数——
+    高频的精细刻度首先被破坏。YaRN（Peng et al.,
+    <a href="https://arxiv.org/abs/2309.00071" target="_blank" rel="noopener">arXiv:2309.00071</a>）的办法是
+    <strong>按频率分档</strong>：高频维度几乎不缩放（保局部精度），低频维度按比例拉伸（撑长距离），中间平滑过渡。
+    经验数字：配合短微调，Llama-2 的 4K 上下文可撑到 64K–128K，而困惑度只涨零点几个点——
+    代价几乎全在微调，不在推理。什么时候不值：任务长度本来就在训练窗口内时，任何缩放都是纯开销，直接关掉。
+  </p>
+</section>
+
+<div class="acc" data-t="深入：YaRN 的 NTK 分档函数（哪一档缩、缩多少）" data-badge="进阶">
+  <div class="acc-body">
+    <p>
+      记 RoPE 第 \(i\) 对维度的旋转频率为 \(\omega_i = \theta^{-2i/d}\)（\(\theta\) 常用 10000 或 500000）。
+      定义波长 \(\lambda_i = 2\pi/\omega_i\) 与长度比 \(r = L'/L\)（目标长度除以训练长度），
+      再定义相对覆盖 \(\gamma_i = L/\lambda_i\)。YaRN 的分档是：
+    </p>
+    \[ \gamma_i < \alpha \;\Rightarrow\; \text{full scale}, \qquad \gamma_i > \beta \;\Rightarrow\; \text{no scale} \]
+    <p>
+      中间档按余弦退火平滑过渡，其中 \(\alpha = 1\)、\(\beta = 32\) 是论文默认值。
+      直觉：波长远大于训练长度的低频维度（\(\gamma_i\) 小）在训练时根本没转完一圈，拉长时必须全缩放；
+      波长很短的高频维度（\(\gamma_i\) 大）已经见过无数圈，动它只会破坏局部刻度。
+      动态 NTK 与纯位置插值（PI）都是这个函数的特例（分别对应只缩高频与均匀缩放全部频率）——
+      这就是 YaRN 在长上下文榜单上系统性赢过它们的原因：它只在必须的地方付费。
+    </p>
+  </div>
+</div>
+
 <h3>4. MLA：低秩压缩 KV，与 MQA / GQA 的关系</h3>
 <p>
   MQA / GQA 的思路是「让多个 Q 头共享 KV 头」：压缩比是 \(h / h_{kv}\)。
@@ -408,6 +500,18 @@ COURSE.register({
   这就是 MLA「省显存却不太掉速」的原因——它不是把计算推迟，而是把计算重写进了已有的投影里。
 </p>
 <p>
+  crossfade 视角：这段形状推导你不需要手算——但它解释了 MLA 省显存却几乎不掉速的原因。
+  把形状写出来，吸收就不再像魔法。设隐状态维度 \(d\)，头数 \(h\)，每头维度 \(d_h\)，潜维度 \(d_c\)：
+  查询 \(q = W^{Q}h\)，其中 \(W^{Q}\) 是 \((h d_h) \times d\)；
+  压缩键 \(k^{C} = W^{UK}c\)，其中 \(W^{UK}\) 是 \((h d_h) \times d_c\)，而缓存的 \(c\) 只有 \(d_c\) 维。
+  注意力分数 \(q^{\top}k^{C} = h^{\top}(W^{Q\top}W^{UK})c\)——
+  括号里 \((W^{Q\top}W^{UK})\) 是 \(d \times d_c\)，与输入无关，可以<strong>离线乘好</strong>存成新的
+  \(W^{Q,\text{abs}}\)。于是解码时直接用 \(W^{Q,\text{abs}}h\) 去点积缓存的 \(c\)，
+  全程不构造 \((h d_h)\) 维的完整 K 头。这就是「\(W^{UK}\) 被吸收进 \(W^{Q}\)」的字面意思：
+  一次矩阵乘法的位置从在线搬到了离线。部署视角：省的是 KV 字节（1.125 KiB/token），
+  付的是实现复杂度；序列只有几千 token 时这笔交易不值（见第 8 节）。
+</p>
+<p>
   规模上的结果：DeepSeek-V2 论文报告，相对 DeepSeek 67B，
   KV cache 减少 <strong>93.3%</strong>，最大生成吞吐提升到 <strong>5.76 倍</strong>，
   训练成本降低 42.5%
@@ -431,6 +535,13 @@ COURSE.register({
       <tr><td><code>kv_lora_rank</code></td><td>512</td><td>KV 潜向量维度 \(d_c\)</td></tr>
     </tbody>
   </table>
+<pre><code><span class="cm"># [逐行剖析] 读任何模型的 config 都要先过这一道守卫：缺字段就静默错 8 倍 KV 预算</span>
+cfg = {"num_attention_heads": 128, "hidden_size": 16384}  <span class="cm"># 故意删掉 num_key_value_heads：老 MHA 权重只有这个字段</span>
+h = cfg["num_attention_heads"]
+h_kv = cfg.get("num_key_value_heads", h)   <span class="cm"># 守卫 1：没有 KV 头数就回退到注意力头数（MHA 即 h_kv = h）</span>
+d_h = cfg["hidden_size"] // h              <span class="cm"># 守卫 2：头维度必须整除，d_h = hidden_size / h</span>
+assert cfg["hidden_size"] % h == 0 and h_kv &lt;= h and h % h_kv == 0
+print("h_kv =", h_kv, " d_h =", d_h)  <span class="cm"># 本例回退到 h_kv=128，即 MHA 基线那一行</span></code></pre>
   <p>于是每个 token 需要缓存的<strong>元素个数</strong>（fp16/bf16 下再乘 2 字节）：</p>
   <p>
     <strong>MHA 基线（128 组 KV 头）</strong>：\(128 \times (128 + 64 + 128) = 40960\) 个数 → <strong>80 KiB/token</strong><br />
@@ -590,7 +701,7 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>手算一个 2×2 的 InfoNCE</h4>
   <p>设 \(N = 2\)、\(\tau = 1\)，相似度矩阵（行是图，列是文）为：</p>
-  \[ S = \begin{pmatrix} 3.0 &amp; 1.0 \\ 0.5 &amp; 2.0 \end{pmatrix} \]
+  \[ S = \begin{pmatrix} 3.0 & 1.0 \\ 0.5 & 2.0 \end{pmatrix} \]
   <p><strong>第 1 行</strong>：\(\exp(3.0) = 20.09\)，\(\exp(1.0) = 2.72\)，和为 22.81；</p>
   \[ p_{11} = \frac{20.09}{22.81} = 0.881, \qquad -\log p_{11} = 0.127 \]
   <p><strong>第 2 行</strong>：\(\exp(0.5) = 1.649\)，\(\exp(2.0) = 7.389\)，和为 9.038；</p>
@@ -825,6 +936,7 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
 <p>
   下面是一次完整的选型推演。约束是硬的：<strong>一张 24 GB 卡、128K 上下文、同时服务 4 条序列、单序列解码要能看。</strong>
   参考配置沿用第 1 节那个 GQA 模型（\(L=32\)、\(h_{kv}=8\)、\(d_h=128\)），KV 先用 fp16。
+  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 16（长上下文）</a>，这里只做选型算术。
 </p>
 <p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉：</p>
 \[ 24 - 3.9 - 2.0 \approx 18 \qquad (\text{GB}) \]
@@ -887,6 +999,33 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
   int4 下约 6.9 GB，装得下，每 token 算力与原来持平。<strong>这才是单卡场景下正确的 MoE 用法：
   用同样算力换到更大的总容量。</strong>而这需要从头训练或做 upcycling，属于训练侧决策，不是部署侧开关。
 </p>
+
+<div class="acc" data-t="深入：MoE 路由为什么需要辅助损失（aux-loss 与专家坍缩）" data-badge="进阶">
+  <div class="acc-body">
+    <p>
+      <strong>crossfade 决策先行：你不会训练 MoE，但这块解释了 MoE 的账为什么和你直觉相反。</strong>
+      没有辅助损失时，路由器会把几乎所有 token 扔给少数几个专家（赢者通吃），其余专家等于白占显存——
+      此时 \(N_{\text{total}}\) 里的大部分参数从没被训练好。部署视角：aux-loss 只在训练时存在，
+      推理侧零成本；但它决定了你下载的 MoE 权重里有多少参数是真正可用的。
+      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>。
+      什么时候不值：单卡场景直接选稠密（本节已算过），连 aux 的存在都不需要知道。
+    </p>
+    <p>
+      翻译成人话：路由器是给每个 token 选专家的打分器；辅助损失是挂在它头上的「班主任」，
+      统计每个专家分到了多少 token，逼它分得均匀。常用形式是负载项与重要性项的乘积：
+    </p>
+    \[ \mathcal{L}_{\text{aux}} = \alpha\, E \sum_{i=1}^{E} f_i\, p_i \]
+    <p>
+      其中 \(E\) 是专家数，\(f_i\) 是实际分给专家 \(i\) 的 token 比例，
+      \(p_i\) 是路由器分给专家 \(i\) 的平均门控概率，\(\alpha\) 常用 0.01。
+      手算 \(E = 8\) 均匀时：\(f_i = p_i = 1/8\)，
+      \(\mathcal{L}_{\text{aux}} = 0.01\times8\times8\times(1/64) = 0.01\)；
+      若路由坍缩到 1 个专家：\(f_1 = p_1 = 1\)，其余为 0，
+      \(\mathcal{L}_{\text{aux}} = 0.01\times8\times1 = 0.08\)——是均匀时的 8 倍，
+      梯度会把路由器往回拉。这就是它被叫作「负载均衡」的原因。
+    </p>
+  </div>
+</div>
 
 <h3>9. 多模态最小三段式：编码器 + 投影层 + 语言模型</h3>
 <p>

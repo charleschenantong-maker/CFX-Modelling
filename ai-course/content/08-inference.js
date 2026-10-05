@@ -14,6 +14,18 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
+  <h4><span class="ic">✓</span>0.5 Prefill 和 Decode：同一个模型的两种瓶颈</h4>
+<p>
+  推理不是一个单一速度。<strong>Prefill</strong> 一次读完整段提示词，矩阵乘法密集，通常受算力限制；<strong>Decode</strong> 每次只生成一个 token，却要反复读取模型权重和已有的 KV cache，通常受显存带宽限制。
+  这解释了为什么“首字延迟”和“每秒生成多少 token”必须分开测。
+</p>
+<table class="tbl small">
+  <thead><tr><th>阶段</th><th>输入</th><th>主要成本</th><th>实用优化</th></tr></thead>
+  <tbody>
+    <tr><td>Prefill</td><td>整段 prompt</td><td>大矩阵乘、建立 KV cache</td><td>批处理、提示词复用、前缀缓存</td></tr>
+    <tr><td>Decode</td><td>上一个 token</td><td>权重搬运、KV cache 读取</td><td>量化、连续批处理、减少上下文</td></tr>
+  </tbody>
+</table>
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
     <strong>一句话类比</strong>：训练像「一次性把菜谱写进厨师脑子里」，推理像「餐厅出餐」——
@@ -43,6 +55,12 @@ COURSE.register({
     <tr><td>重复惩罚</td><td>对已出现 token 的 logit 打折</td><td>1.0–1.15</td><td>过大 → 语法崩坏</td></tr>
   </tbody>
 </table>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先掷一次骰子：温度到底在压什么</h4>
+  <p>取三个候选的 logits \([2,\,1,\,0]\)。\(T = 0.5\) 时先除后 exp 得 \([4,\,2,\,0] \to [0.867,\,0.117,\,0.016]\)，几乎每次都掷出第 1 面——这就是「\(T\) 太小会复读」。</p>
+  <p>\(T = 2\) 时得 \([1,\,0.5,\,0] \to [0.506,\,0.307,\,0.186]\)，三面接近均等，采样像乱猜——这就是「\(T\) 太大会胡言」。\(T = 1\) 时保持原分布 \([0.665,\,0.245,\,0.090]\)。</p>
+  <p>LLM 回报：抽取类任务用 \(T = 0\)（等价于贪心，延迟最低且可复现）；创意任务从 \(T = 0.7\) 起调，一次只动温度或 top-p 其中一个。下面看代码里这三步是怎么落子的。</p>
+</section>
 <pre><code><span class="cm"># [逐行剖析] 工业级解码采样器核心算子：温度缩放 -> 降序重排 -> 核采样 (Top-p) -> 多项分布抽样</span>
 import torch, torch.nn.functional as F
 def sample_next(logits, T=1.0, top_p=0.95):
@@ -61,6 +79,7 @@ def sample_next(logits, T=1.0, top_p=0.95):
     <span class="cm"># [逐行剖析] 4. 核集合判定：累积概率严格小于 top_p 的前缀集合（至少保留 1 个元素）</span>
     <span class="cm"># 动态形状: keep -> (V,) [bool]</span>
     keep = torch.cumsum(s, dim=-1) - s &lt; top_p
+    keep[0] = True  <span class="cm"># 守卫：top_p=0 时首元素也被判 False，全零会导致除零；强制保留概率最高的 1 个</span>
     
     <span class="cm"># [逐行剖析] 5. 截断与重归一化</span>
     <span class="cm"># 原地位运算: where 条件替换非核集合概率为 0.0</span>
@@ -453,6 +472,12 @@ for step in range(max_new_tokens):
     \(1 + 0.50 + 0.25 + 0.10 = 1.8500\)，依然赚。要真正亏本，必须让接受率<em>整体</em>塌到 0.23 以下（见下面闭式表的保本列）。
     结论是：<strong>接受率是唯一决定盈亏的变量，而且它通常比你担心的更宽容。</strong>
   </p>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先看一眼上限：接受率全满时能快多少</h4>
+  <p>设草稿与大模型完全同分布，每步接受率 \(\alpha = 1\)，\(k = 3\) 时期望产出 \(E = k + 1 = 4\) 个 token，成本仍是 \(1.30\)，加速比 \(S = 4/1.30 \approx 3.08\)——这就是本组配置的天花板。</p>
+  <p>实测 \(\alpha_1 = 1\)、\(\alpha_2 = 0.5\)、\(\alpha_3 = 0.4\) 时 \(E = 2.70\)、\(S = 2.08\)，拿到了天花板的约七成。LLM 回报：先算天花板再调 \(k\) 与草稿模型，\(S\) 接近天花板时就该收手——剩下的延迟瓶颈在别处。</p>
 </section>
 
 <p>最后把这条判据推广成闭式。若每步接受率都近似同一个 \(\alpha\)（几何链假设），</p>

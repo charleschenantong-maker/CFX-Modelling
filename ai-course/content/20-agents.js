@@ -14,6 +14,19 @@ COURSE.register({
   智能体工程的绝大部分工作不是写提示词，而是设计<em>循环的边界</em>：能做什么、花多少、什么时候必须停下来问人。
 </p>
 
+<h3>0.5 工具调用不是魔法：它是一条可验证的协议</h3>
+<div class="flow">
+  <div class="nd hi">模型生成 JSON</div><div class="ar">→</div>
+  <div class="nd">宿主校验 schema</div><div class="ar">→</div>
+  <div class="nd">执行工具</div><div class="ar">→</div>
+  <div class="nd">返回结果或错误</div><div class="ar">→</div>
+  <div class="nd hi">模型决定下一步</div>
+</div>
+<p>
+  模型本身只是在生成文本；文件读取、API 调用和测试运行都由宿主程序完成。实用的 agent 设计因此要把<strong>工具参数、权限、超时、重试次数和成功判据</strong>写成显式协议，而不是寄希望于模型“自己理解”。
+  先用一个只读工具跑通这条闭环，再考虑写文件或多智能体。
+</p>
+
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
@@ -490,7 +503,13 @@ COURSE.register({
 </p>
 <h4>7.2 手算：重试的期望代价与重复概率</h4>
 <p>设单次成功概率 \(p = 0.9\)，失败后最多再试 2 次（共 3 次尝试），则期望尝试次数为</p>
-\[ \mathbb{E}[\text{attempts}] = \frac{1 - 0.1^{3}}{0.9} \approx 1.111 \]
+\[ \mathbb{E}_{\text{cap-3}}[\text{attempts}] = 0.9 + 2\times0.09 + 3\times0.01 = \frac{1 - 0.1^{3}}{0.9} \approx 1.110 \]
+<p>
+  注意下标：这是<strong>封顶 3 次</strong>的期望。对比<strong>不封顶</strong>的几何期望
+  \(\mathbb{E}_{\text{uncap}}[\text{attempts}] = 1/p = 1/0.9 \approx 1.111\)——
+  两者只差 0.001。结论很实在：\(p = 0.9\) 时把重试封顶在 3 次几乎不损失成功率，
+  却掐掉了无限重试的长尾；封顶省的不是均值，而是方差与最坏情况。
+</p>
 <p>
   也就是平均多花约 <strong>11%</strong> 的调用，看起来无害。但真正要看的是「假失败」：
   假设有 <strong>2%</strong> 的调用其实已经在服务端执行成功、只是响应在返回途中丢了。

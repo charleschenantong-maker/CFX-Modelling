@@ -15,6 +15,20 @@ COURSE.register({
   最后我们把同一套代数搬到音频上，看神经音频编解码器（RVQ）与 BPE 的同构与不等价。
 </p>
 
+<h3>0.5 Chat template：同一个回答为什么会被切成不同任务</h3>
+<p>
+  对话模型收到的不是一组裸消息，而是一段带有特殊 token 的序列。系统消息、用户消息和助手消息的边界会被编码进文本；微调时如果只计算助手部分的 loss，模型学到的是“如何回答”，而不是把用户问题也背成答案。
+</p>
+<table class="tbl small">
+  <thead><tr><th>层</th><th>例子</th><th>错配时的症状</th></tr></thead>
+  <tbody>
+    <tr><td>消息结构</td><td><code>system → user → assistant</code></td><td>模型把系统说明当成用户问题，角色边界混乱</td></tr>
+    <tr><td>特殊 token</td><td><code>&lt;|im_start|&gt;</code> / <code>&lt;|im_end|&gt;</code></td><td>生成停不下来，或把控制标记原样输出</td></tr>
+    <tr><td>训练标签</td><td>prompt 标签设为 <code>-100</code>，只计算 assistant loss</td><td>模型复述提示词，训练 loss 看起来下降但回答变差</td></tr>
+    <tr><td>推理模板</td><td>训练和部署使用同一套格式</td><td>训练集很好，真实对话一换模板就退化</td></tr>
+  </tbody>
+</table>
+
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
@@ -88,10 +102,10 @@ False
 \[
 \operatorname{bytes}(u)=
 \begin{cases}
-1, &amp; 0 \le u &lt; 2^{7} \\
-2, &amp; 2^{7} \le u &lt; 2^{11} \\
-3, &amp; 2^{11} \le u &lt; 2^{16} \\
-4, &amp; 2^{16} \le u &lt; 2^{21}
+1, & 0 \le u &lt; 2^{7} \\
+2, & 2^{7} \le u &lt; 2^{11} \\
+3, & 2^{11} \le u &lt; 2^{16} \\
+4, & 2^{16} \le u &lt; 2^{21}
 \end{cases}
 \]
 <p>四个可亲手验证的例子（每一行的数字都能用 <code>len(s.encode("utf-8"))</code> 复算）：</p>
@@ -116,8 +130,9 @@ False
   <code>byte-level</code> BPE 的起点是 <strong>UTF-8 字节</strong>（256 个），不是字符。
   好处是<strong>任何 Unicode 文本都能被编码，永远不会出现「未知词」</strong>——
   哪怕是 emoji、罕见汉字、混合脚本，都能拆成字节再合并。
-  更强的一点是：它连<strong>任意二进制数据</strong>都能编码，因为任意字节串本来就是合法的 UTF-8 输入载体
-  （解码时用 <code>errors="replace"</code> 之类兜底）。
+  更强的一点是：它连<strong>任意二进制数据</strong>都能编码——UTF-8 编码器对任何字节串都有定义
+  （可能失败的只有反向解码，那时用 <code>errors="replace"</code> 之类兜底）。
+  <em>这一点在工程上非常有用：图片、字体、protobuf、乱码片段都可以直接进同一条数据管线。</em>
 </p>
 <p>
   代价是：一个汉字在 UTF-8 里占 3 个字节，如果不被合并，就会被切成 3 个 token。
@@ -182,7 +197,11 @@ False
   \]
   <p>两式的单位分别是 bit，以及「每个 token 承载多少字节」。</p>
   <p>
-    <strong>BPE 的全部故事就是：词表每翻一倍，token 数必须至少也减半，这个压缩才划算。</strong>
+    <strong>BPE 的全部故事就是：词表每翻一倍，每个 token 多携带 1 bit（因为 \(\log_{2}|\mathcal{V}|\) 恰好加 1），
+    所以总比特 \(R = n_{\mathrm{tok}} \cdot \log_{2}|\mathcal{V}|\) 打平只需要 token 数下降约 \(1 / \log_{2}|\mathcal{V}|\)——
+    对 32k–64k 词表（\(\log_{2}|\mathcal{V}|\) 为 15–16）就是约 5–6%，而不是减半。</strong>
+    手算验证：记 \(L = \log_{2}|\mathcal{V}|\)，翻倍前后打平要求 \(n'/n = L/(L + 1)\)；
+    \(L = 15\) 时 \(15/16 = 0.9375\)，token 数降 6.25% 即回本。
     这是一个可以手算的判据，也是第 7 节词表权衡的判据来源。
     现实里没人用满 256 个码点，所以实践中用「有效词表」估计更准——
     GPT-2 的词表大小 50257 就是这个结构：\(256+50000+1\)，一个特殊 token 加上 5 万条合并。✓
@@ -311,9 +330,10 @@ def merge(ids, pair, new_id):
             i += 1
     return out
 
-def train_bpe(text, num_merges):
+def train_bpe(text, num_merges, log=None):
     <span class="cm"># [逐行剖析] text 是语料字符串；num_merges 是合并次数 = 词表大小 - 256。
-    # 返回 merges，元素是 (pair, new_id)，new_id 从 256 开始递增。</span>
+    # 返回 merges，元素是 (pair, new_id)，new_id 从 256 开始递增。
+    # 传入一个 list 当 log，就能把每一步的 (rank, pair, 频次, new_id) 记下来用于打印。</span>
     words = Counter(pretokenize(text))          <span class="cm"># 语料 -&gt; 每个词出现的次数</span>
     splits = [list(w.encode("utf-8")) for w in words]   <span class="cm"># 起点：每个词先拆成 UTF-8 字节</span>
     freqs = [words[w] for w in words]           <span class="cm"># 频次；两数组始终同长同序</span>
@@ -333,6 +353,8 @@ def train_bpe(text, num_merges):
         new_id = 256 + i                        <span class="cm"># 256 号之上留给「学出来的」token</span>
         splits = [merge(seq, pair, new_id) for seq in splits]   <span class="cm"># 全语料同时替换</span>
         merges.append((pair, new_id))
+        if log is not None:
+            log.append((i, pair, stats[pair], new_id))
     return merges
 
 <span class="cm"># ---- 跑一遍：下面这段语料与后面那张表严格对应 ----</span>
@@ -440,18 +462,23 @@ print("round-trip lossless:", ok)</code></pre>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>定理 1（拼接保持性）：合并不改变字节串</h4>
+  <p>先定义一个记号：对任意符号序列，令</p>
+  \[
+  S(x_1,\dots,x_n) \;:=\; E(x_1)\,E(x_2)\cdots E(x_n)
+  \]
+  <p>也就是「把每个符号展开后依次拼起来」（\(\Vert\) 表示拼接）。核心等式只有一行：</p>
   \[
   E(c_k) = E(a_k)\,E(b_k) \qquad\Longrightarrow\qquad
-  \textstyle\sum_i E(t_i) = \textstyle\sum_i E(s_i)
+  S(t_1,\dots,t_n) = S(s_1,\dots,s_m)
   \]
   <p>
-    <strong>证明</strong>：记 \(S(x_1,\dots,x_n)=\big\Vert_{i}E(x_i)\)，\(\Vert\) 表示拼接。
-    一次合并把相邻的 \((a_k,b_k)\) 换成 \(c_k\)，而 \(S\) 只看拼接结果，
-    由 \(E(c_k)=E(a_k)E(b_k)\) 知 \(S\) 的值不变。对合并总步数归纳即可。∎
+    <strong>证明</strong>：一次合并把相邻的 \((a_k,b_k)\) 换成 \(c_k\)，
+    而 \(S\) 只看拼接结果，由 \(E(c_k)=E(a_k)E(b_k)\) 知 \(S\) 的值不变。对合并总步数归纳即可。∎
   </p>
   <p>
     <strong>推论（往返无损）</strong>：对任意 \(w\in\Sigma^{*}\)，\(\mathrm{Decode}(\mathrm{Encode}(w))=w\)。
-    因为解码就是逐个 token 取 \(E\) 再拼起来，而编码后的 token 序列与原字节串的 \(E\) 之和相同。∎
+    因为解码就是逐个 token 取 \(E\) 再拼起来，也就是对编码结果取 \(S\)；
+    而上面那条等式说 \(S\) 在整个编码过程中保持不变，于是解码结果就是 \(S(w)=E(w)=w\)。∎
   </p>
   <p>
     请注意这条定理<strong>不需要任何额外假设</strong>：不管合并规则怎么设计、不管 tie-break 怎么定、
@@ -492,6 +519,15 @@ print("round-trip lossless:", ok)</code></pre>
     <strong>证明</strong>：令 \(\mathcal{C}^{\le n}=\bigcup_{k\le n}\mathcal{C}^{k}\)，它有限。
     若 \(f\) 是单射，则 \(f^{-1}(\mathcal{C}^{\le n})\) 有限。于是
     \(X=\bigcup_{n\ge0}f^{-1}(\mathcal{C}^{\le n})\) 是可数个有限集的可数并，仍可数，与 \(X\) 不可数矛盾。∎
+  </p>
+  <p>
+    <strong>换率失真的语言再说一遍（工程上真正用的版本）</strong>：
+    基数论证只说了“精确还原不可能”，但工程师要的是定量 trade-off——
+    这正是香农率失真理论回答的：对连续信源，任何有限码率 \(R\) 的编码都有大于零的失真下界 \(D(R) > 0\)，
+    码率越低，失真下界越高。EnCodec 的 6 kbps 档听起来像电话音质而不是透明音质，
+    不是码本没训好，而是 \(R = 6\) kbps 处的 \(D(R)\) 就摆在那里。
+    文本 BPE 没有这一项：离散可数输入在有限码率下可以达到 \(D = 0\)（定理 1 的构造性证明）。
+    所以选型时不要问“音频 codec 为什么不能无损”，要问“这个码率对应的失真我能不能接受”。
   </p>
   <p>
     <strong>推论</strong>：文本的输入空间 \(\Sigma^{*}\) 在 \(\Sigma\) 有限时是<strong>可数</strong>集，
@@ -582,7 +618,9 @@ print("round-trip lossless:", ok)</code></pre>
       <code>(?!\S)</code> 是负向前瞻，意思是「后面不能再接非空白」。
       当它出现在词前那串空白中间时，贪婪匹配失败后回溯，于是<strong>它刻意只吃到最后两个空格中的前一个</strong>，
       把<strong>最后一个空格留给下一个片段</strong>去粘词。
-      构造输入 <code>"a  b"</code>（两个空格）就能验证：结果是 <code>["a", " ", " b"]</code>。
+      构造输入 <code>"a b"</code> 与 <code>"a  b"</code>（一个空格、两个空格）对照就能验证：
+      前者得到 <code>["a"," b"]</code>，后者得到 <code>["a"," "," b"]</code>——
+      <strong>多出来的那个空格之所以被单独吐出来，就是为了把它粘到后面的词上</strong>。
       如果去掉这层前瞻，GPT-2 早期的 <code>" the"</code> 这类 token 就<strong>永远学不出来</strong>——
       这也是后来的词表要改版的原因之一。</li>
 </ul>
@@ -676,16 +714,45 @@ print("round-trip lossless:", ok)</code></pre>
   \mathrm{fert}_{\text{char}} = \frac{T}{c}, \qquad
   \mathrm{cost} = \frac{T}{10^{6}} \cdot p
   \]
-  <p class="cm">读作：成本 = token 数 / 一百万 × 单价；而 token 数 = 词数 × 每词的 token 数（fertility）。</p>
+  <p><strong>读法</strong>：成本 = token 数 ÷ 一百万 × 单价；而 token 数 = 词数 × 每词的 token 数（fertility）。</p>
   <p>
     取实测值：英文网页文本约 0.25 token/字符（约 4 字节/token），
     中文在中文友好词表上约 0.6–0.8，在英文为主的 GPT-2 词表上常达 1.5–2.2。
     于是<strong>同样一段意思，中文在英文为主的词表上可能贵 2–4 倍</strong>——不是定价歧视，是切分效率差。
   </p>
   <p>
-    上下文同理。窗口长度能装下的字符数约等于窗口长度除以每字符 token 数：
-    取 32 768 的窗口，英文约装 13 万字符，中文（英文词表）只装 1.5–2.2 万字符。
-    <strong>「128k 上下文」在中文上可能只等于英文的 60k。</strong>这条换算在申请材料里是很好的定量论据。
+    上下文同理，换算式只有一条：<em>能装的字符数 = 窗口 token 数 ÷ 每字符 token 数</em>。
+    取一个 128k 的窗口，三种情形分别是：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>语种与词表</th><th>每字符 token 数</th><th>128k 能装多少字符</th><th>折算成英文 token 约等于</th></tr></thead>
+    <tbody>
+      <tr><td>英文（GPT-4 / Qwen 类）</td><td>0.25</td><td>约 51 万</td><td><strong>128k</strong>（基准）</td></tr>
+      <tr><td>中文（中文友好词表）</td><td>0.7</td><td>约 18 万</td><td>约 46k</td></tr>
+      <tr><td>中文（英文为主的 GPT-2 类词表）</td><td>2.0</td><td>约 6.4 万</td><td><strong>约 16k，不到 128k 的八分之一</strong></td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>这张表要带走一句</strong>：标称「128k 上下文」在中文上可能只值英文的十几分之一。
+    这是<em>纯词表问题</em>，与模型能力无关，而它正是选型时最容易被忽略、也最容易在申请材料里加分的一个换算。
+  </p>
+  <p>
+    <strong>再算一笔 3 倍变 9 倍的账</strong>：取一万个汉字，在中文友好词表（0.6 token/字）下是 6k token，
+    在英文为主的词表（1.8 token/字）下是 18k token——长度差 3 倍。
+    但注意力计算量是 \(O(T^2)\) 的，\(3^2 = 9\)，于是这 3 倍长度带来 <strong>9 倍的注意力 FLOPs</strong>、
+    3 倍的 KV cache 显存、3 倍的按 token 计费。
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>情形（1 万汉字）</th><th>token 数</th><th>注意力计算量</th><th>KV 显存</th><th>计费</th></tr></thead>
+    <tbody>
+      <tr><td>中文友好词表（0.6/字）</td><td>6k（基准）</td><td>1 倍（基准）</td><td>1 倍（基准）</td><td>1 倍</td></tr>
+      <tr><td>英文为主词表（1.8/字）</td><td>18k（3 倍）</td><td>约 9 倍</td><td>约 3 倍</td><td>约 3 倍</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>KV payoff</strong>：KV cache 字节数与 \(T\) 成正比，所以 fertility 直接乘在 KV 账单上——
+    把 fertility 从 1.8 降到 0.6，等于在同样 KV 预算下有效上下文变成 3 倍。
+    第 03 讲会给出 7B 模型的具体 GB 数字；记住结论：<strong>长上下文的第一性价比优化常常是换词表，而不是换模型</strong>。
   </p>
 </section>
 <p>
@@ -777,10 +844,20 @@ print("round-trip lossless:", ok)</code></pre>
   而 <code>BPE 的合并</code>对应<code>最近邻码字搜索</code>，两者都是「在已学到的码本里找一个最像的」。
 </p>
 
+<p>
+  <strong>先算裸码率，再看压缩比</strong>：电话级单声道 24 kHz 采样、16 bit 量化，
+  裸 PCM 码率是 \(24000 \times 16 = 384000\) bit/s，即 384 kbps——一秒钟 48 KB。
+  EnCodec 的 6 kbps 档把它压到 \(6000/384000 \approx 1/64\)，压缩比 64 比 1。
+  再除帧率：\(6000/75 = 80\) bit/帧，恰好等于 8 个码本每本 10 bit（\(1024 = 2^{10}\)）。
+  <strong>LLM payoff</strong>：这和文本侧是同一笔账——码本层数对应词表大小，每秒比特数对应 fertility；
+  做流式应用先看 kbps（带宽与存储成本），再看失真能不能接受，和选 tokenizer 先看 token 数再看效果是一个动作。
+</p>
+
 <h4>10.2 RVQ 的核心公式：把残差一层层吃掉</h4>
 <p>
   <span class="t" data-tterm="Residual vector quantization" data-d="残差向量量化：先量化主成分得到 q1，再对残差 r1 继续量化得到 q2，依次类推；每一层码本更小、比特数更少。">RVQ</span>
-  （残差矢量量化）的定义只有三行。设编码器输出 \(e\in\mathbb{R}^{d}\)，第 \(k\) 个码本 \(\mathcal{C}_{k}\) 有 \(N\) 个向量：
+  （残差矢量量化）的定义只有三行。设编码器输出 \(e\in\mathbb{R}^{d}\)，第 \(k\) 个码本 \(\mathcal{C}_{k}\) 有 \(N_k\) 个向量
+  （各码本大小相同时就都记作 \(N\)）：
 </p>
 \[ q_{k} = \underset{c \in \mathcal{C}_{k}}{\arg\min}\; \lVert r_{k-1} - c \rVert_{2}^{2}, \qquad
    r_{k} = r_{k-1} - q_{k}, \qquad r_{0} = e \]
@@ -841,10 +918,11 @@ print("round-trip lossless:", ok)</code></pre>
 </ol>
 
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：写一个 15 行的 RVQ，并与 BPE 对照</h4>
+  <h4><span class="ic">🧪</span>动手：写一个最小可运行的 RVQ，并与 BPE 对照</h4>
   <p>
     这是本模块最后一个动手，也是最容易出成果的：<strong>不训练任何网络</strong>，
-    只用随机的码本，就能观察到残差量化把残差能量逐层压下去的过程。
+    只用随机的码本，就能看到残差在前几层被迅速吃掉、
+    以及<em>为什么随机码本在后面几层会「失灵」</em>（下面那段输出会亲自告诉你）。
   </p>
 <pre><code>import numpy as np
 rng = np.random.default_rng(0)
@@ -852,32 +930,53 @@ rng = np.random.default_rng(0)
 K, N, d = 8, 1024, 32          <span class="cm"># 8 个码本、每本 1024 项、潜变量维度 32</span>
 codebooks = [rng.normal(size=(N, d)) for _ in range(K)]   <span class="cm"># 真实 codec 用 k-means 训练</span>
 
-def rvq(e):
-    <span class="cm"># [逐行剖析] 逐层吃掉残差；只记录索引，不记录向量</span>
-    r, idx = e.copy(), []
+def rvq(e, trace=False):
+    <span class="cm"># [逐行剖析] 逐层吃掉残差；只记录索引，不记录向量。
+    # trace=True 时顺手记下每层的残差范数，用来观察下降曲线。</span>
+    r, idx, norms = e.copy(), [], []
     for C in codebooks:
         j = int(np.argmin(((C - r) ** 2).sum(1)))   <span class="cm"># 找最近码字：argmin L2</span>
         r = r - C[j]                       <span class="cm"># 残差 = 上一步的 r 减去选中的码字</span>
         idx.append(j)
-    return idx, r
+        norms.append(float(np.linalg.norm(r)))
+    return idx, r, norms
 
 e = rng.normal(size=d) * 2
-idx, res = rvq(e)
-print("layers:", K, "bits/frame:", K * int(np.log2(N)))
-print("total:", K * int(np.log2(N)), "bits  ==", K * int(np.log2(N)) / 75.0, "kbps at 75 Hz")
-print("residual norm:", round(float(np.linalg.norm(res)), 3))
+idx, res, norms = rvq(e, trace=True)
+bits_per_frame = K * int(np.log2(N))
+print("bits/frame:", bits_per_frame, " -> at 75 Hz:",
+      bits_per_frame * 75 / 1000.0, "kbps")     <span class="cm"># 80 bit/帧 x 75 帧/秒 = 6.0 kbps</span>
+print("residual norm per layer:", [round(n, 3) for n in norms])
 print("residual ratio:", round(float(np.linalg.norm(res) / np.linalg.norm(e)), 4))</code></pre>
   <p>
-    <strong>你会看到什么</strong>：每一层的残差范数<strong>严格递减</strong>，
-    而前几层下降最快、后几层几乎持平——这解释了为什么 codec 敢用「前粗后细」的层配置。
-    同时 <code>K * log2(N)</code> 那一行会和 EnCodec 的 6 kbps 档算出同一个数，
-    <em>你可以用它验证自己真的理解了码率公式</em>。
+    <strong>你会看到什么（这是我实测到的输出，你可以逐个数字对一遍）</strong>：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>层 \(k\)</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th></tr></thead>
+    <tbody>
+      <tr><td>残差范数</td><td>9.667</td><td>7.621</td><td>6.652</td><td>5.497</td><td>4.526</td><td>4.961</td><td>5.224</td><td>5.112</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>请注意第 6 层：残差范数从 4.526 回升到 4.961。</strong>这不是 bug，
+    而是一个能学到东西的事实：<strong>随机码本里没有接近零的向量，
+    所以第 \(k\) 层的「最近码字」有可能离残差比原点还远，残差范数于是变大。</strong>
+    而真实的 codec 里残差范数是<strong>单调下降</strong>的，因为第 \(k\) 个码本正是在第 \(k\) 层的真实残差分布上训练出来的，
+    里面必然有一个贴近该层尺度的码字。
+    <em>所以 RVQ 的「层级」不是把几个码本拼起来就成立的，它是训出来的——这就是 10.4 节第三条差异的具体代价。</em>
+  </p>
+  <p>
+    顺便核对码率那一行：8 个码本 × 每本 1024 项 = 每帧 80 bit，
+    乘 75 帧/秒正好是 6.0 kbps——<strong>这就是 EnCodec 6 kbps 档的配置</strong>，
+    也是验证「你真的理解了码率公式」最快的一步。
   </p>
   <p>
     <strong>要记录的三个数字</strong>：
-    ① 把第 1 到第 8 层的残差范数全打出来，看下降曲线；
-    ② 把 \(N\) 从 1024 降到 64，残差范数上升多少倍；
-    ③ 由此算出 1.5 kbps 档（\(75 \times K \times 6 = 900\)）需要几个码本、每本多大。
+    ① 上表这条残差曲线，并注明它在第几层开始回升（随机码本下的观察值）；
+    ② 把 \(N\) 从 1024 降到 64（每层从 10 bit 变成 6 bit），残差范数上升多少倍；
+    ③ 由此推出 EnCodec 的<strong>码率档位</strong>：每增加一个 1024 项的码本就多
+    \(75\times10=750\) bit/s，于是 1.5 / 3 / 6 / 12 kbps 恰好对应 <strong>2 / 4 / 8 / 16 个码本</strong>——
+    这正是 EnCodec 论文公开的那四档（arXiv:2210.13438）。对上了，说明你把码率公式算对了。
     这三个数字就是「音频 tokenizer 的 fertility」，和文本的 fertility 是同一类量。
   </p>
 </section>
@@ -1075,6 +1174,36 @@ print("residual ratio:", round(float(np.linalg.norm(res) / np.linalg.norm(e)), 4
     即使把噪声也当成输入，它仍然是不可数的；④ 那是把结论当成原因，典型的循环论证。
     <strong>真正的分界线是可数性</strong>：只要输入空间可数，就存在到有限码的单射，
     而且 BPE 的合并表就是这个单射的<em>显式构造</em>。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 9</div>
+  <p class="q">一万字中文从中文友好词表（0.6 token/字）换到英文为主词表（1.8 token/字），token 数、注意力计算量、KV 显存各变为几倍？</p>
+  <ul class="opts">
+    <li>都是 3 倍，因为三者都与长度成正比</li>
+    <li data-ok>token 数 3 倍、注意力计算量约 9 倍、KV 显存约 3 倍</li>
+    <li>token 数 9 倍，其余 3 倍，因为分词误差会被平方放大</li>
+    <li>只有计费变 3 倍，计算量与显存不变</li>
+  </ul>
+  <p class="why">
+    长度比 \(18\mathrm{k}/6\mathrm{k} = 3\)；注意力是 \(O(T^2)\)，\(3^2 = 9\)；
+    KV cache 与计费都与 \(T\) 成正比，各约 3 倍。所以长上下文的第一性价比优化常常是换词表：fertility 降 3 倍，注意力账单降 9 倍。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 10</div>
+  <p class="q">EnCodec 6 kbps 的语音听起来像电话音质而不是透明音质，最根本的原因是？</p>
+  <ul class="opts">
+    <li>码本只有 1024 项，训练数据不够多，加大码本就能无损</li>
+    <li data-ok>连续信源在有限码率下的失真有大于零的下界 \(D(R) &gt; 0\)，6 kbps 处的下界就对应这个音质</li>
+    <li>残差量化只用了 8 层，用 80 层就能逐层吃光残差</li>
+    <li>帧率 75 Hz 太低，把帧率提到 750 Hz 就能无损</li>
+  </ul>
+  <p class="why">
+    这是率失真理论的结论：\(R = 6\) kbps 处的 \(D(R)\) 下界摆在那里，加码本层数只是沿着率失真曲线向低失真方向走，
+    永远到不了零（那需要无限码率）。基数论证只说了“精确还原不可能”，而率失真给出的是定量 trade-off，这才是选码率档位的依据。
   </p>
 </div>
 

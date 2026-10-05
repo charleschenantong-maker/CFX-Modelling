@@ -16,6 +16,29 @@ COURSE.register({
   用直观通俗的几何直觉配上严谨的微积分链式法则，建立从标量微分到万亿参数模型训练循环的坚固基座。
 </p>
 
+<h3>0. 先看一次完整的 LLM 请求：数学分别出现在哪里</h3>
+<p>
+  先把整门课当成一条可观察的流水线。你给模型一段提示词，它不会直接“理解”文字，而是依次经过分词、向量查表、网络计算、概率选择和下一轮输入。
+  后面的公式只是在解释这条流水线里的某一个齿轮；如果某个推导暂时看不懂，先回到它解决的工程问题。
+</p>
+<table class="tbl small">
+  <thead><tr><th>用户看到的动作</th><th>模型内部发生的事</th><th>本课程对应内容</th><th>先记住的工程问题</th></tr></thead>
+  <tbody>
+    <tr><td>输入一句话</td><td>文本被切成 Token ID</td><td>02 · Tokenization</td><td>上下文长度和费用由 token 数决定</td></tr>
+    <tr><td>模型读上下文</td><td>ID 查成向量，经过注意力和前馈层</td><td>03–04 · Attention / Transformer</td><td>哪些信息能互相读取，显存花在哪里</td></tr>
+    <tr><td>模型给出候选</td><td>输出 logits，再变成下一个 token 的概率</td><td>01 / 08 · Probability / Inference</td><td>温度、top-p 为什么改变回答风格</td></tr>
+    <tr><td>模型继续写</td><td>把新 token 接回上下文，循环直到停止</td><td>08 / 20 · Serving / Agents</td><td>延迟、KV cache、工具调用和失败重试</td></tr>
+    <tr><td>判断是否真的变好</td><td>用固定任务集和指标比较输出</td><td>09 / 21 · Evaluation / Safety</td><td>不能只看模型自己说“完成了”</td></tr>
+  </tbody>
+</table>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先做一个不需要高等数学的检查</h4>
+  <p>
+    随便选一个你常用的模型，记录同一提示词在<strong>短上下文、长上下文、低温度、高温度</strong>下的四个结果：输入 token 数、输出 token 数、耗时、是否需要重试。
+    这四个数字会在后面分别连接到分词、KV cache、采样和评估；先建立账本，再看证明，数学就不会漂在空中。
+  </p>
+</section>
+
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>学习指引：如何建立直觉与数学的连接</h4>
   <p>
@@ -60,6 +83,15 @@ COURSE.register({
   <li><strong>内部节点 (Internal nodes)</strong>：对前驱节点执行基本算子后得到的中间计算结果；</li>
   <li><strong>根节点 (Root node)</strong>：标量标尺——标量损失值 \(\mathcal{L}\)（Loss）。</li>
 </ul>
+<p>
+  把 DAG 拆成两个字来读，恰好对应两个工程要求。<strong>有向</strong>是指数据只沿一个方向流动：
+  从输入与参数出发，经过一串算子，最终汇入损失 \(\mathcal{L}\)；反向传播只是沿着同样的边倒着走，
+  所以“根 / 叶”是从反向遍历的视角叫的——前向看 \(\mathcal{L}\) 是没有出边的汇点，反向看它才是遍历的起点。
+  <strong>无环</strong>是指图中没有任何一条从自己回到自己的有向路径：
+  若存在环，前向值会互为输入（先有鸡还是先有蛋），一次前向就永远算不完。
+  循环神经网络看似有环，实际做法是把时间步展开（第 1 步、第 2 步分别复制一份节点），
+  展开后的图依然是 DAG——这正是“随时间反向传播”能成立的前提。
+</p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密推导：多元微积分链式法则 (Multivariable Chain Rule)</h4>
@@ -253,9 +285,11 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手验证：有限差分梯度检验 (Numerical Gradient Check)</h4>
   <p>
-    为了验证纯 Python 引擎的求导正确性，我们可以利用微积分导数定义中的对称中心差商：
+    为了验证纯 Python 引擎的求导正确性，我们可以利用微积分导数定义中的对称中心差商。
+    注意 \(O(\epsilon^2)\) 描述的是固定步长下的截断误差，它在取极限后趋于零，所以不能把它写进极限符号内部；
+    正确的读法是：差商等于导数再加一个二阶小量：
   </p>
-  \[ f'(x) = \lim_{\epsilon \to 0} \frac{f(x + \epsilon) - f(x - \epsilon)}{2\epsilon} + O(\epsilon^2) \]
+  \[ f'(x) = \lim_{\epsilon \to 0} \frac{f(x + \epsilon) - f(x - \epsilon)}{2\epsilon}, \qquad \frac{f(x + \epsilon) - f(x - \epsilon)}{2\epsilon} = f'(x) + O(\epsilon^2) \]
   <p>
     运行以下脚本，比对解析梯度与数值有限差分梯度：
   </p>
@@ -386,6 +420,35 @@ t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-1.5*梯度
   <p>第二行不断跨过最优点 \(w^*=3\)，且偏离距离依次为 \(6,12,24,48,96\)；这就是震荡发散。对这个函数，更新可写成 \(w_{t+1}-3=(1-2\eta)(w_t-3)\)，所以 \(\eta=1.5\) 的放大因子为 \(-2\)。</p>
 </section>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>直觉先行：把碗变陡四倍，步长会发生什么</h4>
+  <p>
+    <strong>一句话直觉</strong>：二次碗 \(f(w) = a(w - w^*)^2\) 的陡峭程度由 \(a\) 决定——
+    二阶导数恒为 \(2a\)，\(a\) 越大，同样偏离最优点时的梯度越大，迈一步跨得越远。
+    下面取 \(a = 4\)、\(w^* = 3\)，即 \(f(w) = 4(w - 3)^2\)，梯度 \(f'(w) = 8(w - 3)\)，
+    从 \(w_0 = 0\) 出发。先猜再看表：步长 \(\eta = 0.1\)、\(0.25\)、\(0.3\) 里，哪个收敛、哪个横跳、哪个爆炸？
+  </p>
+  <p><strong>手算三行（每一步都只是乘法，可复算）</strong></p>
+  <table class="tbl small">
+    <thead><tr><th>步长</th><th>第 1 步</th><th>第 2 步</th><th>第 3 步</th><th>现象</th></tr></thead>
+    <tbody>
+      <tr><td>\(\eta = 0.1\)</td><td>\(w_1 = 0 - 0.1(-24) = 2.40\)</td><td>\(w_2 = 2.40 - 0.1(-4.80) = 2.88\)</td><td>\(w_3 = 2.88 - 0.1(-0.96) = 2.976\)</td><td>单调收敛到 3</td></tr>
+      <tr><td>\(\eta = 0.25\)</td><td>\(w_1 = 0 - 0.25(-24) = 6\)</td><td>\(w_2 = 6 - 0.25(24) = 0\)</td><td>\(w_3 = 0\) 再跳回 6</td><td>在 0 与 6 之间永久横跳</td></tr>
+      <tr><td>\(\eta = 0.3\)</td><td>\(w_1 = 0 - 0.3(-24) = 7.20\)</td><td>\(w_2 = 7.20 - 0.3(33.60) = -2.88\)</td><td>\(w_3 = -2.88 + 14.112 = 11.232\)</td><td>振幅放大，发散</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>规律</strong>：误差每步乘以同一个因子 \((1 - 8\eta)\)（因为 \(2a = 8\)）。
+    \(\eta = 0.1\) 时因子为 \(0.2\)，误差每步缩小为两成；
+    \(\eta = 0.25\) 时因子为 \(-1\)，误差大小不变、符号翻转，于是横跳；
+    \(\eta = 0.3\) 时因子为 \(-1.4\)，误差每步放大 1.4 倍。
+    <strong>LLM payoff</strong>：真实损失曲面在不同方向上有大得离谱的不同曲率——
+    沿平坦方向很合适的步长，沿陡峭方向已经爆炸。这就是训练要用预热、小学习率与自适应优化器的原因，
+    也是日志里“loss 看着正常、突然一步变 NaN”的标准解释：优化器一脚踩进了一个陡峭方向。
+    下面的严密推导只是把“\(|1 - 8\eta|\) 小于 1”写成一般形式。
+  </p>
+</section>
+
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>STEP 级思考题：李普希茨常数与最大学习率界限</h4>
   <p>
@@ -397,6 +460,36 @@ t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-1.5*梯度
   <p>
     当 \(\eta = \frac{1}{a}\) 时系统进入二维周期轨道（在对称点横跳）；当 \(\eta > \frac{1}{a}\) 时系统动力学失稳发散。
     这就是大型模型训练中如果学习率过高会导致损失瞬间变成 <code>NaN</code> 的根本数学原因。
+  </p>
+</section>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：三档学习率在同一个碗里的轨迹（照抄可跑）</h4>
+  <p>
+    把上一节手算的 \(a = 4\) 碗写成 10 行 Python，一次看清三档步长的命运。
+    <strong>要记录的三个数字</strong>：\(\eta = 0.1\) 在第 5 步的位置、\(\eta = 0.25\) 的循环周期、\(\eta = 0.3\) 在第 5 步的量级。
+  </p>
+<pre><code>a = 4.0
+w_star = 3.0
+
+<span class="kw">def</span> grad(w):
+    <span class="cm"># [逐行剖析] 二次碗 f(w) = a(w-w*)^2 的导数：2a(w-w*)</span>
+    <span class="kw">return</span> 2 * a * (w - w_star)
+
+<span class="kw">for</span> eta <span class="kw">in</span> [0.1, 0.25, 0.3]:
+    <span class="cm"># [逐行剖析] 同一起点 w=0，只换步长；每档走 5 步并四舍五入打印</span>
+    w = 0.0
+    traj = [w]
+    <span class="kw">for</span> step <span class="kw">in</span> range(5):
+        w = w - eta * grad(w)
+        traj.append(round(w, 4))
+    print(eta, traj)</code></pre>
+  <p>
+    期望输出（可逐行复算）：\(\eta = 0.1\) 得 <code>[0.0, 2.4, 2.88, 2.976, 2.9952, 2.999]</code>（逼近 3）；
+    \(\eta = 0.25\) 得 <code>[0.0, 6.0, 0.0, 6.0, 0.0, 6.0]</code>（周期 2 横跳）；
+    \(\eta = 0.3\) 得 <code>[0.0, 7.2, -2.88, 11.232, -8.5248, 19.1347]</code>（指数发散）。
+    <strong>读日志的对应关系</strong>：平稳下降对应第一档；loss 在两个值之间来回弹对应第二档；
+    loss 突然上冲成 NaN 对应第三档——先降学习率，再怀疑人生。
   </p>
 </section>
 
@@ -522,6 +615,37 @@ t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-1.5*梯度
   </ul>
   <p class="why">
     在计算图中，反向传播的依赖关系方向与前向完全相反。若不保证拓扑逆序，某个节点可能在尚未接收完所有下游分支的梯度回传时就提前触发了自己的反向传递，导致上游祖先节点接收到的梯度严重缺损。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">对一维碗 \(f(w) = 4(w - 3)^2\) 从 \(w = 0\) 做梯度下降，哪个步长能收敛到最优点 3？</p>
+  <ul class="opts">
+    <li>\(\eta = 0.3\)，因为步子大走得快</li>
+    <li>\(\eta = 0.25\)，误差因子恰好为 \(-1\) 会原地踏步</li>
+    <li data-ok>\(\eta = 0.1\)，误差每步乘以 \(0.2\)，单调收缩到 3</li>
+    <li>三个都不行，起点必须选在 3 的右侧</li>
+  </ul>
+  <p class="why">
+    误差递推为 \(w_{t+1} - 3 = (1 - 8\eta)(w_t - 3)\)，收敛要求 \(|1 - 8\eta|\) 小于 1，即 \(0\) 小于 \(\eta\) 且 \(\eta\) 小于 \(0.25\)。
+    \(\eta = 0.25\) 时因子为 \(-1\)，在 0 与 6 之间周期横跳；\(\eta = 0.3\) 时因子为 \(-1.4\)，指数发散；起点在哪一侧不影响结论。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 8</div>
+  <p class="q">用中心差商验梯度时，把步长 \(\epsilon\) 减半，截断误差 \(O(\epsilon^2)\) 大约变成原来的多少？</p>
+  <ul class="opts">
+    <li>约 1/2，和前向差商一样</li>
+    <li>基本不变，因为极限已经取完</li>
+    <li data-ok>约 1/4，因为误差与步长的平方成正比</li>
+    <li>约 2 倍，因为除法放大了舍入误差</li>
+  </ul>
+  <p class="why">
+    \(O(\epsilon^2)\) 表示误差正比于 \(\epsilon^2\)，步长减半则 \((\epsilon/2)^2 = \epsilon^2/4\)。
+    前向差商的误差是 \(O(\epsilon)\)（减半只降一半），这正是梯度检验用中心差商的原因。
+    注意这是截断误差；步长过小后浮点舍入误差反而上升，所以实用中取 \(\epsilon = 10^{-6}\) 左右折中。
   </p>
 </div>
 `

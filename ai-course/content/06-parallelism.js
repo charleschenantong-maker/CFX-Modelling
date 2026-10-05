@@ -52,12 +52,23 @@ COURSE.register({
   <p><strong>张量并行</strong>每层都要通信激活，共 \(2L\) 次，且与批量大小成正比：</p>
   \[ \text{Comm}_{\text{TP}} \approx 2L \cdot B \cdot S \cdot d \ \text{elements} \]
   <p>
-    当 \(L=32\)、\(B\cdot S = 10^{4}\)、\(d=4096\) 时，TP 的通信量比 DP 高两个数量级。
-    这就是「TP 必须待在 NVLink 域内」的量化理由——跨机 InfiniBand 的延迟会把它吃光。
+    代入 \(L = 32\)、\(B\cdot S = 10^{4}\)、\(d = 4096\)：
+    \(\text{Comm}_{\text{TP}} \approx 2 \times 32 \times 10^{4} \times 4096 \approx 2.6\times 10^{9}\) 个元素；
+    而同规模模型 \(N \approx 6.4\times 10^{9}\) 时 \(\text{Comm}_{\text{DP}} \approx 2N \approx 12.8\times 10^{9}\) 个元素——单看总量 TP 反而更小。
+    真正的杀伤是<strong>频率</strong>：TP 每步要做 \(2L = 64\) 次小包 all-reduce，单次小、无法与计算重叠，跨机延迟会把它吃光；
+    而 DP 每步只有 1 次大包 all-reduce，可与反向计算重叠。当 \(B\cdot S\) 放大到 \(10^{5}\)–\(10^{6}\) 时，TP 总量反超约 2–20 倍。
+    这才是「TP 必须待在 NVLink 域内、PP 才适合跨机」的量化理由。
   </p>
   <p><strong>流水线并行</strong>的代价是气泡：若分成 \(p\) 个 stage、\(m\) 个 micro-batch，气泡比例约</p>
   \[ \text{bubble} \approx \frac{p-1}{m+p-1} \]
   <p>所以流水线并行必须配合足够多的 micro-batch（梯度累积）才能把利用率拉回来。</p>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先拿 2 张卡热身：ring 通信到底搬了多少数</h4>
+  <p>2 张卡做数据并行：每卡发出约一半梯度、收回约一半，单卡搬运约 \(N\) 个元素；卡数加到 \(P\) 张，单卡搬运仍是约 \(2N\) 量级——不随卡数涨，这就是 DP 敢跨机的底气。</p>
+  <p>同样 2 张卡做张量并行：每层 2 次 all-reduce，每次只搬 \(B \cdot S \cdot d\) 个激活，\(L = 32\) 时一共 64 次小包——单次小到塞不满跨机带宽，全耗在延迟上，只能待在 NVLink 里；而流水线并行只在 stage 边界传一次激活，天生适合跨机。</p>
+  <p>LLM 回报：配机器时先数「每步几次通信」再算总量；64 次小包一跨机，延迟直接吃掉加速比，省带宽的钱不如省拓扑的命。</p>
 </section>
 
 <h3>2. 草稿纸演算区：从分块矩阵到 Megatron-LM 与 3D 并行</h3>
@@ -185,12 +196,13 @@ COURSE.register({
     </li>
   </ul>
   <p><strong>2. 通信量代数手算与拓扑映射原则：</strong></p>
+  <p>单位约定：\(\Phi\) 为全模型参数量（与上文 \(M_{\text{param}}\) 中一致），\(c\) 为每元素字节数（bf16 取 \(c = 2\)，fp32 取 \(c = 4\)）；下表字节数一律写成元素个数 \(\times\, c\)，不再混用裸数字。</p>
   <table class="tbl small">
     <thead><tr><th>并行维度</th><th>每步发生通信的频次</th><th>单卡单步通信量代数式</th><th>硬件映射要求与理由</th></tr></thead>
     <tbody>
-      <tr><td><strong>TP（张量并行）</strong></td><td>每层前向 2 次 + 反向 2 次（共 \(4L\) 次 All-Reduce）</td><td>\(4L \times 2 \frac{t-1}{t} \cdot b S d \times 2\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
-      <tr><td><strong>PP（流水线并行）</strong></td><td>仅在 stage 边界传递边界激活与梯度，每 micro-batch 1 次前向 + 1 次反向</td><td>\(2 \times m \cdot b S d \times 2\) 字节（\(m\) 为 micro-batch 数量）</td><td><strong>适合跨机（走 InfiniBand）</strong>。通信量极小，只传单层输出，但需通过增加 \(m\) 压缩气泡率 \(\frac{p-1}{m+p-1}\)。</td></tr>
-      <tr><td><strong>DP（数据并行）</strong></td><td>每步反向结束对梯度做 1 次 All-Reduce</td><td>\(2 \frac{d_p-1}{d_p} \cdot \frac{2\Phi}{t \cdot p}\) 字节</td><td><strong>适合跨节点机架间</strong>。通信量只与参数量相关，与上下文长度 \(S\) 无关，可完全与反向计算重叠（Overlap）。</td></tr>
+      <tr><td><strong>TP（张量并行）</strong></td><td>每层前向 2 次 + 反向 2 次（共 \(4L\) 次 All-Reduce）</td><td>\(4L \cdot 2 \frac{t-1}{t} \cdot b S d \times c\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
+      <tr><td><strong>PP（流水线并行）</strong></td><td>仅在 stage 边界传递边界激活与梯度，每 micro-batch 1 次前向 + 1 次反向</td><td>\(2 \cdot m \cdot b S d \times c\) 字节（\(m\) 为 micro-batch 数量）</td><td><strong>适合跨机（走 InfiniBand）</strong>。通信量极小，只传单层输出，但需通过增加 \(m\) 压缩气泡率 \(\frac{p-1}{m+p-1}\)。</td></tr>
+      <tr><td><strong>DP（数据并行）</strong></td><td>每步反向结束对梯度做 1 次 All-Reduce</td><td>\(2 \frac{d_p-1}{d_p} \cdot \frac{c\,\Phi}{t \cdot p}\) 字节</td><td><strong>适合跨节点机架间</strong>。通信量只与参数量相关，与上下文长度 \(S\) 无关，可完全与反向计算重叠（Overlap）。</td></tr>
     </tbody>
   </table>
 </section>
@@ -301,7 +313,8 @@ print(jax.devices())  <span class="cm"># 打印设备拓扑: 验证 8 个独立�
   </ul>
   <p class="why">
     数据并行每步只有一次梯度 all-reduce（通信量约 \(2N\)，与卡数无关）；
-    张量并行有 \(2L\) 次激活通信，量级高出两个数量级。它需要 NVLink 这类高带宽低延迟互联。
+    张量并行每步有 \(2L = 64\) 次激活小包通信：总量随 \(B\cdot S\) 增长（\(10^{4}\) 时约 \(2.6\times 10^{9}\) 个元素，与 \(2N\) 相当），
+    但高频小包无法与计算重叠，所以它需要 NVLink 这类高带宽低延迟互联。
   </p>
 </div>
 

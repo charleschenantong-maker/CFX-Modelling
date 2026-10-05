@@ -16,6 +16,21 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
+  <h4><span class="ic">✓</span>0.5 先追踪一次张量：每个维度都在回答什么问题</h4>
+<p>
+  下面这张表先于公式阅读。(B) 是一次处理多少条样本，(T) 是每条样本有多少个 token，(D) 是隐藏向量宽度，(h) 是注意力头数，(V) 是词表大小。
+  看到一个矩阵时，先问“它沿哪个维度混合信息”，再问它的代数性质。
+</p>
+<table class="tbl small">
+  <thead><tr><th>阶段</th><th>形状</th><th>维度含义</th><th>它解决的实际问题</th></tr></thead>
+  <tbody>
+    <tr><td>Token IDs</td><td><code>[B, T]</code></td><td>整数索引</td><td>输入多长，批次多大</td></tr>
+    <tr><td>Embedding</td><td><code>[B, T, D]</code></td><td>每个 token 的可学习表示</td><td>把离散符号变成可计算的特征</td></tr>
+    <tr><td>Q / K / V</td><td><code>[B, h, T, d_head]</code></td><td>每个头的查询、键和值</td><td>决定 token 互相读取什么</td></tr>
+    <tr><td>Attention scores</td><td><code>[B, h, T, T]</code></td><td>每个位置对每个位置的分数</td><td>上下文越长，这张表越贵</td></tr>
+    <tr><td>Logits</td><td><code>[B, T, V]</code></td><td>每个位置对词表的未归一化分数</td><td>交给采样器生成下一个 token</td></tr>
+  </tbody>
+</table>
   <h4><span class="ic">✓</span>学习目标：建立硬件算力与模型架构的解析直觉</h4>
   <p>
     阅读完本讲后，你将能够做到：
@@ -53,6 +68,13 @@ COURSE.register({
   <div class="nd">＋ 残差连接</div><div class="ar">→</div>
   <div class="nd">输出表征 \(x_{l+1}\)</div>
 </div>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先拿标量热身：为什么残差里那个 1 救了梯度</h4>
+  <p>忘掉矩阵，先看一维：设每层是 \(x_{l+1} = x_l + 0.1\,x_l = 1.1\,x_l\)，起点 \(x_0 = 2\)，则 \(x_1 = 2.2\)，\(x_2 = 2.42\)，每层导数都是 \(1.1\)，两层连乘得 \(1.1^2 = 1.21\)——量级始终是 1。</p>
+  <p>对比没有残差的 \(x_{l+1} = 0.1\,x_l\)：两层后梯度只剩 \(0.1^2 = 0.01\)，100 层后就是 \(0.1^{100}\)，直接归零。Pre-norm 的恒等项就是把每层的 0.1 变成了 \(1 + 0.1\)。</p>
+  <p>LLM 回报：这就是百层 Transformer 能训下去的原因——梯度范数不随深度指数坍缩，省下的是调参和炸掉重训的 GPU 小时数。下面把同样的账算到矩阵上。</p>
+</section>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密分析：Pre-norm 恒等残差流的梯度直通定理</h4>
@@ -306,7 +328,7 @@ COURSE.register({
         self.final_norm = RMSNorm(dim)
         self.lm_head = nn.Linear(dim, vocab_size, bias=False)
         <span class="cm"># [逐行剖析] 权重绑定（Weight Tying）：输入 embedding 与输出 head 共享相同显存指针</span>
-        <span class="cm"># 显存优化: 节省 vocab_size * dim * 4 字节显存，同时反向传播梯度双向累加</span>
+        <span class="cm"># 显存优化: 节省 vocab_size * dim * 2 字节显存（bf16 每元素 2 字节；fp32 则为 4 字节），同时反向传播梯度双向累加</span>
         self.lm_head.weight = self.tok_emb.weight
 
     <span class="kw">def</span> forward(self, idx):
@@ -360,6 +382,7 @@ COURSE.register({
     <li>RMSNorm：均方根为 \(\sqrt{(1+4+9+16)/4}=\sqrt{7.5}\approx2.739\)，结果约为 \((0.365,0.730,1.095,1.460)\)。</li>
     <li>两者都保留相对尺度信息，但 RMSNorm 不强迫向量均值为 0；这正是它在现代 LLM 中常见的工程取舍。</li>
   </ol>
+  <p>LLM 回报：RMSNorm 相比 LayerNorm 省一次均值归约加一次逐元素平移；decode 每步每层都要归一化一次，省下的就是显存带宽与 VRAM。</p>
   <p class="cm">Hint：如果把 \(x\) 的每个分量都加上常数，LayerNorm 不变而 RMSNorm 会变；想一想这是否影响残差流表达。</p>
 </section>
 
@@ -514,12 +537,12 @@ print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] 
   <p class="q">为什么现代深层大语言模型普遍放弃 Post-norm 结构，而全面拥抱 Pre-norm 残差结构？</p>
   <ul class="opts">
     <li>因为 Pre-norm 的前向矩阵乘法速度快一倍</li>
-    <li data-ok>Pre-norm 的残差主干在反向传播时始终包含一个干净的单位矩阵恒等直通项 \(\mathbf{I}\)，彻底消除了深层网络梯度弥散与爆炸的隐患，极大提升了超深网络训练的稳定性</li>
+    <li data-ok>Pre-norm 的残差主干在反向传播时始终包含一个干净的单位矩阵恒等直通项 \(\mathbf{I}\)，显著改善了深层网络梯度弥散与爆炸的问题，极大提升了超深网络训练的稳定性</li>
     <li>因为 Pre-norm 不需要使用任何学习率</li>
     <li>为了让模型参数量缩减一半</li>
   </ul>
   <p class="why">
-    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导展开后恒定包含单位矩阵项 \(\frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L}(\mathbf{I} + \dots)\)，保证梯度可以直接在残差流中无阻力反向流动；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
+    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导展开后恒定包含单位矩阵项 \(\frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L}(\mathbf{I} + \dots)\)，保证梯度可以在残差流中更顺畅地反向流动；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
   </p>
 </div>
 

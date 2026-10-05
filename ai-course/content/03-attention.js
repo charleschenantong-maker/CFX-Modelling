@@ -35,6 +35,22 @@ COURSE.register({
   </p>
 </section>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>直觉先行：注意力输出就是按配方调漆</h4>
+  <p>
+    <strong>一句话直觉</strong>：注意力输出是各 value 的加权平均，权重非负且和为 1——
+    就像按配方调漆：8 勺红漆加 4 勺黄漆，你只能调出两者之间的颜色，调不出配方之外的第三种颜色。
+    取最小数字例子：两个标量值 \(v_1 = 8\)、\(v_2 = 4\)，权重 \([0.75, 0.25]\)，
+    输出为 \(0.75 \times 8 + 0.25 \times 4 = 6 + 1 = 7\)——结果永远落在 4 与 8 之间。
+  </p>
+  <p>
+    <strong>LLM payoff</strong>：这决定了注意力的能力边界——它只能在 value 的凸包里内插（检索与聚焦），
+    变不出凸包之外的新方向；真正的新特征要靠后面的 MLP 与投影层造出来。
+    读 attention map 时同理：某一行接近 one-hot 表示“几乎原样抄某个位置”，接近均匀表示“把大家平均一下”。
+    下面的缩放定理只是在回答：分值不受控时，这个“配方”会退化成只抄一家。
+  </p>
+</section>
+
 <h3>1. 核心数学基石：缩放点积注意力 (Scaled Dot-Product Attention)</h3>
 <p>
   Vaswani 等人在 2017 年《Attention Is All You Need》中写下的标志性公式：
@@ -67,8 +83,12 @@ COURSE.register({
   \[ \mathrm{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}} \implies p_{\max} \to 1.0, \quad p_{j \ne \max} \to 0.0 \]
   <p>
     也就是说，最大项概率趋近于 1.0，其余概率几乎全变为 0.0。
-    Softmax 的导数矩阵为 \(S_i(\delta_{ij} - S_j)\)。一旦进入极端极化状态，所有偏导数几乎完全等于零，
-    反向传播的梯度瞬间在注意力层<strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习！
+    注意这件事发生的位置是<strong>注意力行 Softmax</strong>——对 \(QK^{T}\) 点积分数
+    （\(T \times T\) 权重矩阵的每一行）做的归一化，
+    不要把它和最后词表输出层的 Softmax 加交叉熵搞混（那里的梯度 \(\mathbf{p} - \mathbf{y}\) 形式上永远有信号）。
+    注意力权重的导数矩阵为 \(S_i(\delta_{ij} - S_j)\)。一旦进入极端极化状态，所有偏导数几乎完全等于零，
+    查询与键的梯度（\(\partial \mathcal{L} / \partial Q\)、\(\partial \mathcal{L} / \partial K\)）瞬间在注意力层
+    <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习！
     因此，必须严格除以缩放因子 \(\sqrt{d_k}\)，使输入 Softmax 前的方差精确锚定回 \(1.0\)。
   </p>
 </section>
@@ -139,6 +159,12 @@ COURSE.register({
   <p>
     第一行 Token 明显更关注第一个 Value（权重 0.67）；第二行 Token 则平权吸收了两个 Value 的信息。
     没有黑盒，全是最直白的线性代数。
+  </p>
+  <p>
+    术语对齐（防坑）：\(QK^{T}\) 是 <strong>Gram 矩阵</strong>——“query 与 key 的两两内积表”，
+    它只记录相似度分数，不做任何归一化，更不是投影矩阵；
+    归一化后的 \(A\) 是行随机矩阵（每行和为 1 的凸组合权重），同样不是投影（见第 6 节的对称与幂等判据）。
+    一句话：Gram 矩阵管“打分”，Softmax 管“归一化成权重”，两者缺一不可，但数学身份完全不同。
   </p>
 </section>
 
@@ -364,6 +390,38 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
   </p>
 </section>
 
+<h3>7.5 KV cache 账本：7B 模型 4k 上下文约 2.15GB，32k 直接 OOM</h3>
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>KV cache 账本：先算再开长上下文</h4>
+  <p>
+    <strong>一句话定义</strong>：KV cache 是解码时为每个已见 token 存下的 \(K\)、\(V\) 向量——
+    存下来就不用每步重算，代价是显存随长度线性增长。它的字节数只有一条公式：
+  </p>
+  \[ M = 2 \cdot L \cdot d \cdot b \cdot T \]
+  <p>
+    其中 \(L\) 为层数，\(d\) 为模型宽度，\(b\) 为每元素字节数（fp16 取 2），\(T\) 为上下文长度，
+    开头的 2 表示 K 与 V 各一份。按 7B 量级（\(L = 32\)，\(d = 4096\)，fp16）手算：
+    每个 token 占 \(2 \times 32 \times 4096 \times 2 = 524288\) B（约 0.5 MB）。
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>上下文长度</th><th>KV cache</th><th>加 14GB 权重后</th><th>24GB 卡结论</th></tr></thead>
+    <tbody>
+      <tr><td>4k</td><td>约 2.15GB</td><td>约 16GB</td><td>能跑</td></tr>
+      <tr><td>8k</td><td>约 4.3GB</td><td>约 18GB</td><td>能跑，batch 别大</td></tr>
+      <tr><td>16k</td><td>约 8.6GB</td><td>约 23GB</td><td>悬崖边</td></tr>
+      <tr><td>32k</td><td>约 17.2GB</td><td>约 31GB</td><td>OOM</td></tr>
+    </tbody>
+  </table>
+  <p>
+    验算：\(524288 \times 4096 = 2147483648\) B \(\approx 2.15\) GB；32k 是 4k 的 8 倍，即约 17.2GB。
+    <strong>LLM payoff（含比较）</strong>：参数能装下不等于上下文能跑——长上下文的第一堵墙是 KV 显存，不是参数量；
+    batch 也要乘进去（batch 4 时 4k 上下文的 KV 是约 8.6GB）。
+    缓解手段按代价排序：GQA（少存几组 KV 头，LLaMA 类模型标配）、KV 量化（fp8/int8，精度换一半显存）、
+    窗口/逐出（超出部分丢弃，长程质量换显存）。选型时把这张表和 02 讲的 fertility 表连起来看：
+    fertility 降 3 倍，这里的每一行 GB 数也除以 3。
+  </p>
+</section>
+
 <h3>8. 探究阶梯：从正确计算到反驳错误直觉</h3>
 <ol>
   <li>先写 \(B=2,T=5,C=12,h=3\) 的 Q、分数、输出形状，再打开代码核对。</li>
@@ -519,6 +577,22 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
   </ul>
   <p class="why">
     RoPE 利用二维正交旋转矩阵的群结构 \(R_m^T R_n = R_{n-m}\)，使得两向量经过旋转后的点积只取决于相对位移 \((n - m)\)，展现出绝佳的相对位置不变性与长度外推能力。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 8</div>
+  <p class="q">7B 量级模型（32 层、宽度 4096、fp16）在 4k 上下文下 KV cache 约 2.15GB。直接把上下文开到 32k（batch 不变），会发生什么？</p>
+  <ul class="opts">
+    <li>KV 变成约 4.3GB，因为长度 8 倍但 GQA 会分摊</li>
+    <li data-ok>KV 变成约 17.2GB，加上约 14GB 权重后超过 24GB，直接 OOM</li>
+    <li>KV 不变，因为 cache 只与参数量有关</li>
+    <li>KV 变成约 137GB，因为注意力是平方关系</li>
+  </ul>
+  <p class="why">
+    \(M = 2 \cdot L \cdot d \cdot b \cdot T\) 与 \(T\) 成正比：32k 是 4k 的 8 倍，
+    \(2.15 \times 8 \approx 17.2\) GB；加权重大约 31GB，24GB 卡装不下。
+    注意平方的是注意力计算量 \(O(T^2)\)，KV 显存是线性的——两者别混：长度 8 倍时计算量变 64 倍，显存变 8 倍。
   </p>
 </div>
 `
