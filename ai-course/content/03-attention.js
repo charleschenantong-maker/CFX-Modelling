@@ -293,7 +293,7 @@ COURSE.register({
     <li>点积得到 \((2,2,3,3)\)，每个头有一个 \(3\times3\) 的位置关系表。</li>
     <li>乘 V 后回到 \((2,2,3,4)\)，transpose 与 reshape 后才回到 \((2,3,8)\)。</li>
   </ol>
-  <p class="hint">Hint：如果你写出 \((2,3,2,4)\) 作为分数矩阵，最后两个维度没有做内积；先找出哪一维应该转置。</p>
+  <p class="cm">Hint：如果你写出 \((2,3,2,4)\) 作为分数矩阵，最后两个维度没有做内积；先找出哪一维应该转置。</p>
 </section>
 
 <h3>6. 几何视角：双线性评分与行随机仿射算子</h3>
@@ -324,7 +324,7 @@ COURSE.register({
     <tr><td>正交投影</td><td>\(P=P^\top,P^2=P\)</td><td>仅特殊权重矩阵</td><td>不能把普通 attention map 直接叫投影</td></tr>
   </tbody>
 </table>
-<p class="hint">Hint：找 \(A=\begin{pmatrix}1&0\\1/2&1/2\end{pmatrix}\) 的反例；它行和为 1，但 \(A^2\ne A\)。</p>
+<p class="cm">Hint：找 \(A=\begin{pmatrix}1&0\\1/2&1/2\end{pmatrix}\) 的反例；它行和为 1，但 \(A^2\ne A\)。</p>
 
 <h3>7. 30 分钟验算：让代码自己暴露形状错误</h3>
 <section class="blk blk-lab">
@@ -371,7 +371,7 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
   <li>证明行和为 1 不推出 \(A^2=A\)，再说明这为何阻止「注意力就是投影」的说法。</li>
   <li>把 \(q,k\) 同时做同一个 RoPE 旋转，检查内积是否保持不变；再把它们放在不同位置，观察只剩 \(n-m\)。</li>
 </ol>
-<p class="hint">Hint：矩阵乘法看最后两维；softmax 看最后一维；RoPE 看 \(R_m^\top R_n\)。</p>
+<p class="cm">Hint：矩阵乘法看最后两维；softmax 看最后一维；RoPE 看 \(R_m^\top R_n\)。</p>
 
 <div class="quiz">
   <div class="qlabel">自测 · 4</div>

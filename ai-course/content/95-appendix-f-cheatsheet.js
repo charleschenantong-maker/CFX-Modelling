@@ -102,7 +102,7 @@ COURSE.register({
     <tr><td>命令行</td><td><code>trl sft / dpo / grpo</code></td><td>YAML 配置</td><td>不想写 Python，直接跑脚本</td></tr>
   </tbody>
 </table>
-<p class="hint">文档入口：<a href="https://huggingface.co/docs/trl/sft_trainer" target="_blank" rel="noopener">sft</a>、
+<p class="cm">文档入口：<a href="https://huggingface.co/docs/trl/sft_trainer" target="_blank" rel="noopener">sft</a>、
 <a href="https://huggingface.co/docs/trl/dpo_trainer" target="_blank" rel="noopener">dpo</a>、
 <a href="https://huggingface.co/docs/trl/grpo_trainer" target="_blank" rel="noopener">grpo</a>、
 <a href="https://huggingface.co/docs/trl/dataset_formats" target="_blank" rel="noopener">数据集格式</a>。</p>
@@ -143,7 +143,7 @@ COURSE.register({
     <tr><td>Google AI Pro</td><td>每月计算单元</td><td>Colab compute units</td><td>Colab 设置 → 订阅</td><td>余额耗尽会退回免费层策略</td></tr>
   </tbody>
 </table>
-<p class="hint">
+<p class="cm">
   <strong>红线提醒</strong>：Colab 禁止「用多个账号规避资源限制」；个人订阅不得承载面向公众的流量。
   详见<a href="#m11">模块 11</a>与<a href="#appD">附录 D</a>。
 </p>
@@ -275,7 +275,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     </tr>
   </tbody>
 </table>
-<p class="hint">
+<p class="cm">
   与之配套的术语（约 55 条）在<a href="#appA">附录 A 第 15 节</a>；
   这些主题的完整推导、动手实验与自测在各章正文里。
 </p>

@@ -360,7 +360,7 @@ COURSE.register({
     <li>RMSNorm：均方根为 \(\sqrt{(1+4+9+16)/4}=\sqrt{7.5}\approx2.739\)，结果约为 \((0.365,0.730,1.095,1.460)\)。</li>
     <li>两者都保留相对尺度信息，但 RMSNorm 不强迫向量均值为 0；这正是它在现代 LLM 中常见的工程取舍。</li>
   </ol>
-  <p class="hint">Hint：如果把 \(x\) 的每个分量都加上常数，LayerNorm 不变而 RMSNorm 会变；想一想这是否影响残差流表达。</p>
+  <p class="cm">Hint：如果把 \(x\) 的每个分量都加上常数，LayerNorm 不变而 RMSNorm 会变；想一想这是否影响残差流表达。</p>
 </section>
 
 <h3>7. 一个 block 的张量流：每一步都回到 \((B,T,d)\)</h3>
@@ -382,7 +382,7 @@ COURSE.register({
     <tr><td>block 输出</td><td>\((B,T,d)\)</td><td>\(x'=u+\Delta_{\mathrm{mlp}}\)</td><td>可继续送入下一层</td></tr>
   </tbody>
 </table>
-<p class="hint">Hint：只要某一步输出成 \((B,d,T)\)，就说明把序列轴和通道轴弄反了；残差加法不会替你修正它。</p>
+<p class="cm">Hint：只要某一步输出成 \((B,d,T)\)，就说明把序列轴和通道轴弄反了；残差加法不会替你修正它。</p>
 
 <h3>8. Crossfade：凸组合相似，能量约束不同</h3>
 <p>
