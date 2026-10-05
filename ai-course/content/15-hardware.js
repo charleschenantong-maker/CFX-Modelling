@@ -76,7 +76,7 @@ COURSE.register({
     <tr><td>需要 GPU 的训练</td><td>小规模可以</td><td>✅ 但单价高（见模块 10）</td></tr>
   </tbody>
 </table>
-<p><strong>对你的项目</strong>：音频实验脚本很轻，不需要 CI 卸载；但「批量渲染 100 段过渡 + 计算指标」这类任务适合写成脚本交给 CI 或后台任务，
+<p><strong>以后做 crossfade 这类项目时</strong>：音频实验脚本通常很轻，不需要 CI 卸载；但「批量渲染 100 段过渡 + 计算指标」这类任务适合写成脚本交给 CI 或后台任务，
 这样你的交互式设备始终保持可响应。</p>
 
 <h3>4. 如果你现在只有一台 Windows 或 macOS 机器</h3>
@@ -125,9 +125,9 @@ COURSE.register({
 </table>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
   <p>
-    你的 crossfade 项目包含<strong>大量小规模但高频的实验</strong>：渲染音频、计算指标、跑统计检验。
+    crossfade 这类题目通常包含<strong>大量小规模但高频的实验</strong>：渲染音频、计算指标、跑统计检验。
     这类负载对硬盘与内存的压力远大于对 CPU 的压力。
     把实验脚本做成「一条命令、结果落盘、可复现」，再配合 2–3 个 worktree 并行跑不同参数组，
     你就能在一台普通机器上获得远超预期的迭代速度——<em>而这正是 85/15 规则想要的基础设施</em>。

@@ -9,7 +9,7 @@ COURSE.register({
   tags: ["核心", "统计", "必做"],
   body: String.raw`
 <p class="lead">
-  这是整门课最重要的一模块。它决定了你的项目是「一个跑通的 demo」还是「一份可以辩护的研究」。
+  这是整门课最重要的一模块。学完这一节，以后你做 crossfade 这类项目时，就知道怎么把「一个跑通的 demo」做成「一份可以辩护的研究」。
   核心问题只有一个：<strong>你观察到的提升，是真实信号还是噪声与捷径？</strong>
 </p>
 
@@ -40,7 +40,7 @@ COURSE.register({
     <tr><td>人类/领域评估</td><td>双盲听测、专家评审</td><td>是否真的有价值</td><td>成本高、方差大</td></tr>
   </tbody>
 </table>
-<p><strong>损失下降 ≠ 任务变好。</strong>这在你的项目里尤其明显：预测过渡时长的 RMSE 降低 0.3 秒，
+<p><strong>损失下降 ≠ 任务变好。</strong>以 crossfade 这类任务为例，这一点尤其明显：预测过渡时长的 RMSE 降低 0.3 秒，
 可能完全听不出来。所以 Checkpoint 4/6 要求把客观指标与主观听测对齐。</p>
 
 <h3>2. 泛化：为什么必须按「艺人」分组</h3>
@@ -103,7 +103,7 @@ COURSE.register({
   （2）交叉验证的折之间<strong>不独立</strong>，所以不要把 5 折的 5 个数当 5 个独立样本做 t 检验——
   这正是下一节要做置换检验的原因。
 </p>
-<p><em>可执行的结论：在你的项目规模下，能可靠检测的是「0.3 秒以上」的差别。所以不要为了让 Level 3 赢而调参——
+<p><em>可执行的结论：在 crossfade 这类任务常见的规模下，能可靠检测的是「0.3 秒以上」的差别。所以不要为了让 Level 3 赢而调参——
 先在报告里声明这个可检测下限，会让你的结论显得非常专业。</em></p>
 
 <h4>3.2 分组交叉验证的正确做法</h4>
@@ -234,7 +234,7 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
   <ol>
     <li><strong>在测试集上调超参</strong>：一旦你为了分数反复查看测试集，它就不再是测试集。要么留出最终的 held-out 集，要么用嵌套交叉验证。</li>
     <li><strong>只报告最好的运行</strong>：随机种子、初始化、数据顺序都会造成波动。至少跑 3–5 个种子并报告均值与标准差。</li>
-    <li><strong>把相关性当因果</strong>：特征重要度高不等于「改变它就能改善结果」。要结论因果，需要干预实验（在你的项目里就是：修改一个参数，重新渲染并听测）。</li>
+    <li><strong>把相关性当因果</strong>：特征重要度高不等于「改变它就能改善结果」。要结论因果，需要干预实验（以 crossfade 这类任务为例：比如修改一个参数，重新渲染并听测）。</li>
   </ol>
 </section>
 <section class="blk blk-tip">
@@ -704,7 +704,7 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 
 <div class="acc" data-t="深入：把听力测试纳入评估体系（音频项目的必备环节）" data-badge="项目">
   <div class="acc-body">
-    <p>对你的 crossfade 项目而言，客观指标（LUFS、谱通量）与主观感知并不总一致。可用的主观方法：</p>
+    <p>以 crossfade 这类任务为例，客观指标（LUFS、谱通量）与主观感知并不总一致。可用的主观方法：</p>
     <table class="tbl small">
       <thead><tr><th>方法</th><th>做法</th><th>优点</th><th>代价</th></tr></thead>
       <tbody>

@@ -370,9 +370,9 @@ for step, (x, y) in enumerate(loader):
 </section>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
   <p>
-    你不做预训练，但<strong>「预训练 → 微调」这个两阶段范式会直接搬到你的项目里</strong>：
+    你现在不做预训练，但学完这一节你就知道，以后做 crossfade 这类项目时可以把<strong>「预训练 → 微调」这个两阶段范式搬过去</strong>：
     先用解析模型给出基线（相当于预训练阶段的知识），再用少量数据拟合残差（相当于微调）。
     关键纪律相同：<em>每一阶段都必须有独立的验证集与可复现的日志</em>，
     否则你无法回答「提升到底来自哪里」——而这正是 Cambridge 面试会追问的第一个问题。

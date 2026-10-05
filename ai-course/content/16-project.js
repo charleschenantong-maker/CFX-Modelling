@@ -1,15 +1,15 @@
-/* content/16-project.js — 模块 16：接回你的数学模型项目 */
+/* content/16-project.js — 模块 16：把方法映射到数学建模类题目（未来示例） */
 COURSE.register({
   id: "m16",
   part: 5,
   num: "16",
-  title: "收束：把这一切接回 Crossfade 项目与申请材料",
+  title: "收束：把这一切映射到 Crossfade 这类项目与申请材料（未来示例）",
   en: "Synthesis — Mapping the Course onto Your Project",
   minutes: 40,
   tags: ["项目", "申请", "必做"],
   body: String.raw`
 <p class="lead">
-  前面十八讲是<strong>能力储备</strong>；你的《Mathematical Crossfade Modelling for Glass Player》是<strong>产出</strong>。
+  前面十八讲是<strong>能力储备</strong>；以《Mathematical Crossfade Modelling for Glass Player》这类题目为例（你以后可以试试），它可以作为<strong>产出示例</strong>。
   两者是<strong>两条并行的轨道</strong>，不是一件事——这一讲讲清它们在哪里交汇、在哪里必须分开，
   并给出 Checkpoint 7 的完整技术方案与一份 12 周计划。
 </p>
@@ -22,7 +22,7 @@ COURSE.register({
       <tr><td><strong>目标</strong></td><td>产出一个可辩护的数学模型 + 可运行引擎 + 答辩材料</td><td>建立 LLM 与训练的完整能力，能读论文、能跑实验</td></tr>
       <tr><td><strong>推进方式</strong></td><td>按 8 个检查点（CP1–CP8）线性推进，每个检查点有明确产出</td><td>按 24 讲推进，每讲配自测与动手版块</td></tr>
       <tr><td><strong>评价标准</strong></td><td>数学严谨性、实证证据、可复现性</td><td>能否独立跑通、能否识别常见错误</td></tr>
-      <tr><td><strong>它不负责</strong></td><td>不负责教你 Transformer、TRL、Colab（那是轨道乙）</td><td>不负责替你做 crossfade 的数学（那是轨道甲）</td></tr>
+      <tr><td><strong>它不负责</strong></td><td>不负责教你 Transformer、TRL、Colab（那是轨道乙）</td><td>不负责替你做 crossfade 这类题目的数学（那是轨道甲）</td></tr>
     </tbody>
   </table>
   <p><strong>只在这三处交汇</strong>：① CP1 要工具与基线 → 用本课程 10 的实验纪律；
@@ -34,7 +34,7 @@ COURSE.register({
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>问题</h4>
   <p>
-    你的研究指南《Mathematical Crossfade Modelling for Glass Player》已经把问题、物理与文献都摆好了。
+    以《Mathematical Crossfade Modelling for Glass Player》这类研究指南为例（你以后可以找来读），它已经把问题、物理与文献都摆好了。
     现在你有了 LLM 与训练的整套知识，真正要回答的是：
     <strong>哪一部分应该由数学完成，哪一部分才轮到学习？</strong>
     这一模块给出判据与执行方案。
@@ -91,7 +91,7 @@ COURSE.register({
     <tr><td>合成/半合成</td><td>用规则生成标签，再注入噪声</td><td>低</td><td><strong>不可用于验证真实结论</strong>，只能用于打通代码</td></tr>
   </tbody>
 </table>
-<p><strong>建议</strong>：先把 250 条真实标注做出来。数据质量决定了这份研究的上限，而模型选择只影响几个百分点。</p>
+<p><strong>建议</strong>：以后做这类题目时，先把 250 条真实标注做出来（现在先理解流程）。数据质量决定了这类研究的上限，而模型选择只影响几个百分点。</p>
 
 <h4>2.2 评估协议（照抄即可）</h4>
 <ol>
@@ -120,7 +120,7 @@ COURSE.register({
     <li>特征维度显著上升（例如加入频谱图或自监督音频嵌入）；</li>
     <li>你有独立的、更大的测试集与足够的听测预算来证明确实更好。</li>
   </ol>
-  <p>否则，引入大模型只会给你一个「无法辩护的复杂度」——这正是 Hand (2006) 与你的 Checkpoint 7 原始设定的立场。</p>
+  <p>否则，引入大模型只会得到一个「无法辩护的复杂度」——这正是 Hand (2006) 与 Checkpoint 7 这类题目原始设定的立场。</p>
 </section>
 
 <h3>3. 12 周执行计划</h3>
@@ -206,7 +206,7 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">你的 CP7 实验发现 Level 3 的 CV RMSE 明显低于 Level 1，且置换检验显著。第一步应该做什么？</p>
+  <p class="q">假设以后你的 CP7 这类实验发现 Level 3 的 CV RMSE 明显低于 Level 1，且置换检验显著。第一步应该做什么？</p>
   <ul class="opts">
     <li>立刻写进报告</li>
     <li data-ok>先审查数据泄漏：艺人分组是否严格、特征里是否混入了未来信息、预处理是否在划分之前拟合</li>
@@ -252,7 +252,7 @@ COURSE.register({
       <li>写下三句结论：数据规模、增益幅度与显著性、局限。</li>
       <li>把它写进申请材料，并准备好回答「如果换成非线性模型会怎样」。</li>
     </ol>
-    <p><strong>完成这一个实验，你就已经拥有了大多数申请者没有的东西：一个带统计检验的、承认边界的定量结论。</strong></p>
+    <p><strong>完成这一个实验，以后你就拥有了大多数申请者没有的东西：一个带统计检验的、承认边界的定量结论。</strong></p>
   </div>
 </div>
 `

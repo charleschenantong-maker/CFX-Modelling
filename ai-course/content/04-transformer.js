@@ -432,9 +432,9 @@ COURSE.register({
   </tbody>
 </table>
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>怎么用在真实项目里：Transformer 在 Crossfade 上值不值</h4>
+  <h4><span class="ic">◈</span>以后接到这类项目时：以 Crossfade 为例，Transformer 值不值</h4>
   <p>
-    对只有几百条样本的 Crossfade 项目，直接训练完整 Transformer 预测每个采样点的增益<strong>不值</strong>：参数自由度、数据需求和调试成本都超过收益。
+    假设以后你接到只有几百条样本的 Crossfade 这类项目，直接训练完整 Transformer 预测每个采样点的增益<strong>不值</strong>：参数自由度、数据需求和调试成本都超过收益。
     值得做的是小模型或冻结编码器，用它预测过渡时刻、响度差与相似度；最终 \(a(t),b(t)\) 仍由等功率与 \(C^1\) 约束生成。这样模型处理内容，物理曲线处理能量与平滑。
   </p>
 </section>

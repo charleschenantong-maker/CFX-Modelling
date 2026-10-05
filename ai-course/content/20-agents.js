@@ -852,7 +852,7 @@ print(state["done"], state["steps"], state["writes"], state["trace"])</code></pr
     <li><strong>与附录 D 的合规一节合起来看</strong>：会自主调用外部服务的智能体，
         在「谁在使用、数据去了哪里、是否代他人自动化」这些问题上与你手动跑脚本没有区别，
         但它的行为是<em>动态</em>的，所以更依赖日志与限流来兜底。</li>
-    <li><strong>对你的毕业项目</strong>：crossfade 项目里最值得做智能体的部分不是「调参」，
+    <li><strong>以后做 crossfade 这类毕业设计题目时</strong>：最值得做智能体的部分不是「调参」，
         而是「实验编排」——生成配置、跑训练、收集指标、写报告草稿，每一步都能被测试脚本验证。
         把不可验证的环节（比如「这段过渡好不好听」）留给人。</li>
   </ul>
@@ -872,14 +872,14 @@ print(state["done"], state["steps"], state["writes"], state["trace"])</code></pr
 </section>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>crossfade 项目上值不值：一个明确回答</h4>
+  <h4><span class="ic">◈</span>以 crossfade 这类项目为例：值不值，一个明确回答（你以后可以照此判断）</h4>
   <p>
     <strong>结论：值得，但只值得做「实验编排」这一类智能体，不值得让模型自己决定怎么调音色。</strong>
     判断标准就是第 6.4 节那句话：<em>要评结果，不要评过程</em>。凡是结果能被脚本判定的环节，智能体划算；
     凡是只能靠耳朵判断的环节，智能体只会把你的不确定性放大成更多的不确定性。
   </p>
   <table class="tbl small">
-    <thead><tr><th>crossfade 里的环节</th><th>可验证的判据</th><th>该不该交给智能体</th><th>为什么</th></tr></thead>
+    <thead><tr><th>crossfade 这类任务里的环节（以后可照此分工）</th><th>可验证的判据</th><th>该不该交给智能体</th><th>为什么</th></tr></thead>
     <tbody>
       <tr>
         <td>生成实验配置、做网格搜索</td>
@@ -920,7 +920,7 @@ print(state["done"], state["steps"], state["writes"], state["trace"])</code></pr
     而成本（包括你复核它的时间）还要另算。
   </p>
   <p>
-    一句话版本：<strong>crossfade 上智能体的正确用法是「让它在可判定的闭环里替你跑腿」，而不是「让它替你审美」。</strong>
+    一句话版本：<strong>以 crossfade 这类任务为例，智能体的正确用法是「让它在可判定的闭环里跑腿」，而不是「让它替人审美」。</strong>
     先从上面表格里第一行做起来——一个只负责生成配置、跑实验、收指标、写草稿的循环，
     加上第 8.4 节的四条终止条件，你就能在一周内得到一个愿意相信其「完成」结论的工具。
   </p>

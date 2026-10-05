@@ -473,12 +473,12 @@ dpo.train()</code></pre>
 </section>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
   <p>
-    Checkpoint 7 的「模型阶梯」与对齐阶段同构：
+    Checkpoint 7 这类任务的「模型阶梯」与对齐阶段同构：
     <strong>Level 0 启发式 → Level 1 岭回归 → Level 2 核方法/随机森林 → Level 3 小 MLP</strong>，
     每一级都必须回答「比上一级好多少、是否统计显著、代价是什么」。
-    你的数据只有几百条，所以你的默认答案是：<em>停留在 Level 1–2，并把 Level 3 的失败当作正式结论写进报告</em>。
+    假设以后数据只有几百条，默认答案是：<em>停留在 Level 1–2，并把 Level 3 的失败当作正式结论写进报告</em>。
     这正是 Hand (2006) 与 Sturm (2014) 的立场（见模块 09）。
   </p>
 </section>

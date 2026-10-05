@@ -35,7 +35,7 @@ COURSE.register({
     把 85% 的预算投在验证上，等于用极低的边际成本买到「可以信任的产出」。
   </p>
 </section>
-<p>可操作的含义（对你的项目直接可用）：</p>
+<p>可操作的含义（以后做 crossfade 这类项目时可直接套用）：</p>
 <ul>
   <li>每次让智能体改代码，都<strong>同时</strong>要求它写/更新对应的测试，并跑一遍。</li>
   <li>把「运行结果」作为验收标准写进提示，而不是「看起来对不对」。</li>
@@ -146,7 +146,7 @@ git worktree remove ../wt-e7-model-ladder      <span class="cm"># 任务完成�
     这与 85/15 规则一致：验证占了大部分价值，就不应该由人来手动串行。
   </p>
 </section>
-<p>对你的项目，可以写成这样的链条：</p>
+<p>以 crossfade 这类任务为例，可以写成这样的链条（你以后可以照此套用）：</p>
 <pre><code>1. 在 wt-e7 工作树里实现模型阶梯脚本；
 2. 运行 E7 实验，保存 results/（RMSE 表、置换零分布图、config.json）；
 3. 生成 results/report.md（含结论与局限）；
@@ -175,13 +175,13 @@ git worktree remove ../wt-e7-model-ladder      <span class="cm"># 任务完成�
 </section>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
   <p>
-    你的项目有天然可并行的五条线：<strong>数学推导</strong>（人做）、<strong>DSP 实现</strong>、
+    crossfade 这类题目有天然可并行的五条线：<strong>数学推导</strong>（人做）、<strong>DSP 实现</strong>、
     <strong>客观测量</strong>（LUFS/谱通量脚本）、<strong>听测组织</strong>（受试者与问卷）、
     <strong>写作与图表</strong>。前四条都可以各占一个 worktree 与一个线程，
     你只在「数学假设是否需要修改」这个真正需要判断的节点介入。
-    <em>这就是 85/15 规则在数学项目上的具体形式。</em>
+    <em>这就是 85/15 规则在数学题目上的具体形式（以后可照此分工）。</em>
   </p>
 </section>
 

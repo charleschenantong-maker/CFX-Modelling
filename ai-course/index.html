@@ -625,41 +625,80 @@ window.COURSE = (function () {
     nav.innerHTML = ''; nav.appendChild(frag);
   }
 
+  /* ---------- lazy per-module rendering ----------
+     Shell placeholders keep nav / scroll-spy / print anchors stable (every
+     section id always exists); body HTML + math + wiring fill in on demand
+     and are cached via data-rendered. */
+  function modById(id) {
+    for (let i = 0; i < COURSE.items.length; i++) if (COURSE.items[i].id === id) return COURSE.items[i];
+    return null;
+  }
+  function isRendered(id) {
+    const s = document.getElementById(id);
+    return !!(s && s.dataset.rendered);
+  }
+
+  function buildSection(m, i, filled) {
+    const sec = document.createElement('section');
+    sec.className = 'mod anchor'; sec.id = m.id;
+    const prev = COURSE.items[i - 1], next = COURSE.items[i + 1];
+    sec.innerHTML =
+      '<div class="mod-head">' +
+        '<div class="mod-num p' + m.part + '">' + esc(m.num || '§') + '</div>' +
+        '<div><h2>' + esc(m.title) + '</h2>' +
+        (m.en ? '<div class="en">' + esc(m.en) + '</div>' : '') + '</div>' +
+      '</div>' +
+      (m.tags && m.tags.length ? '<div class="mod-tags">' +
+        m.tags.map(t => '<span class="tag' + (t === '核心' || t === '必做' ? ' min' : '') + '">' + esc(t) + '</span>').join('') +
+        (m.minutes ? '<span class="tag">≈ ' + m.minutes + ' 分钟</span>' : '') + '</div>'
+        : (m.minutes ? '<div class="mod-tags"><span class="tag">≈ ' + m.minutes + ' 分钟</span></div>' : '')) +
+      '<div class="mod-body">' + (filled ? (m.body || '') : '<p class="callout">本讲按需加载…</p>') + '</div>' +
+      '<div class="mod-foot">' +
+        '<label class="mark-done" data-mark="' + m.id + '"><span class="box"></span>标记为已读完</label>' +
+        '<span class="grow"></span>' +
+        '<span class="modnav">' +
+          (prev ? '<a href="#' + prev.id + '">← ' + esc(prev.num || '') + '</a>' : '') +
+          (next ? '<a href="#' + next.id + '">' + esc(next.num || '') + ' →</a>' : '') +
+        '</span>' +
+      '</div>';
+    if (filled) sec.dataset.rendered = '1';
+    return sec;
+  }
+
   function renderSections() {
     const root = $('#content'); const frag = document.createDocumentFragment();
-    COURSE.items.forEach((m, i) => {
-      const sec = document.createElement('section');
-      sec.className = 'mod anchor'; sec.id = m.id;
-      const prev = COURSE.items[i - 1], next = COURSE.items[i + 1];
-      sec.innerHTML =
-        '<div class="mod-head">' +
-          '<div class="mod-num p' + m.part + '">' + esc(m.num || '§') + '</div>' +
-          '<div><h2>' + esc(m.title) + '</h2>' +
-          (m.en ? '<div class="en">' + esc(m.en) + '</div>' : '') + '</div>' +
-        '</div>' +
-        (m.tags && m.tags.length ? '<div class="mod-tags">' +
-          m.tags.map(t => '<span class="tag' + (t === '核心' || t === '必做' ? ' min' : '') + '">' + esc(t) + '</span>').join('') +
-          (m.minutes ? '<span class="tag">≈ ' + m.minutes + ' 分钟</span>' : '') + '</div>'
-          : (m.minutes ? '<div class="mod-tags"><span class="tag">≈ ' + m.minutes + ' 分钟</span></div>' : '')) +
-        '<div class="mod-body">' + (m.body || '') + '</div>' +
-        '<div class="mod-foot">' +
-          '<label class="mark-done" data-mark="' + m.id + '"><span class="box"></span>标记为已读完</label>' +
-          '<span class="grow"></span>' +
-          '<span class="modnav">' +
-            (prev ? '<a href="#' + prev.id + '">← ' + esc(prev.num || '') + '</a>' : '') +
-            (next ? '<a href="#' + next.id + '">' + esc(next.num || '') + ' →</a>' : '') +
-          '</span>' +
-        '</div>';
-      frag.appendChild(sec);
-    });
+    COURSE.items.forEach((m, i) => { frag.appendChild(buildSection(m, i, false)); });
     root.innerHTML = ''; root.appendChild(frag);
   }
 
+  /* Render one module (body + toc + math + wiring), exactly once. */
+  function ensureRendered(id) {
+    const m = modById(id); if (!m) return null;
+    let sec = document.getElementById(id);
+    if (sec && sec.dataset.rendered) return sec;
+    const fresh = buildSection(m, COURSE.items.indexOf(m), true);
+    if (sec && sec.parentNode) sec.parentNode.replaceChild(fresh, sec);
+    else ($('#content') || document.body).appendChild(fresh);
+    sec = fresh;
+    buildMiniToc(sec);
+    wireAccordions(sec); wireQuizzes(sec);
+    renderMath(sec);
+    wireCalcs(sec);
+    observeSection(sec); lazyUnobserve(sec);
+    paintRead();
+    return sec;
+  }
+  function renderAll() { COURSE.items.forEach(m => ensureRendered(m.id)); }
+
   /* ---------- mini table of contents (reference use) ---------- */
-  function buildMiniToc() {
-    $$('.mod').forEach(sec => {
+  function buildMiniToc(root) {
+    const secs = root
+      ? (root.classList && root.classList.contains('mod') ? [root] : $$('.mod', root))
+      : $$('.mod');
+    secs.forEach(sec => {
+      if (sec.dataset.tocDone || $('.mini-toc', sec)) { sec.dataset.tocDone = '1'; return; }
       const hs = $$('h3', sec);
-      if (hs.length < 2) return;
+      if (hs.length < 2) { sec.dataset.tocDone = '1'; return; }
       const box = document.createElement('details');
       box.className = 'mini-toc';
       const items = hs.map((h, i) => {
@@ -669,14 +708,15 @@ window.COURSE = (function () {
       box.innerHTML = '<summary>本讲速查 · ' + hs.length + ' 节（点击展开）</summary><ol>' + items + '</ol>';
       const body = $('.mod-body', sec);
       if (body) body.insertBefore(box, body.firstChild);
+      sec.dataset.tocDone = '1';
     });
   }
 
   /* ---------- math ---------- */
-  function renderMath() {
+  function renderMath(root) {
     if (typeof renderMathInElement !== 'function') return;
     try {
-      renderMathInElement($('#content'), {
+      renderMathInElement(root || $('#content'), {
         delimiters: [
           { left: '\\[', right: '\\]', display: true },
           { left: '\\(', right: '\\)', display: false }
@@ -687,8 +727,9 @@ window.COURSE = (function () {
   }
 
   /* ---------- accordions ---------- */
-  function wireAccordions() {
-    $$('.acc').forEach(acc => {
+  function wireAccordions(root) {
+    $$('.acc', root || document).forEach(acc => {
+      if (acc.dataset.accWired) return; acc.dataset.accWired = '1';
       const body = $('.acc-body', acc);
       if (!body) return;
       const title = acc.dataset.t || '更多';
@@ -715,8 +756,8 @@ window.COURSE = (function () {
   }
 
   /* ---------- quizzes ---------- */
-  function wireQuizzes() {
-    $$('.quiz').forEach(quiz => {
+  function wireQuizzes(root) {
+    $$('.quiz', root || document).forEach(quiz => {
       if (quiz.dataset.wired) return; quiz.dataset.wired = '1';
       const opts = $$('.opts li', quiz);
       opts.forEach((li, i) => {
@@ -749,6 +790,7 @@ window.COURSE = (function () {
 
   /* ---------- tooltips ---------- */
   function wireTooltips() {
+    if (wireTooltips._done) return; wireTooltips._done = true;
     const tt = $('#tt');
     let cur = null;
     function show(el) {
@@ -840,8 +882,11 @@ window.COURSE = (function () {
     upd();
   }
   function o(label, val) { return '<div><span>' + label + '</span><b>' + val + '</b></div>'; }
-  function wireCalcs() {
-    $$('.calc[data-calc]').forEach(root => { const fn = CALCS[root.dataset.calc]; if (fn) fn(root); });
+  function wireCalcs(root) {
+    $$('.calc[data-calc]', root || document).forEach(el => {
+      if (el.dataset.calcWired) return; el.dataset.calcWired = '1';
+      const fn = CALCS[el.dataset.calc]; if (fn) fn(el);
+    });
   }
 
   /* ---------- 学习进度：浏览器本地 + 本地文件落盘 ----------
@@ -1051,6 +1096,7 @@ window.COURSE = (function () {
     let sel = -1, hits = [];
     function close() { box.classList.remove('open'); sel = -1; }
     function run() {
+      if (!INDEX.length && COURSE.items.length) buildIndex(); // 空闲构建尚未完成时兜底
       const q = input.value.trim().toLowerCase();
       wrap.classList.toggle('has-value', input.value.length > 0);
       if (q.length < 2) { hits = []; close(); return; }
@@ -1083,6 +1129,18 @@ window.COURSE = (function () {
       }
     });
     clr.addEventListener('click', () => { input.value = ''; run(); input.focus(); });
+    // 点搜索结果：目标模块未渲染则先渲染再跳（hashchange 只处理 hash 变化的情形）
+    box.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a.r'); if (!a) return;
+      const id = (a.getAttribute('href') || '').slice(1);
+      if (modById(id) && !isRendered(id)) {
+        e.preventDefault(); close(); input.blur();
+        ensureRendered(id);
+        try { history.replaceState(null, '', '#' + id); } catch (err2) { location.hash = id; }
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+      } else { close(); input.blur(); }
+    });
     document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
     document.addEventListener('keydown', e => {
       if (e.key === '/' && document.activeElement !== input) { e.preventDefault(); input.focus(); }
@@ -1090,10 +1148,12 @@ window.COURSE = (function () {
     });
   }
 
-  /* ---------- scroll spy + read bar ---------- */
+  /* ---------- scroll spy + read bar (single observer, lazily-added sections join in) ---------- */
+  let spyObs = null;
+  function observeSection(sec) { if (spyObs && sec) { try { spyObs.observe(sec); } catch (e) {} } }
   function wireScroll() {
     const links = $$('.nav a');
-    const obs = new IntersectionObserver(entries => {
+    spyObs = new IntersectionObserver(entries => {
       entries.forEach(en => {
         if (en.isIntersecting) {
           const id = en.target.id;
@@ -1101,7 +1161,7 @@ window.COURSE = (function () {
         }
       });
     }, { rootMargin: '-72px 0px -68% 0px', threshold: 0 });
-    $$('.mod').forEach(m => obs.observe(m));
+    $$('.mod').forEach(m => { if (m.dataset.rendered) spyObs.observe(m); });
 
     const bar = $('#readbar'), pct = $('#scrollPct');
     const onScroll = () => {
@@ -1125,10 +1185,18 @@ window.COURSE = (function () {
 
   /* ---------- stats + hero reveal ---------- */
   function stats() {
-    const glossRows = $$('#content #appA tbody tr').length;
-    const defs = glossRows || $$('#content .t[data-d]').length;
-    const quizzes = $$('#content .quiz').length;
-    const labs = $$('#content .blk-lab').length;
+    // 从原始 body 字符串计数：首屏只有一个模块渲染时 hero 数字也要对
+    let quizzes = 0, labs = 0, tterms = 0, glossRows = 0;
+    COURSE.items.forEach(m => {
+      const b = m.body || '';
+      quizzes += (b.match(/class="quiz"/g) || []).length;
+      labs += (b.match(/class="blk blk-lab"/g) || []).length;
+      tterms += (b.match(/class="t"/g) || []).length;
+      (b.match(/<tbody>[\s\S]*?<\/tbody>/g) || []).forEach(t => {
+        glossRows += (t.match(/<tr>/g) || []).length;
+      });
+    });
+    const defs = glossRows || tterms || $$('#content .t[data-d]').length;
     $('#statQuizzes').textContent = quizzes;
     $('#statTerms').textContent = defs;
     $('#statLabs').textContent = labs;
@@ -1137,16 +1205,87 @@ window.COURSE = (function () {
       '<span style="font-size:14px;color:var(--muted)">/' + COURSE.items.length + '</span>';
   }
 
+  /* ---------- deep links + lazy triggers ---------- */
+  function deferIdle(fn) {
+    if ('requestIdleCallback' in window) requestIdleCallback(fn, { timeout: 2500 });
+    else setTimeout(fn, 0);
+  }
+  // hash 可能是模块 id（如 #m3），也可能是讲内小节锚点（如 #m3-s2）
+  function targetFromHash() {
+    const h = (location.hash || '').replace(/^#/, '');
+    if (!h) return null;
+    if (modById(h)) return { mod: h, sub: null };
+    const base = h.replace(/-s\d+$/, '');
+    if (modById(base)) return { mod: base, sub: h };
+    return null;
+  }
+  function jumpToHash() {
+    const t = targetFromHash(); if (!t) return;
+    ensureRendered(t.mod);
+    const el = (t.sub && document.getElementById(t.sub)) || document.getElementById(t.mod);
+    if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }
+  // 站内锚点（侧栏 nav / 上下讲 modnav / 正文互链）：目标未渲染则先渲染再跳
+  function wireDeepLinks() {
+    document.addEventListener('click', e => {
+      const a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a || (a.closest && a.closest('#results'))) return;
+      const frag = (a.getAttribute('href') || '').slice(1);
+      if (!frag) return;
+      let mod = modById(frag) ? frag : null;
+      if (!mod) { const base = frag.replace(/-s\d+$/, ''); if (modById(base)) mod = base; }
+      if (!mod) return;
+      if (isRendered(mod) && document.getElementById(frag)) return; // 默认锚点跳转
+      e.preventDefault();
+      ensureRendered(mod);
+      try { history.replaceState(null, '', '#' + frag); } catch (err2) { location.hash = frag; }
+      const el = document.getElementById(frag) || document.getElementById(mod);
+      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+    window.addEventListener('hashchange', () => {
+      const t = targetFromHash(); if (!t || isRendered(t.mod)) return;
+      ensureRendered(t.mod);
+      const el = (t.sub && document.getElementById(t.sub)) || document.getElementById(t.mod);
+      if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+  }
+  let lazyObs = null;
+  function lazyUnobserve(sec) { if (lazyObs && sec) { try { lazyObs.unobserve(sec); } catch (e) {} } }
+  function wireLazy() {
+    // 接近视口的占位节自动渲染
+    if ('IntersectionObserver' in window) {
+      lazyObs = new IntersectionObserver(entries => {
+        entries.forEach(en => {
+          if (en.isIntersecting && !en.target.dataset.rendered) ensureRendered(en.target.id);
+        });
+      }, { rootMargin: '1200px 0px', threshold: 0 });
+      $$('.mod').forEach(sec => { if (!sec.dataset.rendered) lazyObs.observe(sec); });
+    }
+    // 空闲时逐个预渲染相邻模块（低优先级，不挡首屏与交互）
+    const step = () => {
+      const un = COURSE.items.filter(m => !isRendered(m.id));
+      if (!un.length) return;
+      const next = un.find(m => {
+        const i = COURSE.items.indexOf(m);
+        return (COURSE.items[i - 1] && isRendered(COURSE.items[i - 1].id)) ||
+               (COURSE.items[i + 1] && isRendered(COURSE.items[i + 1].id));
+      }) || un[0];
+      ensureRendered(next.id);
+      deferIdle(step);
+    };
+    deferIdle(step);
+  }
+
   /* ---------- boot ---------- */
   window.COURSE.boot = function () {
     PROG.load();
     initTheme();
     renderNav(); renderSections();
-    buildMiniToc();
-    buildIndex();
-    wireAccordions(); wireQuizzes();
-    renderMath();
-    wireTooltips(); wireCalcs(); wireRead(); wireSearch(); wireScroll();
+    // 首屏只渲染目标模块（hash 深链，否则第一讲），其余按需 / 空闲加载
+    const t0 = targetFromHash();
+    ensureRendered((t0 && t0.mod) || (COURSE.items[0] && COURSE.items[0].id));
+    wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireLazy();
+    deferIdle(buildIndex);
     paintRead(); stats(); syncUI('browser');
     requestAnimationFrame(() => {
       $('#heroReveal').classList.add('in'); $('#heroCards').classList.add('in');
@@ -1181,9 +1320,11 @@ window.COURSE = (function () {
       if (document.visibilityState === 'hidden') PROG.push();
     });
     window.addEventListener('beforeunload', () => { PROG.local(); });
-    if (location.hash) {
-      const el = document.querySelector(location.hash);
-      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'auto', block: 'start' }), 60);
+    // 打印导出全部内容：先把剩余模块与其公式一次渲染出来
+    window.addEventListener('beforeprint', renderAll);
+    window.addEventListener('afterprint', () => {});
+    if (t0) {
+      setTimeout(jumpToHash, 60);
     }
   };
 

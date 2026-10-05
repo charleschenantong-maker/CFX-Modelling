@@ -184,7 +184,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
   </tbody>
 </table>
 
-<h3>9. 与 crossfade 项目对照速查</h3>
+<h3>9. 与 crossfade 这类任务对照速查（以后做类似项目时可照此查）</h3>
 <table class="tbl small">
   <thead><tr><th>检查点</th><th>一句话任务</th><th>先看这些节</th></tr></thead>
   <tbody>

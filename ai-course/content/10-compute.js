@@ -10,7 +10,7 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   这一模块解决一个非常具体的问题：<strong>给定你手上的免费/低价算力，哪些实验今天就能跑，哪些必须改设计？</strong>
-  答案会直接塑造你的项目路线。同时为英国大学数学系自学者建立起坚实的“算力数学底座”：从 Roofline 模型、算术强度，到经典 6N FLOPs 的严格矩阵微积分推导与 MFU 实战演算。
+  答案会直接影响以后规划 crossfade 这类项目路线时的取舍。同时为英国大学数学系自学者建立起坚实的“算力数学底座”：从 Roofline 模型、算术强度，到经典 6N FLOPs 的严格矩阵微积分推导与 MFU 实战演算。
 </p>
 
 <section class="blk blk-q">
@@ -324,11 +324,11 @@ api.upload_folder(folder_path="out-sft/final", repo_id="your-name/mini-sft-demo"
 </section>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
   <p>
-    Checkpoint 5/6 需要「成对歌曲的适配」与「配对失败模式的统计」。这两件事都是<strong>特征工程 + 统计</strong>，
-    不需要大算力；而 Checkpoint 7 的学习实验甚至可以用 CPU 完成（250 条样本、4 维特征）。
-    <em>换句话说：你的项目瓶颈不是算力，而是模型设计、评估协议与听测组织。</em>
+    Checkpoint 5/6 这类任务需要「成对歌曲的适配」与「配对失败模式的统计」。这两件事都是<strong>特征工程 + 统计</strong>，
+    不需要大算力；而 Checkpoint 7 这类学习实验甚至可以用 CPU 完成（250 条样本、4 维特征）。
+    <em>换句话说：以后做 crossfade 这类项目时，瓶颈通常不是算力，而是模型设计、评估协议与听测组织。</em>
     把算力省下来做数据标注与多轮听测，比多训一个大模型更划算。
   </p>
 </section>

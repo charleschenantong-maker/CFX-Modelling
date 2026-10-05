@@ -10,15 +10,14 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   这门课只有一个目标：让你在<strong>几周之内</strong>具备「看懂、跑通、并且能批判」现代大模型训练的能力，
-  同时把你已经付过钱的订阅、免费的算力和公开资料，全部转化成<strong>你自己项目里的实验</strong>。
+  同时学会把订阅、免费算力和公开资料，转化成<strong>以后做类似项目时可用的实验方法</strong>。
 </p>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>先回答一个问题：你要用 LLM 干什么？</h4>
   <p>把目标写清楚，后面的学习顺序才不会乱。你的场景大致有三层，它们共用同一套底座知识：</p>
   <ol>
-    <li><strong>项目层（申请用）</strong>：把 <em>Mathematical Crossfade Modelling</em> 的 Checkpoint 7 真正做出来——
-        用一个<strong>可辩护的统计学习实验</strong>，预测「过渡时长 / 曲线参数」这类低维目标，并且能证明它是否真的优于解析解。</li>
+    <li><strong>项目层（申请用，未来示例）</strong>：以 <em>Mathematical Crossfade Modelling</em> 这类题目为例（你以后可以试试），用一个<strong>可辩护的统计学习实验</strong>，预测「过渡时长 / 曲线参数」这类低维目标，并且能证明它是否真的优于解析解。</li>
     <li><strong>能力层（兴趣）</strong>：自己想训练模型。从零跑通一个 miniGPT，知道数据、tokenizer、优化器、并行、显存、评估各自在干什么。</li>
     <li><strong>工程层（日常效率）</strong>：用订阅额度 + 多线程智能体，把「写代码 → 验证 → 提交 → 监控 CI」自动化，把时间花在数学上。</li>
   </ol>
@@ -41,7 +40,7 @@ COURSE.register({
   <div class="nd">用最低成本持续产出实验</div>
 </div>
 <p>
-  主线是<strong>你的项目</strong>：每个模块末尾都会回到「这跟 crossfade 项目有什么关系」。
+  主线是<strong>以后做这类项目时的迁移</strong>：每个模块末尾都会回到「这对 crossfade 这类任务意味着什么，你以后接到类似项目时该怎么用」。
   轨道 C 的内容看起来像「运维」，但它决定了你一周能跑几个实验——对申请季的时间预算来说，这比多背两个术语重要得多。
 </p>
 
@@ -110,8 +109,8 @@ COURSE.register({
     每章都是同样的五段结构，按你的目的挑着读：
   </p>
   <ol>
-    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章跟你的项目有没有关系。没关系就跳过，这不丢人——
-        八章里有四章对 crossfade 项目是「知道就好」。</li>
+    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章与 crossfade 这类未来题目有没有关系。没关系就跳过，这不丢人——
+        八章里有四章对 crossfade 这类任务只需「知道就好」。</li>
     <li><strong>再读手算例子与查表</strong>：每章都有带具体数字的算例和「症状 → 原因 → 一行验证 → 对策」的失败模式表。
         这两样是真正会反复回来查的部分，也是别人问你「你懂不懂」时你能立刻答出来的部分。</li>
     <li><strong>有需要时再动手</strong>：每章有一个 <span class="t" data-tterm="Hands-on block" data-d="课程里所有带 🧪 图标的版块：给出能在 30 分钟内跑完的最小实现与要记录的数字。">30 分钟最小实现</span>，
@@ -119,7 +118,7 @@ COURSE.register({
   </ol>
   <p>
     每章末尾还有两样东西：<strong>自测题</strong>（点选项立刻判定）和<strong>「怎么用在真实项目里」</strong>——
-    后者会直接回答「这件事用在 crossfade 项目上值不值、为什么」。如果时间只够读一节，
+    后者会直接回答「这件事若用在 crossfade 这类任务上值不值、为什么，你以后可以照此估算」。如果时间只够读一节，
     读那一节比读完全章更有用。
   </p>
 </section>

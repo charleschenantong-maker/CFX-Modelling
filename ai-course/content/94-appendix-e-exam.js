@@ -502,7 +502,7 @@ COURSE.register({
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>题目</h4>
   <p>
-    用<strong>不超过 400 字</strong>，向招生官解释你的 crossfade 项目里 AI 处在什么位置。
+    用<strong>不超过 400 字</strong>，假设以后你做了 crossfade 这类项目，向招生官解释 AI 在其中处在什么位置（练习用，现在不必真有项目）。
     要求边界清晰、可核查、语气克制。（参考要点 300 字以内）
   </p>
 </section>

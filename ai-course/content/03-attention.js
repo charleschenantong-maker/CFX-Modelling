@@ -383,7 +383,7 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
 </section>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>怎么用在真实项目里：Crossfade 不要直接变成 attention map</h4>
+  <h4><span class="ic">◈</span>以后接到这类项目时：以 Crossfade 为例，不要直接变成 attention map</h4>
   <p>
     注意力的行随机性质与音频的加权混合很像，但把 \(A\) 直接当作时间增益曲线<strong>不值</strong>：它不保证单调、\(C^1\) 连续、相位一致或功率守恒，少量样本还会把 \(T\times T\) 的自由度学成噪声。
     值得保留的是检索思想：用注意力或其低维摘要预测过渡点与音色相似度，再把结果交给满足 \(a(t)^2+b(t)^2=1\) 的受约束 crossfade 曲线。
@@ -469,7 +469,7 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
 
 <div class="quiz">
   <div class="qlabel">自测 · 7</div>
-  <p class="q">对 Crossfade 项目，注意力最稳妥的落点是什么？</p>
+  <p class="q">以 Crossfade 这类任务为例，注意力最稳妥的落点是什么？</p>
   <ul class="opts">
     <li>直接把每行 attention 权重当左右声道增益</li>
     <li data-ok>用注意力摘要预测过渡点或相似度，再用受约束的等功率曲线生成增益</li>

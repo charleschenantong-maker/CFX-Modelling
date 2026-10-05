@@ -91,7 +91,7 @@ COURSE.register({
 <div class="acc" data-t="深入：高温极限为什么变成 logits MSE（完整推导 + 数字演示）" data-badge="进阶">
   <div class="acc-body">
     <p>
-      <strong>crossfade 决策先行：这个推导在你的项目里用不上——但它决定你调参时信哪条经验。</strong>
+      <strong>以 crossfade 这类任务为例：这个推导现在用不上——但学完你就知道以后调参该信哪条经验。</strong>
       能带走的只有两句：温度把梯度按 \(1/T^2\) 压小，所以损失里要乘回 \(T^2\)；
       \(T\) 太大时软标签趋于均匀，暗知识被洗掉。如果你只做响应蒸馏（调接口生成数据），
       记住 \(T = 2\)–\(10\) 起步、拿验证集选，下面 20 行数学可以直接跳过。
@@ -514,7 +514,7 @@ for step, p in enumerate(prompts):
     <li><strong>适合蒸馏的场景</strong>：你需要一个能在本地/端侧跑的小模型；或者你有一个很强但很贵的教师，想把它的<em>行为</em>固化下来。</li>
     <li><strong>把蒸馏当实验做</strong>：它天然带对照组（硬标签 SFT），非常适合写进研究报告——
         「同样的数据与算力，软标签相对硬标签把验证集指标提升了多少」是一个干净的结论。</li>
-    <li><strong>别用它来做回归任务</strong>：你的 crossfade 任务是预测一个连续标量，
+    <li><strong>别用它来做回归任务</strong>：crossfade 这类任务是预测一个连续标量，
         教师的「软标签」概念不适用；那里更该关心的是特征质量与评估协议（模块 09）。</li>
   </ul>
 </section>
@@ -576,7 +576,7 @@ json.dump(kept, open("clean.json", "w", encoding="utf-8"), ensure_ascii=False)
 </section>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>落地决策单：crossfade 音频建模项目该不该上蒸馏</h4>
+  <h4><span class="ic">◈</span>落地决策单：以 crossfade 这类音频建模任务为例，该不该上蒸馏（你以后可以照此判断）</h4>
   <p>
     <strong>一句话结论：对绝大多数 crossfade 音频建模任务，蒸馏不值——先把评估协议和量化做完，回报高得多。</strong>
     理由不是「蒸馏不好」，而是这个项目的输出形态让蒸馏的主要收益（软标签里的类间结构）几乎没有用武之地。
@@ -710,7 +710,7 @@ json.dump(kept, open("clean.json", "w", encoding="utf-8"), ensure_ascii=False)
 
 <div class="quiz">
   <div class="qlabel">自测 · 6</div>
-  <p class="q">你的 crossfade 项目要预测淡入淡出曲线的三个连续参数，同事建议用词级蒸馏把大模型能力搬进小模型。最合理的回答是？</p>
+  <p class="q">假设以后接到 crossfade 这类项目，要预测淡入淡出曲线的三个连续参数，同事建议用词级蒸馏把大模型能力搬进小模型。最合理的回答是？</p>
   <ul class="opts">
     <li>可以，只要教师足够大就行</li>
     <li data-ok>不合适：输出是连续标量，没有类间相似性结构可学；应先做特征工程与评估协议，若只是为了压体积则先量化</li>

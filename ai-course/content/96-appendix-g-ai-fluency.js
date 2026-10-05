@@ -253,7 +253,7 @@ COURSE.register({
 <p>
   接地气的说法是：<strong>先划一条线，再开始用工具</strong>。
   这条线不按「难不难」划，而按「错了我能不能发现」划。
-  下面这张清单可以直接抄进你的项目笔记，逐项打勾：
+  下面这张清单以后做类似项目时可以直接抄进项目笔记（现在先理解思路），逐项打勾：
 </p>
 <table class="tbl small">
   <thead><tr><th>工作类型</th><th>能不能交给模型</th><th>理由</th></tr></thead>
@@ -327,7 +327,7 @@ COURSE.register({
   最容易被跳过、又最容易在评审时被追问的一维。它只要求两个动作：
 </p>
 <ol>
-  <li><strong>每条结论指定一个签字人</strong>——在你自己的项目里就是你自己，但要写下来：
+    <li><strong>每条结论指定一个签字人</strong>——在以后你自己的项目里就是你自己，但要写下来：
       「本节所有数字由我运行并核对，日期 ____，命令见附录」。</li>
   <li><strong>台账四字段</strong>（照抄附录 C 的格式）：链接 / 访问日期 / 一句话结论 / 验证状态。
       验证状态这一栏要区分<strong>「课程页说」与「我跑过」</strong>——评审时这两者的分量完全不同。</li>
@@ -339,7 +339,7 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>把 4D 走一遍：Crossfade 的一个真实任务（可直接照抄）</h4>
+  <h4><span class="ic">✓</span>把 4D 走一遍：以 Crossfade 这类任务为例（以后可直接照抄）</h4>
   <p>任务：让模型帮忙建一套「按艺人分组」的交叉验证脚本，用来比较过渡时长模型。</p>
   <table class="tbl small">
     <thead><tr><th>步骤</th><th>你做什么</th><th>产出</th><th>数字 / 判据</th></tr></thead>
@@ -509,7 +509,7 @@ COURSE.register({
     在同一个任务上产出两版答案，然后做一次最小对照。全程不需要任何特定产品的功能，
     只要你<strong>能对着两个回答打分</strong>。
   </p>
-  <p><strong>准备</strong>：挑一个你自己的真实小任务（例如「给一段 8 秒 crossfade 写三条听测注意事项」），
+  <p><strong>准备</strong>：挑一个假设的练习小任务（例如「给一段 8 秒 crossfade 写三条听测注意事项」，以后做类似项目时可换成真实任务），
     准备好同一份输入。下面用占位符表示，替换成你自己的内容即可：</p>
   <pre><code><span class="cm"># v1：一句话需求（低描述度）</span>
   用 [任务] 处理 [输入]，尽量做好。
@@ -577,25 +577,25 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
   </p>
 </section>
 
-<h3>7. 怎么用在真实项目里：Crossfade 值不值</h3>
+<h3>7. 以后接到这类项目时怎么判断：以 Crossfade 为例值不值</h3>
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>结论：22 门不必全上，对这个项目值得的是 3 门</h4>
+  <h4><span class="ic">◈</span>结论：22 门不必全上，以这类题目为例值得的是 3 门（供以后参考）</h4>
   <p>
-    你的项目是「crossfade 音频过渡建模 + 申请材料」，它的瓶颈不是「不知道怎么点某个功能」，
+    以 crossfade 这类「音频过渡建模 + 申请材料」题目为例（你以后可以试试），它的瓶颈不是「不知道怎么点某个功能」，
     而是<strong>评估的可信度</strong>与<strong>数据留在本地</strong>两件事。按这两条筛：
   </p>
   <table class="tbl small">
-    <thead><tr><th>课程</th><th>对 crossfade 的价值</th><th>什么时候上</th><th>产出</th></tr></thead>
+    <thead><tr><th>课程</th><th>对 crossfade 这类任务的价值（供以后参考）</th><th>什么时候上</th><th>产出</th></tr></thead>
     <tbody>
       <tr>
         <td><strong>13</strong> AI 素养框架（4D）</td>
-        <td><strong>高</strong>。它给你一套划边界与签字的语言，直接改善第 16 章的答辩叙事</td>
+        <td><strong>高</strong>。它给你一套划边界与签字的语言，直接改善以后写第 16 章这类答辩叙事时的表达</td>
         <td>现在，与第 09 章并行</td>
         <td>4D 分工表 + AI 参与范围声明</td>
       </tr>
       <tr>
         <td><strong>09 / 10</strong> MCP 入门与进阶</td>
-        <td><strong>高</strong>。你的音频与标注数据在本地，把 artist 索引暴露成一个只读工具，
+        <td><strong>高</strong>。以后做这类项目时，音频与标注数据在本地，把 artist 索引暴露成一个只读工具，
           比把数据上传到别处更可控；而且 MCP 是开放协议、有公开规范，不是某家产品的私有接口</td>
         <td>第 19–20 章之后</td>
         <td>一条最小只读服务端 + 一份权限清单</td>
@@ -608,7 +608,7 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
       </tr>
       <tr>
         <td>01–04、16–22</td>
-        <td><strong>低</strong>（除非你正在带人或教课）。界面向导与身份模板不会提升你项目的可信度</td>
+        <td><strong>低</strong>（除非以后带人或教课）。界面向导与身份模板不会提升这类项目的可信度</td>
         <td>需要用的时候再上</td>
         <td>—</td>
       </tr>
@@ -617,7 +617,7 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
   <p>
     <strong>值不值</strong>：三门课按课程页标注学时估算，投入大致在半天到一天；
     换上来的东西是「一份能被追问的评估报告」和「一条不把数据搬家的工具接法」。
-    对一个要交申请材料的项目，这笔账是划算的。
+    对一个以后要交申请材料的题目，这笔账是划算的。
   </p>
   <p>
     <strong>但如果你只有十小时预算，优先级应该是</strong>：
@@ -625,8 +625,8 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
     <strong>先把验收方法立起来，再去扩充工具</strong>——顺序反了，你会得到一堆无法辩护的数字。
   </p>
   <p>
-    明确说一句：<strong>本附录不需要你成为某个产品的专家</strong>。
-    这个项目的评委看的是「你怎么证明你的结论」，不是「你会点哪几个按钮」。
+    明确说一句：<strong>本附录不需要你以后成为某个产品的专家</strong>。
+    这类题目的评委看的是「你怎么证明你的结论」，不是「你会点哪几个按钮」。
   </p>
 </section>
 

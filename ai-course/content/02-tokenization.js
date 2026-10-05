@@ -822,7 +822,7 @@ print("round-trip lossless:", ok)</code></pre>
 
 <h3>10. 文本之外的 tokenizer：音频离散化与 RVQ 的代数同构</h3>
 <p>
-  这是本模块和你的 Crossfade 项目真正的接口。
+  这是本模块与 crossfade 这类音频任务最直接的对照接口（以后做这类项目时可参考）。
   <strong>把连续波形变成离散 token 序列，与把文本变成整数序列，是同一个代数结构。</strong>
   差别只在「先验空间」是可数的还是不可数的（第 4 节引理 3 已经把这条分界线说死了）。
 </p>
@@ -982,37 +982,37 @@ print("residual ratio:", round(float(np.linalg.norm(res) / np.linalg.norm(e)), 4
 </section>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>怎么用在 Crossfade 项目上：值不值，先算这三笔账</h4>
+  <h4><span class="ic">◈</span>以 Crossfade 这类任务为例：值不值，先算这三笔账（你以后可以照此估）</h4>
   <p>
-    你的项目里有两条可能用到 tokenizer 的路。先说结论：
+    以 crossfade 这类任务为例，有两条可能用到 tokenizer 的路。先说结论：
     <strong>其中一条非常值，另一条你大概不需要。</strong>
   </p>
   <dl class="kv">
     <dt>路线 1 · 值得做</dt>
     <dd>
       <strong>把四个连续特征离散成文本 token</strong>，然后用现成文本模型做条件生成。
-      你的特征向量（<span class="t" data-tterm="Feature discretization" data-d="把连续数值分箱成少数离散档位再映射为整数；档位数决定分辨率，也直接决定后续生成的 token 成本。">特征分箱</span>）
+      这类任务的特征向量（<span class="t" data-tterm="Feature discretization" data-d="把连续数值分箱成少数离散档位再映射为整数；档位数决定分辨率，也直接决定后续生成的 token 成本。">特征分箱</span>）
       每一维先分箱成若干档（例如 5–9 档），每档一个 token，于是「渲染一张谱」变成「预测一串 token」。
       <strong>值在哪</strong>：可以直接复用成熟模型的整条流水线（量化、KV cache、投机解码），
-      不必自己训 codec。代价是<strong>分辨率被你的分箱数限制</strong>，
+      不必自己训 codec。代价是<strong>分辨率被分箱数限制</strong>，
       所以只有 Level 0/1 那种「先给出大致目标」的任务适合。
     </dd>
     <dt>路线 2 · 大概不需要</dt>
     <dd>
       <strong>自己训一个音频 codec（RVQ）来给自回归模型当 tokenizer。</strong>
-      不要做。RVQ 需要在千万小时级音频上端到端训练，
-      而你的任务既不要求高保真重建，也不要求开放域泛化——
+      以后做这类小任务时不建议做。RVQ 需要在千万小时级音频上端到端训练，
+      而这类任务既不要求高保真重建，也不要求开放域泛化——
       <em>用一个固定维度的回归头直接预测这四个特征，通常比「离散化 + 生成」更准、更省。</em>
       第 10.4 节第三条差异就是这里的代价：RVQ 要反传，你没这个预算。
     </dd>
     <dt>路线 3 · 论文里最值钱的一条</dt>
     <dd>
-      <strong>把「fertility」当作你报告里的一个明确指标。</strong>
+      <strong>把「fertility」当作以后写报告时的一个明确指标。</strong>
       无论走哪条路，都量一次「每个特征值要花掉多少 token」。
-      这是数学系申请材料里最好的那种东西：一个你<strong>自己定义、自己测量、并且会随分箱数变化</strong>的量，
+      这是数学系申请材料里最好的那种东西：一个<strong>自己定义、自己测量、并且会随分箱数变化</strong>的量，
       一句话就能讲清楚「为什么我们选 8 档而不是 32 档」——
       <em>成本随分箱数上升，而收益在某个点之后饱和。</em>
-      一个可以直接照抄的量：你的 <code> 0.08</code> 这个数在 cl100k 下会占
+      一个可以直接照抄的量： <code> 0.08</code> 这个数在 cl100k 下会占
       空格 + <code>0</code> + <code>.</code> + <code>08</code> 共 4 个片段，
       <strong>一个连续特征值的成本大约是 4 个 token</strong>。
     </dd>
@@ -1020,8 +1020,8 @@ print("residual ratio:", round(float(np.linalg.norm(res) / np.linalg.norm(e)), 4
   <p>
     <strong>一句话总结</strong>：tokenizer 的核心是「选择一种离散化，让后续模型只需学最少的东西」。
     文本领域用 BPE 是因为它便宜、可复现、且几乎无损；音频领域用 RVQ 是因为输入本来是连续的、别无选择。
-    你的项目夹在中间——特征本来就是连续但低维的，
-    <em>所以你有一个文本和音频都没有的选项：直接用实数回归，别绕道离散化。</em>
+    crossfade 这类任务夹在中间——特征本来就是连续但低维的，
+    <em>所以以后做这类项目时还有一个文本和音频都没有的选项：直接用实数回归，别绕道离散化。</em>
   </p>
 </section>
 

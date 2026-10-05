@@ -182,7 +182,7 @@ COURSE.register({
 <div class="acc" data-t="深入：探索项根号里为什么是 ln N 除以 N_i（Hoeffding 置信半径）" data-badge="进阶">
   <div class="acc-body">
     <p>
-      <strong>crossfade 决策先行：你的项目用不上树搜索——但要用它的结论。</strong>
+      <strong>以 crossfade 这类任务为例：树搜索现在用不上——但要记住它的结论。</strong>
       音频问答里中间步骤无法被程序打分（「好不好听」没有裁判），\(q\) 接近随机，
       此时搜索退化成昂贵的随机游走。记住本块唯一能带走的结论：
       <strong>当验证器不可靠时，加分支不如加验证器</strong>（第 7 节已量化）。
@@ -787,10 +787,10 @@ print(f"聚合答案: {ans} | 置信度: {conf:.2%}")</code></pre>
 </section>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>落地决策单：crossfade 音频问答该不该开「想久一点」</h4>
+  <h4><span class="ic">◈</span>落地决策单：以 crossfade 这类音频问答为例，该不该开「想久一点」（你以后可以照此判断）</h4>
   <p>
-    <strong>结论只取决于一个问题：你的答案能不能被程序判对？</strong>
-    在 crossfade 项目里，这条分界线非常清楚。
+    <strong>结论只取决于一个问题：答案能不能被程序判对？</strong>
+    以 crossfade 这类任务为例，这条分界线非常清楚。
   </p>
   <table class="tbl small">
     <thead><tr><th>你的问题</th><th>值不值</th><th>为什么</th></tr></thead>

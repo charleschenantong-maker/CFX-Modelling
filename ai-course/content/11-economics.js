@@ -233,7 +233,7 @@ COURSE.register({
 </section>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>把经济学的语言用到你的项目上</h4>
+  <h4><span class="ic">◈</span>把经济学的语言用到 crossfade 这类未来项目上（你以后可以照此算账）</h4>
   <ul>
     <li><strong>边际成本</strong>：多标注 100 条数据 vs 多训一个模型——哪个更可能提升指标？（答案通常是前者）</li>
     <li><strong>机会成本</strong>：花两周调复杂模型，等于放弃多少轮听测？</li>

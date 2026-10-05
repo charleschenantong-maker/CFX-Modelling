@@ -368,7 +368,7 @@ class Top2Router(nn.Module):
 </div>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>回到 Charles 的 Glass Player 与 Crossfade 项目</h4>
+  <h4><span class="ic">◈</span>以 Charles 的 Glass Player 与 Crossfade 这类任务为例（你以后可以照此判断）</h4>
   <p>
     <strong>结论：在本地音乐播放器（Glass Player）的音频淡入淡出曲线拟合中，绝对不要引入 MoE 架构！</strong>
   </p>

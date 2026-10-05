@@ -324,7 +324,7 @@ COURSE.register({
   模型的性能上限由数据决定，而数据的<strong>可用范围</strong>由许可证决定。顺序不要反：先看能不能用，再看质量。
 </p>
 <table class="tbl small">
-  <thead><tr><th>许可类型</th><th>核心义务</th><th>对你的项目意味着什么</th></tr></thead>
+  <thead><tr><th>许可类型</th><th>核心义务</th><th>对 crossfade 这类未来项目意味着什么（以后立项时可照此查）</th></tr></thead>
   <tbody>
     <tr><td>Public Domain / CC0</td><td>无</td><td>最自由，但仍要记录来源</td></tr>
     <tr><td>CC-BY</td><td>署名</td><td>论文与 README 里要有 attribution 段与许可证清单</td></tr>

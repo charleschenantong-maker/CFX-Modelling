@@ -134,10 +134,10 @@ COURSE.register({
 </section>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>可以安全迁移到你的项目的部分</h4>
+  <h4><span class="ic">✓</span>以后可以安全迁移到 crossfade 这类项目的部分</h4>
   <ul>
     <li><strong>单一出口 + 私有覆盖网</strong>：把「训练机 / 笔记本 / CI」统一到一个私有网络，所有外部调用走同一条路径——这在任何云上都是良构做法。</li>
-    <li><strong>协议兼容的本地端点</strong>：把「模型调用」抽象成本地 HTTP 服务，换供应商时只改一个地址。这对你的实验复现性有直接好处。</li>
+    <li><strong>协议兼容的本地端点</strong>：把「模型调用」抽象成本地 HTTP 服务，换供应商时只改一个地址。这对以后做这类实验的复现性有直接好处。</li>
     <li><strong>缓存亲和性</strong>：任何有状态缓存（前缀缓存、编译缓存、特征缓存）都应避免被随机调度打散。</li>
     <li><strong>成本可见性</strong>：给每个任务打上标签，统计 token 消耗。没有计量就没有优化。</li>
   </ul>

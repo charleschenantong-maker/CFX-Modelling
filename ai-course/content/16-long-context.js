@@ -269,7 +269,7 @@ class YaRNScaledRotaryEmbedding(nn.Module):
 </div>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>回到 Charles 的 Glass Player 与 Crossfade 音频时间序列</h4>
+  <h4><span class="ic">◈</span>以 Charles 的 Glass Player 与 Crossfade 这类音频时间序列为例（你以后可以照此判断）</h4>
   <p>
     <strong>深度洞察：音频 Crossfade 时间衰减与 RoPE 分频思想的数学同构性</strong>
   </p>
@@ -281,9 +281,9 @@ class YaRNScaledRotaryEmbedding(nn.Module):
     </tbody>
   </table>
   <p>
-    在 Glass Player 的实际混音中，你推导的交叉淡入淡出模型正是遵循这种「多尺度频域分治」原理：
-    绝不能用单一切割斜率粗暴处理全频段音频，而应将高频冲击能量与低频低音包络分开加权，
-    正如 YaRN 对 RoPE 齿轮的高低频解耦一样优雅自洽。
+    在 Glass Player 这类播放器的混音里，交叉淡入淡出模型若遵循这种「多尺度频域分治」原理会更稳：
+    不宜用单一切割斜率粗暴处理全频段音频，而应将高频冲击能量与低频低音包络分开加权，
+    正如 YaRN 对 RoPE 齿轮的高低频解耦一样（以后做这类题目时可照此思路分析）。
   </p>
 </section>
 `
