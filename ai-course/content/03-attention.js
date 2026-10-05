@@ -3,10 +3,10 @@ COURSE.register({
   id: "m3",
   part: 1,
   num: "03",
-  title: "注意力机制：从直觉到公式，再到手写实现",
-  en: "Attention Mechanism — Intuition, Math, and Implementation",
-  minutes: 60,
-  tags: ["核心", "数学", "代码", "必读"],
+  title: "注意力机制：一次可微分的检索",
+  en: "Attention — Differentiable Retrieval",
+  minutes: 35,
+  tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
   如果把 Transformer 比作一台精密发动机，<strong>注意力机制（Attention）</strong>就是它的核心燃烧室。

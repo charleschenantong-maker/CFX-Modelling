@@ -5,7 +5,7 @@ COURSE.register({
   num: "04",
   title: "Transformer 的解剖学：参数、FLOPs 与显存都花在哪",
   en: "Transformer Anatomy — Parameters, FLOPs, Memory",
-  minutes: 40,
+  minutes: 35,
   tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
@@ -303,6 +303,139 @@ COURSE.register({
     配合 llama.cpp 或 ONNX Runtime，在无独立显卡的普通笔记本 CPU 上也能以数十 Token/s 的速度毫秒级流式输出。
   </p>
 </section>
+
+<h3>6. LayerNorm 与 RMSNorm：同一个残差流上的两种尺度控制</h3>
+<p>
+  <span class="t" data-tterm="Residual stream" data-d="跨越多个 Transformer block、始终保持 \((B,T,d)\) 宽度的主干表示；每个子层只向它写入一个增量。">残差流</span>
+  的宽度 \(d\) 不变，归一化只在最后一维逐 token 处理。LayerNorm 先去均值再除标准差：
+</p>
+\[ \mu(x)=\frac1d\sum_{i=1}^{d}x_i,\qquad \sigma^2(x)=\frac1d\sum_{i=1}^{d}(x_i-\mu)^2,\qquad \mathrm{LN}(x)=\frac{x-\mu}{\sqrt{\sigma^2+\epsilon}}\odot\gamma+\beta \]
+<p>
+  RMSNorm 不减均值，也不引入偏置，只按均方根缩放：
+</p>
+\[ \mathrm{RMSNorm}(x)=\frac{x}{\sqrt{\frac1d\sum_{i=1}^{d}x_i^2+\epsilon}}\odot g \]
+<table class="tbl small">
+  <thead><tr><th>项目</th><th>LayerNorm</th><th>RMSNorm</th><th>对训练的含义</th></tr></thead>
+  <tbody>
+    <tr><td>中心化</td><td>减去 \(\mu\)</td><td>不减均值</td><td>RMSNorm 少一次统计量</td></tr>
+    <tr><td>可学习参数</td><td>\(\gamma,\beta\)</td><td>只有 \(g\)</td><td>参数略少，kernel 更简单</td></tr>
+    <tr><td>归一化轴</td><td>最后一维 \(d\)</td><td>最后一维 \(d\)</td><td>不混合不同 token 的统计量</td></tr>
+    <tr><td>失败信号</td><td>方差接近 0 时依赖 \(\epsilon\)</td><td>同样依赖 \(\epsilon\)</td><td>删掉 \(\epsilon\) 会出现 NaN</td></tr>
+  </tbody>
+</table>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算二：\(x=(1,2,3,4)\) 的两种归一化</h4>
+  <ol>
+    <li>LayerNorm：\(\mu=2.5\)，\(\sigma^2=1.25\)，所以标准化后约为 \((-1.342,-0.447,0.447,1.342)\)。</li>
+    <li>RMSNorm：均方根为 \(\sqrt{(1+4+9+16)/4}=\sqrt{7.5}\approx2.739\)，结果约为 \((0.365,0.730,1.095,1.460)\)。</li>
+    <li>两者都保留相对尺度信息，但 RMSNorm 不强迫向量均值为 0；这正是它在现代 LLM 中常见的工程取舍。</li>
+  </ol>
+  <p class="hint">Hint：如果把 \(x\) 的每个分量都加上常数，LayerNorm 不变而 RMSNorm 会变；想一想这是否影响残差流表达。</p>
+</section>
+
+<h3>7. 一个 block 的张量流：每一步都回到 \((B,T,d)\)</h3>
+<p>
+  Pre-norm 的前向可以写成两次「归一化 → 子层 → 加回残差」：
+</p>
+\[ u_l=x_l+\mathrm{MHA}(\mathrm{Norm}_1(x_l)),\qquad x_{l+1}=u_l+\mathrm{MLP}(\mathrm{Norm}_2(u_l)) \]
+<p>
+  每个子层只产生与 \(x_l\) 同形状的增量。<span class="t" data-tterm="Identity Jacobian" data-d="残差加法 \(x+F(x)\) 的导数含单位矩阵 \(I\)；它给深层反向传播保留一条直接路径，但不保证所有梯度都不爆炸。">恒等雅可比</span>
+  \(I\) 解释了为什么梯度可以沿主干直接回流；实际稳定性仍取决于初始化、归一化与学习率。
+</p>
+<table class="tbl small">
+  <thead><tr><th>节点</th><th>形状</th><th>典型算子</th><th>需保存的证据</th></tr></thead>
+  <tbody>
+    <tr><td>token embedding</td><td>\((B,T)\to(B,T,d)\)</td><td>查表</td><td>整数 token id 与 dtype</td></tr>
+    <tr><td>注意力输入</td><td>\((B,T,d)\)</td><td>Norm → QKV → \(T\times T\) 权重</td><td>掩码方向、行和、上三角</td></tr>
+    <tr><td>注意力残差</td><td>\((B,T,d)\)</td><td>\(u=x+\Delta_{\mathrm{attn}}\)</td><td>加法前后形状相同</td></tr>
+    <tr><td>MLP 中间</td><td>\((B,T,d_{ff})\)</td><td>SwiGLU 三矩阵</td><td>gate 与 up 的逐元素乘积</td></tr>
+    <tr><td>block 输出</td><td>\((B,T,d)\)</td><td>\(x'=u+\Delta_{\mathrm{mlp}}\)</td><td>可继续送入下一层</td></tr>
+  </tbody>
+</table>
+<p class="hint">Hint：只要某一步输出成 \((B,d,T)\)，就说明把序列轴和通道轴弄反了；残差加法不会替你修正它。</p>
+
+<h3>8. Crossfade：凸组合相似，能量约束不同</h3>
+<p>
+  两条音频 \(x(t),z(t)\) 的混合写作 \(y(t)=a(t)x(t)+b(t)z(t)\)。线性淡化取 \(a=1-u,b=u\)，
+  \(u\in[0,1]\)。若两条信号近似不相关且功率相等 \(P\)，混合功率是
+</p>
+\[ \mathbb{E}|y|^2\approx P\big(a^2+b^2\big) \]
+<p>
+  线性曲线在中心 \(u=1/2\) 给出 \(a^2+b^2=1/2\)，会产生约 \(-3\) dB 的能量凹陷。
+  <span class="t" data-tterm="Equal-power crossfade" data-d="令 \(a^2+b^2=1\) 的交叉淡化；常用 \(a=\cos(\pi u/2),b=\sin(\pi u/2)\)，可避免不相关信号的中心能量凹陷。">等功率交叉淡化</span>
+  取 \(a=\cos(\pi u/2),b=\sin(\pi u/2)\)，保证 \(a^2+b^2=1\)。
+</p>
+<p>
+  端点还需要平滑速度时，使用 <span class="t" data-tterm="Smoothstep" data-d="把 \(u\in[0,1]\) 映到 \(s(u)=3u^2-2u^3\) 的三次曲线；它满足 \(s'(0)=s'(1)=0\)，用于减小过渡边界的突变。">平滑步函数</span>
+  \(s(u)=3u^2-2u^3\)，它满足 \(s'(0)=s'(1)=0\)。
+</p>
+<table class="tbl small">
+  <thead><tr><th>机制</th><th>权重约束</th><th>平滑 / 能量性质</th><th>在 Crossfade 中的角色</th></tr></thead>
+  <tbody>
+    <tr><td>注意力</td><td>\(A_{ij}\ge0,\sum_jA_{ij}=1\)</td><td>保证凸组合，不保证时间单调或功率守恒</td><td>预测相似度、过渡点或检索片段</td></tr>
+    <tr><td>线性淡化</td><td>\(a+b=1\)</td><td>端点连续，中心可能能量凹陷</td><td>基线与对照实验</td></tr>
+    <tr><td>等功率淡化</td><td>\(a^2+b^2=1\)</td><td>不相关等功率信号的总能量近似恒定</td><td>默认音频增益曲线</td></tr>
+    <tr><td>平滑步</td><td>\(s\in[0,1]\)</td><td>一阶导数端点为 0</td><td>减少点击声与边界突变</td></tr>
+  </tbody>
+</table>
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么用在真实项目里：Transformer 在 Crossfade 上值不值</h4>
+  <p>
+    对只有几百条样本的 Crossfade 项目，直接训练完整 Transformer 预测每个采样点的增益<strong>不值</strong>：参数自由度、数据需求和调试成本都超过收益。
+    值得做的是小模型或冻结编码器，用它预测过渡时刻、响度差与相似度；最终 \(a(t),b(t)\) 仍由等功率与 \(C^1\) 约束生成。这样模型处理内容，物理曲线处理能量与平滑。
+  </p>
+</section>
+
+<h3>9. 30 分钟最小实现：验证一个 block 没有偷看未来</h3>
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>逐行验算：残差形状、因果掩码与 RMSNorm</h4>
+<pre><code>import torch
+
+torch.manual_seed(0)
+x = torch.randn(2, 5, 16)                     <span class="cm"># [逐行剖析] 输入是 (B,T,d)=(2,5,16)。</span>
+block = TransformerBlock(dim=16, n_head=4, hidden_dim=42) <span class="cm"># [逐行剖析] d=16 可被 4 个头整除，每头 4 维。</span>
+y = block(x)                                  <span class="cm"># [逐行剖析] Pre-norm、因果注意力、SwiGLU 与两次残差完成一次前向。</span>
+assert y.shape == x.shape                    <span class="cm"># [逐行剖析] 残差流宽度必须保持 (B,T,d)。</span>
+print(y.shape, (y - x).norm().item())         <span class="cm"># [逐行剖析] 记录输出形状与子层增量大小。</span>
+print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] False 表示归一化或 mask 产生 NaN。</span></code></pre>
+  <p>记录三项：输出形状、增量范数、是否全为有限值。再把 \(T\) 从 5 改成 9，确认只增加序列轴，不改变 \(d\)。</p>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">对 \(x=(1,2,3,4)\)，哪一个数是 RMSNorm 的均方根分母（忽略 \(\epsilon\)）？</p>
+  <ul class="opts">
+    <li>2.5</li>
+    <li>1.25</li>
+    <li data-ok>\(\sqrt{7.5}\)</li>
+    <li>4</li>
+  </ul>
+  <p class="why">RMSNorm 使用 \(\sqrt{(1^2+2^2+3^2+4^2)/4}=\sqrt{7.5}\)，不先减均值。</p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">为什么 Pre-norm 的残差相加不会自动保证梯度永远稳定？</p>
+  <ul class="opts">
+    <li data-ok>它提供单位矩阵直通项，但子层雅可比、初始化和学习率仍可能让其他路径爆炸</li>
+    <li>因为残差连接没有任何梯度</li>
+    <li>因为 RMSNorm 会删除所有梯度</li>
+    <li>因为 MLP 不参与反向传播</li>
+  </ul>
+  <p class="why">\(x+F(x)\) 的导数含 \(I+J_F\)，直通项改善深度训练，但并不把 \(J_F\) 变成零；仍需正常的尺度与优化控制。</p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 8</div>
+  <p class="q">两条近似不相关、功率相等的音频在中心交叉时，哪条曲线满足近似恒功率？</p>
+  <ul class="opts">
+    <li>线性 \(a=1-u,b=u\)</li>
+    <li data-ok>等功率 \(a=\cos(\pi u/2),b=\sin(\pi u/2)\)</li>
+    <li>任意 \(a,b\)，只要 \(a+b=2\)</li>
+    <li>直接使用 attention map 的一行</li>
+  </ul>
+  <p class="why">等功率曲线满足 \(a^2+b^2=1\)，中心仍约为原功率；线性曲线中心只有 \(1/2\)，会出现能量凹陷。</p>
+</div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
