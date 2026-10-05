@@ -189,30 +189,32 @@ COURSE.register({
 <pre><code><span class="kw">import</span> torch
 <span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
 
-<span class="cm"># [逐行剖析] 1. 构建玩具字符语料库与字符映射字典</span>
+<span class="cm"># [逐行剖析] 1. 构建玩具字符语料库与双向字符映射字典</span>
 words = [<span class="st">'emma'</span>, <span class="st">'olivia'</span>, <span class="st">'ava'</span>, <span class="st">'isabella'</span>, <span class="st">'sophia'</span>, <span class="st">'charlotte'</span>]
 chars = sorted(list(set(<span class="st">''</span>.join(words))))
-<span class="cm"># 引入特殊开始/结束标识 '.'</span>
+<span class="cm"># 引入特殊开始/结束标识 '.' 作为因果序列哨兵</span>
 stoi = {s: i + 1 <span class="kw">for</span> i, s <span class="kw">in</span> enumerate(chars)}
 stoi[<span class="st">'.'</span>] = 0
 itos = {i: s <span class="kw">for</span> s, i <span class="kw">in</span> stoi.items()}
 vocab_size = len(stoi)
 
 <span class="cm"># ========================================================</span>
-<span class="cm"># 方法一：经典统计计数表（显式 MLE 解析解）</span>
+<span class="cm"># 方法一：经典统计计数表（显式 MLE 频数解析解）</span>
 <span class="cm"># ========================================================</span>
+<span class="cm"># [逐行剖析] 频次矩阵：动态形状 (V, V) = (27, 27) [int32]，显存分配连续物理块</span>
 N = torch.zeros((vocab_size, vocab_size), dtype=torch.int32)
 <span class="kw">for</span> w <span class="kw">in</span> words:
     chs = [<span class="st">'.'</span>] + list(w) + [<span class="st">'.'</span>]
     <span class="kw">for</span> ch1, ch2 <span class="kw">in</span> zip(chs, chs[1:]):
-        N[stoi[ch1], stoi[ch2]] += 1
+        N[stoi[ch1], stoi[ch2]] += 1  <span class="cm"># 原地累加转移频次</span>
 
-<span class="cm"># Laplace 伪计数平滑并按行归一化成转移矩阵 P</span>
+<span class="cm"># [逐行剖析] Laplace 伪计数平滑并按行归一化成转移矩阵 P</span>
+<span class="cm"># 动态形状: P -> (V, V) [float32] | 原地位运算: /= 沿行轴归一化</span>
 P = (N + 1).float()
 P /= P.sum(1, keepdim=True)
 
 <span class="cm"># ========================================================</span>
-<span class="cm"># 方法二：神经网络单层无偏置线性层（梯度下降法逼近）</span>
+<span class="cm"># 方法二：神经网络单层无偏置线性层（梯度下降逼近解析解）</span>
 <span class="cm"># ========================================================</span>
 xs, ys = [], []
 <span class="kw">for</span> w <span class="kw">in</span> words:
@@ -220,32 +222,43 @@ xs, ys = [], []
     <span class="kw">for</span> ch1, ch2 <span class="kw">in</span> zip(chs, chs[1:]):
         xs.append(stoi[ch1])
         ys.append(stoi[ch2])
+<span class="cm"># 动态形状: xs -> (N,), ys -> (N,) [int64]，本例 N = num_samples</span>
 xs = torch.tensor(xs)
 ys = torch.tensor(ys)
 num_samples = xs.nelement()
 
-<span class="cm"># 初始化可学习权重矩阵 W (vocab_size x vocab_size)</span>
+<span class="cm"># [逐行剖析] 初始化可学习权重矩阵 W: 动态形状 (V, V) = (27, 27) [float32]</span>
+<span class="cm"># 自动微分: requires_grad=True 开启计算图追踪，分配反向传播梯度内存 W.grad</span>
 g = torch.Generator().manual_seed(2147483647)
 W = torch.randn((vocab_size, vocab_size), generator=g, requires_grad=True)
 
-<span class="cm"># 梯度下降训练循环</span>
+<span class="cm"># [逐行剖析] 梯度下降优化训练循环</span>
 <span class="kw">for</span> k <span class="kw">in</span> range(100):
-    <span class="cm"># [逐行剖析] 前向传播：将输入索引转为 one-hot 向量后做线性映射</span>
-    <span class="cm"># xenc @ W 本质上就是根据输入索引选择 W 的对应行（即 Embedding 查找）</span>
+    <span class="cm"># [逐行剖析] 前向传播 1: 离散输入索引转 One-hot 浮点特征</span>
+    <span class="cm"># 动态形状: xs (N,) -> one_hot -> xenc (N, V) [float32]</span>
     xenc = F.one_hot(xs, num_classes=vocab_size).float()
-    logits = xenc @ W                      <span class="cm"># 线性输出 Logits</span>
     
-    <span class="cm"># [逐行剖析] 数值稳定 Softmax：减去 max(logits)</span>
+    <span class="cm"># [逐行剖析] 前向传播 2: 矩阵乘法映射为未归一化对数几率 Logits</span>
+    <span class="cm"># 动态形状: (N, V) @ (V, V) -> logits (N, V) [float32]</span>
+    <span class="cm"># 自动微分: 线性算子节点记录在 DAG 中，反向传播时将损失残差广播回 W</span>
+    logits = xenc @ W
+    
+    <span class="cm"># [逐行剖析] 前向传播 3: 数值稳定的 Softmax（减去行最大值防止 exp 溢出）</span>
+    <span class="cm"># 动态形状: counts -> (N, V) [float32], probs -> (N, V) [float32] (每行和为 1.0)</span>
     counts = (logits - logits.max(dim=1, keepdim=True).values).exp()
     probs = counts / counts.sum(1, keepdims=True)
     
-    <span class="cm"># [逐行剖析] 负对数似然损失 NLL</span>
+    <span class="cm"># [逐行剖析] 损失函数: 负对数似然损失 (NLL / 交叉熵)</span>
+    <span class="cm"># 动态形状: probs[torch.arange(N), ys] -> (N,) -> .log().mean() -> loss [标量 float32]</span>
     loss = -probs[torch.arange(num_samples), ys].log().mean()
     
-    <span class="cm"># [逐行剖析] 反向传播与权重更新</span>
-    W.grad = None                          <span class="cm"># 梯度清零比 zero_() 更高效</span>
-    loss.backward()
-    W.data += -50.0 * W.grad               <span class="cm"># 大步长梯度更新</span>
+    <span class="cm"># [逐行剖析] 反向传播与梯度重置</span>
+    <span class="cm"># 显存机制: W.grad = None 直接解除旧梯度引用，比 zero_() 减少显存写带宽消耗</span>
+    W.grad = None
+    loss.backward()  <span class="cm"># 自动微分: 回溯 DAG 计算 dLoss/dW</span>
+    
+    <span class="cm"># [逐行剖析] 原地权重更新: 脱离 autograd 追踪 (in-place)</span>
+    W.data += -50.0 * W.grad
 
 print(f"统计矩阵交叉熵下界: {-P[xs, ys].log().mean().item():.4f}")
 print(f"神经网络优化达到的损失: {loss.item():.4f}")</code></pre>

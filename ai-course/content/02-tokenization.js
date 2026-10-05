@@ -83,79 +83,86 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>纯 Python 从零手写 BPE 训练与编解码引擎</h4>
 <pre><code><span class="cm"># ========================================================</span>
-<span class="cm"># Karpathy minbpe 极简工业级复刻：BPE 算法骨架</span>
+<span class="cm"># Karpathy minbpe 工业级极简复刻：BPE 算法骨架逐行剖析</span>
 <span class="cm"># ========================================================</span>
 
 <span class="kw">def</span> <span class="hi">get_stats</span>(ids):
     <span class="st">"""统计整型序列中所有相邻二元对 (pair) 的出现频数"""</span>
     counts = {}
     <span class="cm"># [逐行剖析] 滑动窗口步长为 1，扫描所有相邻 token 对</span>
-    <span class="kw">for</span> pair <span class="kw">in</span> zip(ids, ids[1:]):
+    <span class="cm"># 时间复杂度: O(N) 单遍扫描 | 内存: counts 散列表最坏存储 O(min(N, V^2)) 项</span>
+    for pair in zip(ids, ids[1:]):
         counts[pair] = counts.get(pair, 0) + 1
-    <span class="kw">return</span> counts
+    return counts
 
 <span class="kw">def</span> <span class="hi">merge</span>(ids, pair, idx):
     <span class="st">"""在整型序列中，将所有连续出现的特定 pair 替换为新分配的合并 token idx"""</span>
     newids = []
     i = 0
-    <span class="kw">while</span> i &lt; len(ids):
-        <span class="cm"># [逐行剖析] 匹配到目标 pair 且未越界：替换为新合并 ID，指针前移 2 位</span>
-        <span class="kw">if</span> i &lt; len(ids) - 1 <span class="kw">and</span> ids[i] == pair[0] <span class="kw">and</span> ids[i+1] == pair[1]:
+    <span class="cm"># [逐行剖析] 顺序双指针单趟替换</span>
+    <span class="cm"># 动态变换: 原始序列长度 L -> 替换后新序列长度 L' (L' &lt;= L)</span>
+    <span class="cm"># 内存分配: 顺序构造紧凑整型列表，避免原地切片引起的频繁内存重分配</span>
+    while i &lt; len(ids):
+        if i &lt; len(ids) - 1 and ids[i] == pair[0] and ids[i+1] == pair[1]:
             newids.append(idx)
-            i += 2
-        <span class="kw">else</span>:
+            i += 2  <span class="cm"># 成功命中合并规则：合并 2 个输入 token 为 1 个高阶 token</span>
+        else:
             newids.append(ids[i])
-            i += 1
-    <span class="kw">return</span> newids
+            i += 1  <span class="cm"># 未命中：原样复制当前 token，指针递增 1 位</span>
+    return newids
 
 <span class="kw">class</span> <span class="hi">BasicTokenizer</span>:
     <span class="kw">def</span> __init__(self):
         <span class="cm"># [逐行剖析] merges 字典：存储合并规则映射 (p0, p1) -> new_idx</span>
         self.merges = {}
         <span class="cm"># [逐行剖析] vocab 字典：存储整数 token_id 到对应原始 bytes 的双向查找表</span>
-        self.vocab = {idx: bytes([idx]) <span class="kw">for</span> idx <span class="kw">in</span> range(256)}
+        <span class="cm"># 基础词表覆盖所有单字节取值 0..255，确保任何二进制数据均无 OOV 越界风险</span>
+        self.vocab = {idx: bytes([idx]) for idx in range(256)}
 
     <span class="kw">def</span> train(self, text, vocab_size, verbose=False):
-        <span class="kw">assert</span> vocab_size &gt;= 256, <span class="st">"词表大小必须至少覆盖 256 个基础字节"</span>
+        <span class="kw">assert</span> vocab_size &gt;= 256, "词表大小必须至少覆盖 256 个基础字节"
         num_merges = vocab_size - 256
         
         <span class="cm"># [逐行剖析] 1. 将输入纯文本按 UTF-8 编码为原始字节整数列表 [0..255]</span>
-        text_bytes = text.encode(<span class="st">"utf-8"</span>)
+        <span class="cm"># 动态变换: 原始文本字符串 -> bytes (长 B) -> List[int] (长 B)</span>
+        text_bytes = text.encode("utf-8")
         ids = list(text_bytes)
 
         <span class="cm"># [逐行剖析] 2. 迭代式贪心合并：寻找当前全局频数最高的相邻二元对</span>
-        <span class="kw">for</span> i <span class="kw">in</span> range(num_merges):
+        for i in range(num_merges):
             stats = get_stats(ids)
-            <span class="kw">if</span> <span class="kw">not</span> stats:
-                <span class="kw">break</span>
-            <span class="cm"># 找出出现频数最高的相邻对</span>
+            if not stats:
+                break
+            <span class="cm"># 动态统计: 贪心选择当前序列共现频次最高的 pair</span>
             best_pair = max(stats, key=stats.get)
             idx = 256 + i
-            <span class="cm"># 替换并记录规则</span>
+            <span class="cm"># 替代表达并维护词表：将二元对合并为单一长 token</span>
             ids = merge(ids, best_pair, idx)
             self.merges[best_pair] = idx
             self.vocab[idx] = self.vocab[best_pair[0]] + self.vocab[best_pair[1]]
-            <span class="kw">if</span> verbose:
+            if verbose:
                 print(f"Merge {i+1}/{num_merges}: {best_pair} -> {idx} ({self.vocab[idx]!r})")
 
     <span class="kw">def</span> encode(self, text):
         <span class="cm"># [逐行剖析] 编码：自底向上贪心应用已学到的合并规则表</span>
-        text_bytes = text.encode(<span class="st">"utf-8"</span>)
+        <span class="cm"># 动态变换: 原始字节序列逐步压缩为更短的高阶 token ID 序列</span>
+        text_bytes = text.encode("utf-8")
         ids = list(text_bytes)
-        <span class="kw">while</span> len(ids) &gt;= 2:
+        while len(ids) &gt;= 2:
             stats = get_stats(ids)
-            <span class="cm"># 找出当前序列中在 merges 中排名最靠前（最先合并出来）的 pair</span>
-            pair = min(stats, key=<span class="kw">lambda</span> p: self.merges.get(p, float(<span class="st">"inf"</span>)))
-            <span class="kw">if</span> pair <span class="kw">not in</span> self.merges:
-                <span class="kw">break</span>
+            <span class="cm"># 优先匹配在训练阶段更早被发现的 pair (即 self.merges 中索引更小的规则)</span>
+            pair = min(stats, key=lambda p: self.merges.get(p, float("inf")))
+            if pair not in self.merges:
+                break
             idx = self.merges[pair]
             ids = merge(ids, pair, idx)
-        <span class="kw">return</span> ids
+        return ids
 
     <span class="kw">def</span> decode(self, ids):
-        <span class="cm"># [逐行剖析] 解码：查表还原为字节串，并使用 UTF-8 容错解码还原自然语言</span>
-        part_bytes = [self.vocab[idx] <span class="kw">for</span> idx <span class="kw">in</span> ids]
-        <span class="kw">return</span> b<span class="st">""</span>.join(part_bytes).decode(<span class="st">"utf-8"</span>, errors=<span class="st">"replace"</span>)</code></pre>
+        <span class="cm"># [逐行剖析] 解码：查表还原为连续字节序列，并使用 UTF-8 容错解码还原自然语言</span>
+        <span class="cm"># 动态变换: List[int] -> List[bytes] -> b''.join() -> str</span>
+        part_bytes = [self.vocab[idx] for idx in ids]
+        return b"".join(part_bytes).decode("utf-8", errors="replace")</code></pre>
 </section>
 
 <h3>3. 前沿理论映射：文本 Tokenizer 与音频 RVQ 码本的代数同构</h3>

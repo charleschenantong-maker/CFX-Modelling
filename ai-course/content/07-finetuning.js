@@ -226,36 +226,54 @@ from datasets import load_dataset
 from peft import LoraConfig
 from trl import SFTTrainer, SFTConfig
 
-ds = load_dataset("trl-lib/Capybara", split="train[:2000]")   <span class="cm"># 小样本先跑通</span>
+<span class="cm"># [逐行剖析] 1. 加载微调数据集</span>
+ds = load_dataset("trl-lib/Capybara", split="train[:2000]")   <span class="cm"># 截取 2000 条高质量对话样本</span>
 
-peft_cfg = LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
-                      target_modules=["q_proj","k_proj","v_proj","o_proj"],
-                      task_type="CAUSAL_LM")
+<span class="cm"># [逐行剖析] 2. 配置 LoRA 低秩分解超参数</span>
+<span class="cm"># 数学机制: W = W0 + (alpha/r) * (B @ A), A in R^(r x d_in), B in R^(d_out x r)</span>
+<span class="cm"># 秩 r=16, 缩放因数 alpha=32 -> 放大倍率 alpha/r = 2.0</span>
+peft_cfg = LoraConfig(
+    r=16, lora_alpha=32, lora_dropout=0.05,
+    target_modules=["q_proj","k_proj","v_proj","o_proj"],  <span class="cm"># 针对注意力所有投影层注入低秩旁路</span>
+    task_type="CAUSAL_LM"
+)
 
+<span class="cm"># [逐行剖析] 3. 构建 TRL SFTTrainer 监督微调执行引擎</span>
+<span class="cm"># 显存机制: 基座权重冻结 (requires_grad=False)，仅 LoRA 旁路参数保留梯度并分配优化器动量</span>
 trainer = SFTTrainer(
     model="Qwen/Qwen2.5-0.5B",
     train_dataset=ds,
     peft_config=peft_cfg,
-    args=SFTConfig(output_dir="out-sft", num_train_epochs=1,
-                   learning_rate=2e-4, per_device_train_batch_size=2,
-                   gradient_accumulation_steps=8, max_length=1024,
-                   logging_steps=10, save_strategy="epoch",
-                   bf16=True, report_to="none"),
+    args=SFTConfig(
+        output_dir="out-sft", num_train_epochs=1,
+        learning_rate=2e-4, per_device_train_batch_size=2,
+        gradient_accumulation_steps=8,  <span class="cm"># 等效大批次: 2 * 8 = 16 样本 / 步</span>
+        max_length=1024, logging_steps=10, save_strategy="epoch",
+        bf16=True, report_to="none"     <span class="cm"># 开启 bf16 混合精度大幅削减显存</span>
+    ),
 )
 trainer.train()
 trainer.save_model("out-sft/final")
 
-<span class="cm"># 记录三件事：可训练参数占比、显存峰值、验证损失是否在 1 个 epoch 后回升</span>
+<span class="cm"># [逐行剖析] 4. 统计可训练参数占比（通常在 0.5% ~ 2.0% 之间，显存开销不到全参微调的 1/4）</span>
 print(trainer.model.print_trainable_parameters())</code></pre>
-<pre><code><span class="cm"># DPO 阶段：数据换成偏好对</span>
+<pre><code><span class="cm"># [逐行剖析] DPO 直接偏好优化阶段：彻底摆脱独立奖励模型与在线强化学习采样循环</span>
 from trl import DPOTrainer, DPOConfig
+from datasets import load_dataset
 prefs = load_dataset("trl-lib/ultrafeedback_binarized", split="train[:2000]")
 
+<span class="cm"># 数学机制: 隐式奖励标量 r(x, y) = beta * log(pi_theta(y|x) / pi_ref(y|x))</span>
+<span class="cm"># 显存机制: 内部同时持有当前策略模型 pi_theta 与冻结的参考模型 pi_ref</span>
 dpo = DPOTrainer(
-    model="out-sft/final", args=DPOConfig(output_dir="out-dpo",
-        beta=0.1, learning_rate=5e-6, num_train_epochs=1,
+    model="out-sft/final",
+    args=DPOConfig(
+        output_dir="out-dpo",
+        beta=0.1,                          <span class="cm"># KL 散度惩罚因数：控制策略偏离基座的容忍阈值</span>
+        learning_rate=5e-6, num_train_epochs=1,
         per_device_train_batch_size=1, gradient_accumulation_steps=8,
-        max_length=1024, max_prompt_length=512, bf16=True, report_to="none"),
+        max_length=1024, max_prompt_length=512,
+        bf16=True, report_to="none"
+    ),
     train_dataset=prefs,
 )
 dpo.train()</code></pre>

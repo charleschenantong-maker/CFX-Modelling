@@ -261,28 +261,52 @@ COURSE.register({
   <p>免费层跑不了 7B，但可以完整跑通「从零预训练一个 10M 参数模型」的全流程（附录 B · E3 有完整代码）：</p>
 <pre><code>import torch, torch.nn.functional as F
 
-<span class="cm"># 一个 4 层、256 维、4 头的迷你 Transformer（约 4M 参数）</span>
+<span class="cm"># [逐行剖析] 1. 构建轻量迷你 GPT-2 骨干（约 4M 参数，适配单卡/Colab 极速收敛）</span>
 from transformers import GPT2Config, GPT2LMHeadModel
 cfg = GPT2Config(vocab_size=50257, n_positions=256, n_embd=256,
                  n_layer=4, n_head=4)
+<span class="cm"># 显存分配: 4M float32 权重约 16 MB，载入 GPU 显存 (cuda:0)</span>
 model = GPT2LMHeadModel(cfg).cuda()
+<span class="cm"># 优化器: AdamW 维护一阶矩 m (fp32) 与二阶矩 v (fp32)，优化器显存占用 = 4M * 8 = 32 MB</span>
 opt = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), weight_decay=0.1)
 
-<span class="cm"># 学习率 warmup + 余弦：这是与论文一致的最小实现</span>
+<span class="cm"># [逐行剖析] 2. 学习率调度器：线性 warmup + 余弦衰减（工业标配最小实现）</span>
 def lr_at(step, total, peak=3e-4, warm=100, floor_ratio=0.1):
     import math
     if step &lt; warm: return peak * (step + 1) / warm
     p = (step - warm) / max(1, total - warm)
     return peak * (floor_ratio + (1 - floor_ratio) * 0.5 * (1 + math.cos(math.pi * p)))
 
-for step, (x, y) in enumerate(loader):          <span class="cm"># x: (B, S) token id, y: 右移一位</span>
+<span class="cm"># [逐行剖析] 3. 标准自回归预训练训练步循环</span>
+for step, (x, y) in enumerate(loader):
+    <span class="cm"># 动态形状: x -> (B, S) [int64], y -> (B, S) [int64] (由真实文本右移 1 位生成)</span>
+    x, y = x.cuda(), y.cuda()
+    
+    <span class="cm"># 动态更新学习率超参数</span>
     for g in opt.param_groups: g["lr"] = lr_at(step, total_steps)
-    logits = model(x).logits                    <span class="cm"># (B, S, V)</span>
+    
+    <span class="cm"># 前向传播：记录计算图与前向激活值</span>
+    <span class="cm"># 动态形状: logits -> (B, S, V) = (B, 256, 50257) [float32]</span>
+    logits = model(x).logits
+    
+    <span class="cm"># 计算交叉熵损失：平铺批次与时序维度</span>
+    <span class="cm"># 动态形状: logits.view(-1, V) -> (B*S, V), y.view(-1) -> (B*S,)</span>
     loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
+    
+    <span class="cm"># 自动微分: 反向传播回溯计算图，计算所有叶子张量参数的梯度 .grad</span>
     loss.backward()
+    
+    <span class="cm"># 梯度裁剪: 约束全模型梯度 L2 范数不超过 1.0，防止 Loss Spike</span>
     torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-    opt.step(); opt.zero_grad(set_to_none=True)
-    if step % 50 == 0: print(step, round(loss.item(), 3), f"ppl={loss.exp().item():.1f}")</code></pre>
+    
+    <span class="cm"># 原地位运算更新参数: W.data.add_(-lr * m / (sqrt(v) + eps))</span>
+    opt.step()
+    
+    <span class="cm"># 梯度置 None 相比 zero_() 更高效：直接解除旧梯度内存引用，减少显存碎片</span>
+    opt.zero_grad(set_to_none=True)
+    
+    if step % 50 == 0:
+        print(step, round(loss.item(), 3), f"ppl={loss.exp().item():.1f}")</code></pre>
   <p>
     <strong>必须记录的实验日志</strong>：全局步数、学习率、loss、梯度范数、tokens/s、显存峰值。
     把 loss 画出来，你会亲眼看到 warmup 段的下降、余弦末期的变缓，以及过拟合（验证 loss 回升）。

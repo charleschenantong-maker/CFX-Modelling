@@ -85,30 +85,37 @@ from jax.sharding import Mesh, PartitionSpec as P, NamedSharding
 from jax.experimental import mesh_utils
 import flax.nnx as nnx, optax
 
-<span class="cm"># 1) 描述设备网格：4 路数据并行 × 2 路张量并行（Kaggle TPU v5e-8 的常规切法）</span>
+<span class="cm"># [逐行剖析] 1. 描述物理设备网格拓扑：4 路数据并行 (DP) × 2 路张量并行 (TP)</span>
+<span class="cm"># 硬件映射: 面向 8 个 TPU 核心 (如 Kaggle TPU v5e-8)，构建二维物理拓扑 ('batch', 'model')</span>
 mesh = Mesh(mesh_utils.create_device_mesh((4, 2)), ('batch', 'model'))
 
-<span class="cm"># 2) 用 PartitionSpec 声明「每个张量的哪个维度分到哪个网格轴」</span>
-<span class="cm">#    权重按 model 轴切分（张量并行）；激活按 batch 轴切分（数据并行）</span>
+<span class="cm"># [逐行剖析] 2. 声明 SPMD 自动分片规则 (PartitionSpec)</span>
+<span class="cm"># 动态分布: 权重 W 维度 (4096, 4096) -> P(None, 'model') 沿第 1 维列切分为 2 份，每卡持 (4096, 2048)</span>
+<span class="cm"># 动态分布: 激活 X 维度 (B, 4096) -> P('batch', None) 沿批次维切分为 4 份，每卡处理 B/4</span>
 w_sharding = NamedSharding(mesh, P(None, 'model'))
 x_sharding = NamedSharding(mesh, P('batch', None))
 
-<span class="cm"># 3) 在 Flax NNX 层上标注分片方式，其余交给编译器</span>
+<span class="cm"># [逐行剖析] 3. 在 Flax NNX 声明式层中绑定分片规范</span>
+<span class="cm"># 编译器介入: XLA 编译器自动推导前向与反向通信算子（自动插入 All-Gather 与 Reduce-Scatter）</span>
 linear = nnx.Linear(in_features=4096, out_features=4096,
                     kernel_init=nnx.with_partitioning(
                         nnx.initializers.xavier_uniform(), w_sharding),
                     rngs=nnx.Rngs(0))
 
+<span class="cm"># [逐行剖析] 4. JIT 编译的 SPMD 训练步纯函数</span>
 @nnx.jit
 def train_step(model, opt, batch):
     def loss_fn(m):
+        <span class="cm"># 动态形状: batch['tokens'] -> (B, S), logits -> (B, S, V)</span>
         logits = m(batch['tokens'])
         return optax.softmax_cross_entropy_with_integer_labels(logits, batch['labels']).mean()
+    
+    <span class="cm"># 纯函数式自动微分: 同时获得标量损失值与全量模型参数梯度树</span>
     loss, grads = nnx.value_and_grad(loss_fn)(model)
-    opt.update(grads)
+    opt.update(grads)  <span class="cm"># 优化器参数状态演进</span>
     return loss
 
-print(jax.devices())        <span class="cm"># 应看到 8 个设备（Kaggle TPU v5e-8）</span></code></pre>
+print(jax.devices())  <span class="cm"># 打印设备拓扑: 验证 8 个独立可编址的 TPU 计算核心</span></code></pre>
 <p>
   同样的模型，改成「8 路纯数据并行」只需要把 <code>mesh</code> 换成 <code>(8, 1)</code>，
   这正是教程里那句话的含义：<em>JAX 让不同切分策略之间的切换变成一行代码</em>。

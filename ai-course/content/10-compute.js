@@ -83,23 +83,27 @@ COURSE.register({
   <div class="nd">检查点外存</div><div class="ar">→</div>
   <div class="nd">一键复现脚本</div>
 </div>
-<pre><code><span class="cm"># 每个 notebook 的开头都该有这一段</span>
+<pre><code><span class="cm"># [逐行剖析] 科研级实验前置脚本：全栈随机种子固化 + 硬件状态快照 + 实验元数据持久化</span>
 import os, random, numpy as np, torch, json, subprocess, sys
 SEED = 0
+<span class="cm"># 1. 固化 CPU 与所有 CUDA GPU 设备的伪随机数发生器，确保完全可复现性</span>
 random.seed(SEED); np.random.seed(SEED); torch.manual_seed(SEED); torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True  <span class="cm"># 禁用非确定性卷积算法</span>
 
+<span class="cm"># 2. 探查并打印当前 GPU 驱动与型号</span>
 print(subprocess.run(["nvidia-smi"], capture_output=True, text=True).stdout.split("\n")[8])
 print("python", sys.version.split()[0], "| torch", torch.__version__)
 
+<span class="cm"># 3. 建立结构化实验工件输出目录并记录元数据配置清单</span>
 RUN = "runs/exp001"
 os.makedirs(RUN, exist_ok=True)
 json.dump({"seed": SEED, "argv": sys.argv, "commit": "TODO"},
           open(f"{RUN}/config.json", "w"), indent=2)
 
-<span class="cm"># 从 Google Drive 挂载持久化目录</span>
+<span class="cm"># 4. 从 Google Drive 挂载持久化存储（防止 Colab 实例断开导致权重丢失）</span>
 from google.colab import drive
 drive.mount("/content/drive")
-CKPT_DIR = "/content/drive/MyDrive/llm-course/checkpoints"</code></pre>
+CKPT_DIR = "/content/drive/MyDrive/llm-course/checkpoints" </code></pre>
 <p>
   三条纪律：(1) <strong>每次实验目录里必须有 config.json</strong>，否则一周后你不知道那组数是哪来的；
   (2) <strong>先在小模型/小数据上把代码跑通</strong>，再放大；

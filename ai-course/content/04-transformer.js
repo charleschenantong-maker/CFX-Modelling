@@ -215,30 +215,35 @@ COURSE.register({
 <span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
 
 <span class="kw">class</span> <span class="hi">RMSNorm</span>(nn.Module):
-    <span class="st">"""Root Mean Square Layer Normalization：免均值中心化，极致高效"""</span>
+    <span class="st">"""Root Mean Square Layer Normalization：免去均值中心化，相比标准 LayerNorm 节省约 7% 访存"""</span>
     <span class="kw">def</span> __init__(self, dim, eps=1e-5):
         <span class="kw">super</span>().__init__()
         self.eps = eps
-        <span class="cm"># [逐行剖析] 可学习的缩放参数 gamma（无偏置 bias）</span>
+        <span class="cm"># [逐行剖析] 可学习缩放参数 gamma（不设偏置 beta，降低参数量与显存占用）</span>
         self.weight = nn.Parameter(torch.ones(dim))
 
     <span class="kw">def</span> forward(self, x):
-        <span class="cm"># [逐行剖析] 沿最后一个维度求均方根: sqrt(mean(x^2) + eps)</span>
+        <span class="cm"># 动态形状: 输入 x -> (B, T, C)</span>
+        <span class="cm"># 计算均方根倒数: x.pow(2).mean(-1, keepdim=True) -> (B, T, 1) -> rsqrt -> rms (B, T, 1)</span>
+        <span class="cm"># 自动微分: 记录在计算图中，反向传播时推导 rms 与 weight 的梯度</span>
         rms = torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
-        <span class="kw">return</span> x * rms * self.weight
+        <span class="kw">return</span> x * rms * self.weight  <span class="cm"># 动态形状: (B, T, C)</span>
 
 <span class="kw">class</span> <span class="hi">SwiGLU</span>(nn.Module):
-    <span class="st">"""门控前馈网络：用门控分支与乘积提供更强非线性容量"""</span>
+    <span class="st">"""门控前馈网络（GLU 族最优变体）：用门控非线性乘积打破传统 MLP 表达瓶颈"""</span>
     <span class="kw">def</span> __init__(self, dim, hidden_dim):
         <span class="kw">super</span>().__init__()
-        <span class="cm"># [逐行剖析] 两个上升矩阵：gate 负责控制放行程度，up 负责提供特征内容</span>
+        <span class="cm"># [逐行剖析] 两个上升矩阵：gate 控制信息流放行，up 提供特征载荷</span>
         self.w_gate = nn.Linear(dim, hidden_dim, bias=False)
         self.w_up = nn.Linear(dim, hidden_dim, bias=False)
         self.w_down = nn.Linear(hidden_dim, dim, bias=False)
 
     <span class="kw">def</span> forward(self, x):
-        <span class="cm"># [逐行剖析] SiLU(gate) ⊙ up: 逐元素哈达玛积后降维投射</span>
-        <span class="kw">return</span> self.w_down(F.silu(self.w_gate(x)) * self.w_up(x))
+        <span class="cm"># 动态形状: x -> (B, T, C)</span>
+        <span class="cm"># 动态形状: w_gate(x) -> (B, T, H), w_up(x) -> (B, T, H) | H = hidden_dim</span>
+        <span class="cm"># [逐行剖析] SiLU(gate) ⊙ up: 逐元素哈达玛积后降维映射回 C</span>
+        <span class="cm"># 自动微分: 双分支相乘在反向传播中形成梯度直通交织</span>
+        <span class="kw">return</span> self.w_down(F.silu(self.w_gate(x)) * self.w_up(x))  <span class="cm"># 输出: (B, T, C)</span>
 
 <span class="kw">class</span> <span class="hi">TransformerBlock</span>(nn.Module):
     <span class="st">"""Pre-norm 残差流 Transformer 核心单层块"""</span>
@@ -251,34 +256,39 @@ COURSE.register({
         self.mlp = SwiGLU(dim, hidden_dim)
 
     <span class="kw">def</span> forward(self, x):
-        <span class="cm"># [逐行剖析] 1. Pre-norm 注意力分支与直通残差相加</span>
-        norm_x = self.norm1(x)
-        attn_out, _ = self.attn(norm_x, norm_x, norm_x, need_weights=False)
-        x = x + attn_out
-        <span class="cm"># [逐行剖析] 2. Pre-norm 前馈分支与直通残差相加</span>
-        x = x + self.mlp(self.norm2(x))
+        <span class="cm"># 动态形状: 输入残差流 x -> (B, T, C)</span>
+        <span class="cm"># [逐行剖析] 1. Pre-norm 注意力分支：归一化在分支内进行，保留主干残差流纯净直通</span>
+        norm_x = self.norm1(x)                                          <span class="cm"># (B, T, C)</span>
+        attn_out, _ = self.attn(norm_x, norm_x, norm_x, need_weights=False)  <span class="cm"># (B, T, C)</span>
+        x = x + attn_out                                                <span class="cm"># 残差相加: (B, T, C)</span>
+        
+        <span class="cm"># [逐行剖析] 2. Pre-norm 前馈分支：第二重残差直通，梯度无衰减穿透深层网络</span>
+        x = x + self.mlp(self.norm2(x))                                 <span class="cm"># 残差相加: (B, T, C)</span>
         <span class="kw">return</span> x
 
 <span class="kw">class</span> <span class="hi">MinimalGPT</span>(nn.Module):
-    <span class="st">"""纯正因果自回归语言模型骨干架构"""</span>
+    <span class="st">"""纯正因果自回归语言模型完整骨干架构"""</span>
     <span class="kw">def</span> __init__(self, vocab_size, dim, n_layer, n_head):
         <span class="kw">super</span>().__init__()
         self.tok_emb = nn.Embedding(vocab_size, dim)
-        hidden_dim = int(8 * dim / 3)  <span class="cm"># 标准 SwiGLU 隐藏层宽度准则</span>
+        hidden_dim = int(8 * dim / 3)  <span class="cm"># LLaMA 标准 SwiGLU 隐藏层宽度准则 (2/3 * 4d)</span>
         self.layers = nn.ModuleList([
-            TransformerBlock(dim, n_head, hidden_dim) <span class="kw">for</span> _ <span class="kw">in</span> range(n_layer)
+            TransformerBlock(dim, n_head, hidden_dim) for _ in range(n_layer)
         ])
         self.final_norm = RMSNorm(dim)
         self.lm_head = nn.Linear(dim, vocab_size, bias=False)
-        <span class="cm"># 权重绑定（Weight Tying）：输入 embedding 与输出 head 共享参数</span>
+        <span class="cm"># [逐行剖析] 权重绑定（Weight Tying）：输入 embedding 与输出 head 共享相同显存指针</span>
+        <span class="cm"># 显存优化: 节省 vocab_size * dim * 4 字节显存，同时反向传播梯度双向累加</span>
         self.lm_head.weight = self.tok_emb.weight
 
     <span class="kw">def</span> forward(self, idx):
-        x = self.tok_emb(idx)  <span class="cm"># (Batch, SeqLen, Dim)</span>
-        <span class="kw">for</span> layer <span class="kw">in</span> self.layers:
-            x = layer(x)
-        x = self.final_norm(x)
-        logits = self.lm_head(x)  <span class="cm"># (Batch, SeqLen, VocabSize)</span>
+        <span class="cm"># 动态形状: 输入 idx -> (B, T) [int64]</span>
+        <span class="cm"># 查表获得初始词嵌入: x -> (B, T, C) [float32]</span>
+        x = self.tok_emb(idx)
+        for layer in self.layers:
+            x = layer(x)                                                <span class="cm"># 逐层演化: (B, T, C)</span>
+        x = self.final_norm(x)                                          <span class="cm"># 终层归一化: (B, T, C)</span>
+        logits = self.lm_head(x)                                        <span class="cm"># 映射到词表: (B, T, V)</span>
         <span class="kw">return</span> logits</code></pre>
 
 <section class="blk blk-eco">
