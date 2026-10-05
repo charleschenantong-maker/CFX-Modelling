@@ -10,7 +10,7 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   预训练给你一个「会续写」的模型，微调与对齐把它变成一个「听话」的模型。
-  这条路线上有四个台阶：监督微调、参数高效微调、偏好优化、可验证奖励的强化学习。
+  这条路线原则上有四个台阶：监督微调、参数高效微调、偏好优化、可验证奖励的强化学习。
   这一模块把每个台阶的<strong>数据形态、目标函数、适用条件</strong>列清楚，并对应到 TRL 的具体 trainer。
 </p>
 
@@ -125,13 +125,61 @@ COURSE.register({
   所以调 \(r\) 时通常同时按比例调 \(\alpha\)（常见做法是固定 \(\alpha = 2r\)）。
 </p>
 
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义（参数高效微调与低秩分解）</h4>
+  <p>
+    给 Charles 的打草稿顺序：先写出微调参数空间的自由度约束，再通过低秩分解定理手算压缩比与 FLOPs。
+    每一步在纸上写清矩阵维度（Dimension）与秩（Rank）的上界。
+  </p>
+  <p>
+    <strong>前置定义 1（参数高效微调 PEFT 与增量更新）：</strong>
+    设预训练模型包含 \(D\) 个参数 \(\theta_0 \in \mathbb{R}^D\)。全量微调（Full Fine-Tuning）更新全部参数：\(\theta = \theta_0 + \Delta \theta\)，
+    反向传播需维护 \(D\) 个梯度的 fp16 显存（\(2D\) 字节）与 AdamW 的优化器状态（fp32 主权重 + 一阶动量 + 二阶动量，共 \(12D\) 字节）。
+    PEFT 冻结底座参数 \(\theta_0\)，仅引入极小规模的附加可训练参数 \(\phi \in \mathbb{R}^d\)（满足 \(d \ll D\)），参数更新限制在低维子空间：
+  </p>
+  \[ \min_\phi \mathcal{L}(\theta_0 + \Delta \theta(\phi); \mathcal{D}) \]
+  <p>
+    底座参数不需要任何梯度与优化器动量显存，显存开销从 \(16D\) 字节降至仅需覆盖 \(\phi\) 的极小显存。
+  </p>
+  <p>
+    <strong>前置定义 2（低秩分解 Low-Rank Factorization）：</strong>
+    设线性映射权重矩阵 \(W_0 \in \mathbb{R}^{d \times k}\)（通常 \(d=k=4096\)）。若对其增量矩阵 \(\Delta W \in \mathbb{R}^{d \times k}\) 施加秩约束 \(\mathrm{rank}(\Delta W) \le r \ll \min(d, k)\)，
+    根据线性代数秩分解定理，存在窄矩阵 \(B \in \mathbb{R}^{d \times r}\) 与 \(A \in \mathbb{R}^{r \times k}\) 使得：
+  </p>
+  \[ \Delta W = \frac{\alpha}{r} B A \]
+  <p>
+    <strong>代数性质与计算量（FLOPs）手算：</strong>
+  </p>
+  <ul>
+    <li>参数量压缩比：原矩阵参数量为 \(dk\)，分解后参数量为 \(r(d+k)\)。当 \(d=k=4096, r=16\) 时，参数量由 \(16{,}777{,}216\) 骤降至 \(16 \times 8192 = 131{,}072\)，占比仅为：
+      \[ \frac{r(d+k)}{dk} = \frac{131{,}072}{16{,}777{,}216} = \frac{1}{128} \approx 0.78\% \]
+    </li>
+    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (BA) = (xB) A\)：先算 \(xB \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xB)A \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
+    <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (0 \cdot A) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
+  </ul>
+  <p>
+    <strong>前置定义 3（DPO 相对概率比与隐式奖励函数）：</strong>
+    设输入 prompt 为 \(x\)，模型生成完整序列 \(y = (y_1, y_2, \dots, y_T)\)。
+    当前训练中的策略模型概率为 \(\pi_\theta(y \mid x) = \prod_{t=1}^T \pi_\theta(y_t \mid x, y_{<t})\)，固定的参考基座模型概率为 \(\pi_{\text{ref}}(y \mid x) = \prod_{t=1}^T \pi_{\text{ref}}(y_t \mid x, y_{<t})\)。
+    两者的<strong>对数相对概率比（Log Probability Ratio）</strong>定义为：
+  </p>
+  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{<t}) \Big) \]
+  <p>
+    依据逆强化学习原理，该对数比值在乘以温度参数 \(\beta > 0\) 后，隐式地刻画了策略相较于参考基准的<strong>标量奖励（Implicit Reward）</strong>：
+  </p>
+  \[ \hat{r}_\theta(x, y) \triangleq \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \]
+  <p>
+    当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，说明当前模型认为回答 \(y\) 优于基座，给予正奖励；反之给予负惩罚。
+  </p>
+</section>
+
 <h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
 <p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答与被拒绝的回答。</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>DPO 为什么可以跳过奖励模型</h4>
   <p>RLHF 的目标是最大化奖励同时约束偏离参考模型：</p>
   \[ \max_\theta\ \mathbb{E}_{y\sim p_\theta}\big[r(x,y)\big] - \beta\, D_{\mathrm{KL}}\big(p_\theta \,\|\, p_{\text{ref}}\big) \]
-  <p>这个问题的<strong>最优解有闭式形式</strong>：</p>
+  <p>这个问题的最优解有闭式形式：</p>
   \[ p^*(y|x) = \frac{1}{Z(x)}\, p_{\text{ref}}(y|x)\, \exp\!\Big(\frac{r(x,y)}{\beta}\Big) \]
   <p>反解出 \(r\)，代入 Bradley–Terry 偏好似然，配分函数 \(Z(x)\) 恰好抵消，得到只依赖策略与参考模型对数概率的损失：</p>
   \[ \mathcal{L}_{\text{DPO}} = -\log \sigma\!\left( \beta \Big[ \log\frac{p_\theta(y_w|x)}{p_{\text{ref}}(y_w|x)} - \log\frac{p_\theta(y_l|x)}{p_{\text{ref}}(y_l|x)} \Big] \right) \]
@@ -196,7 +244,140 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>5. 台阶四：GRPO 与「可验证奖励」</h3>
+<h3>5. 草稿纸演算区：DPO 损失函数代数推导与单步手算</h3>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：DPO 损失函数的严格代数推导（消去配分函数 Z(x)）</h4>
+  <p>
+    给 Charles 的推导路径：从强化学习带 KL 约束的奖励最大化目标出发，利用变分法得出最优策略闭式解；反解奖励函数并代入 Bradley–Terry 偏好模型，见证配分函数 \(Z(x)\) 的精确对消。
+  </p>
+  <p><strong>第 1 步：带 KL 正则项的强化学习优化目标</strong></p>
+  <p>
+    设环境提供标量奖励模型 \(r(x, y)\)。RLHF 的目标是找到策略 \(\pi\)，在最大化期望奖励的同时，约束策略不要偏离参考策略 \(\pi_{\text{ref}}\) 过远：
+  </p>
+  \[ \max_\pi \mathbb{E}_{x \sim \mathcal{D}} \left[ \mathbb{E}_{y \sim \pi(\cdot \mid x)} [r(x, y)] - \beta D_{\mathrm{KL}}(\pi(y \mid x) \parallel \pi_{\text{ref}}(y \mid x)) \right] \]
+  <p>
+    其中 KL 散度定义为 \(D_{\mathrm{KL}}(\pi \parallel \pi_{\text{ref}}) = \sum_y \pi(y \mid x) \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)}\)。
+  </p>
+  <p><strong>第 2 步：恒等变形为负 KL 散度并导出闭式最优解</strong></p>
+  <p>
+    将目标括号内的期望写为统一求和式（省略条件变量 \(x\) 的外层积分）：
+  </p>
+  \[ \sum_y \pi(y \mid x) r(x, y) - \beta \sum_y \pi(y \mid x) \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} - \frac{r(x, y)}{\beta} \right] \]
+  \[ = - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)} \right) \]
+  <p>
+    定义归一化配分函数（Partition Function，亦称玻尔兹曼配分）：
+  </p>
+  \[ Z(x) \triangleq \sum_y \pi_{\text{ref}}(y \mid x) \exp\left( \frac{r(x, y)}{\beta} \right) \]
+  <p>
+    构造合法的理论最优概率分布 \(\pi^*(y \mid x) \triangleq \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)\)。
+    将 \(\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta) = Z(x) \pi^*(y \mid x)\) 代回目标函数：
+  </p>
+  \[ - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{Z(x) \pi^*(y \mid x)} \right) = - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi^*(y \mid x)} - \log Z(x) \right] \]
+  \[ = \beta \log Z(x) - \beta D_{\mathrm{KL}}(\pi(y \mid x) \parallel \pi^*(y \mid x)) \]
+  <p>
+    <strong>结论：</strong>由于 \(\beta \log Z(x)\) 完全不包含策略变量 \(\pi\)，且由 Gibbs 不等式，\(D_{\mathrm{KL}}(\pi \parallel \pi^*) \ge 0\) 恒成立，当且仅当 \(\pi = \pi^*\) 时取最小值 \(0\)。
+    因此，目标的最优策略必然具有以下闭式解析解（Closed-form Solution）：
+  </p>
+  \[ \pi^*(y \mid x) = \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp\left( \frac{r(x, y)}{\beta} \right) \]
+  <p><strong>第 3 步：代数反解显式奖励函数</strong></p>
+  <p>
+    对最优策略方程两边取对数：
+  </p>
+  \[ \log \pi^*(y \mid x) = \log \pi_{\text{ref}}(y \mid x) + \frac{r(x, y)}{\beta} - \log Z(x) \]
+  <p>
+    移项得到关于 \(r(x, y)\) 的精确表达式：
+  </p>
+  \[ r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x) \]
+  <p>
+    <strong>关键观察：</strong>第二项 \(\beta \log Z(x)\) 仅仅是关于输入 prompt \(x\) 的标量，完全与生成的候选回答序列 \(y\) 无关！
+  </p>
+  <p><strong>第 4 步：代入 Bradley–Terry 偏好模型，配分项精确对消</strong></p>
+  <p>
+    设偏好数据集包含三元组 \((x, y_w, y_l) \sim \mathcal{D}\)，其中 \(y_w \succ y_l\)（\(y_w\) 为获胜回答 chosen，\(y_l\) 为落败回答 rejected）。
+    经典的 Bradley–Terry 排序模型定义获胜概率为两回答奖励差的 Sigmoid 函数：
+  </p>
+  \[ P(y_w \succ y_l \mid x) = \sigma\big(r(x, y_w) - r(x, y_l)\big) = \frac{1}{1 + \exp\big(-(r(x, y_w) - r(x, y_l))\big)} \]
+  <p>
+    将第 3 步反解出的奖励函数代入差值：
+  </p>
+  \[ r(x, y_w) - r(x, y_l) = \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right) \]
+  \[ = \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \]
+  <p>
+    <strong>数学奇迹：</strong>两个极其难算的配分项 \(\beta \log Z(x)\) 严格相减对消为 0！
+    由此，偏好概率被纯粹表达为策略与参考模型的相对概率比：
+  </p>
+  \[ P(y_w \succ y_l \mid x) = \sigma\left( \beta \left[ \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right] \right) \]
+  <p><strong>第 5 步：构建负对数似然损失（DPO Loss）</strong></p>
+  <p>
+    用参数化的可微神经网络 \(\pi_\theta\) 替代理论最优策略 \(\pi^*\)，对数据集 \(\mathcal{D}\) 极大化观测偏好对的对数似然，取负号即得 DPO 损失函数：
+  </p>
+  \[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = - \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma\left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right] \]
+  <p>
+    至此，我们用纯粹的代数变换，<strong>彻底消除了独立的奖励模型 \(r(x, y)\) 和 PPO 的在线环境采样循环</strong>！
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：极简小数字单步样本手算草稿</h4>
+  <p>
+    取极简小数字，在草稿纸上模拟单个 prompt 与一对回复 \((x, y_w, y_l)\) 的完整单步计算过程。
+  </p>
+  <p>
+    <strong>设定参数与先验概率：</strong>
+  </p>
+  <ul>
+    <li>温度系数：\(\beta = 0.5\)</li>
+    <li>参考基座模型：\(\pi_{\text{ref}}(y_w \mid x) = 0.20, \quad \pi_{\text{ref}}(y_l \mid x) = 0.20\)（基座对两者概率持平）</li>
+    <li>待微调策略模型（初期状态）：\(\pi_\theta(y_w \mid x) = 0.10, \quad \pi_\theta(y_l \mid x) = 0.40\)（模型当前被带偏，更倾向于输出错误回答）</li>
+  </ul>
+  <p><strong>草稿第 1 步：手算对数概率比（Log Ratios）</strong></p>
+  <p>
+    对获胜回答 \(y_w\)：
+  </p>
+  \[ \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} = \frac{0.10}{0.20} = 0.5 \implies \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} = \log(0.5) = -\log 2 \approx -0.6931 \]
+  <p>
+    对落败回答 \(y_l\)：
+  </p>
+  \[ \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} = \frac{0.40}{0.20} = 2.0 \implies \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} = \log(2.0) = +\log 2 \approx +0.6931 \]
+  <p><strong>草稿第 2 步：计算隐式奖励差与 Logit 标量 \(u\)</strong></p>
+  <p>
+    对数概率比差值：
+  </p>
+  \[ \Delta \log \pi = (-\log 2) - (+\log 2) = -2\log 2 = -\log 4 \approx -1.3863 \]
+  <p>
+    乘上温度因子 \(\beta = 0.5\) 得到 Sigmoid 输入标量 \(u\)：
+  </p>
+  \[ u = \beta \cdot \Delta \log \pi = 0.5 \times (-\log 4) = -\log 2 \approx -0.6931 \]
+  <p><strong>草稿第 3 步：计算 Sigmoid 预测概率与样本损失</strong></p>
+  <p>
+    将 \(u = -\log 2\) 代入 Sigmoid 函数：
+  </p>
+  \[ \sigma(u) = \sigma(-\log 2) = \frac{1}{1 + e^{-(-\log 2)}} = \frac{1}{1 + e^{\log 2}} = \frac{1}{1 + 2} = \frac{1}{3} \approx 0.3333 \]
+  <p>
+    由此计算当前样本的 DPO 标量损失值：
+  </p>
+  \[ \mathcal{L}_{\text{DPO}} = -\log \sigma(u) = -\log\left(\frac{1}{3}\right) = \log 3 \approx 1.0986 \]
+  <p><strong>草稿第 4 步：梯度动力学推导（模型如何被推向正确方向）</strong></p>
+  <p>
+    利用复合求导法则 \(\frac{d}{du}[-\log \sigma(u)] = -(1 - \sigma(u))\)，DPO 损失对策略参数 \(\theta\) 的梯度展开为：
+  </p>
+  \[ \nabla_\theta \mathcal{L}_{\text{DPO}} = - \beta \big(1 - \sigma(u)\big) \left[ \nabla_\theta \log \pi_\theta(y_w \mid x) - \nabla_\theta \log \pi_\theta(y_l \mid x) \right] \]
+  <p>
+    将本例数值代入动态缩放因子：
+  </p>
+  \[ 1 - \sigma(u) = 1 - \frac{1}{3} = \frac{2}{3} \implies \beta \big(1 - \sigma(u)\big) = 0.5 \times \frac{2}{3} = \frac{1}{3} \]
+  <p>
+    在梯度下降更新步 \(\theta \leftarrow \theta - \eta \nabla_\theta \mathcal{L}_{\text{DPO}}\) 中：
+  </p>
+  \[ -\nabla_\theta \mathcal{L}_{\text{DPO}} = +\frac{1}{3} \nabla_\theta \log \pi_\theta(y_w \mid x) - \frac{1}{3} \nabla_\theta \log \pi_\theta(y_l \mid x) \]
+  <p>
+    <strong>动力学直觉：</strong>参数更新以 \(+\frac{1}{3}\) 的梯度动力<strong>强力推高</strong>获胜回答 \(y_w\) 的生成对数概率，同时以 \(-\frac{1}{3}\) 的反向动力<strong>压低</strong>落败回答 \(y_l\) 的生成概率！
+    一旦模型学好使得 \(u \gg 0\) 时，\(\sigma(u) \to 1\)，动态权重 \(1 - \sigma(u) \to 0\)，梯度推力平滑归零，杜绝过调。
+  </p>
+</section>
+
+<h3>6. 台阶四：GRPO 与「可验证奖励」</h3>
 <p>
   当答案可以被程序检验时（数学题、代码、结构化输出），你不需要人类偏好，只需要一个<strong>验证器</strong>。
   GRPO 的做法是：对同一道题采样一组回答 \(\{y_1,\dots,y_G\}\)，用奖励 \(r_i\) 做组内标准化，得到优势估计
@@ -214,7 +395,7 @@ COURSE.register({
     <li><strong>长度偏置</strong>：如果奖励模型偏好长回答，输出会越来越长。缓解：长度归一化，或在奖励里显式惩罚冗长。</li>
     <li><strong>格式刷分</strong>：模型学会输出「<code>答案是</code>」这种模板但内容胡编。缓解：只对最终答案正确性给分。</li>
     <li><strong>模式坍缩</strong>：多样性消失，所有回答一个样。缓解：KL 惩罚、提高采样温度、保留 SFT 数据混合。</li>
-    <li><strong>过优化</strong>：奖励升而真实质量降。缓解：<strong>永远保留一个独立的人类/规则评估集</strong>，在奖励曲线上升时同步检查它。</li>
+    <li><strong>过优化</strong>：奖励升而真实质量降。缓解：<strong>永远保留一个独立的人类/规则评估集</strong>，在奖励线上升时同步检查它。</li>
   </ul>
 </section>
 
@@ -268,7 +449,7 @@ dpo = DPOTrainer(
     model="out-sft/final",
     args=DPOConfig(
         output_dir="out-dpo",
-        beta=0.1,                          <span class="cm"># KL 散度惩罚因数：控制策略偏离基座的容忍阈值</span>
+        beta=0.1,                          <span class="cm"># KL 散度惩罚因子：控制策略偏离基座的容忍阈值</span>
         learning_rate=5e-6, num_train_epochs=1,
         per_device_train_batch_size=1, gradient_accumulation_steps=8,
         max_length=1024, max_prompt_length=512,
@@ -285,9 +466,9 @@ dpo.train()</code></pre>
   <h4><span class="ic">⚠</span>对齐阶段的四个陷阱</h4>
   <ol>
     <li><strong>没有基线</strong>：不做 SFT 就直接 DPO，模型会用一个「跑偏」的策略去比较好坏，结果不可控。</li>
-    <li><strong>数据泄漏</strong>：偏好数据里的 chosen 出现在测试集里，评估结果虚高。</li>
+    <li><strong>数据泄露</strong>：偏好数据里的 chosen 出现在测试集里，评估结果虚高。</li>
     <li><strong>只看向上指标</strong>：奖励上升但人工抽查变差，是最常见的失败。必须有独立评估集。</li>
-    <li><strong>忘记 EOS / chat template 一致</strong>：模型在推理时不停或格式错乱，多半是模板不匹配。</li>
+    <li><strong>忘记 EOS / chat template 一致</strong>：模型在推理时不听或格式错乱，多半是模板不匹配。</li>
   </ol>
 </section>
 
@@ -345,6 +526,34 @@ dpo.train()</code></pre>
     奖励是模型唯一的指南针。仅奖励最终答案会鼓励「凑答案」而非可靠推理。
     缓解手段：加入过程奖励或格式约束、在训练中周期性用独立评估集检查真实正确率、
     并监控回答长度与多样性的变化。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">在 DPO 损失函数的数学推导中，为什么难以计算的全局配分函数 \(Z(x)\) 最终没有出现在损失函数中？</p>
+  <ul class="opts">
+    <li>因为在推导时假设了 \(Z(x) = 1\)</li>
+    <li data-ok>反解显式奖励时 \(r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x)\)，代入 Bradley–Terry 模型时，两项的 \(\beta \log Z(x)\) 仅与 prompt \(x\) 有关而与 \(y\) 无关，在做差 \(r(x, y_w) - r(x, y_l)\) 时被精确对消</li>
+    <li>因为配分函数被包含进了参考模型的交叉熵损失中</li>
+    <li>因为使用蒙特卡洛采样近似计算了 \(Z(x)\)</li>
+  </ul>
+  <p class="why">
+    推导的核心精髓就在于配分函数 \(Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp(r(x, y)/\beta)\) 只依赖于条件 \(x\)，完全与候选回答 \(y\) 无关。在计算胜出回答与落败回答的奖励差时，\(\beta \log Z(x) - \beta \log Z(x) \equiv 0\)，从而奇迹般避开了对整个词表生成空间的难解配分求和！
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">设超参数 \(\beta = 0.5\)，对某样本输入 \(x\)，参考模型给出 \(\pi_{\text{ref}}(y_w \mid x) = 0.2, \pi_{\text{ref}}(y_l \mid x) = 0.2\)；当前待优化策略模型给出 \(\pi_\theta(y_w \mid x) = 0.1, \pi_\theta(y_l \mid x) = 0.4\)。则此时该单步样本的 DPO 损失精确值等于？</p>
+  <ul class="opts">
+    <li>\(\log 2 \approx 0.6931\)</li>
+    <li data-ok>\(\log 3 \approx 1.0986\)</li>
+    <li>\(\log 4 \approx 1.3863\)</li>
+    <li>\(0.5000\)</li>
+  </ul>
+  <p class="why">
+    草稿纸手算步骤：比值 \(\pi_\theta(y_w)/\pi_{\text{ref}}(y_w) = 0.1/0.2 = 0.5\)，对数值为 \(-\log 2\)；比值 \(\pi_\theta(y_l)/\pi_{\text{ref}}(y_l) = 0.4/0.2 = 2.0\)，对数值为 \(+\log 2\)。差值为 \(-\log 2 - \log 2 = -\log 4\)。乘以 \(\beta = 0.5\) 得到 Sigmoid 输入 \(u = -\log 2\)。\(\sigma(-\log 2) = \frac{1}{1 + e^{\log 2}} = \frac{1}{1 + 2} = \frac{1}{3}\)。因此损失为 \(-\log(1/3) = \log 3 \approx 1.0986\)。
   </p>
 </div>
 

@@ -341,6 +341,217 @@ COURSE.register({
   才进入 QAT。这条顺序能省下大量算力。
 </p>
 
+<h3>5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护</h3>
+<p>
+  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（四舍五入最近取整）往往导致显著的累积精度崩塌。
+  为了在 4-bit 甚至更低位宽下保留模型的推理能力，我们需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>两个截然不同的几何视角进行代数推演。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与符号约定（量化、二阶 Hessian 与 OBS）</h4>
+  <p>
+    <strong>前置定义 1（对称与非对称线性均匀量化）：</strong>
+    设浮点实数权重为 \(w \in [w_{\min}, w_{\max}]\)，目标位宽为 \(b\) 比特（对应离散格点数 \(2^b\)）。
+  </p>
+  <ul>
+    <li>
+      <strong>对称量化（Symmetric Quantization）：</strong>
+      强行令零点对齐 \(z = 0\)，取绝对值极值截断 \(w_{\text{abs}} = \max(|w|)\)。缩放因子与整数量化公式为：
+      \[ s = \frac{w_{\text{abs}}}{2^{b-1} - 1}, \qquad q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil, -(2^{b-1} - 1), 2^{b-1} - 1\right) \]
+      反量化重构值为 \(\hat{w} = s \cdot q\)。其优势在于硬件无需处理非零零点偏移（Zero-point shift），矩阵乘计算极快。
+    </li>
+    <li>
+      <strong>非对称量化（Asymmetric Quantization）：</strong>
+      引入浮点零点偏移量 \(z \in \mathbb{R}\)，使量化格点完整覆盖任意非对称区间：
+      \[ s = \frac{w_{\max} - w_{\min}}{2^b - 1}, \qquad z = \left\lfloor -\frac{w_{\min}}{s} \right\rceil \]
+      \[ q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil + z, 0, 2^b - 1\right), \qquad \hat{w} = s(q - z) \]
+    </li>
+  </ul>
+  <p>
+    <strong>前置定义 2（损失函数的二阶泰勒展开与 Hessian 矩阵）：</strong>
+    设预训练神经网络的损失函数为 \(\mathcal{L}(w)\)。在收敛的最优权重局部极小点 \(w^*\) 附近，梯度向量处于稳态，即 \(g = \nabla \mathcal{L}(w^*) \approx 0\)。
+    当引入微小的权重摄动 \(\Delta w = \hat{w} - w^*\)（由量化截断引起）时，损失函数的增量可用二阶泰勒展开式高度逼近：
+  </p>
+  \[ \Delta \mathcal{L} = \mathcal{L}(w^* + \Delta w) - \mathcal{L}(w^*) = g^{\top} \Delta w + \frac{1}{2} \Delta w^{\top} H \Delta w + \mathcal{O}(\|\Delta w\|^3) \approx \frac{1}{2} \Delta w^{\top} H \Delta w \]
+  <p>
+    其中 \(H = \nabla^2 \mathcal{L}(w^*) \in \mathbb{R}^{d \times d}\) 为实对称半正定 Hessian 矩阵。
+    在现代大语言模型的层级重构目标中，损失定义为校准数据集上该层输出特征的均方重构误差 \(\mathcal{L} = \|X w - X \hat{w}\|_2^2\)。
+    展开此二次型可知，Hessian 矩阵具有极其干净的代数形式：
+  </p>
+  \[ H = 2 X^{\top} X \]
+  <p>
+    其中 \(X \in \mathbb{R}^{m \times d}\) 为校准样本经过上一层得到的输入特征矩阵。
+    因此，\(H\) 的第 \(i\) 个对角元 \(H_{ii} = 2 \sum_{k=1}^m X_{ki}^2\) 严格正比于输入通道 \(i\) 的二范数能量；而互协方差项 \(H_{ij}\) 则反映了不同输入特征通道之间的线性相关性。
+  </p>
+  <p>
+    <strong>前置定义 3（Optimal Brain Surgeon，OBS 经典公式）：</strong>
+    经典 OBS 理论（Hassibi & Stork, 1993）探讨：若强制将第 \(q\) 个权重修改（如剪枝置零，或量化到最近网格点，产生既定偏差 \(\mathbf{e}_q^{\top} \Delta w = \hat{w}_q - w_q\)），
+    如何通过联立调整其余所有未量化权重，使整体二次扰动损失 \(\frac{1}{2} \Delta w^{\top} H \Delta w\) 严格达到全局最小？
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：GPTQ 二阶补偿闭式推导与 2×2 Hessian 手算草稿</h4>
+  <p>
+    <strong>定理（GPTQ / OBS 最优权重补偿闭式解）：</strong>
+    设待量化权重的索引为 \(q\)，量化产生的固定残差为 \(w_q - \mathrm{quant}(w_q)\)。
+    在约束 \(\mathbf{e}_q^{\top} \Delta w = \mathrm{quant}(w_q) - w_q\) 下，使二次损失 \(\frac{1}{2} \Delta w^{\top} H \Delta w\) 最小的最优扰动向量为：
+  </p>
+  \[ \Delta w = - \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \cdot [H^{-1}]_{:, q} \]
+  <p>
+    <strong>代数证明（Charles 的拉格朗日乘子草稿推演）：</strong>
+  </p>
+  <p>
+    构造含等式约束的目标拉格朗日函数（其中 \(\lambda \in \mathbb{R}\) 为待定乘子）：
+  </p>
+  \[ \mathcal{L}(\Delta w, \lambda) = \frac{1}{2} \Delta w^{\top} H \Delta w + \lambda \left(\mathbf{e}_q^{\top} \Delta w - (\mathrm{quant}(w_q) - w_q)\right) \]
+  <p>
+    对补偿向量 \(\Delta w\) 计算矩阵微分并令偏导为零向量：
+  </p>
+  \[ \frac{\partial \mathcal{L}}{\partial \Delta w} = H \Delta w + \lambda \mathbf{e}_q = 0 \implies \Delta w = -\lambda H^{-1} \mathbf{e}_q = -\lambda [H^{-1}]_{:, q} \]
+  <p>
+    注意 \([H^{-1}]_{:, q}\) 即为逆 Hessian 矩阵的第 \(q\) 列。将上式代入标量约束方程 \(\mathbf{e}_q^{\top} \Delta w = \mathrm{quant}(w_q) - w_q\)：
+  </p>
+  \[ \mathbf{e}_q^{\top} \left( -\lambda [H^{-1}]_{:, q} \right) = -\lambda [H^{-1}]_{qq} = \mathrm{quant}(w_q) - w_q \]
+  <p>
+    解出拉格朗日乘子 \(\lambda\)：
+  </p>
+  \[ \lambda = \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \]
+  <p>
+    将 \(\lambda\) 代回 \(\Delta w\) 的表达式，即刻得到 GPTQ 核心更新公式：
+  </p>
+  \[ \Delta w = - \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \cdot [H^{-1}]_{:, q} \]
+  <p>
+    将此解代回目标二次型，即可算得此步量化造成的最小残余误差增量（此即著名的 OBS 显著性指标）：
+  </p>
+  \[ E_q = \frac{1}{2} \Delta w^{\top} H \Delta w = \frac{1}{2} \frac{(w_q - \mathrm{quant}(w_q))^2}{[H^{-1}]_{qq}} \]
+  <p>
+    <strong>极简小数字手算草稿：2×2 矩阵下的量化误差动态补偿</strong>
+  </p>
+  <p>
+    现在带 Charles 在草稿纸上代入一组精简至极的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
+  </p>
+  <p>
+    设层有两个输入通道，权重向量为 \(w = [w_1, w_2]^{\top} = [1.6, 1.0]^{\top}\)。
+    校准特征矩阵对应的 Hessian 矩阵设为：
+  </p>
+  \[ H = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \]
+  <p>
+    其主对角线元素均为 2（说明两输入通道具有相同的基础能量），非对角元为 1（存在正相关协方差）。
+  </p>
+  <p>
+    <strong>第一步：求逆 Hessian 矩阵 \(H^{-1}\)。</strong>
+    行列式 \(\det(H) = 2 \times 2 - 1 \times 1 = 3\)。伴随矩阵求逆：
+  </p>
+  \[ H^{-1} = \frac{1}{3} \begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix} = \begin{bmatrix} 2/3 & -1/3 \\ -1/3 & 2/3 \end{bmatrix} \]
+  <p>
+    <strong>第二步：量化第 1 个权重 \(w_1\)。</strong>
+    设目标量化格点为整数网格。浮点值 \(w_1 = 1.6\) 取整为 \(\mathrm{quant}(w_1) = 2.0\)。
+    量化残差为：
+  </p>
+  \[ w_1 - \mathrm{quant}(w_1) = 1.6 - 2.0 = -0.4 \]
+  <p>
+    取逆矩阵第 1 列元素：\([H^{-1}]_{11} = 2/3\)，第 1 列向量为 \([H^{-1}]_{:, 1} = [2/3, -1/3]^{\top}\)。
+  </p>
+  <p>
+    <strong>第三步：代入闭式解计算补偿向量 \(\Delta w\)。</strong>
+  </p>
+  \[ \Delta w = - \frac{-0.4}{2/3} \begin{bmatrix} 2/3 \\ -1/3 \end{bmatrix} = 0.6 \begin{bmatrix} 2/3 \\ -1/3 \end{bmatrix} = \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} \]
+  <p>
+    <strong>第四步：更新权重并审视数学含义。</strong>
+  </p>
+  \[ w_{\text{new}} = w + \Delta w = \begin{bmatrix} 1.6 \\ 1.0 \end{bmatrix} + \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 0.8 \end{bmatrix} \]
+  <ul>
+    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，精确达到了量化整数点！</li>
+    <li>对未量化分量 \(w_2\)：由于相关性 \([H^{-1}]_{21} = -1/3 < 0\)，\(w_2\) 自动从 \(1.0\) 调小至 \(0.8\)，补偿了 \(w_1\) 向上取整带来的输出过高！</li>
+  </ul>
+  <p>
+    <strong>反思草稿：若 \(H\) 为纯对角矩阵（无特征交叉项）？</strong>
+    若 \(H = \mathrm{diag}(2, 2)\)，则 \(H^{-1} = \mathrm{diag}(1/2, 1/2)\)，此时 \([H^{-1}]_{:, 1} = [1/2, 0]^{\top}\)，未量化列的补偿量恒为 0。
+    这证明了 GPTQ 的灵魂本质：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>！
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：AWQ 激活感知保护敏感通道手算实例</h4>
+  <p>
+    GPTQ 依赖高精度的二阶逆矩阵逐步补偿，但逐层求逆与更新在大模型数十亿参数下计算开销大，且容易受数值舍入误差累积影响。
+    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）给出了另一个极其轻量而深邃的洞察：
+    <strong>权重的重要性并不取决于权重自身的大小，而是取决于它所作用的输入激活特征（Activation）的强度！</strong>
+  </p>
+  <p>
+    <strong>前置推导（通道等价等比变换技巧）：</strong>
+    考虑神经网络全连接层线性变换 \(Y = X W\)，其中 \(X \in \mathbb{R}^{B \times d_{\text{in}}}\)，\(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)。
+    引入一个对角可逆缩放矩阵 \(S = \mathrm{diag}(s_1, s_2, \dots, s_{d_{\text{in}}})\)（其中每个 \(s_i > 0\) 为各输入通道的保护缩放因子）：
+  </p>
+  \[ Y = X W = (X S^{-1}) (S W) = \tilde{X} \tilde{W} \]
+  <p>
+    在保持数学恒等变换的前提下，我们将权重放大为 \(\tilde{W} = S W\)，而将输入激活缩放为 \(\tilde{X} = X S^{-1}\)。
+    当把量化算子作用在放大后的权重上时：
+  </p>
+  \[ \hat{W} = S^{-1} \cdot \mathrm{quant}(S W) \]
+  <p>
+    设绝对量化舍入步长为 \(\Delta_{\text{grid}}\)。因为权重被放大了 \(s_i\) 倍，量化带来的离散舍入绝对截断误差上界为 \(\frac{1}{2}\Delta_{\text{grid}}\)。
+    经由 \(S^{-1}\) 还原后，作用于原始输入上的有效权重截断误差被缩小为原来的 \(\frac{1}{s_i}\) 倍：
+  </p>
+  \[ |\hat{W}_{ij} - W_{ij}| \le \frac{\Delta_{\text{grid}}}{2 s_i} \]
+  <p>
+    <strong>极简小数字草稿纸手算：离群通道的保护魔力</strong>
+  </p>
+  <p>
+    我们在草稿纸上模拟一个典型的 LLM 特征通道场景：模型存在一个极端离群（Outlier）激活通道。
+  </p>
+  <p>
+    设单样本两通道输入向量为 \(x = [x_1, x_2] = [100.0, 1.0]\)（通道 1 激活绝对值高达 100，通道 2 仅为 1）。
+    对应未量化权重为 \(w = [w_1, w_2]^{\top} = [1.24, 1.24]^{\top}\)。
+    真实无损输出标量为：
+  </p>
+  \[ y = x_1 w_1 + x_2 w_2 = 100.0 \times 1.24 + 1.0 \times 1.24 = 124.0 + 1.24 = 125.24 \]
+  <p>
+    <strong>情况一：朴素直接逐权重整数四舍五入量化（无 AWQ 保护）</strong>
+  </p>
+  <p>
+    网格步长取 1，两通道权重均四舍五入到整数：\(\mathrm{quant}(w_1) = 1.0\)，\(\mathrm{quant}(w_2) = 1.0\)。
+    两通道的权重截断误差均为相同的小数点后截断：\(\delta = 1.24 - 1.0 = 0.24\)。
+    此时输出端计算值变为：
+  </p>
+  \[ \hat{y}_{\text{naive}} = 100.0 \times 1.0 + 1.0 \times 1.0 = 100.0 + 1.0 = 101.0 \]
+  <p>
+    输出绝对误差高达：
+  </p>
+  \[ |\hat{y}_{\text{naive}} - y| = |101.0 - 125.24| = 24.24 \]
+  <p>
+    观察发现：<strong>99.6% 的输出灾难性漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起！</strong>
+  </p>
+  <p>
+    <strong>情况二：采用 AWQ 通道自适应保护缩放</strong>
+  </p>
+  <p>
+    识别到通道 1 属于高敏感通道，为其设定保护缩放系数 \(s_1 = 4\)，通道 2 保持 \(s_2 = 1\)。
+  </p>
+  <p>
+    权重放缩：
+  </p>
+  \[ \tilde{w}_1 = s_1 \times w_1 = 4 \times 1.24 = 4.96 \]
+  <p>
+    对放缩后的权重执行量化并反算等效量化权重：
+  </p>
+  \[ \mathrm{quant}(\tilde{w}_1) = \mathrm{round}(4.96) = 5.0 \implies \hat{w}_1 = \frac{5.0}{s_1} = \frac{5.0}{4} = 1.25 \]
+  <p>
+    通道 2 仍取 \(\hat{w}_2 = 1.0\)。此时等效量化后的层输出为：
+  </p>
+  \[ \hat{y}_{\text{awq}} = 100.0 \times \hat{w}_1 + 1.0 \times \hat{w}_2 = 100.0 \times 1.25 + 1.0 \times 1.0 = 125.0 + 1.0 = 126.0 \]
+  <p>
+    输出绝对误差缩小为：
+  </p>
+  \[ |\hat{y}_{\text{awq}} - y| = |126.0 - 125.24| = 0.76 \]
+  <p>
+    误差从 <strong>24.24 骤降至 0.76</strong>，精度损失被遏制了整整 97%！
+    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接与前一层的归一化算子（如 LayerNorm / RMSNorm）权重常数折叠融合（Weight folding），
+    在推理运行时<strong>完全不引入任何额外的浮点运算延迟</strong>！
+  </p>
+</section>
+
 <h3>6. 模型合并与 MoE upcycling：把权重当作可运算的对象</h3>
 <p>
   前五节都在「减少」参数。这一节做相反的事：<strong>在不增加推理成本的前提下，把多个模型的能力塞进一份权重里</strong>。

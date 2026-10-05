@@ -88,6 +88,26 @@ COURSE.register({
   </p>
 </section>
 
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算区：三词 Bigram 频数到 MLE</h4>
+  <p>词表按 \(['a','b','c']\) 排列。超短序列取 \(a\ b\ a\ c\ a\ b\)，只数相邻词对：</p>
+  <pre>
+频数矩阵 N（行是当前词，列是下一个词）
+          a   b   c    行和
+      a [ 0   2   1 ]    3
+      b [ 1   0   0 ]    1
+      c [ 1   0   0 ]    1
+
+逐行归一化：
+P(a|a) = 0/3 = ____   P(b|a) = 2/3 = ____   P(c|a) = 1/3 = ____
+P(a|b) = 1/1 = ____   P(b|b) = 0/1 = ____   P(c|b) = 0/1 = ____
+P(a|c) = 1/1 = ____   P(b|c) = 0/1 = ____   P(c|c) = 0/1 = ____
+
+MLE 转移矩阵：P_ij = N_ij / sum_k N_ik
+  </pre>
+  <p>填完后每一行都应和为 \(1\)。若某行没有观测，分母为零，实际系统会另加平滑或回退分布；本例每行都有计数，所以直接归一化即可。</p>
+</section>
+
 <h3>3. 信息论四重奏：自信息、香农熵、交叉熵与 KL 散度</h3>
 <p>
   语言模型的损失函数从何而来？为什么非得是对数形式？这根植于香农（Claude Shannon）1948 年奠定的信息论公理。
@@ -135,6 +155,22 @@ COURSE.register({
     无论模型网络参数量多大、训练算力多么充裕，<strong>训练损失的极限下界被自然语言本身的熵 \(H(p)\) 死死卡住</strong>。
     不同任务语料（如散文 vs 规整代码）由于自身熵 \(H(p)\) 差异巨大，绝对 Loss 没有任何可比性！
   </p>
+</section>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算区：切线不等式如何给出 Gibbs 不等式</h4>
+  <p>从 \(\ln t\le t-1\) 开始，令 \(t=q_i/p_i\)，只对 \(p_i>0\) 的项书写：</p>
+  <pre>
+ln(q_i/p_i) &lt;= q_i/p_i - 1
+乘以 p_i &gt; 0：
+p_i ln(q_i/p_i) &lt;= p_i(q_i/p_i - 1) = q_i - p_i
+对 i 求和：
+sum_i p_i ln(q_i/p_i) &lt;= sum_i(q_i-p_i)
+右边 = (sum_i q_i) - (sum_i p_i) = 1 - 1 = 0
+左边 = -D_KL(p || q)
+所以 -D_KL(p || q) &lt;= 0，最终 D_KL(p || q) &gt;= 0
+  </pre>
+  <p>每一步放缩方向没有改变：乘上的 \(p_i\) 非负，求和也保持不等号方向；等号要求每个有正质量的项满足 \(q_i/p_i=1\)。</p>
 </section>
 
 <h3>4. Softmax 核心代数性质与数值稳定性</h3>
@@ -190,6 +226,22 @@ COURSE.register({
   </p>
 </section>
 
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算区：平移后的 Softmax 与残差梯度</h4>
+  <p>给定 \(z=[2.0,1.0,0.1]\)，先减去最大值 \(c=2.0\)。</p>
+  <pre>
+平移： z-c = [2.0-2.0, 1.0-2.0, 0.1-2.0] = [0.0, -1.0, -1.9]
+指数： exp(z-c) ≈ [1.0000, 0.3679, 0.1496]
+总和： S ≈ 1.0000 + 0.3679 + 0.1496 = 1.5175
+Softmax：p = exp(z-c)/S ≈ [0.6587, 0.2424, 0.0986]
+
+若目标词是第一个词，y=[1,0,0]：
+p-y ≈ [0.6587-1, 0.2424-0, 0.0986-0]
+     ≈ [-0.3413, 0.2424, 0.0986]
+  </pre>
+  <p>残差的分量和约为 \(0\)，因为 \(\sum_i p_i=\sum_i y_i=1\)。目标 Logit 的负梯度会被梯度下降向上推，其余 Logits 则被向下推。</p>
+</section>
+
 <h3>5. 教科书级实现：Bigram 频数统计 vs 神经网络学习</h3>
 <p>
   以下代码完整展现了 Karpathy <code>makemore</code> Part 1 的核心对比：纯频数表查找 vs 单层神经网络优化。
@@ -231,7 +283,7 @@ xs, ys = [], []
     <span class="kw">for</span> ch1, ch2 <span class="kw">in</span> zip(chs, chs[1:]):
         xs.append(stoi[ch1])
         ys.append(stoi[ch2])
-<span class="cm"># 动态形状: xs -> (N,), ys -> (N,) [int64]，本例 N = num_samples</span>
+<span class="cm"># 动态形状: xs -> (num_samples,), ys -> (num_samples,) [int64]</span>
 xs = torch.tensor(xs)
 ys = torch.tensor(ys)
 num_samples = xs.nelement()
@@ -258,7 +310,7 @@ W = torch.randn((vocab_size, vocab_size), generator=g, requires_grad=True)
     probs = counts / counts.sum(1, keepdim=True)
     
     <span class="cm"># [逐行剖析] 损失函数: 负对数似然损失 (NLL / 交叉熵)</span>
-    <span class="cm"># 动态形状: probs[torch.arange(N), ys] -> (N,) -> .log().mean() -> loss [标量 float32]</span>
+    <span class="cm"># 动态形状: probs[torch.arange(num_samples), ys] -> (num_samples,) -> .log().mean() -> loss [标量 float32]</span>
     loss = -probs[torch.arange(num_samples), ys].log().mean()
     
     <span class="cm"># [逐行剖析] 反向传播与梯度重置</span>

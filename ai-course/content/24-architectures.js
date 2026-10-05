@@ -170,6 +170,173 @@ COURSE.register({
   （<a href="https://arxiv.org/abs/2312.00752" target="_blank" rel="noopener">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</a>，arXiv:2312.00752）。
 </p>
 
+<h3>2.5 Charles 草稿纸演算区：从连续 SSM、ZOH 离散化到 Mamba 选择性机制</h3>
+<p>
+  给 Charles 的数学草稿纸：Transformer 的注意力机制本质是「静态全历史检索」（复杂度二次方），
+  而现代状态空间模型（SSM，如 S4 与 Mamba）的数学根基源于古典控制论与微分动力系统——用一阶线性微分方程将无限历史压缩在固定维度的隐状态之中。
+  为了在数字计算机上执行连续动力系统，必须经历严密的<strong>连续方程积分</strong>与<strong>零阶保持器（ZOH）离散化</strong>。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与符号约定（连续时间 SSM、ZOH 与矩阵指数）</h4>
+  <p>
+    <strong>前置定义 1（连续时间线性定常状态空间方程）：</strong>
+    考虑连续时间动力学系统，一维连续输入激励信号为 \(x(t) \in \mathbb{R}\)，隐状态向量为 \(h(t) \in \mathbb{R}^N\)，一维观测输出为 \(y(t) \in \mathbb{R}\)：
+  </p>
+  \[ h'(t) = A h(t) + B x(t), \qquad y(t) = C h(t) + D x(t) \]
+  <p>
+    其中系统转移矩阵 \(A \in \mathbb{R}^{N \times N}\)，输入投影向量 \(B \in \mathbb{R}^{N \times 1}\)，输出投影向量 \(C \in \mathbb{R}^{1 \times N}\)，直通标量 \(D \in \mathbb{R}\)（在后续推导与工程实现中通常设 \(D=0\) 或视为残差连接）。
+  </p>
+  <p>
+    <strong>前置定义 2（零阶保持器 Zero-Order Hold, ZOH 采样假设）：</strong>
+    设采样时间间隔步长为 \(\Delta > 0\)，离散采样时刻点为 \(t_k = k \Delta\)，对应离散序列输入为 \(x_k = x(k \Delta)\)。
+    零阶保持器假定：在两两采样时刻之间的连续时间区间 \(k\Delta \le t < (k+1)\Delta\) 内，输入信号保持恒定常数：
+  </p>
+  \[ x(t) \equiv x_k, \qquad \forall t: k\Delta \le t < (k+1)\Delta \]
+  <p>
+    <strong>前置定义 3（矩阵指数 Matrix Exponential）：</strong>
+    对于任意方阵 \(M \in \mathbb{R}^{N \times N}\)，其矩阵指数由绝对收敛的皮亚诺级数（Taylor 级数）定义：
+  </p>
+  \[ \exp(M) = e^M = \sum_{j=0}^{\infty} \frac{1}{j!} M^j = I + M + \frac{1}{2!} M^2 + \frac{1}{3!} M^3 + \dots \]
+  <p>
+    当 \(M\) 为对角矩阵 \(M = \mathrm{diag}(\lambda_1, \dots, \lambda_N)\) 时，矩阵指数直接退化为各对角元的标量指数：
+  </p>
+  \[ \exp(M) = \mathrm{diag}(e^{\lambda_1}, e^{\lambda_2}, \dots, e^{\lambda_N}) \]
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：ZOH 精确离散化积分推导与转移矩阵 \(\bar{A}, \bar{B}\)</h4>
+  <p>
+    <strong>定理（连续系统精确离散化解析解）：</strong>
+    在零阶保持器假设下，连续系统 \(h'(t) = A h(t) + B x(t)\) 在采样时刻 \(t_{k+1} = (k+1)\Delta\) 处的离散状态递推方程严格等价于：
+  </p>
+  \[ h_{k+1} = \bar{A} h_k + \bar{B} x_k \]
+  <p>
+    其中离散化状态转移矩阵与离散输入矩阵为：
+  </p>
+  \[ \bar{A} = \exp(\Delta A), \qquad \bar{B} = (\Delta A)^{-1}(\exp(\Delta A) - I) \cdot (\Delta B) = A^{-1}(\exp(\Delta A) - I) B \]
+  <p>
+    <strong>代数证明（Charles 的常微分方程变易常数积分草稿）：</strong>
+  </p>
+  <p>
+    这是一阶线性非齐次常微分方程。利用积分因子 \(e^{-A t}\) 对等式两端同时左乘：
+  </p>
+  \[ e^{-A t} h'(t) - e^{-A t} A h(t) = e^{-A t} B x(t) \implies \frac{d}{dt}\left( e^{-A t} h(t) \right) = e^{-A t} B x(t) \]
+  <p>
+    在时间区间 \([k\Delta, (k+1)\Delta]\) 上两端定积分：
+  </p>
+  \[ \int_{k\Delta}^{(k+1)\Delta} \frac{d}{dt}\left( e^{-A t} h(t) \right) dt = \int_{k\Delta}^{(k+1)\Delta} e^{-A t} B x(t) \, dt \]
+  <p>
+    左侧展开为定积分上下限之差：\(e^{-A(k+1)\Delta} h_{k+1} - e^{-A k\Delta} h_k\)。
+    在右侧，利用 ZOH 假定在整个积分区间内 \(x(t) \equiv x_k\) 为常数，可将其连同矩阵 \(B\) 提出积分号外：
+  </p>
+  \[ e^{-A(k+1)\Delta} h_{k+1} = e^{-A k\Delta} h_k + \left( \int_{k\Delta}^{(k+1)\Delta} e^{-A t} dt \right) B x_k \]
+  <p>
+    两端同时左乘 \(e^{A(k+1)\Delta}\)：
+  </p>
+  \[ h_{k+1} = e^{A(k+1)\Delta} e^{-A k\Delta} h_k + \left( \int_{k\Delta}^{(k+1)\Delta} e^{A((k+1)\Delta - t)} dt \right) B x_k \]
+  <p>
+    首项化简：\(e^{A(k+1)\Delta} e^{-A k\Delta} = e^{\Delta A} = \bar{A}\)。
+    对积分项作变量代换，令 \(\tau = (k+1)\Delta - t\)，则 \(d\tau = -dt\)，当 \(t = k\Delta \implies \tau = \Delta\)，\(t = (k+1)\Delta \implies \tau = 0\)：
+  </p>
+  \[ \int_{k\Delta}^{(k+1)\Delta} e^{A((k+1)\Delta - t)} dt = \int_{0}^{\Delta} e^{A \tau} d\tau \]
+  <p>
+    利用矩阵指数的定积分性质：\(\int_{0}^{\Delta} e^{A \tau} d\tau = A^{-1}(e^{\Delta A} - I)\)。代入即得：
+  </p>
+  \[ \bar{B} = \left( \int_{0}^{\Delta} e^{A \tau} d\tau \right) B = A^{-1}(\exp(\Delta A) - I) B \]
+  <p>
+    <strong>极简小数字手算草稿：\(N=2\) 维对角阻尼系统逐步推演</strong>
+  </p>
+  <p>
+    在草稿纸上设定一组最干净的数字，亲手验证离散化与状态更新过程。
+  </p>
+  <p>
+    设系统隐状态维度 \(N = 2\)。为保证稳定性，连续演化矩阵 \(A\) 设为负定对角阵，输入向量为 \(B\)：
+  </p>
+  \[ A = \begin{bmatrix} -1 & 0 \\ 0 & -2 \end{bmatrix}, \qquad B = \begin{bmatrix} 1 \\ 2 \end{bmatrix} \]
+  <p>
+    设采样离散化步长为 \(\Delta = 0.5\)。
+  </p>
+  <p>
+    <strong>第 1 步：算矩阵乘积 \(\Delta A\) 与矩阵指数 \(\bar{A}\)。</strong>
+  </p>
+  \[ \Delta A = 0.5 \times \begin{bmatrix} -1 & 0 \\ 0 & -2 \end{bmatrix} = \begin{bmatrix} -0.5 & 0 \\ 0 & -1.0 \end{bmatrix} \]
+  \[ \bar{A} = \exp(\Delta A) = \begin{bmatrix} e^{-0.5} & 0 \\ 0 & e^{-1.0} \end{bmatrix} \approx \begin{bmatrix} 0.6065 & 0 \\ 0 & 0.3679 \end{bmatrix} \]
+  <p>
+    <strong>第 2 步：计算离散输入矩阵 \(\bar{B}\)。</strong>
+    因 \(A\) 为对角阵，可逐行计算标量解析积分：
+  </p>
+  \[ \bar{B}_1 = \frac{e^{-0.5} - 1}{-1} \times 1 = 1 - e^{-0.5} \approx 1 - 0.6065 = 0.3935 \]
+  \[ \bar{B}_2 = \frac{e^{-1.0} - 1}{-2} \times 2 = 1 - e^{-1.0} \approx 1 - 0.3679 = 0.6321 \]
+  \[ \bar{B} \approx \begin{bmatrix} 0.3935 \\ 0.6321 \end{bmatrix} \]
+  <p>
+    <strong>第 3 步：追踪状态演化。</strong>
+    设初始隐状态静止 \(h_0 = [0, 0]^{\top}\)。在第 1 步输入一个单位脉冲 \(x_0 = 1\)：
+  </p>
+  \[ h_1 = \bar{A} h_0 + \bar{B} x_0 = \begin{bmatrix} 0 \\ 0 \end{bmatrix} + \begin{bmatrix} 0.3935 \\ 0.6321 \end{bmatrix} \times 1 = \begin{bmatrix} 0.3935 \\ 0.6321 \end{bmatrix} \]
+  <p>
+    在第 2 步无新输入（\(x_1 = 0\)），仅由系统自主演化：
+  </p>
+  \[ h_2 = \bar{A} h_1 = \begin{bmatrix} 0.6065 \times 0.3935 \\ 0.3679 \times 0.6321 \end{bmatrix} \approx \begin{bmatrix} 0.2387 \\ 0.2325 \end{bmatrix} \]
+  <p>
+    物理图像跃然纸上：\(\bar{A}\) 的各对角元 \(e^{\Delta A_i} \in (0, 1)\) 严格充当了<strong>历史信息的指数衰减遗忘系数</strong>，而 \(\bar{B}\) 则控制了<strong>当前输入信号被注入隐状态的接纳增益</strong>！
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：Mamba 选择性机制（Selective SSM）与输入自适应步长 \(\Delta_t\)</h4>
+  <p>
+    在经典的 S4 架构中，参数 \(A, B, C, \Delta\) 全都是<strong>全局静态固定常数</strong>，与输入内容 \(x_t\) 毫无关系（时不变系统 LTI）。
+    这造成了本质缺陷：无论当前的 token 是无关紧要的停顿虚词（如 “the”, “of”），还是决定上下文命题的核心实体，系统都只能按固定的衰减率一视同仁地遗忘！
+  </p>
+  <p>
+    <strong>Mamba 的代数革新：参数向输入投影</strong>
+  </p>
+  <p>
+    Mamba 彻底打破时不变约束，将 \(B\)、\(C\) 以及关键步长 \(\Delta\) 均定义为当前输入 \(x_t\) 的实时线性投影：
+  </p>
+  \[ B_t = W_B x_t, \qquad C_t = W_C x_t, \qquad \Delta_t = \mathrm{softplus}(W_{\Delta} x_t + b_{\Delta}) \]
+  <p>
+    其中 \(\mathrm{softplus}(z) = \log(1 + e^z) > 0\)，保证离散步长恒为严格正数。
+  </p>
+  <p>
+    <strong>极值草稿纸推演：\(\Delta_t\) 如何充当智能动力学门控</strong>
+  </p>
+  <p>
+    将随输入变化的动态步长 \(\Delta_t\) 代回离散递推公式 \(h_t = \exp(\Delta_t A) h_{t-1} + \bar{B}_t x_t\)，在草稿纸上考察两个极端数学边界：
+  </p>
+  <ul>
+    <li>
+      <strong>边界一：遇到停顿词、填充符号或无用噪声（模型令 \(\Delta_t \to 0\)）</strong>
+      <br />
+      当 \(\Delta_t \to 0\) 时，矩阵指数趋近于单位阵：
+      \[ \bar{A}_t = \exp(\Delta_t A) \to \exp(0) = I \]
+      离散输入矩阵趋近于零：
+      \[ \bar{B}_t = A^{-1}(\exp(\Delta_t A) - I) B_t \approx \Delta_t B_t \to 0 \]
+      代入状态更新方程：
+      \[ h_t \approx I \cdot h_{t-1} + 0 \cdot x_t = h_{t-1} \]
+      <strong>状态完全不衰减、新输入完全被阻断！</strong>系统相当于执行了完美的高速直通（Pass-through），将上一时刻的有效记忆 100% 完整原样保留。
+    </li>
+    <li>
+      <strong>边界二：遇到重大语义转折、新段落或核心概念重置（模型令 \(\Delta_t \to +\infty\) 显著增大）</strong>
+      <br />
+      因为连续矩阵 \(A\) 的特征值皆为负数（\(A_{ii} < 0\)），当 \(\Delta_t\) 变大时：
+      \[ \bar{A}_t = \exp(\Delta_t A) \to 0 \]
+      \[ \bar{B}_t = A^{-1}(0 - I) B_t = -A^{-1} B_t \]
+      代入状态更新方程：
+      \[ h_t \approx 0 \cdot h_{t-1} + \bar{B}_t x_t = \bar{B}_t x_t \]
+      <strong>历史记忆被瞬间彻底清零擦除（Reset/Forget）！</strong>隐状态全力聚焦并写入当下这一个全新的关键 token。
+    </li>
+  </ul>
+  <p>
+    <strong>与经典 RNN 门控机制的代数对照：</strong>
+    对比 LSTM 的遗忘门 \(f_t \in (0, 1)\) 与 GRU 的更新门 \(z_t\)。
+    Mamba 的 \(\bar{A}_t = \exp(\Delta_t A)\) 在连续控制论体系下实现了纯数学推导出的连续自适应遗忘门！
+    更关键的是：传统 RNN 的非线性激活使状态递推无法并行；而 Mamba 内部是<strong>纯线性的时变动力系统</strong>。
+    利用算子的结合律，在现代 GPU 上可通过<strong>硬件感知前缀扫描（Parallel Associative Scan）</strong>在 SRAM 内部实现 \(O(\log T)\) 时间跨度的并行极速训练！
+  </p>
+</section>
+
 <h3>3. 线性注意力、滑窗与混合架构</h3>
 <p>
   <span class="t" data-tterm="Linear attention" data-d="线性注意力：用核函数替换 softmax 中的指数相似度，使注意力可以利用矩阵乘法结合律改写为先算 K 转置乘 V，从而把复杂度降到序列长度的线性。">线性注意力</span>

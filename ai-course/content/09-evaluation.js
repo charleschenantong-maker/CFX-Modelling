@@ -260,6 +260,403 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
   因此我们（可以/不能）拒绝『学习没有带来增益』的原假设。」</em></p>
 </section>
 
+<h3>7. 草稿纸演算区：把指标算到小数点后三位</h3>
+<p class="lead">
+  前六节讲的是「怎么防止自欺」。这一节是<strong>上手计算区</strong>：先钉死符号，
+  再用 3 个 token、两句话、4 场对抗赛这种极小规模，把困惑度、N-gram 精确率、ROUGE 召回率、
+  Elo 更新全部手算一遍。每一道都能拿计算器独立复核，不需要跑代码。
+</p>
+
+<h4>7.1 符号约定（先把字母钉死，后面的算式才不会串）</h4>
+<table class="tbl small">
+  <thead><tr><th>符号</th><th>含义</th><th>本节取值</th><th>一句备注</th></tr></thead>
+  <tbody>
+    <tr><td>\(N\)</td><td>测试集 token 总数</td><td>\(N = 3\)</td><td>困惑度是 token 级平均，不是句子级</td></tr>
+    <tr><td>\(p_t\)</td><td>模型对第 \(t\) 个<em>真实</em> token 的预测概率</td><td>0.8 / 0.5 / 0.1</td><td>必须在预测时记录，不能事后重算</td></tr>
+    <tr><td>\(P_n\)</td><td>裁剪后的 n-gram 精确率</td><td>\(n = 1,2,3,4\)</td><td>分母永远是候选的 n-gram 数</td></tr>
+    <tr><td>\(m\)</td><td>候选文本的词数</td><td>\(m = 7\)</td><td>与参考比长度算出 BP</td></tr>
+    <tr><td>\(r\)</td><td>参考文本的词数</td><td>\(r = 7\)</td><td>ROUGE 的召回率分母用的是它</td></tr>
+    <tr><td>\(R_A\)</td><td>模型 A 的 Elo 分</td><td>\(R_A = 1500\)</td><td>每场之后总分 \(R_A + R_B\) 守恒</td></tr>
+    <tr><td>\(S_A\)</td><td>A 本场得分</td><td>\(1 / 0.5 / 0\)</td><td>胜 / 平 / 负</td></tr>
+    <tr><td>\(E_A\)</td><td>A 的期望得分（由分差算出）</td><td>0.50 至 0.85</td><td>分差为 0 时恒等于 0.5</td></tr>
+    <tr><td>\(K\)</td><td>Elo 更新步长</td><td>\(K = 32\)</td><td>大 K 快而抖，小 K 稳而慢</td></tr>
+  </tbody>
+</table>
+
+<h4>7.2 前置定义 A：困惑度</h4>
+<p>
+  <strong>定义</strong>：困惑度衡量「模型平均要在一棵多大的树里挑下一个 token」。
+  先定义单个 token 的负对数似然，再取平均得到交叉熵，最后取指数：
+</p>
+\[ \mathrm{NLL}_t = -\ln p_t, \qquad \mathrm{CE} = \frac{1}{N}\sum_{t=1}^{N}\mathrm{NLL}_t, \qquad \mathrm{PPL} = \exp(\mathrm{CE}) \]
+<p>把定义式改写成乘积形式，会看到一个非常好用的读法：</p>
+\[ \mathrm{PPL} = \left(\prod_{t=1}^{N} \frac{1}{p_t}\right)^{1/N} \]
+<p>
+  也就是说，<strong>困惑度等于 \(\frac{1}{p_t}\) 的几何平均</strong>。
+  几何平均的性质是「谁差谁拖后腿」：一个 \(p_t = 0.1\) 的 token 把倒数项抬到 10，
+  是另外两项（1.25 与 2）的五到八倍，于是整个几何平均被它单方面拉动；
+  而三个 \(p_t = 0.9\) 也只能把整体压到约 1.11（几何平均永远逼近下限 1）。
+  <strong>这正是我们想要的性质</strong>——语言模型偶尔犯错没关系，但「错得离谱」会被重罚。
+</p>
+
+<h4>7.3 草稿纸 ①：三选一测试集上算困惑度</h4>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>题目：3 个 token，真实预测概率 p = 0.8 / 0.5 / 0.1，求 CE 与 PPL</h4>
+  <p>严格按定义代入，每一步都写出中间量：</p>
+  <table class="tbl small">
+    <thead><tr><th>步</th><th>在算什么</th><th>算式</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>取倒数</td><td>1 ÷ 0.8，1 ÷ 0.5，1 ÷ 0.1</td><td>1.2500，2.0000，10.0000</td></tr>
+      <tr><td>2</td><td>连乘</td><td>1.25 × 2 × 10</td><td>25.0000</td></tr>
+      <tr><td>3</td><td>开 3 次方（几何平均）</td><td>25 的 3 次方根</td><td>2.9240</td></tr>
+      <tr><td>4</td><td>方法二：逐项 NLL</td><td>-ln 0.8，-ln 0.5，-ln 0.1</td><td>0.2231，0.6931，2.3026</td></tr>
+      <tr><td>5</td><td>求和后除以 N</td><td>(0.2231 + 0.6931 + 2.3026) ÷ 3</td><td>CE = 1.0730</td></tr>
+      <tr><td>6</td><td>指数还原（应当对上第 3 步）</td><td>e 的 1.0730 次方</td><td>2.9240 一致</td></tr>
+      <tr><td>7</td><td>换算成比特</td><td>1.0730 ÷ ln 2</td><td>1.548 bit / token</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>自查方式：不用计算器的夹逼法。</strong>只需验两个整数立方，就能把答案夹在两位小数之内：
+  </p>
+  \[ 2.92^{3} = 24.897 &lt; 25, \qquad 2.93^{3} = 25.154 &gt; 25 \]
+  <p>
+    所以答案落在 2.92 与 2.93 之间；取 2.924 回代，\(2.924^{3} = 25.00\)，成立。
+    <strong>第 6 步是必须做的交叉验证</strong>——几何平均与指数还原是同一个式子的两种写法，
+    两者对不上就说明中间某一步抄错了数。
+  </p>
+</section>
+
+<p>
+  现在做这一节<strong>最重要</strong>的一步：<em>别急着说「PPL 2.92 很小」。</em>
+  基线是什么？假设这 3 个位置上的候选集合都只有 3 个 token，一个完全不学的模型输出均匀分布：
+</p>
+\[ \mathrm{CE}_{\text{uniform}} = -\ln\tfrac{1}{3} = \ln 3 = 1.0986, \qquad \mathrm{PPL}_{\text{uniform}} = e^{1.0986} = 3.000 \]
+\[ \mathrm{Gap} = \frac{3.000 - 2.924}{3.000} = 2.5\% \]
+<p>
+  <strong>结论：这个模型只比瞎猜好 2.5%。</strong>而单看「PPL = 2.92」这个数字，
+  任何人都以为它很强——因为人们习惯把 PPL 和「几百」联系在一起，
+  而那个数字背后是几万词的词表。均匀分布下 \(\mathrm{PPL} = |\mathcal{V}|\)，
+  <strong>所以困惑度的绝对值几乎完全由词表大小决定</strong>。
+  第 3 节那句「Level 3 比 Level 1 好 2%，可能只是噪声」，在这里就变成
+  「PPL 差 2.5% 可能什么都不算」。
+</p>
+<table class="tbl small">
+  <thead><tr><th>情形</th><th>p 的三元组</th><th>CE</th><th>PPL</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>完全正确且自信</td><td>0.9, 0.9, 0.9</td><td>0.1054</td><td>1.111</td><td>几何平均贴近下限 1</td></tr>
+    <tr><td>草稿纸 ① 那个例子</td><td>0.8, 0.5, 0.1</td><td>1.0730</td><td>2.924</td><td>中间那个 token 没把握</td></tr>
+    <tr><td>三选一瞎猜</td><td>1/3, 1/3, 1/3</td><td>1.0986</td><td>3.000</td><td>基线恰好等于词表大小</td></tr>
+    <tr><td>自信地全错</td><td>0.05, 0.05, 0.05</td><td>2.9957</td><td>20.000</td><td>几何平均重罚灾难性自信</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>报告困惑度的四条硬规矩</h4>
+  <ol>
+    <li><strong>必须同时报 tokenizer 与语料 token 数。</strong>换分词器之后 PPL 完全不可比——同一个模型，BPE 与字符级两种切法的 PPL 可以差三倍以上。</li>
+    <li><strong>必须与基线一起报。</strong>一个孤立的 PPL 数字不构成结论。至少同时给出均匀分布基线（第 3 行那个数）和一个强基线。</li>
+    <li><strong>PPL 与任务指标常常不同向。</strong>困惑度奖励「整体流畅」，任务指标奖励「恰好抽对那个字段」。一个 PPL 更低的模型完全可能有更差的抽取 F1。</li>
+    <li><strong>别在小测试集上算完 PPL 再选模型。</strong>回到草稿纸 ①：那个 \(p_3 = 0.1\) 的 token 一个人贡献了 \(2.3026/3.2189 = 71.5\%\) 的总 NLL。也就是说这个 PPL 里有超过七成的权重压在一个样本上——这种数字做不了任何决策。</li>
+  </ol>
+</section>
+
+<h4>7.4 前置定义 B：N-gram 精确率与 BLEU</h4>
+<p>
+  <strong>定义</strong>：把候选文本切成 n-gram（连续 n 个词），数它们在<em>参考</em>里出现了多少次，
+  但每个 n-gram 最多只能计它在参考里出现的次数（这叫<strong>裁剪</strong>）；
+  精确率的分母是候选里的 n-gram 总数：
+</p>
+\[ P_n = \frac{\sum_{g} \max\bigl(0,\ c_{\text{cand}}(g) - c_{\text{ref}}(g)\bigr)}{\sum_{g} c_{\text{cand}}(g)} \]
+<p>
+  <strong>裁剪这一步是全部要点。</strong>若不裁剪，候选里把同一个短语重复十遍会被算成十次命中，
+  精确率反而上升。裁剪把「重复」和「命中」这两件完全不同的事正确地分开了。
+</p>
+<p>BLEU 把前四个 \(P_n\) 用<em>几何平均</em>合成，\(\mathrm{BP}\) 是长度惩罚：</p>
+\[ \mathrm{BLEU\text{-}n} = \mathrm{BP}\cdot\exp\left(\frac{1}{n}\sum_{i=1}^{n}\ln P_i\right), \qquad \mathrm{BP} = \min\bigl(1,\ \exp(1 - r/m)\bigr) \]
+<p>
+  BP 那一行值得单独理解：当 \(m &gt; r\)（候选比参考长）时 \(\exp(1-r/m) &gt; 1\)，取 min 后 BP 等于 1，不惩罚；
+  当 \(m \le r\) 时 BP 小于 1，按比例压制分数。<strong>它是专门用来对付「靠说得少刷精确率」的</strong>。
+</p>
+
+<h4>7.5 草稿纸 ②：只差一个词的输出，BLEU-4 是多少</h4>
+<p>
+  设候选与参考都是 7 个词，<strong>只有第 6 个词不同</strong>（token 对 word）：
+</p>
+<p>候选（系统输出）：the model predicts the next <strong>token</strong> quickly<br />
+参考（人工标注）：the model predicts the next <strong>word</strong> quickly</p>
+<p>先逐档数 n-gram，再看被裁掉的是哪几个：</p>
+<table class="tbl small">
+  <thead><tr><th>n</th><th>候选 n-gram 总数</th><th>裁剪后命中</th><th>P_n</th><th>被裁掉的是什么</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>7</td><td>6</td><td>0.8571</td><td>token（在参考里出现 0 次）</td></tr>
+    <tr><td>2</td><td>6</td><td>4</td><td>0.6667</td><td>(next, token)、(token, quickly)</td></tr>
+    <tr><td>3</td><td>5</td><td>3</td><td>0.6000</td><td>(the, next, token)、(next, token, quickly)</td></tr>
+    <tr><td>4</td><td>4</td><td>2</td><td>0.5000</td><td>含 token 的两个 4-gram</td></tr>
+  </tbody>
+</table>
+<p>
+  把二元的六步手工走一遍，这是唯一真正需要动笔的部分：
+</p>
+<table class="tbl small">
+  <thead><tr><th>候选 bigram</th><th>参考里出现几次</th><th>裁剪后计入</th></tr></thead>
+  <tbody>
+    <tr><td>(the, model)</td><td>1</td><td>1</td></tr>
+    <tr><td>(model, predicts)</td><td>1</td><td>1</td></tr>
+    <tr><td>(predicts, the)</td><td>1</td><td>1</td></tr>
+    <tr><td>(the, next)</td><td>1</td><td>1</td></tr>
+    <tr><td>(next, token)</td><td>0</td><td>0</td></tr>
+    <tr><td>(token, quickly)</td><td>0</td><td>0</td></tr>
+  </tbody>
+</table>
+<p>长度惩罚：\(m = r = 7\)，于是 BP 不生效。</p>
+\[ \mathrm{BP} = \min\bigl(1,\ \exp(1 - 7/7)\bigr) = 1 \]
+\[ \mathrm{BLEU\text{-}4} = \exp\Bigl(\tfrac{1}{4}\bigl[\ln 0.8571 + \ln 0.6667 + \ln 0.6000 + \ln 0.5000\bigr]\Bigr) = \exp\bigl(\tfrac{1}{4}\ln 0.1714\bigr) = \exp(-0.4409) = 0.6435 \]
+<p>
+  复核一遍（同样不用计算器）：\(0.8571\times0.6667\times0.6000\times0.5000 = 0.1714\)，
+  而 \(0.6435^{4} = 0.1715\)，对上。
+</p>
+<p>
+  <strong>为什么 BLEU 偏偏要用几何平均？</strong>把 \(P_4\) 改成 0（只在句尾错一个词）试试：
+  BLEU-4 直接变成 0，前三档多好看都没用。如果换成<em>算术平均</em>，同样情况下仍有 0.53。
+  <strong>几何平均是故意的</strong>：它要求每一档 n-gram 都不允许有短板。
+  换成评估语言，这正是「细节错一处就整体不可信」的量化表达——你可以把这句话直接写进报告。
+</p>
+
+<h4>7.6 前置定义 C：ROUGE 召回率与 F-measure</h4>
+<p>
+  <strong>定义</strong>：ROUGE 与 BLEU 有两处关键差别——(1) 主指标用<strong>召回率</strong>，
+  因为参考里的所有 n-gram 都该被覆盖到；(2) 召回率的分母是<em>参考</em>的 n-gram 数：
+</p>
+\[ R_n = \frac{\mathrm{matched}_n}{\text{reference } n\text{-grams}}, \qquad P_n = \frac{\mathrm{matched}_n}{\text{candidate } n\text{-grams}}, \qquad F_n = \frac{2 P_n R_n}{P_n + R_n} \]
+<p>
+  一句话取舍：<strong>BLEU 用精确率惩罚「说得太多」，ROUGE 用召回率奖励「该说的都说了」</strong>。
+  抽取式摘要通常宁长勿短，所以主流实现默认报 ROUGE-1/2 的 F，同时把 R 与 P 单独列出来。
+  ROUGE-L 则用<strong>最长公共子序列</strong>代替计数：
+</p>
+\[ P_{\text{LCS}} = \frac{\mathrm{LCS}(c,r)}{m}, \qquad R_{\text{LCS}} = \frac{\mathrm{LCS}(c,r)}{r}, \qquad F_{\text{LCS}} = \frac{2 P_{\text{LCS}} R_{\text{LCS}}}{P_{\text{LCS}} + R_{\text{LCS}}} \]
+<p>
+  LCS 与 n-gram 计数的差别很实在。取候选 the model <strong>predicts</strong> the next token
+  与参考 the model <strong>estimates</strong> the next word：
+  二元组只命中 (the, model) 与 (the, next) 两个，于是 \(P_2 = R_2 = 2/5 = 0.400\)、\(F_2 = 0.400\)；
+  而 LCS 能认出 the / model / the / next 这 4 个共同成分，于是
+  \(P_{\text{LCS}} = R_{\text{LCS}} = 4/6 = 0.667\)、\(F_{\text{LCS}} = 0.667\)。
+  <strong>同一对句子，ROUGE-2 判 0.40 而 ROUGE-L 判 0.67</strong>——差别全部来自
+  「同义词算不算部分正确」这个建模选择。
+</p>
+
+<h4>7.7 草稿纸 ③：把参考句拉长 10 个词，同一份输出会掉多少分</h4>
+<p>
+  候选固定不变（6 个词、5 个 bigram），只改参考的写法。参考 A 是候选本身；
+  参考 B 把它展开成流程描述，信息量几乎没增加：
+</p>
+<p>候选：the model predicts the next token<br />
+参考 A：the model predicts the next token<br />
+参考 B：the model predicts the next token autoregressively one position at a time across the whole sequence</p>
+<table class="tbl small">
+  <thead><tr><th>参考</th><th>参考 bigram 数</th><th>命中</th><th>R_2</th><th>P_2</th><th>F_2</th></tr></thead>
+  <tbody>
+    <tr><td>A（6 词）</td><td>5</td><td>5</td><td>1.0000</td><td>1.0000</td><td>1.0000</td></tr>
+    <tr><td>B（16 词）</td><td>15</td><td>5</td><td>0.3333</td><td>1.0000</td><td>0.5000</td></tr>
+  </tbody>
+</table>
+<p>换成 ROUGE-L（此时 \(\mathrm{LCS}(c, r) = 6\) 在两种参考下都成立）：</p>
+<table class="tbl small">
+  <thead><tr><th>参考</th><th>LCS 长度</th><th>m</th><th>r</th><th>P_LCS</th><th>R_LCS</th><th>F_LCS</th></tr></thead>
+  <tbody>
+    <tr><td>A（6 词）</td><td>6</td><td>6</td><td>6</td><td>1.0000</td><td>1.0000</td><td>1.0000</td></tr>
+    <tr><td>B（16 词）</td><td>6</td><td>6</td><td>16</td><td>1.0000</td><td>0.3750</td><td>0.5455</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>这一节最该带走的一句话</strong>：参考从 6 词扩到 16 词、输出却一个字都没改，
+  ROUGE-2 的 F 就从 1.000 掉到 0.500，ROUGE-L 的 F 从 1.000 掉到 0.545。
+  <strong>分数里有一部分是标注者文风与长度的函数，不是质量的函数。</strong>
+  而参考长度是评测集的一个自由参数——评测者可以「调」分。
+  这正是第 1 节三层评估里为什么必须有人类评估这一层：自动指标能被评测集的构造方式直接操纵。
+</p>
+
+<table class="tbl small">
+  <thead><tr><th>指标</th><th>适合的任务</th><th>容易被什么刷高</th><th>容易被什么压低</th></tr></thead>
+  <tbody>
+    <tr><td>困惑度</td><td>语言建模基准</td><td>语料里的重复文本</td><td>换分词器即不可比</td></tr>
+    <tr><td>精确匹配 / F1</td><td>抽取、分类、结构化输出</td><td>标签体系本身泄漏</td><td>同义不同形的正确答案</td></tr>
+    <tr><td>BLEU / ROUGE-1,2</td><td>翻译、抽取式摘要</td><td>候选拉长、照抄参考里的常见短语</td><td>同样正确的另一种说法</td></tr>
+    <tr><td>ROUGE-L</td><td>有序改写、代码生成</td><td>复述结构</td><td>同义替换（predicts 换成 estimates）</td></tr>
+    <tr><td>语义相似度（向量嵌入类）</td><td>开放式生成</td><td>与参考语义相近的改写</td><td>依赖额外模型，引入新偏差</td></tr>
+    <tr><td>人工 Elo</td><td>对话、创作、主观质量</td><td>评审疲劳与从众</td><td>成本高、方差大</td></tr>
+  </tbody>
+</table>
+
+<h4>7.8 前置定义 D：Elo 积分排名系统</h4>
+<p>
+  <strong>定义</strong>：给每个对象一个实数分 \(R\)。两两对战的期望得分完全由分差决定；
+  实战胜后按「超出了预期多少」加分：
+</p>
+\[ E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}, \qquad R_A' = R_A + K\bigl(S_A - E_A\bigr), \qquad S_A \in \{0,\, 0.5,\, 1\} \]
+<p>
+  \(S_A - E_A\) 是这一场的<strong>惊喜程度</strong>：赢了弱手（\(E_A\) 小）加分多，
+  赢了强手（\(E_A\) 接近 1）几乎不加；输了弱手则要掉很多分。
+  对手同时更新，所以<strong>总分严格守恒</strong>。这是可以纯代数验证的：
+</p>
+\[ R_A' + R_B' = R_A + R_B + K\bigl(S_A - E_A + S_B - E_B\bigr) = R_A + R_B + K\bigl((S_A + S_B) - (E_A + E_B)\bigr) = R_A + R_B \]
+<p>
+  括号里的两项都是 1（\(S_A + S_B = 1\) 是规则，\(E_A + E_B = 1\) 是 \(\mathrm{logistic}\) 的对称性），
+  所以 <strong>\(K\) 被完全抵消掉</strong>。这正是 Elo 最优雅的性质：涨分必然等于对方掉分，
+  系统内部始终有一个固定总量在分配。后面草稿纸 ④ 会用四场数据把这条守恒律直接验一遍。
+</p>
+
+<h4>7.9 草稿纸 ④：K = 32，连续四场的分值演化</h4>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>题目：A 与 B 都从 1500 分起步，连打四场，逐一更新</h4>
+  <p>先手算第 2 场（因为它的分差不再为零）：</p>
+  \[ E_A = \frac{1}{1 + 10^{(1484 - 1516)/400}} = \frac{1}{1 + 10^{-0.08}} = \frac{1}{1 + 0.8318} = 0.5459 \]
+  \[ R_A' = 1516 + 32\bigl(1 - 0.5459\bigr) = 1516 + 14.53 = 1530.5 \]
+  \[ R_B' = 1484 + 32\bigl(0 - 0.4541\bigr) = 1484 - 14.53 = 1469.5 \]
+  <p>剩下的三场按同一套规则排下去：</p>
+  <table class="tbl small">
+    <thead><tr><th>场次</th><th>对阵（分）</th><th>S_A</th><th>E_A</th><th>R_A 更新后</th><th>R_B 更新后</th><th>总分</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>1500 : 1500</td><td>1</td><td>0.5000</td><td>1516.0</td><td>1484.0</td><td>3000</td></tr>
+      <tr><td>2</td><td>1516.0 : 1484.0</td><td>1</td><td>0.5459</td><td>1530.5</td><td>1469.5</td><td>3000</td></tr>
+      <tr><td>3</td><td>1530.5 : 1469.5</td><td>0</td><td>0.5870</td><td>1511.7</td><td>1488.3</td><td>3000</td></tr>
+      <tr><td>4</td><td>1511.7 : 1488.3</td><td>0.5</td><td>0.5338</td><td>1510.7</td><td>1489.3</td><td>3000</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>三个可以直接引用的性质</strong>，全部能从这张表读出来：
+  </p>
+  <ul>
+    <li><strong>总分守恒</strong>：四场都是 3000。实测时如果总分漂了，说明你把 \(S_B\) 写错了。</li>
+    <li><strong>分差越大，胜负越不重要</strong>：第 2 场 A 赢了，但只涨 14.53 分；第 1 场分差为 0，同样是赢，涨了整整 16 分。</li>
+    <li><strong>惊喜是有方向的</strong>：A 连赢两场又输一场，最后只比起点高 10.7 分。第 4 场是平局，A 反而掉 1.1 分——因为分差已经拉开，平局算「失望」。</li>
+  </ul>
+  <p>再算一组<strong>爆冷</strong>的数（同一对模型换个分差）：A 有 1700 分，B 有 1400 分。</p>
+  \[ E_A = \frac{1}{1 + 10^{(1400 - 1700)/400}} = \frac{1}{1 + 10^{-0.75}} = \frac{1}{1 + 0.1778} = 0.8490 \]
+  <table class="tbl small">
+    <thead><tr><th>A 的本场结果</th><th>ΔR_A</th><th>直观解读</th></tr></thead>
+    <tbody>
+      <tr><td>胜</td><td>+4.83</td><td>赢一个弱手，涨分很少</td></tr>
+      <tr><td>平</td><td>-11.17</td><td>与强手打平，掉分接近下限</td></tr>
+      <tr><td>负</td><td>-27.17</td><td>输给弱手是灾难，掉分接近上限</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸 ⑤：那个 400 是怎么来的（代数推导）</h4>
+  <p>
+    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。我们希望「一个期望胜率是 \(n{:}1\) 的选手，
+    分数上正好领先 \(\Delta\) 分」，也就是要求
+  </p>
+  \[ \frac{1}{1 + 10^{-\Delta/400}} = \frac{n}{1+n} \]
+  <p>把右边代进去解 \(\Delta\)：</p>
+  \[ 10^{-\Delta/400} = \frac{1}{n} \;\Longrightarrow\; -\frac{\Delta}{400} = \log_{10}\frac{1}{n} \;\Longrightarrow\; \Delta = 400\log_{10} n \]
+  <p>
+    代回去验一个具体值。取 \(n = 2\)（期望 2:1），得 \(\Delta = 400\times 0.30103 = 120.4\) 分：
+  </p>
+  \[ E_A = \frac{1}{1 + 10^{-120.4/400}} = \frac{1}{1 + 10^{-0.30103}} = \frac{1}{1 + 0.5000} = 0.6667 = \frac{2}{3} \]
+  <p>
+    完全对上。所以 <strong>400 只是「胜率比」翻译成「分数差」的比例尺</strong>，
+    而且换成任何正数都能得到一个自洽的系统；选 400 是为了让人类直觉上的小差距对应到温和的胜率变化：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>分数差 Δ</th><th>期望得分 E</th><th>等价胜率</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>0.500</td><td>1 : 1</td></tr>
+      <tr><td>100</td><td>0.640</td><td>约 1.8 : 1</td></tr>
+      <tr><td>120</td><td>0.666</td><td>约 2 : 1</td></tr>
+      <tr><td>200</td><td>0.760</td><td>约 3.2 : 1</td></tr>
+      <tr><td>400</td><td>0.909</td><td>约 10 : 1</td></tr>
+      <tr><td>800</td><td>0.990</td><td>约 100 : 1</td></tr>
+    </tbody>
+  </table>
+  <p>
+    反过来说一个更实用的读法：<strong>400 分差对应 10:1，800 分差对应 100:1</strong>——
+    每 400 分把胜率比乘以 10。所以「某个模型比另一个强 800 分」不是一个模糊的说法，
+    它精确地意味着 100 局里赢 99 局。
+  </p>
+</section>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>用 Elo 排名时的四个陷阱</h4>
+  <ol>
+    <li><strong>K 同时决定快慢与噪声。</strong>\(K = 32\) 时前十场就能把分差拉开 100 分以上，后面几百场都追不回来——所以早期 Elo 排名极不稳定。样本少时把 K 降到 4 至 16 更合适。</li>
+    <li><strong>Elo 只给序数，不给间隔。</strong>1516 与 1530 相差 14 分，和 1516 与 2500 相差 984 分，在 Elo 里都只是「一次 32 分的更新」，但前者是噪声、后者是碾压。<strong>不要把 Elo 分差当效应量写进报告。</strong></li>
+    <li><strong>必须随机化位置并匿名。</strong>让 A 总是出现在左边会引入位置偏好；让被测对象评价自己会引入自我偏好偏差。方差最小的做法是每对<em>双向各跑一次</em>，再取 \(S = (W + 0.5D)/N\)。</li>
+    <li><strong>人数投票不等于 Elo。</strong>要把 \(N\) 个评审的胜负压成一个分数，应该用 Bradley-Terry 模型做最大似然拟合，并给出置信区间——而不是把各人的 Elo 简单平均。评审数少时，两者能差出一整个名次。</li>
+  </ol>
+</section>
+
+<table class="tbl small">
+  <thead><tr><th>本节题目</th><th>给定</th><th>算出的结果</th></tr></thead>
+  <tbody>
+    <tr><td>困惑度</td><td>\(p = 0.8,\ 0.5,\ 0.1\)</td><td>CE = 1.0730，PPL = 2.9240；均匀基线 3.000，只赢 2.5%</td></tr>
+    <tr><td>BLEU-4</td><td>7 词候选，仅第 6 词不同</td><td>\(P_1\ldots P_4 = 0.857/0.667/0.600/0.500\)，BLEU-4 = 0.6435</td></tr>
+    <tr><td>ROUGE-2 F</td><td>同一输出 vs 6 词 / 16 词参考</td><td>1.000 降到 0.500</td></tr>
+    <tr><td>ROUGE-L F</td><td>同一输出 vs 6 词 / 16 词参考</td><td>1.000 降到 0.5455</td></tr>
+    <tr><td>Elo 四场</td><td>\(K = 32\)，1500 : 1500 起手</td><td>A 1510.7 / B 1489.3，总分恒为 3000</td></tr>
+    <tr><td>Elo 爆冷</td><td>1700 对 1400，\(E_A = 0.849\)</td><td>胜 +4.83，平 -11.17，负 -27.17</td></tr>
+  </tbody>
+</table>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">
+    候选 7 个词、参考 7 个词，只有第 6 个词不同，四个 n-gram 精确率是 \(P_1=0.857\)、\(P_2=0.667\)、\(P_3=0.600\)、\(P_4=0.500\)。BLEU-4 最接近？
+  </p>
+  <ul class="opts">
+    <li>0.656：四个精确率取算术平均</li>
+    <li data-ok>0.644：几何平均 \(\exp\bigl(\tfrac{1}{4}\ln 0.1714\bigr)\)</li>
+    <li>0.171：直接连乘，没有开四次方</li>
+    <li>0.500：被最小的 \(P_4\) 拉到了底</li>
+  </ul>
+  <p class="why">
+    \(0.857\times0.667\times0.600\times0.500 = 0.1714\)，开四次方得 0.6435。
+    算术平均 0.656 只差 0.012，所以两种错法看起来很像——但它们在边界上完全不同：
+    若 \(P_4\) 真的是 0，几何平均直接给出 0（任何一档为 0 则整体为 0，这是 BLEU 的加固设计），
+    而算术平均仍会给 0.53。连乘 0.171 忘了开方；取最小值 0.500 则把加固特性抹平了。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">
+    同一份 6 词的候选输出，命中 5 个 bigram，分别对 6 词参考与 16 词参考算 ROUGE-2 的 F 值，F 从 1.000 变成了？
+  </p>
+  <ul class="opts">
+    <li>1.000：候选没变，命中数也没变，分数就不该变</li>
+    <li data-ok>0.500：召回率从 5/5 掉到 5/15，精确率仍是 1.000，F 正好减半</li>
+    <li>0.333：把召回率直接当成了 F 值</li>
+    <li>0.667：套用了 BLEU 的长度惩罚</li>
+  </ul>
+  <p class="why">
+    召回率的分母是<em>参考</em>的 bigram 数。参考从 5 个 bigram 涨到 15 个，\(R_2 = 5/15 = 0.333\)，
+    精确率 \(P_2 = 5/5 = 1.000\) 不变，于是 \(F_2 = 2\times1.000\times0.333/1.333 = 0.500\)。
+    0.333 是漏掉了精确率那一半；0.667 是错把 BP 当成了 F。
+    <strong>结论</strong>：参考长度是评测集的自由参数，同一份输出可以被评测方式本身压掉一半分数——
+    所以报告 ROUGE 必须同时给出规范化规则、参考长度分布，并把 P 与 R 一起列出。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">
+    Elo 里 \(R_A = 1700\)、\(R_B = 1400\)、\(K = 32\)。这一场 A 赢了，分数变化是？
+  </p>
+  <ul class="opts">
+    <li>+16.00：赢就是赢，固定加 16 分</li>
+    <li data-ok>+4.83：\(E_A = 0.849\)，赢弱手的惊喜本来就小</li>
+    <li>-27.17：这是 A 输掉时的变化量</li>
+    <li>+32.00：K 就是单场最大涨分</li>
+  </ul>
+  <p class="why">
+    \(E_A = 1/(1+10^{(1400-1700)/400}) = 0.849\)，于是 \(\Delta R_A = 32\times(1 - 0.849) = +4.83\)。
+    同一个模型输掉这一场则是 \(32\times(0-0.849) = -27.17\)——正因如此 Elo 才叫「惊喜系统」：
+    它奖励以弱胜强、惩罚以强凌弱。+16 是「势均力敌时」的涨分（分差为 0 时 \(E = 0.5\)）；
+    +32 需要 \(E = 0\)，即分差无穷大时才可能达到。
+  </p>
+</div>
+
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
   <p class="q">你的模型 CV RMSE 比基线低 15%，但置换检验 p = 0.42。合理的结论是？</p>
