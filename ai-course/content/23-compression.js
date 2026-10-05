@@ -5,7 +5,7 @@ COURSE.register({
   num: "23",
   title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
   en: "Compression & Model Merging",
-  minutes: 35,
+  minutes: 42,
   tags: ["高阶", "部署", "实用"],
   body: String.raw`
 <p class="lead">
@@ -602,6 +602,328 @@ for lam in (0.5, 1.5):
   </p>
 </section>
 
+<h3>7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）</h3>
+<p>
+  第 4 节只算了 FFN 那一块。这一节换成一个完整模型，把<strong>权重账、KV 账、延迟账</strong>分成三本分别算，
+  每一步都留中间结果，读者可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
+</p>
+<table class="tbl small">
+  <thead><tr><th>符号</th><th>取值</th><th>它出现在哪本账里</th></tr></thead>
+  <tbody>
+    <tr><td>层数 \(L\)</td><td>32</td><td>权重与 KV 都要乘它</td></tr>
+    <tr><td>隐藏维度 \(d\)</td><td>4096</td><td>参数量的主因子</td></tr>
+    <tr><td>FFN 中间维度 \(d_{ff}\)</td><td>14336</td><td>SwiGLU 的三个矩阵</td></tr>
+    <tr><td>注意力头数 \(h\) / 每头维度 \(d_h\)</td><td>32 / 128</td><td>\(h\,d_h = d\)</td></tr>
+    <tr><td>KV 头数 \(h_{kv}\)</td><td>8</td><td>GQA，\(h/h_{kv} = 4\)</td></tr>
+    <tr><td>词表 \(V\)</td><td>32000</td><td>embedding 与输出头各一份</td></tr>
+  </tbody>
+</table>
+
+<h4>7.1 第一本账：权重体积</h4>
+<p>参数量按四块相加（注意力投影、FFN、embedding、输出头）：</p>
+\[ N_{\text{attn}} = L\,(d^2 + 2\,d\,h_{kv}d_h + d^2) = 32 \times 41{,}943{,}040 \approx 1.342\times10^{9} \]
+\[ N_{\text{ffn}} = L \cdot 3\,d\,d_{ff} = 32 \times 176{,}160{,}768 \approx 5.637\times10^{9} \]
+\[ N_{\text{emb}} = 2\,V\,d = 2 \times 32000 \times 4096 \approx 0.262\times10^{9} \]
+\[ N = N_{\text{attn}} + N_{\text{ffn}} + N_{\text{emb}} \approx 7.24\times10^{9} \]
+<p>
+  也就是约 <strong>7.2 B</strong> 参数。接下来只做一次乘法：\(B_w = N \times b_w\)，
+  其中 \(b_w\) 是每个权重占的字节数。4-bit 那一行还要额外算一笔：
+  <em>每 128 个权重共享一个 fp16 缩放因子与一个 fp16 零点</em>，
+  于是每个权重多出 \(4/128 = 0.03125\) 字节。
+</p>
+<table class="tbl small">
+  <thead><tr><th>表示</th><th>每权重字节</th><th>权重体积</th><th>相对 fp16</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>fp16 / bf16</td><td>2</td><td>\(7.24\times2 = 14.5\) GB</td><td>1.00×</td><td>训练与推理的默认；也是你下载下来的那个文件</td></tr>
+    <tr><td>int8（逐通道 scale）</td><td>1</td><td>7.24 GB</td><td>2.00×</td><td>掉点通常最小的一档，多数框架默认可用</td></tr>
+    <tr><td>int4（group=128，scale 与 zero 为 fp16）</td><td>\(0.5 + 0.03125 = 0.531\)</td><td>3.85 GB</td><td>3.76×</td><td><strong>生产上最常见的 4-bit</strong>；比纸面 4.0× 差 6%</td></tr>
+    <tr><td>int4（忽略缩放开销）</td><td>0.5</td><td>3.62 GB</td><td>4.00×</td><td>只存在于幻灯片里，任何真实格式都到不了</td></tr>
+    <tr><td>NF4（group=64，非均匀格点）</td><td>约 0.53</td><td>约 3.85 GB</td><td>3.76×</td><td>格点按正态分位数摆放，押注权重近似正态</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>这张表要带走三句话</strong>：① 2 B 到 1 B 到 0.5 B 就是全部秘密，量化省的是<em>存储宽度</em>；
+  ② 真实 4-bit 到不了 4.0×，因为缩放因子也要存，group 越小开销越大；
+  ③ 权重账只付<strong>一次</strong>，与上下文长度无关——这一点马上会和 KV 账形成对比。
+</p>
+
+<h4>7.2 第二本账：KV cache</h4>
+<p>每 token 的 KV 字节数只与结构有关，与序列里已经有几个 token 无关：</p>
+\[ M_{\text{kv}} = 2 \cdot L \cdot h_{kv} \cdot d_h \cdot b = 2 \times 32 \times 8 \times 128 \times 2 = 131{,}072 \ \text{B} = 128 \ \text{KiB} \]
+<p>
+  式子里最前面的 2 是「K 与 V 各一份」，\(b = 2\) 是 fp16 的字节数。
+  要强调的是：<strong>权重账只付一次，KV 账每条序列、每个 token 都要付</strong>。
+  把 128 KiB 乘上长度，就得到一张能直接和显存对照的表：
+</p>
+<table class="tbl small">
+  <thead><tr><th>上下文长度</th><th>fp16 KV（128 KiB/token）</th><th>int8 KV（64 KiB/token）</th><th>对照</th></tr></thead>
+  <tbody>
+    <tr><td>8,192（8K）</td><td>1.0 GiB</td><td>0.5 GiB</td><td>相对 fp16 权重（14.5 GB）还很小</td></tr>
+    <tr><td>32,768（32K）</td><td>4 GiB</td><td>2 GiB</td><td>开始和权重同一量级</td></tr>
+    <tr><td>131,072（128K）</td><td>16 GiB</td><td>8 GiB</td><td><strong>一条序列就是 int4 权重的 4 倍</strong></td></tr>
+    <tr><td>16 条 × 8K 并发</td><td>16 GiB</td><td>8 GiB</td><td>并发数是被 KV 除出来的，不是拍出来的</td></tr>
+  </tbody>
+</table>
+<p>
+  注意最后一行：<em>决定并发上限的是 KV，不是权重</em>。把权重从 14.5 GB 压到 3.85 GB 省下 10.6 GB，
+  正好够 10 条 8K 序列的 fp16 KV；而 KV 量化到 int8 又能让同样的显存多装一倍序列。
+  这就是「长上下文首先是显存容量问题」的全部来源。
+</p>
+
+<h4>7.3 第三本账：解码延迟与吞吐</h4>
+<p>
+  解码一步要读一遍权重（模块 08 的结论），所以单序列的解码时间近似为「字节数 ÷ 显存带宽」。
+  取标称带宽 1.0 TB/s（一张消费级 24 GB 卡的量级；数据中心卡是它的 2–3 倍）：
+</p>
+\[ t_{\text{step}} \approx \frac{B_w}{BW} \]
+<table class="tbl small">
+  <thead><tr><th>权重格式</th><th>每步权重字节</th><th>步时（理想）</th><th>单序列吞吐（理想）</th><th>按 70% 带宽效率折算</th></tr></thead>
+  <tbody>
+    <tr><td>fp16</td><td>14.5 GB</td><td>14.5 ms</td><td>69 tok/s</td><td>约 48 tok/s</td></tr>
+    <tr><td>int8</td><td>7.24 GB</td><td>7.2 ms</td><td>138 tok/s</td><td>约 97 tok/s</td></tr>
+    <tr><td>int4</td><td>3.85 GB</td><td>3.85 ms</td><td>260 tok/s</td><td>约 180 tok/s</td></tr>
+  </tbody>
+</table>
+<p>三件事必须一起说，否则这张表会被用错：</p>
+<p>
+  <strong>① 这是上界，不是承诺。</strong>真实卡上取到标称带宽的 60%–80% 就算不错，所以表里给了两列。
+  比例的<em>关系</em>是可靠的（量化大致把单序列解码提速 2–4 倍），绝对值不可靠。
+</p>
+<p>
+  <strong>② 加速来自带宽，不是来自算力。</strong>很多 4-bit 权重内核（业界常称 W4A16）的做法是
+  先把权重反量化回 fp16、再走普通的 fp16 GEMM。这种情况下 Tensor Core 的算力<em>一点没变</em>，
+  省下来的只是把 14.5 GB 的读取换成 3.85 GB。想靠量化拿算力，要用 int8 这种有原生整数 GEMM 的格式，
+  而且只在<strong>算力受限</strong>的 prefill 阶段有效。
+</p>
+<p>
+  <strong>③ 批一大，权重就被摊薄，KV 开始主导。</strong>设批大小 \(B\)、上下文字长 \(T\)，
+  一步要读的字节数是 \(B_w + B \cdot T \cdot M_{\text{kv}}\)。取 \(B = 4\)、\(T = 131072\)、fp16 KV：
+</p>
+\[ B \cdot T \cdot M_{\text{kv}} = 4 \times 131072 \times 131072 \approx 6.87\times10^{10} \ \text{B} \]
+<p>
+  也就是约 <strong>69 GB</strong> 的 KV 流量，而权重只有 3.85 GB（int4）——<em>KV 是权重的 18 倍</em>。
+  结论很直接：<strong>长上下文服务里只量化权重几乎没用，必须同时处理 KV。</strong>
+  把 KV 也压到 int4（约 34 KiB/token，含缩放开销），这一步的流量降到约 \(1.8\times10^{10}\) B，
+  步时从 72 ms 回到 22 ms，4 条序列合计约 180 tok/s。
+  第 24 章第 8 节会用同一套式子做架构选型。
+</p>
+
+<h3>8. 该不该压：先看卡在哪，再选手段</h3>
+<p>
+  压缩的门槛从来不是「能不能压」，而是「压完有没有解决你真正的问题」。
+  下面这张表按<strong>症状</strong>索引：先在左列找到你观察到的现象，再往右看该动哪一步。它可以直接当查表用。
+</p>
+<table class="tbl small">
+  <thead><tr><th>你观察到的症状</th><th>首选手段</th><th>预期量级</th><th>主要代价</th><th>一行验证方法</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>加载模型就 OOM，权重占满显存</td>
+      <td>4-bit PTQ（GPTQ / AWQ / NF4 这一类）</td>
+      <td>权重 ÷ 3.8</td>
+      <td>长尾能力下降，结果受校准集影响</td>
+      <td>量化前后跑同一份评测的困惑度（见第 9 节）</td>
+    </tr>
+    <tr>
+      <td>权重不大，但并发 4 条长序列就 OOM</td>
+      <td>KV 量化 + 滑窗 / GQA</td>
+      <td>KV ÷ 2 到 ÷ 10</td>
+      <td>注意力精度轻微下降</td>
+      <td>固定显存下还能开几条序列（不是看困惑度）</td>
+    </tr>
+    <tr>
+      <td>batch=1 解码只有 20 tok/s，用户等不了</td>
+      <td>权重量化（低比特）＋ 投机解码</td>
+      <td>延迟与权重字节数成正比</td>
+      <td>需要支持该格式的内核</td>
+      <td>量 tok/s，不要量 FLOPs</td>
+    </tr>
+    <tr>
+      <td>首 token 要等几秒（prefill 慢）</td>
+      <td>量化帮助有限；先查内核与批量大小</td>
+      <td>多半停留在 1× 附近</td>
+      <td>容易花掉时间却看不到变化</td>
+      <td>量 TTFT 与 GPU 利用率，再决定</td>
+    </tr>
+    <tr>
+      <td>稀疏度 90%，速度没变</td>
+      <td>这是结构性错误：先换存储格式与内核</td>
+      <td>通用内核约 1×</td>
+      <td>可能白做一次实验</td>
+      <td>同时打印非零占比与墙钟时间</td>
+    </tr>
+    <tr>
+      <td>手上 6 个同源 LoRA，要部署 6 份</td>
+      <td>TIES / DARE 合并</td>
+      <td>6 份变 1 份</td>
+      <td>基座与 tokenizer 必须同源</td>
+      <td>合并后在每个任务上分别评测</td>
+    </tr>
+    <tr>
+      <td>算力被激活参数卡住，显存还有余</td>
+      <td>MoE upcycling（或直接换更大的 MoE）</td>
+      <td>容量上升，每 token 算力不变</td>
+      <td>显存上升、需要大规模训练</td>
+      <td>同时报总参数与激活参数</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>同样重要的是「什么时候绝对不该做」——高级章最容易犯的错，是把每个技术都写成必需品：</strong></p>
+<table class="tbl small">
+  <thead><tr><th>你的情况</th><th>结论</th><th>原因</th><th>一行验证</th></tr></thead>
+  <tbody>
+    <tr><td>模型小于 1B，且和推理代码跑在同一台机器上</td><td>不要量化</td><td>省下的不到 1 GB，却给输出加了一层有界噪声</td><td>算 \(N \times 2\) GB，看它占显存的比例</td></tr>
+    <tr><td>目标是提高准确率，显存与延迟都够</td><td>不要压缩</td><td>压缩只会让指标变差，不会变好</td><td>先画误差-数据量曲线（模块 09）</td></tr>
+    <tr><td>输出是回归出来的连续标量</td><td>不要量化输出头</td><td>目标本来就在小数值上比较，量化噪声可能翻转结论</td><td>量化前后比较指标的置信区间</td></tr>
+    <tr><td>不能重训，也没有稀疏硬件</td><td>剪枝 / 稀疏 / 蒸馏全部出局</td><td>它们要么要重训，要么在通用 GPU 上不加速</td><td>先查有没有 2:4 支持（见 2.1）</td></tr>
+    <tr><td>手上没有同源的多个微调模型</td><td>合并没有对象</td><td>不同基座合并出来的结果是噪声</td><td>对比两份 config 的 tokenizer 与层数</td></tr>
+  </tbody>
+</table>
+
+<h4>8.1 失败模式四段式：症状 → 原因 → 一行验证 → 对策</h4>
+<table class="tbl small">
+  <thead><tr><th>症状</th><th>原因</th><th>一行验证</th><th>对策</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>量化后输出重复、循环、偶尔乱码</td>
+      <td>少数激活通道幅值极大，把整组的 scale 拉爆，小权重全被压到同一个格点</td>
+      <td>逐层打印激活绝对值最大值与中位数之比</td>
+      <td>离群通道保留 fp16；或用按激活幅度保护显著通道的方法（AWQ 的思路）</td>
+    </tr>
+    <tr>
+      <td>主评测没掉，长上下文 / 代码 / 小语种崩了</td>
+      <td>量化误差集中在低频 token，主评测覆盖不到</td>
+      <td>把评测集换成长尾子集重跑一次困惑度</td>
+      <td>逐层混合精度（敏感层留 8 bit），或减小 group size</td>
+    </tr>
+    <tr>
+      <td>显存一点没降</td>
+      <td>你只量化了权重，KV 还在按 fp16 增长</td>
+      <td>分开量权重与 KV（框架的 memory summary）</td>
+      <td>KV 量化，或降低并发、加滑窗</td>
+    </tr>
+    <tr>
+      <td>精度对了，速度没变</td>
+      <td>低比特内核没被调用，回落到「反量化 + fp16 GEMM」</td>
+      <td>用 profiler 看实际执行的内核名</td>
+      <td>换成后端支持的低比特格式，或接受「只省显存不省时间」</td>
+    </tr>
+    <tr>
+      <td>和公开报告的数字差很远</td>
+      <td>校准集、group size、评测口径三件事不同</td>
+      <td>对齐这三项后重跑</td>
+      <td>只和自己同口径的基线比，不比别人的绝对值</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>9. 二十分钟量出「掉了多少精度」</h3>
+<p>
+  压缩最容易糊弄的一步是评估：很多人只测几条自己写的样例，看到「还能答」就上线了。
+  正确做法是<strong>固定一份评测文本，量化前后各跑一次困惑度</strong>，再额外跑一个长尾子集。
+  下面这个脚本不到 20 行 CPU 上就能看到趋势；换成 7B 只需要改一个字符串。
+</p>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>30 分钟最小实现：量出 int4 相对 bf16 掉了多少</h4>
+  <p>
+    先准备一个 <code>eval.txt</code>：把你自己业务里 100 条左右的文本拼在一起（音频项目的报告、
+    标注说明、领域文档都行）。<strong>不要用训练集</strong>，否则量出来的是记忆而不是泛化。
+  </p>
+<pre><code>import torch, math
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+mid = "Qwen/Qwen2.5-0.5B"          <span class="cm"># 0.5B 足够看清趋势，换成你的 7B 不改结构</span>
+tok = AutoTokenizer.from_pretrained(mid)
+text = open("eval.txt", encoding="utf-8").read()
+ids = tok(text, return_tensors="pt").input_ids
+window = 512                        <span class="cm"># 固定窗口，保证两次评测用的是同一份数据</span>
+
+def ppl(model):                     <span class="cm"># 困惑度 = 平均负对数似然的指数</span>
+    nll, n = 0.0, 0
+    for i in range(0, ids.size(1) - window, window):
+        x = ids[:, i:i + window].to(model.device)
+        with torch.no_grad():
+            nll += model(x, labels=x).loss.item() * (x.size(1) - 1)
+        n += x.size(1) - 1
+    return math.exp(nll / n)
+
+m16 = AutoModelForCausalLM.from_pretrained(mid, torch_dtype=torch.bfloat16, device_map="auto")
+m4 = AutoModelForCausalLM.from_pretrained(mid, load_in_4bit=True, device_map="auto")
+mb = lambda m: sum(p.numel() * p.element_size() for p in m.parameters()) / 2**20
+
+print("bf16 ppl =", round(ppl(m16), 4), "| int4 ppl =", round(ppl(m4), 4))
+print("delta =", round(ppl(m4) - ppl(m16), 4), "| ratio =", round(ppl(m4) / ppl(m16), 4))
+print("MB: bf16 =", round(mb(m16), 1), "| int4 =", round(mb(m4), 1))</code></pre>
+  <p>
+    <code>load_in_4bit=True</code> 走的是 bitsandbytes 的 NF4 路径；环境没有 CUDA 时，
+    可以换成 PyTorch 原生的 torchao 量化 API，脚本结构与上面完全相同（只换掉加载那两行）。
+    想更严格一点，就把 <code>eval.txt</code> 换成长尾内容再跑一次。
+  </p>
+  <p><strong>要记录并解释的三个数字：</strong></p>
+  <p>
+    <strong>① 全量 <code>delta</code>。</strong>同一个模型、同一份文本，int4 相对 bf16 的困惑度差。
+    量级参考：好的 4-bit 方案通常落在 0.1–0.5 之间（第 5 节引用的 torchao 实测是 0.63：9.1477 到 9.7745）。
+    这个数字本身不是好坏的判据，<em>要和你的任务指标一起看</em>。
+  </p>
+  <p>
+    <strong>② 压缩比 <code>MB(bf16) / MB(int4)</code>。</strong>用它去对照 7.1 的表：理论上是 3.76×，
+    实测明显偏低，说明有些层（embedding、归一化、输出头）没有被量化。
+    <em>这一条最常被忽略</em>：只量化 Linear 层时 embedding 与 LM head 还在 fp16，实际收益会低于 3.76×。
+  </p>
+  <p>
+    <strong>③ 长尾子集上的 <code>delta</code>。</strong>把 <code>eval.txt</code> 换成你的长尾内容再跑一次。
+    如果全量 delta 是 0.2、长尾是 2.0，这个量化方案对你就不可用——
+    而只跑全量评测的人会得出完全相反的结论。
+  </p>
+  <p>
+    <strong>别忘了任务级指标。</strong>困惑度只衡量「预测下一个 token」，
+    对生成质量、指令跟随、回归误差都不敏感。压缩前后必须再跑一遍模块 09 的那套任务指标，
+    并额外报「成对偏好胜率」这类相对指标。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么用在真实项目里：crossfade 项目要不要压？</h4>
+  <p>
+    <strong>先把 crossfade 项目拆成两个模型。</strong>一个是<em>音频模型本身</em>
+    （频谱编码器加回归头，量级 10M–100M 参数，输出 \(T^*\)、LUFS、谱通量这类连续量）；
+    另一个是你旁路的 <em>LLM 助手</em>（读实验日志、写报告、生成标注、批量跑分析）。
+    这两个模型的压缩结论<strong>完全相反</strong>，混在一起谈一定会选错。
+  </p>
+  <p>
+    <strong>对音频模型本身：基本不值。</strong>先算账：100M 参数在 fp16 下只有
+    \(100\times10^{6} \times 2\ \text{B} = 0.2\ \text{GB}\)，量化到 4-bit 大约省 0.15 GB——
+    在一张 24 GB 卡上这个数字没有任何工程意义。而你的模型输出是连续标量，
+    评测协议（模块 09 的 LUFS、谱通量、成对偏好）本身就是在小数值上做比较，
+    多出来的一层量化噪声完全可能让 A/B 结论翻面。
+    <em>剪枝同理：没有 2:4 硬件适配的小模型，参数少一半也不加速，还要重训一遍。</em>
+  </p>
+  <p>
+    <strong>合并这类技术在你这里反而可能值。</strong>如果你按「听众组 / 曲风 / 录音条件」
+    分别微调了若干个 LoRA，可以用 TIES 或 DARE 把它们合成一个，
+    省下的是每次实验都要切换适配器、每个版本都要单独评测的心智负担。
+    前提仍然是 6.4 里的三条：同一基座、同一 tokenizer，并且先打印各 delta 的范数看量级是否可比。
+  </p>
+  <p>
+    <strong>对旁路的 LLM 助手：值，而且经常是决定性的。</strong>
+    7.2B 在 fp16 下是 14.5 GB，4-bit 是 3.85 GB，省下 10.6 GB。
+    按 7.2 的账，这 10.6 GB 正好等于 10 条 8K 序列的 fp16 KV——
+    也就是说，量化让「本地跑一个助手」和「同时跑 10 条长上下文分析」从二选一变成可以同时做。
+    这类收益是<strong>容量型</strong>的：它不提升单条质量，但把「能不能跑」变成「跑得动」。
+  </p>
+  <p>
+    <strong>一句话答案</strong>：crossfade 项目里，
+    <em>量化值得用在旁路的大模型上，不值得用在直接出预测的音频模型上；
+    合并值得用在你的多个 LoRA 上；剪枝与稀疏在你不能重训的前提下不值得花时间。</em>
+  </p>
+  <p>
+    <strong>可照抄的顺序</strong>：① 先记录基线（助手模型的困惑度加上音频模型的任务指标）；
+    ② 只对助手模型做 4-bit PTQ；③ 用第 9 节那 20 行脚本量 <code>delta</code>（全量与长尾各一次）；
+    ④ 若 delta 超出你评测协议里的最小可觉察差异，退回 int8 或做逐层混合精度；
+    ⑤ 音频模型保持 fp16，把省下来的显存给并发和上下文。
+  </p>
+</section>
+
 <section class="blk blk-warn">
   <h4><span class="ic">!</span>常见误区</h4>
   <p>
@@ -705,6 +1027,71 @@ for lam in (0.5, 1.5):
     需要完整训练流程，收益是「捡回一部分」而不是「全部」
     （torchao 实测约 33%–67%）。QLoRA 量化的是<em>冻结</em>的基座，
     训练的是浮点 LoRA，与 QAT 不是一回事。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">一个 7.2B 模型，权重按 group=128 的 4-bit 存放，每组带一个 fp16 缩放因子与一个 fp16 零点。它的权重体积最接近？</p>
+  <ul class="opts">
+    <li>1.8 GB，因为 4-bit 是 fp16 的四分之一</li>
+    <li data-ok>3.85 GB：每个权重 \(0.5 + 4/128\) 字节，比纸面的 3.62 GB 多出约 6%</li>
+    <li>7.24 GB，和 int8 一样</li>
+    <li>14.5 GB，因为缩放因子必须用 fp32 存</li>
+  </ul>
+  <p class="why">
+    4-bit 只决定数值本身的宽度，每组还要额外存缩放因子与零点：
+    \(7.24\times10^{9} \times (0.5 + 4/128) \approx 3.85\) GB。
+    实际收益还常低于这个数，因为 embedding 与输出头往往没被量化——
+    这正是第 9 节要求记录「实测压缩比」而不是相信理论值的原因。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">某模型 \(L=32\)、\(h_{kv}=8\)、\(d_h=128\)，KV 用 fp16。128K 上下文（131072 个 token）时，<strong>一条</strong>序列的 KV cache 大约是多少？</p>
+  <ul class="opts">
+    <li>128 MiB</li>
+    <li>1 GiB</li>
+    <li data-ok>16 GiB：每 token \(2\times32\times8\times128\times2 = 128\) KiB</li>
+    <li>与上下文无关，因为状态是固定大小的</li>
+  </ul>
+  <p class="why">
+    \(128\ \text{KiB} \times 131072 = 16\) GiB。这个数字与权重直接可比：
+    fp16 权重 14.5 GB、int4 权重 3.85 GB。长上下文服务里 KV 才是决定并发上限的那本账，
+    而权重只付一次——所以只量化权重解决不了长上下文。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">你的服务是 batch=1 的交互式解码，每步比预期慢很多，显存也快满了。按第 8 节的决策表，第一步该做什么？</p>
+  <ul class="opts">
+    <li>把 FFN 剪掉 50%，用稀疏换速度</li>
+    <li data-ok>先确认是不是带宽瓶颈（每步读一遍权重），然后做权重量化；非结构化剪枝不改变字节数，通常既不省显存也不加速</li>
+    <li>把学习率调小重训一遍</li>
+    <li>把 KV cache 挪到 CPU 内存</li>
+  </ul>
+  <p class="why">
+    解码一步的时间近似是「读的字节数 ÷ 带宽」。置零不减少字节数，通用内核也不跳过零，
+    所以剪枝在这个场景几乎没有收益；权重量化直接把字节数减少 2–4 倍，是对症的那一步。
+    把 KV 挪到 CPU 只会给每步加一次 PCIe 往返。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">量化前后你只在自建的一小份评测上量了困惑度，全量 delta 是 0.2，看起来可以接受。还缺哪一步？</p>
+  <ul class="opts">
+    <li>不需要别的，0.2 已经足够小</li>
+    <li data-ok>必须在长尾子集（长上下文、代码、小语种）与任务级指标上各量一次——量化误差常常集中在长尾，而主评测测不到</li>
+    <li>应该把位宽继续降到 2-bit 再看</li>
+    <li>应该换更大的校准集，直到 delta 变成 0</li>
+  </ul>
+  <p class="why">
+    压缩最先伤到的几乎总是长尾，而自建评测往往覆盖不到。
+    另外困惑度只衡量下一个 token 的预测，对生成质量与回归误差都不敏感，
+    所以还要跑模块 09 的任务指标。delta 变成 0 通常说明量化没有真正生效，不是一个目标。
   </p>
 </div>
 

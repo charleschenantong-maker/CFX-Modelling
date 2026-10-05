@@ -5,7 +5,7 @@ COURSE.register({
   num: "19",
   title: "检索增强与上下文工程：把知识放进提示，而不是权重里",
   en: "RAG & Context Engineering",
-  minutes: 35,
+  minutes: 45,
   tags: ["高阶", "系统", "实用"],
   body: String.raw`
 <p class="lead">
@@ -439,6 +439,234 @@ COURSE.register({
   顺序反了（先上长上下文、再想优化）会让成本结构在早期就锁死。
 </p>
 
+<h3>7. 混合检索：把 BM25 与向量真的合起来</h3>
+<p>
+  第 2.3 节的表里已经写了「混合通常最稳」，但真正动手时你会立刻撞上一个问题：
+  <strong>BM25 的分数可以是从 0 到几十的无界值，余弦相似度被限制在 -1 到 1 之间，两者根本不在一个尺度上</strong>。
+  直接把分数相加，等于让量纲大的那一路说了算。
+</p>
+<h4>7.1 三种融合方式与它们的代价</h4>
+<table class="tbl small">
+  <thead><tr><th>融合方式</th><th>怎么做</th><th>优点</th><th>代价 / 坑</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>分数归一化后加权</td>
+      <td>各自做 min-max 或 z-score 归一，再算 \(w_1 s_1 + w_2 s_2\)</td>
+      <td>权重可调、结果可解释</td>
+      <td>归一化依赖每次查询的候选集，分布一漂移就失效</td>
+    </tr>
+    <tr>
+      <td>倒数排名融合（RRF）</td>
+      <td>只用名次：\(\sum_r 1/(\kappa + \mathrm{rank}_r)\)</td>
+      <td>不需要两路分数可比；几乎没有超参；对离群分数鲁棒</td>
+      <td>丢掉分数的间隔信息（第一名 0.99 与 0.51 被当成一样）</td>
+    </tr>
+    <tr>
+      <td>级联（先稀疏后稠密）</td>
+      <td>BM25 先取 top-200，再用向量精排</td>
+      <td>便宜、延迟低、实现最少</td>
+      <td>被 BM25 漏掉的语义改写永远进不了第二步</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  工程默认建议：<strong>先上 RRF 当基线，把它跑出一个数；只有当留出集明确显示某一路更好时，才去调加权融合的权重</strong>。
+  这也是「先要一个可信的基线，再谈优化」在检索上的具体形态。
+</p>
+<h4>7.2 手算一遍 RRF</h4>
+<p>同一次查询，两路各返回 3 条，取 \(\kappa = 60\)，名次从 1 开始：</p>
+<table class="tbl small">
+  <thead><tr><th>块 id</th><th>BM25 名次</th><th>向量名次</th><th>BM25 贡献</th><th>向量贡献</th><th>RRF 合计</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>A</td><td>1</td><td>3</td>
+      <td>\(1/61 \approx 0.01639\)</td><td>\(1/63 \approx 0.01587\)</td>
+      <td><strong>0.03226</strong></td>
+    </tr>
+    <tr>
+      <td>B</td><td>3</td><td>1</td>
+      <td>\(1/63 \approx 0.01587\)</td><td>\(1/61 \approx 0.01639\)</td>
+      <td><strong>0.03226</strong></td>
+    </tr>
+    <tr>
+      <td>C</td><td>2</td><td>未命中</td>
+      <td>\(1/62 \approx 0.01613\)</td><td>0</td>
+      <td>0.01613</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  两个结论都很实用：<strong>(1) A 与 B 精确打平</strong>——RRF 只关心名次，所以「两边都靠前」比
+  「一路第一、另一路完全没出现」更值钱；<strong>(2) C 虽然 BM25 排第 2，却没有任何融合优势</strong>。
+  这解释了 RRF 为什么能压住单路检索的噪声：一个块只有被两路都认可，才能冲到前面。
+  反过来说，如果你的查询全是精确串（错误码、型号），两路结果高度重合，RRF 的收益就接近于零——
+  这时候省掉向量那一路更快。
+</p>
+<h4>7.3 开源组件选型：先看许可与形态，再看榜单</h4>
+<table class="tbl small">
+  <thead><tr><th>组件</th><th>负责哪一步</th><th>形态与许可（量级信息）</th><th>什么时候够用</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>SQLite FTS5</td>
+      <td>稀疏检索（内置 bm25() 排名函数）</td>
+      <td>C 库，随 Python 标准库分发；SQLite 自 3.9.0（2015-10-14）内置</td>
+      <td>语料在百万 token 量级、单机、要零依赖：直接用，不用引入任何服务</td>
+    </tr>
+    <tr>
+      <td>rank_bm25</td>
+      <td>纯 Python 的 Okapi BM25</td>
+      <td>纯 Python 包，几十行核心逻辑，便于读源码与改公式</td>
+      <td>要把 BM25 的参数 \(k_1\)、\(b\) 拿来做实验时</td>
+    </tr>
+    <tr>
+      <td>FAISS</td>
+      <td>稠密向量近邻检索</td>
+      <td>C++/Python 库，MIT 许可；支持 CPU 与 GPU</td>
+      <td>向量超过十万条、且你不想自己写矩阵乘法时</td>
+    </tr>
+    <tr>
+      <td>hnswlib</td>
+      <td>近似近邻（HNSW 图索引）</td>
+      <td>头文件式 C++ 库 + Python 绑定，Apache-2.0</td>
+      <td>要亚线性检索、能接受近似结果与调参（M、ef）时</td>
+    </tr>
+    <tr>
+      <td>sentence-transformers</td>
+      <td>本地嵌入与交叉编码重排</td>
+      <td>Python 库，Apache-2.0；模型权重可离线下载后本地跑</td>
+      <td>需要真正的语义检索，且不接受把语料发到外部服务时</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>选型顺序建议</strong>：先用最小依赖把「召回 + 融合」跑通并量出 Recall@k，
+  再按瓶颈换组件——瓶颈在召回就换嵌入与切分，瓶颈在排序就加重排，瓶颈在延迟就先减 \(k\)。
+  反过来（先选一个大组件库、再回头看指标）几乎总是把时间花在集成而不是效果上。
+</p>
+
+<h3>8. 切分策略与上下文预算：把窗口当表格来分配</h3>
+<p>先做一个可复算的对比，这是决定检索上限的一步。</p>
+<h4>8.1 手算：固定切分 vs 结构切分</h4>
+<p>
+  语料 \(N_{\text{tok}} = 10^{6}\)，200 份文档（平均每份 5000 token），每份文档平均 8 个小节。
+  方案甲：固定 400 token、重叠 50；方案乙：按小节切分，上限仍为 400 token。
+</p>
+<table class="tbl small">
+  <thead><tr><th>量</th><th>方案甲（固定 400 / 重叠 50）</th><th>方案乙（按小节，上限 400）</th><th>怎么算</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>块数</td>
+      <td>\(10^{6}/350 \approx 2857\)</td>
+      <td>约 2000–2400（每份 8 节，小节平均 625 token，超 400 的才拆）</td>
+      <td>甲按可推进长度，乙按结构单元</td>
+    </tr>
+    <tr>
+      <td>混了两个主题的块</td>
+      <td>约 <strong>2300 个</strong></td>
+      <td><strong>约 0 个</strong>（边界即切点）</td>
+      <td>甲：每份文档约 13 个切点，其中只有约 1/8 落在小节边界上</td>
+    </tr>
+    <tr>
+      <td>首句无法自解释的块</td>
+      <td>多（块首常出现「该参数」「上述条件」）</td>
+      <td>少（小节首句通常是完整的）</td>
+      <td>抽 50 个块，数首句能否独立理解</td>
+    </tr>
+    <tr>
+      <td>索引与候选集体积</td>
+      <td>块数多 30%–80%</td>
+      <td>块更少、更整齐</td>
+      <td>块数是检索分与生成分共同的乘数</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>读法</strong>：方案乙更便宜、主题更干净，但它要求解析器能认出标题层级——
+  也就是要求你在第 2 步把文档解析做对。如果只能拿到裸文本，方案甲加 10%–20% 重叠是唯一选择。
+  两块的折中「小块检索、大块喂给模型」（小块做索引，命中后送它的父块）在这里特别有用：
+  索引用 400 token 保精度，喂给模型的父块约 1600–2000 token 保完整。
+</p>
+<h4>8.2 手算：一份 8192 token 的预算表</h4>
+<p>把窗口当账本：先分配，再检索，而不是检索完了看能不能塞下。</p>
+<table class="tbl small">
+  <thead><tr><th>区段</th><th>预算</th><th>实际需要</th><th>超预算先砍谁</th><th>理由</th></tr></thead>
+  <tbody>
+    <tr><td>系统指令（不可压缩区）</td><td>300</td><td>260</td><td>不砍</td><td>引用格式、拒答规则、安全红线要逐字保留</td></tr>
+    <tr><td>输出 schema 说明</td><td>400</td><td>380</td><td>不砍</td><td>砍了就无法程序化校验引用与拒答位</td></tr>
+    <tr><td>few-shot 示例（稳定前缀）</td><td>1200</td><td>1150</td><td>减到 2 个示例</td><td>它是缓存命中的主体，改动会让前缀失效</td></tr>
+    <tr><td>检索资料（\(k\) 块）</td><td>4800</td><td>\(12 \times 400 = 4800\)</td><td>按 RRF 分数从低到高删</td><td>删低分块既省钱又减少干扰，是唯一「越删越好」的部分</td></tr>
+    <tr><td>用户问题 + 本轮时间戳</td><td>300</td><td>180</td><td>不砍</td><td>变化内容放最后，不进缓存前缀</td></tr>
+    <tr><td>回答预留（输出预算）</td><td>1192</td><td>600–1200</td><td>先压到 600</td><td>预留不足会让回答被截断</td></tr>
+    <tr><td>合计</td><td>8192</td><td>约 7370</td><td>—</td><td>留约 10% 余量给 tokenizer 与格式开销</td></tr>
+  </tbody>
+</table>
+<p>
+  两个检查点：<strong>(1) 输入侧合计（前五行）不能超过「窗口 − 输出预留」</strong>；
+  <strong>(2) 稳定前缀必须逐字节一致</strong>，否则缓存不命中，省下的 token 又从别处花回去。
+  按上面这组数，\(k = 12\) 是线上限；如果留出集显示 \(k = 6\) 的端到端正确率与 \(k = 12\) 相同，
+  就砍到 6，把省下的 2400 token 换成更好的回答质量或更低的成本。
+</p>
+
+<h3>9. 让 RAG 可回归：忠实度、引用支持率与失败模式表</h3>
+<p>这一节把第 3 节的四层指标变成一套每周能跑一次、结果可比的检查。</p>
+<h4>9.1 手算：忠实度与引用是两个不同的数</h4>
+<p>
+  对某个问题，模型的回答里有 12 个可判定的论断（claim）：9 个能在给定资料里找到支持，
+  2 个资料里完全没有依据，1 个与资料矛盾。回答里标了 10 条引用，其中 8 条确实支持它所在的那一句。
+</p>
+<ul>
+  <li>忠实度（按论断）：\(9/12 = 0.750\)。分母是论断数，不是句子数，也不是 token 数。</li>
+  <li>无依据率 \(2/12 = 0.167\)，矛盾率 \(1/12 = 0.083\)。
+     矛盾比无依据更严重——它不是没查到，而是读反了，往往对应资料互相冲突（第 2.5 节的去重与冲突处理）。</li>
+  <li>引用 id 合法率：\(10/10 = 1.00\)。这是规则可查的：id 是否来自本次上下文。</li>
+  <li>引用支持率：\(8/10 = 0.80\)。这需要判定：被引段落是否真的支持该句。</li>
+</ul>
+<p>
+  <strong>关键结论</strong>：只看「引用 id 合法率」，这个系统看起来满分（1.00），
+  但忠实度只有 0.75。两个数必须分开报告，否则你会以为问题出在检索，而实际问题在「读得不准」。
+</p>
+<h4>9.2 失败模式表：症状 → 原因 → 一行验证 → 对策</h4>
+<table class="tbl small">
+  <thead><tr><th>症状</th><th>最可能的原因</th><th>一行验证</th><th>对策</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>回答里出现资料中没有的编号或数字</td>
+      <td>嵌入把精确串压掉了，纯向量检索漏召回</td>
+      <td>把该编号当查询词单独跑一次 BM25，看它是否进候选集</td>
+      <td>补一路稀疏检索做 RRF；编号类字段另建正排索引</td>
+    </tr>
+    <tr>
+      <td>Recall@5 不低，但答案仍缺关键信息</td>
+      <td>关键块被埋在上下文中间；或答案需要跨块合成</td>
+      <td>把该块人工移到上下文首位再问一次，看答案是否变对</td>
+      <td>重要资料放头尾；小块检索、父块喂模型（第 8.1 节）</td>
+    </tr>
+    <tr>
+      <td>引用 id 全部合法，内容却张冠李戴</td>
+      <td>只校验了 id 存在，没校验内容支持关系</td>
+      <td>抽 20 条引用，人工判「该段落是否支持该句」</td>
+      <td>把引用支持率做成指标；要求逐句标注并做判定式校验</td>
+    </tr>
+    <tr>
+      <td>同一批问题今天对、明天错</td>
+      <td>索引或解析变了，或缓存前缀被改动</td>
+      <td>记录上下文哈希，比对两次请求的哈希是否一致</td>
+      <td>把索引版本、提示版本、模型版本写进每条日志</td>
+    </tr>
+    <tr>
+      <td>从不拒答，任何问题都给一个答案</td>
+      <td>缺少「资料不足」的出口，或拒答被当成失败</td>
+      <td>故意问一个资料里没有的问题，看它是否回答「资料不足」</td>
+      <td>显式允许拒答并统计拒答率；把拒答正确率写进回归集</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>回归集的最小规模</strong>：50 道留出题（每类失败至少 5 道）足以把端到端正确率的噪声压到可比较的量级。
+  每题记录 Recall@\(k\)、MRR、忠实度、引用支持率、是否拒答、输入 token、延迟七个数；
+  每周只跑这一套，改动前后对比同一批题，才谈得上「优化」。
+</p>
+
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：最小可用 RAG，并对比「无检索 / 有检索」</h4>
   <p>
@@ -512,6 +740,71 @@ for q, gold in holdout:
   </p>
 </section>
 
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>30 分钟最小实现：零托管服务的混合检索</h4>
+  <p>
+    限制条件：只用 Python 标准库加 numpy，不调任何托管 API、不装向量数据库。
+    稀疏一路用 SQLite 自带的 FTS5（SQLite 3.9.0 起内置，2015-10-14 发布；FTS5 提供 bm25() 排名函数），
+    稠密一路用下面这 10 行哈希向量（零下载、零模型），融合用 RRF。
+    这是教学用的下限实现：真实项目里把哈希向量换成 <code>sentence-transformers</code> 等本地模型，
+    再把 FTS5 换成 <code>rank_bm25</code> 或自己的倒排索引即可，接口不变。
+  </p>
+<pre><code><span class="cm"># 混合检索下限实现：SQLite FTS5(BM25) + 哈希向量 + RRF；只用标准库与 numpy</span>
+import sqlite3, hashlib
+import numpy as np
+
+DIM = 512
+
+def vec(text):                     <span class="cm"># 纯本地哈希向量；换成 sentence-transformers 即可升级</span>
+    v = np.zeros(DIM)
+    for tok in text.lower().split():
+        h = int(hashlib.md5(tok.encode()).hexdigest()[:8], 16)
+        v[h % DIM] += 1.0
+    n = np.linalg.norm(v)
+    return v / n if n else v
+
+chunks = [("docA-1", "梯度裁剪与 warmup 学习率"), ("docA-2", "混合精度与 loss scale"),
+          ("docB-1", "数据增强与随机裁剪")]
+ids = [c[0] for c in chunks]
+E = np.stack([vec(t) for _, t in chunks])
+db = sqlite3.connect(":memory:")
+db.execute("CREATE VIRTUAL TABLE fts USING fts5(cid, body)")
+db.executemany("INSERT INTO fts(cid, body) VALUES (?, ?)", chunks)
+
+def sparse(q, k=20):               <span class="cm"># FTS5 的 bm25() 越小越相关，所以按升序取</span>
+    rows = db.execute("SELECT cid FROM fts WHERE fts MATCH ? ORDER BY bm25(fts) LIMIT ?",
+                      (q, k)).fetchall()
+    return [r[0] for r in rows]
+
+def dense(q, k=20):
+    order = np.argsort(-(E @ vec(q)))[:k]
+    return [ids[i] for i in order]
+
+def rrf(lists, kappa=60, top=5):   <span class="cm"># 名次融合：不需要两路分数可比</span>
+    score = {}
+    for lst in lists:
+        for rank, cid in enumerate(lst, 1):
+            score[cid] = score.get(cid, 0.0) + 1.0 / (kappa + rank)
+    return sorted(score.items(), key=lambda kv: -kv[1])[:top]
+
+q = "warmup 学习率"
+print("BM25 :", sparse(q))
+print("向量 :", dense(q))
+print("RRF  :", rrf([sparse(q), dense(q)]))</code></pre>
+  <p>
+    <strong>要记录的三个数字</strong>（缺一个这次实验就白做）：
+    ① 留出 20 题上的 <strong>Recall@5</strong>（gold 块是否进前 5）；
+    ② 同一批题的 <strong>MRR</strong>（第一条命中的名次倒数平均）；
+    ③ 每次查询的 <strong>最终上下文 token 数</strong>（决定成本上限）。
+    先只跑 BM25、再只跑向量、最后跑 RRF，三个数字各记一遍——
+    你就能亲眼看到混合检索的收益到底来自哪一路，而不是凭感觉相信「混合一定更好」。
+  </p>
+  <p>
+    最后加一步，把第 9.2 节的表用起来：从 50 道留出题里挑 5 道错得最典型的，
+    按「症状 → 一行验证 → 对策」填满，作为你下一次改动的清单。
+  </p>
+</section>
+
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>五个最常见的误区</h4>
   <ol>
@@ -567,6 +860,42 @@ for q, gold in holdout:
   </ol>
 </section>
 
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>crossfade 项目上值不值：一个明确回答</h4>
+  <p>
+    <strong>结论：值得，但只值得「轻量版」，不值得上一套向量数据库服务。</strong>
+    理由可以算。crossfade 音频建模项目的知识面其实很窄：论文笔记、特征与超参对照表、
+    失败实验记录，加上你自己的代码注释。这些全部加起来通常不到 10 万 token，
+    而你的问题是高度重复的（「这个超参在哪个实验里调过」「上次那个爆音的配置是什么」）。
+  </p>
+  <ul>
+    <li>
+      <strong>值的部分——可溯源</strong>：音频建模里一次结论往往依赖具体配置，
+      「哪份笔记、哪一行、哪次实验」比「一个流畅的回答」重要得多，
+      这正是检索相对长上下文与微调的强项（第 1 节的对照表）。
+    </li>
+    <li>
+      <strong>值的部分——精确串召回</strong>：你的语料里满是 <code>lr=3e-4</code>、<code>n_fft=1024</code>、<code>hop=256</code>
+      这样的 token，纯向量检索会把它们压掉（第 9.2 节第一行失败模式）；混合检索几乎是零成本的解药。
+    </li>
+    <li>
+      <strong>不值当的部分</strong>：如果语料小于约 3 万 token，或者你反复问的就是同几页资料，
+      那直接把全文放进上下文更简单——省掉解析、切分、索引、评估四件事，也就省掉一条要长期维护的管线。
+      第 6 节算过：10 万 token 全量塞入约是每问 0.15 美元量级（按该节假设单价）。
+      只有当请求量上去、或者语料继续增长时，检索的成本优势才会反超。
+    </li>
+    <li>
+      <strong>明确不要做的</strong>：不要为了「看起来专业」而引入托管向量数据库。
+      先用第 7.3 节里 SQLite FTS5 加本地嵌入把 Recall@5 与忠实度测出来；
+      只有当索引涨到几百 MB、或需要多用户并发时，才考虑 FAISS、hnswlib 这类专用组件。
+    </li>
+  </ul>
+  <p>
+    一句话版本：<strong>crossfade 上 RAG 的收益是「可溯源 + 精确串召回」，成本是一次性的解析与索引；
+    只要你的问题仍以事实与出处为主，它就值；如果你其实是想让模型记住「怎么调参」这类风格偏好，那该去微调，而不是检索。</strong>
+  </p>
+</section>
+
 <p>
   <strong>术语速查：</strong>
   <span class="t" data-tterm="chunking" data-d="把长文档切成可检索小块的过程，块的大小与重叠直接影响检索上限。">切分</span>、
@@ -574,7 +903,10 @@ for q, gold in holdout:
   <span class="t" data-tterm="cross-encoder reranker" data-d="把查询与候选文档拼在一起过一遍模型来打分，精度高但只能用于重排。">交叉编码重排器</span>、
   <span class="t" data-tterm="hybrid retrieval" data-d="同时用稀疏（BM25）与稠密（向量）检索，再融合结果，通常比单一路线更稳。">混合检索</span>、
   <span class="t" data-tterm="recall@k" data-d="前 k 条结果中包含的相关文档占全部相关文档的比例。">召回率@k</span>、
-  <span class="t" data-tterm="faithfulness" data-d="回答中的论断是否都能被给定上下文支持，用于衡量幻觉程度。">忠实度</span>。
+  <span class="t" data-tterm="faithfulness" data-d="回答中的论断是否都能被给定上下文支持，用于衡量幻觉程度。">忠实度</span>、
+  <span class="t" data-tterm="reciprocal rank fusion" data-d="只按名次融合多路检索结果：每路贡献 1 除以（常数 60 加名次），不需要两路分数可比。">倒数排名融合</span>、
+  <span class="t" data-tterm="context budget" data-d="把窗口按区段预先分配的账本：系统指令与输出 schema 不可压缩，检索块按分数从低到高先砍。">上下文预算</span>、
+  <span class="t" data-tterm="citation support rate" data-d="被引用段落真正支持该句的比例；与 id 合法率是两回事，前者要靠判定式校验。">引用支持率</span>。
 </p>
 
 <div class="quiz">
@@ -622,6 +954,71 @@ for q, gold in holdout:
     知识（事实、条款、时效内容）适合放在索引里：更新快、可溯源、单次成本低；
     行为（格式、语气、固定流程）才适合放进权重（<a href="#m7">模块 07</a>）。
     全塞长上下文则在成本与「中间遗忘」两个问题上同时吃亏。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">混合检索时，为什么工程上默认推荐 RRF，而不是「把 BM25 分数与余弦相似度加权相加」？</p>
+  <ul class="opts">
+    <li>因为 RRF 的精度一定更高</li>
+    <li data-ok>因为两路分数不在同一尺度上，归一化会随候选集漂移；RRF 只用名次，不要求分数可比</li>
+    <li>因为 RRF 的计算量更小</li>
+    <li>因为 RRF 能自动学出最优权重</li>
+  </ul>
+  <p class="why">
+    BM25 的分数是无界的词项权重，余弦相似度在 -1 到 1 之间，直接相加等于让量纲大的那一路主导。
+    min-max 或 z-score 归一化看起来能解决，但它依赖每次查询的候选集，分布一漂就失效。
+    RRF 只用名次，所以稳定；代价是丢掉分数的间隔信息——第 7.2 节的手算里 A 与 B 会精确打平。
+    RRF 也不学权重，它的超参只有那个压低名次优势的常数。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">你的检查脚本报告「引用 id 合法率 = 1.00」，但人工抽查发现引用内容经常张冠李戴。这说明：</p>
+  <ul class="opts">
+    <li>检索没问题，可以直接上线</li>
+    <li>应该把结构化引用改成自然语言描述</li>
+    <li data-ok>id 合法性只能抓「编造出处」，抓不到「出处存在但内容不支持」，必须单独测引用支持率</li>
+    <li>说明嵌入模型选错了</li>
+  </ul>
+  <p class="why">
+    第 9.1 节的手算里，id 合法率 1.00 与支持率 0.80 可以同时存在。
+    前者是规则可查的（id 是否来自本次上下文），后者的错误率才是真正的难点，需要判定式校验并人工抽样校准。
+    把两个数混成一个「引用准确率」，就会低估风险并把修改方向搞错。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">8192 token 的上下文预算已经超了，按第 8.2 节的优先级，第一件该砍的是什么？</p>
+  <ul class="opts">
+    <li>系统指令里关于引用格式的那一段</li>
+    <li data-ok>RRF 分数最低的那几个检索块</li>
+    <li>用户问题本身</li>
+    <li>为回答预留的输出预算</li>
+  </ul>
+  <p class="why">
+    可压缩区与不可压缩区要分开：系统指令、输出 schema 与验收标准属于不可压缩区，砍了会让程序化校验失效；
+    用户问题和输出预留砍了会让回答变差或被截断。检索块是唯一「越删越好」的部分——
+    低分块既是成本也是干扰（第 5.2 节）。若砍完仍超预算，下一步是降低 \(k\) 并重测端到端正确率，而不是继续删指令。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">同事说：「我们的文档只有两万 token，直接全文塞进上下文就行，没必要上 RAG。」这个判断：</p>
+  <ul class="opts">
+    <li>错误，任何情况都应该上 RAG</li>
+    <li data-ok>在语料小、问题重复度高时可以接受；但只要需要稳定出处、语料继续增长或请求量上升，检索的收益就会反超</li>
+    <li>正确，因为 RAG 在任何场景下都没有价值</li>
+    <li>正确，因为长上下文在准确率上一定优于检索</li>
+  </ul>
+  <p class="why">
+    两万 token 全量塞入的成本与延迟都可接受，解析、切分、索引、评估反而是净值负担——所以这个判断在小语料下是对的。
+    但第 1 节的对照表指出：需要出处、语料会更新、或请求量把每问的 token 成本放大时，检索的优势会重新出现。
+    资源充足时长上下文的平均表现确实更好（第 4 节的 Li et al., 2024），但那是「资源充足」的前提，不是普适结论。
   </p>
 </div>
 

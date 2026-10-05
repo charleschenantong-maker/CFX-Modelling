@@ -74,7 +74,7 @@ COURSE.register({
   </tbody>
 </table>
 <p>
-  频次从哪来：<code>newest</code> 出现 6 次、<code>widest</code> 出现 3 次，它们的结尾都是 <code>est&lt;/code>…，
+  频次从哪来：<code>newest</code> 出现 6 次、<code>widest</code> 出现 3 次，它们的结尾都是 <code>est&lt;/code&gt;</code>…，
   所以 <code>(e,s)</code> 一共 9 次。并列最高频时按固定顺序打破平局（真实实现里这一步是确定性的，保证可复现）。
 </p>
 <p><strong>三个结论：</strong></p>

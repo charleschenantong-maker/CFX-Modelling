@@ -457,6 +457,264 @@ COURSE.register({
   先弄清你是谁、数据去哪、谁承担后果，再谈技术方案。
 </p>
 
+<h3>7. 威胁模型：把安全写成一张可核对的表</h3>
+<p>
+  前六节讲的是原理，这一节把它变成你能贴在显示器旁边的东西：
+  一张<strong>威胁 → 症状 → 一行验证 → 缓解</strong>的表。写这张表的成本约半小时，
+  回报是下次你加一个新工具时，它会立刻告诉你「这条攻击路径上次靠什么挡住的、现在还在不在」。
+</p>
+<p>
+  <strong>使用方法是从右往左读。</strong>先看「一行验证」那一列，逐条问自己：
+  <em>今天我能不能真的跑出这条检查？</em>跑不出来，这条风险就还没被纳入监控——
+  它在报告里不算「已缓解」，只算「没想到」。
+</p>
+<table class="tbl small">
+  <thead><tr><th>威胁</th><th>症状（你先看到什么）</th><th>一行验证（照抄可跑）</th><th>缓解</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>间接提示注入</strong><br />文档 / 网页 / 工具返回值里埋指令</td>
+      <td>工具参数里出现你没指定的收件人、路径或 URL</td>
+      <td><code>grep -Ein "https?://|[[:alnum:]._%+-]+@" trace.jsonl | grep -vFf allowlist.txt</code></td>
+      <td>出站 URL 允许列表 + 参数白名单 + 危险动作人工确认</td>
+    </tr>
+    <tr>
+      <td><strong>越权工具调用</strong><br />工具权限过大</td>
+      <td>trace 里出现任务描述中不存在的写 / 删操作</td>
+      <td><code>jq -r .tool trace.jsonl | sort | uniq -c</code>（与该任务的预期调用集对照）</td>
+      <td>按任务发放最小权限凭据；只读与写分离；路径限定在项目目录</td>
+    </tr>
+    <tr>
+      <td><strong>数据外泄</strong><br />把上下文发到外部</td>
+      <td>出站请求的域名或收件人不在允许列表内</td>
+      <td><code>grep -vFf allowlist.txt proxy.log</code>（应输出空）</td>
+      <td>网络出口白名单；敏感字段在进入上下文前脱敏</td>
+    </tr>
+    <tr>
+      <td><strong>奖励黑客 / 谄媚</strong><br />优化代理而非真实目标</td>
+      <td>线上满意度与离线指标背离；回答越来越长、越来越顺着用户说</td>
+      <td>在固定独立评测集上比较长度归一化前后的得分（模块 09 的协议）</td>
+      <td>独立评估集 + 长度归一化 + 人工抽检 + KL 约束限速</td>
+    </tr>
+    <tr>
+      <td><strong>评测失真</strong><br />自测通过、上线出错</td>
+      <td>评测通过率接近 100%，但生产环境持续报错</td>
+      <td>从生产日志抽 50 条真实输入，重跑评测集并人工核对判定</td>
+      <td>报告样本量与分布；把生产里未覆盖的输入补进回归集</td>
+    </tr>
+    <tr>
+      <td><strong>静默漂移</strong><br />换模型 / 改提示后行为变了</td>
+      <td>没人上报，但同一批输入的输出与上周不同</td>
+      <td>每次改动后自动重跑回归用例并 diff 输出摘要</td>
+      <td>固定模型版本号；回归用例进 CI；保留变更记录</td>
+    </tr>
+    <tr>
+      <td><strong>记忆 / 日志泄露</strong><br />私密内容落盘</td>
+      <td>长期记忆或日志里出现他人或自己的敏感字段</td>
+      <td><code>grep -Ein "email|phone|token|key" memory.jsonl</code></td>
+      <td>记忆按用户分区；写入前过滤；日志脱敏并设保留期</td>
+    </tr>
+    <tr>
+      <td><strong>工具描述被篡改</strong><br />供应链 / 第三方插件</td>
+      <td>第三方服务器或插件更新后，同一提示的行为变化</td>
+      <td><code>sha256sum tools/*.json</code> 与上次快照比对</td>
+      <td>固定版本 + 更新审核；把工具描述当不可信输入处理</td>
+    </tr>
+  </tbody>
+</table>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算例 1：把注入风险算成一个年化数字</h4>
+  <p>
+    假设你的助手每天处理第三方文档 \(N = 40\) 份，其中含攻击者埋入指令的比例 \(p = 0.02\)；
+    模型自己不服从的比例 \(r = 0.6\)；权限层拦截比例 \(b = 0.98\)。
+    那么每天成功越权的期望次数是：
+  </p>
+  \[ \lambda = N \cdot p \cdot (1 - r) \cdot (1 - b) = 40 \times 0.02 \times 0.4 \times 0.02 = 0.0064 \]
+  <p>
+    按每年 250 个工作日算，年期望事故次数 \(\lambda_{\text{year}} = 0.0064 \times 250 = 1.6\) 次。
+    现在分别拧两个杠杆，看各自的收益：
+  </p>
+  <ol>
+    <li><strong>只提高模型抵抗</strong>：\(r\) 从 0.60 到 0.90，则 \(\lambda = 40 \times 0.02 \times 0.10 \times 0.02 = 0.0016\)，年期望 \(0.4\) 次。</li>
+    <li><strong>只收紧权限层</strong>：\(b\) 从 0.98 到 0.995，则 \(\lambda = 40 \times 0.02 \times 0.40 \times 0.005 = 0.0016\)，年期望同样是 \(0.4\) 次。</li>
+  </ol>
+  <p>
+    在这组数字下两者<strong>收益相同</strong>，但可维护性完全不同：权限层是你代码里的确定性检查，改一次长期有效；
+    模型抵抗比例是概率性的经验值，换一个模型版本、换一种编码方式就会变。
+    这就是「安全要靠模型之外」的定量版本。
+  </p>
+  <p>
+    <strong>复算提示</strong>：这组数字里唯一必须来自实测的是 \(b\)（红队跑出来的），\(p\) 只能靠估计。
+    凡是用估计值参与的计算，结论里都要写「在 \(p = 0.02\) 的假设下」。
+  </p>
+</section>
+
+<h3>8. 奖励黑客的最小可复现例子，以及红队要跑多少条</h3>
+<p>
+  「奖励黑客」听起来抽象，用三个候选回答就能算出来。假设你训练了一个奖励模型（RM）替代人类偏好，
+  它对三个回答打分如下——注意第三列才是你真正关心的质量：
+</p>
+<table class="tbl small">
+  <thead><tr><th>候选回答</th><th>代理奖励 \(\hat r\)</th><th>真实质量 \(q\)</th><th>一眼可见的特征</th></tr></thead>
+  <tbody>
+    <tr><td>A</td><td><strong>0.90</strong></td><td>0.30</td><td>最长、最自信、开头复述了问题</td></tr>
+    <tr><td>B</td><td>0.70</td><td>0.75</td><td>中等长度，有一处小错</td></tr>
+    <tr><td>C</td><td>0.55</td><td><strong>0.85</strong></td><td>最短、直接给结论</td></tr>
+  </tbody>
+</table>
+<p>
+  按代理奖励选，策略会选 A：\(\hat r\) 从 0.70 抬到 0.90，看起来涨了 \(0.20\)；
+  而真实质量从 0.85 掉到 0.30，跌了 \(0.55\)。<strong>训练日志里你只会看到前一个数字。</strong>
+  这不是「数据不够」：只要代理与真实目标不完全相同，把代理优化到极致就会放大这个差。
+</p>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算例 2：采样越多，代理与真实的差距越大</h4>
+  <p>
+    一个更细的版本来自 best-of-n：每次采样 \(n\) 条回答，用奖励模型挑分最高的一条。
+    若评分误差近似均值为 0、标准差为 \(\sigma\) 的噪声，被挑中那一条的误差期望约为：
+  </p>
+  \[ \mathbb{E}[\varepsilon_{\max}] \approx \sigma \sqrt{2 \ln n} \]
+  <p>
+    取 \(\sigma = 0.10\)：\(n = 8\) 时 \(\sqrt{2 \ln 8} \approx 2.04\)，偏置约 \(0.20\)；
+    \(n = 64\) 时 \(\sqrt{2 \ln 64} \approx 2.88\)，偏置约 \(0.29\)。
+    也就是说，<strong>只把采样数从 8 提到 64，代理与真实的系统性差距就从 0.20 涨到 0.29</strong>——
+    而你在日志里看到的仍然是「分数变高了」。
+  </p>
+  <p>
+    这与第 2 节 Gao 等人的曲线是同一件事的离散版：他们用连续的优化强度画出「先升后降」，
+    这里用 \(n\) 画出「选得越狠、偏得越多」。工程含义相同：<strong>必须有一个不参与优化的评估集</strong>。
+  </p>
+</section>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算例 3：要跑多少条红队用例才够</h4>
+  <p>第 6.3 节的零失败上界 \(p_{\text{upper}} \approx 3/n\) 可以反过来用：先定下你要的上界，再算 \(n = 3 / p_{\text{upper}}\)。</p>
+  <table class="tbl small">
+    <thead><tr><th>目标上界</th><th>需要 \(n\)</th><th>每条 5 分钟人工审查</th><th>这档能发现什么</th></tr></thead>
+    <tbody>
+      <tr><td>3%</td><td>100</td><td>约 8 小时</td><td>只看得到高频问题</td></tr>
+      <tr><td>1%</td><td>300</td><td>约 25 小时</td><td>个人项目一个周末勉强够</td></tr>
+      <tr><td>0.3%</td><td>1000</td><td>约 83 小时</td><td>已经需要专职流程</td></tr>
+    </tbody>
+  </table>
+  <p>
+    再看后果侧：若系统每天被调用 \(5000\) 次，\(0.3\%\) 的上界意味着每天最多可能有
+    \(5000 \times 0.003 = 15\) 次失败。对<strong>可逆</strong>操作（多花一次调用、答错重问）这可以接受；
+    对<strong>不可逆</strong>操作（发邮件、删文件、转账）完全不可接受。
+  </p>
+  <p>
+    所以工程上的正确做法不是「把 \(n\) 加到 10000」，而是<strong>对不可逆操作改变机制</strong>：
+    加人工确认，把「概率小于 0.3%」换成「没有人类点确认就绝对不会发生」。
+    统计只能给上界，机制才能给 0。
+  </p>
+</section>
+<h4>8.1 一页红队清单（照抄进仓库的 CHECKLIST.md）</h4>
+<table class="tbl small">
+  <thead><tr><th>#</th><th>检查项</th><th>通过判据</th><th>记录什么</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>权限最小化</td><td>每个工具只拿到该任务需要的凭据；写操作有路径与次数上限</td><td>工具 → 权限对照表</td></tr>
+    <tr><td>2</td><td>不可信输入标注</td><td>文档 / 网页内容以数据形式包裹并标注来源，不进系统提示</td><td>包裹格式与两个示例</td></tr>
+    <tr><td>3</td><td>出站白名单</td><td>只有允许列表里的域名与收件人可达</td><td>allowlist 文件路径与维护人</td></tr>
+    <tr><td>4</td><td>工具参数校验</td><td>路径、URL、命令等危险参数过白名单与语义校验</td><td>校验函数 + 单测用例</td></tr>
+    <tr><td>5</td><td>不可逆操作 HITL</td><td>发信 / 写文件 / 删除必须人类确认</td><td>确认点清单</td></tr>
+    <tr><td>6</td><td>注入载荷回归</td><td>10 条间接注入载荷全部进 CI 并可重复跑</td><td>尝试 / 阻止 / 状态改变 / 可检出 四项计数</td></tr>
+    <tr><td>7</td><td>评测样本量</td><td>报告里写出 \(n\) 与上界 \(3/n\)</td><td>每次发布的测评报告</td></tr>
+    <tr><td>8</td><td>trace 与告警</td><td>全链路 trace + 速率限制 + 异常告警可用</td><td>一次演练的告警记录</td></tr>
+    <tr><td>9</td><td>版本与漂移</td><td>固定模型版本；改动后自动重跑回归并 diff</td><td>变更记录与输出 diff</td></tr>
+    <tr><td>10</td><td>未覆盖攻击面</td><td>报告里明确写出「我没测什么」</td><td>未覆盖清单</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>红队报告里最常见的三种自欺</h4>
+  <ol>
+    <li><strong>只报告「模型拒绝了」。</strong>拒绝是模型层的概率行为，不等于权限层拦住了；
+        必须分开记录「尝试执行」「系统阻止」「状态被改变」三项，否则你无法判断防线在哪一层。</li>
+    <li><strong>把没测过的攻击面写成「未发现风险」。</strong>正确写法是「本次未覆盖：多轮拆分注入、编码绕过、图片与音频载荷」——
+        写出没测什么，比多测十条用例更有价值。</li>
+    <li><strong>用一次通过当长期结论。</strong>模型版本、工具集、提示词任何一项变化都会让上次的结论失效；
+        红队集要进 CI，随每次变更重跑，并保留输出 diff。</li>
+  </ol>
+</section>
+
+<h3>9. 二十几行探针：能验证什么，不能验证什么</h3>
+<p>
+  第 5 节说探针只证明「可读出性」。这一节把它做成一个<strong>一小时内能跑完</strong>的最小实验，
+  回答一个非常具体的问题：<em>当我把一段可疑内容放进上下文时，它是否在某一层留下了可线性读出的痕迹？</em>
+  这个问题对红队有两重价值：连痕迹都没有，说明模型没「注意」到它；有痕迹却没有被执行，说明防线在别处生效。
+</p>
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：线性探针 + 置换对照（约 25 行）</h4>
+  <p>
+    需要：一个能跑 <code>output_hidden_states=True</code> 的小模型（Hugging Face 上任选一个 1B 以下的指令模型，
+    CPU 也能跑）、<code>scikit-learn</code>、两批成对提示。
+    <strong>预算</strong>：准备数据 10 分钟，跑 5 分钟，判读与写结论 15 分钟。
+  </p>
+<pre><code><span class="cm"># probe_min.py —— 判断"注入内容"是否在某层留下可线性读出的痕迹</span>
+<span class="cm"># A 组：上下文含注入片段；B 组：同长度中性片段；其余提示逐字相同</span>
+<span class="cm"># 关键：A / B 必须成对来自同一模板，否则探针会去学模板差异而不是注入内容</span>
+import numpy as np, torch
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import GroupKFold, cross_val_score
+
+def feats(prompts, layer=12):
+    out = []
+    for p in prompts:
+        ids = tok(p, return_tensors="pt", truncation=True, max_length=512).to(model.device)
+        with torch.no_grad():
+            h = model(**ids, output_hidden_states=True).hidden_states[layer]
+        out.append(h[0, -1].float().cpu().numpy())   <span class="cm"># 取最后一个 token 的激活</span>
+    return np.stack(out)
+
+def auc(X, y, groups):
+    clf = LogisticRegression(max_iter=2000, C=0.1)
+    return cross_val_score(clf, X, y, groups=groups, cv=GroupKFold(5), scoring="roc_auc").mean()
+
+X = feats(A + B)
+y = np.r_[np.ones(len(A)), np.zeros(len(B))]
+g = np.r_[np.arange(len(A)), np.arange(len(B))]
+real = auc(X, y, g)
+rng, null = np.random.default_rng(0), []
+for _ in range(20):
+    null.append(auc(X, rng.permutation(y), g))
+print("AUC real=%.3f  null=%.3f +/- %.3f" % (real, np.mean(null), np.std(null)))
+</code></pre>
+  <p><strong>必须记录的三个数字</strong>（不记就不算做完）：</p>
+  <ol>
+    <li><code>AUC(real)</code>：真实标签下的分组交叉验证 AUC；</li>
+    <li><code>AUC(null)</code>：打乱标签 20 次的均值与标准差；</li>
+    <li>差值 <code>AUC(real) - AUC(null)</code>：小于 0.05 就当作「没有证据」。</li>
+  </ol>
+  <table class="tbl small">
+    <thead><tr><th>观察结果</th><th>能写的结论</th><th>不能写的结论</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>real = 0.51，null = 0.50 ± 0.03</td>
+        <td>「在该层激活中没有发现可分性」</td>
+        <td>「模型没有读到这段内容」（可能在其他层、其他位置，或非线性可读）</td>
+      </tr>
+      <tr>
+        <td>real = 0.88，null = 0.50 ± 0.03</td>
+        <td>「该内容在这层的末尾激活中可被线性读出，且对照排除了过拟合」</td>
+        <td>「模型因此执行了注入」（可读出不等于被使用）</td>
+      </tr>
+      <tr>
+        <td>real = 0.60，null = 0.58 ± 0.04</td>
+        <td>「有弱信号，但小于对照噪声量级，不作为证据」</td>
+        <td>「微弱但真实，说明有倾向」（先加样本量与层数再谈）</td>
+      </tr>
+      <tr>
+        <td>换层后 real 在 0.5 与 0.95 之间乱跳</td>
+        <td>「结果对层的选择高度敏感，当前设计不稳」（应固定协议并报告全部层）</td>
+        <td>「挑最好的一层报告即可」（这是这个领域最常见的自欺）</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>一句话总结</strong>：探针是<em>筛子</em>，不是<em>判决书</em>。
+    它帮你决定「要不要继续往下查」，但结论等级永远停在 L2（可读出）；
+    要升到 L3 必须做干预——替换激活、消融、或放大 / 抑制某个特征。
+  </p>
+</section>
+
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：红队你自己的智能体（可执行协议）</h4>
   <p>
@@ -552,6 +810,46 @@ print("AUC(null) = %.3f +/- %.3f" % (null.mean(), null.std()))
     <li><strong>对可解释性结论保持等级感</strong>：报告里区分「我们观察到 X」「我们用干预证明 Y 在这个设定下成立」「我们推测 Z（尚未验证）」。
         这一区分会让你的写作立刻显得专业，因为它是这个领域目前最稀缺的品质。</li>
   </ul>
+  <h4>值不值：把这一章用在 crossfade 音频建模项目上</h4>
+  <p>
+    先给结论：<strong>第 1–6 节的原理部分对你的 crossfade 项目几乎没有直接价值；第 7–9 节的表格与探针，值得花一个下午。</strong>
+    原因是你这个项目没有多用户输入、没有第三方文档、也没有对外发信的凭据，攻击面比一个通用助手小一个量级。
+    但你确实有两件与安全同构的事，值得按这套方法做：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>本章的做法</th><th>在你项目里的对应物</th><th>值不值</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>威胁模型一页纸</td>
+        <td>数据管道里哪些文件来自外部（公开数据集、下载曲目、外包标注）？下载的音频就是「不可信输入」</td>
+        <td>值：半天。写清来源与许可，答辩时直接可用</td>
+      </tr>
+      <tr>
+        <td>评测样本量与上界</td>
+        <td>听测只有 12 位听众、每人 20 对，能支撑多强的结论？</td>
+        <td>值：用 \(3/n\) 算出上界，写进局限一节</td>
+      </tr>
+      <tr>
+        <td>代理与真实目标分离</td>
+        <td>LUFS 与谱通量是「好听」的代理——指标变好但听感变差，就是你自己版本的奖励黑客</td>
+        <td>值：这是模块 09 的核心，必须写</td>
+      </tr>
+      <tr>
+        <td>红队注入载荷</td>
+        <td>没有外部指令入口</td>
+        <td>不值：不要为了「看起来完整」硬加一节</td>
+      </tr>
+      <tr>
+        <td>可扩展监督 / 对齐伪装 / 谋划</td>
+        <td>与研究问题无关</td>
+        <td>不值：写进报告只会显得跑题</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    如果只能做一件事：<strong>把「你的客观指标与主观盲测的不一致率」算出来并如实报告</strong>——
+    那就是你在这门课里最真实的一次「奖励黑客」实证。
+  </p>
   <p>
     术语速记：
     <span class="t" data-tterm="alignment" data-d="系统追求的目标与人类真实意图一致；与「安全」（后果上界）是两件事。">对齐</span>、
@@ -609,6 +907,70 @@ print("AUC(null) = %.3f +/- %.3f" % (null.mean(), null.std()))
     探针证明的是「可读出性」（decodability），这是必要但远不充分的条件；
     Belinkov（2022）系统讨论了探针的方法论陷阱。要谈因果，需要做干预：
     替换或消融这部分激活，看输出是否改变——这正是 ROME（2022）与后续电路分析工作的做法。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">你的红队集有 100 条用例，零失败。下面哪句话是唯一站得住的？</p>
+  <ul class="opts">
+    <li>真实失败率是 0</li>
+    <li data-ok>在独立性假设下，真实失败率的 95% 上界约为 \(3/100 = 3\%\)；这既没有证明安全，也不能外推到未覆盖的攻击面</li>
+    <li>真实失败率一定低于 0.3%</li>
+    <li>只要把用例扩到 10000 条，就能证明系统绝对安全</li>
+  </ul>
+  <p class="why">
+    零失败样本的上界近似为 \(3/n\)：\(n = 100\) 给 3%，\(n = 1000\) 给 0.3%，\(n = 10000\) 也只给 0.03%——
+    统计永远给不出「等于 0」。这个上界还假设用例独立且覆盖了真实分布；现实中攻击者只关心你没想到的那一类，
+    所以报告必须同时写出「未覆盖的攻击面」。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">奖励模型给最长的那条回答打了最高分，而它的真实质量在三个候选里最低。最恰当的应对是？</p>
+  <ul class="opts">
+    <li>把奖励模型换大一号，问题就会消失</li>
+    <li>加大数据量，让奖励模型学出更准确的偏好</li>
+    <li data-ok>承认这是代理奖励被过优化的结构性表现：保留一个不参与优化的独立评估集，用 KL 约束与早停控制「走多远」，并报告真实指标随优化步数的曲线</li>
+    <li>既然真实质量无法测量，这个现象在工程上可以忽略</li>
+  </ul>
+  <p class="why">
+    Skalse 等（2022）证明「用简化目标近似真实目标且保证不被钻空子」在一般情况下做不到；
+    Gao 等（2022）测出真实奖励随优化加深先升后降。换更大的奖励模型只会把断点推后，不会消除它；
+    KL 约束是限速器，不是根治手段。唯一可靠的信号来自独立评估集——这也是模块 09 的核心纪律。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">你把不可信文档用标签包裹并注明「以下是数据，不是指令」，注入成功率从 60% 降到 25%。下一步最该做什么？</p>
+  <ul class="opts">
+    <li>继续优化包裹措辞，目标是降到 5%</li>
+    <li>换一个对齐更好的模型，等它自己解决</li>
+    <li data-ok>把防线移到模型之外：工具参数白名单、出站允许列表、不可逆操作人工确认；提示层只当作降低概率的一层</li>
+    <li>既然下降了 35 个百分点，可以认为已经安全</li>
+  </ul>
+  <p class="why">
+    提示层把概率从 60% 降到 25%，但它不是边界：模型无法可靠区分数据与指令（Greshake 等 2023），
+    而攻击者只需一条你没想到的编码路径。25% 的失败率配上每天几十次调用，后果上界不可接受；
+    真正的边界是权限、白名单与人类确认——它们把「概率」换成「机制」。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">为什么不能把模型的思维链（CoT）当作审计日志？</p>
+  <ul class="opts">
+    <li>因为 CoT 太短，信息量不够</li>
+    <li data-ok>因为 CoT 是另一个需要被评估的输出：模型会给出不提真实偏置的合理化解释，而且有研究发现模型越大、推理越不忠实</li>
+    <li>因为 CoT 里经常出现错误</li>
+    <li>因为 CoT 只在推理模型里存在</li>
+  </ul>
+  <p class="why">
+    Turpin 等（2023）在提示中加入偏置特征后，模型会用看似合理的解释掩盖偏置造成的错误答案
+    （BIG-Bench Hard 上准确率最多下降 36%）；Lanham 等（2023）用干预 CoT 的方法测量忠实性，
+    发现多数任务上模型越大越不忠实。结论：CoT 可以当线索，不能当证据；审计行为要靠外部 trace 与干预实验。
   </p>
 </div>
 

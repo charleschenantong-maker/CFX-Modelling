@@ -5,7 +5,7 @@ COURSE.register({
   num: "17",
   title: "蒸馏全谱系：把大模型的能力搬进小模型",
   en: "Distillation — From Logits to Reasoning",
-  minutes: 40,
+  minutes: 55,
   tags: ["高阶", "训练", "实用"],
   body: String.raw`
 <p class="lead">
@@ -159,6 +159,226 @@ COURSE.register({
       ③成本曲线（每百万 token 的费用与延迟）。<em>第二项最容易被跳过，但它才是「蒸馏有没有用」的唯一证据。</em></li>
 </ol>
 
+<h3>6. 数据工厂：一场蒸馏要生成多少条、怎么过滤</h3>
+<p>
+  先记住一句话：<strong>蒸馏的上限由数据决定，不由损失函数决定。</strong>
+  损失函数只决定你能多接近教师；数据决定教师教了什么、以及教师教错的东西有没有被拦住。
+  第一次做蒸馏失败的人，多数不是把 \(T^2\) 写错了，而是数据集里八成样本在问同一件事、
+  答案长度整齐得像模板、还混着教师几类系统性错误。
+</p>
+<p>这一节把「要生成多少条」变成一个能手算出来的数，再给出这笔数据的时间账。</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>可用样本量的一行公式</h4>
+  <p>
+    设提示数为 \(P\)、每题采样 \(k\) 条、去重保留率 \(\rho_{\text{dedup}}\)、
+    规则过滤保留率 \(\rho_{\text{filter}}\)，则最终可训练样本量是
+  </p>
+  \[ N = P \times k \times \rho_{\text{dedup}} \times \rho_{\text{filter}} \]
+  <p>
+    四个因子的分工完全不同：\(P\) 决定<em>问法的多样性</em>，\(k\) 决定<em>同一问法下答案的多样性</em>，
+    两个 \(\rho\) 决定你的清洗有多狠。<strong>只提高 \(k\) 而不提高 \(P\)，学生会背下问法而不是学会能力</strong>——
+    这是合成数据最常见、也最难察觉的过拟合。
+  </p>
+</section>
+
+<h4>6.1 手算一：一份 4,896 条的蒸馏集是怎么来的</h4>
+<p>
+  设定：\(P = 2000\) 条不同提示，每题采样 \(k = 4\) 条；去重规则是「4-gram 的 Jaccard 相似度超过 0.85 判为重复」；
+  长度过滤只保留 8–512 个 token 的答案。
+</p>
+<ol>
+  <li>原始生成量：\(2000 \times 4 = 8000\) 条。</li>
+  <li>去重后：实测去重保留率 \(\rho_{\text{dedup}} = 0.72\)，于是 \(8000 \times 0.72 = 5760\) 条。
+      这个数低于 0.8 就说明你的提示太像——正确反应是加 \(P\)，不是加 \(k\)。</li>
+  <li>规则过滤后：长度与格式过滤保留率 \(\rho_{\text{filter}} = 0.85\)，于是 \(5760 \times 0.85 = 4896\) 条。</li>
+  <li>训练步数：跑 2 个 epoch 就是 \(4896 \times 2 = 9792\) 个样本通过；全局 batch 取 32 时，
+      总步数 \(9792 / 32 \approx 306\) 步。这就是一次正经蒸馏的全部训练量。</li>
+</ol>
+<p>
+  所以「一场蒸馏」的合理起点量级是<strong>几千条数据、几百步训练</strong>。
+  一上手就要 10 万条的方案，通常是因为手里没有评估集，只能靠堆数据来获得「感觉变好了」。
+</p>
+
+<h4>6.2 手算二：生成这批数据要花多久</h4>
+<p>按平均每条答案 350 个输出 token、每个提示 120 个输入 token 计算：</p>
+<table class="tbl small">
+  <thead><tr><th>量</th><th>计算</th><th>结果</th></tr></thead>
+  <tbody>
+    <tr><td>输出 token 总量</td><td>\(4896 \times 350\)</td><td>1,713,600 token（约 1.71 M）</td></tr>
+    <tr><td>输入 token 总量</td><td>\(4896 \times 120\)</td><td>587,520 token（约 0.59 M）</td></tr>
+    <tr><td>输入占总 token 的比例</td><td>\(0.59 / (0.59 + 1.71)\)</td><td>约 26%，提示不短时输入侧不能忽略</td></tr>
+  </tbody>
+</table>
+<p>同样的 1.71 M 输出 token，换成三种服务方式，墙钟时间差了一个数量级：</p>
+<table class="tbl small">
+  <thead><tr><th>教师服务方式</th><th>聚合吞吐</th><th>墙钟时间</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>逐条串行调用</td><td>45 token/s</td><td>1,713,600 / 45 ≈ 38,080 s ≈ <strong>10.6 小时</strong></td><td>最容易被低估，一整天没了</td></tr>
+    <tr><td>本地批量推理（连续批处理）</td><td>800 token/s</td><td>1,713,600 / 800 ≈ 2,142 s ≈ <strong>36 分钟</strong></td><td>同一张卡，批处理把它压进一小时</td></tr>
+    <tr><td>换更小更快的教师</td><td>2,500 token/s</td><td>1,713,600 / 2,500 ≈ 685 s ≈ <strong>11 分钟</strong></td><td>教师质量与吞吐必须一起权衡</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>结论：教师选型的第一约束不是「谁更聪明」，而是「能不能批量」。</strong>
+  只要你打算自己生成几万条数据，串行调用的方案在时间上就不可行；
+  反过来，如果手上的接口不支持批量，你的数据规模上限就被墙钟时间锁死了——
+  这时应该把 \(P\) 降下来、把评估集建扎实，而不是硬凑数量。
+</p>
+
+<h4>6.3 数据规模经验表（拿来起步，不是定律）</h4>
+<p>
+  下表是 2025–2026 年社区实践中常见的起步量级。正确用法是<em>先按它起步，再用自己的验证集做一次小规模扫描</em>
+  确认够不够；不要当定律，也不要因为它精确到千位就以为它有理论保证。
+</p>
+<table class="tbl small">
+  <thead><tr><th>任务形态</th><th>可训练样本量起点</th><th>提示数 × 每题采样</th><th>最该担心的失败</th></tr></thead>
+  <tbody>
+    <tr><td>格式转换 / 信息抽取（答案 &lt; 64 token）</td><td>2k–5k</td><td>\(P = 1000\)，\(k = 4\)</td><td>模板重复，学生只认一种问法</td></tr>
+    <tr><td>单轮问答 / 判断式任务</td><td>5k–20k</td><td>\(P = 2000\)–\(5000\)，\(k = 4\)–\(8\)</td><td>长度漂移，答案越来越长</td></tr>
+    <tr><td>长文生成（单条 &gt; 500 token）</td><td>10k 以上</td><td>\(P = 3000\)，\(k = 8\)</td><td>教师错误被整段学走，肉眼很难发现</td></tr>
+    <tr><td>多步推理 / 答案可验证</td><td>20k–100k 以上</td><td>\(P = 5000\)，\(k = 16\)</td><td>错误继承，必须配规则验证器</td></tr>
+    <tr><td>风格 / 语气迁移</td><td>1k–3k</td><td>\(P = 500\)，\(k = 2\)</td><td>只学到表面格式，能力没有迁移</td></tr>
+  </tbody>
+</table>
+
+<h4>6.4 数据失败模式查表：症状 → 原因 → 一行验证 → 对策</h4>
+<table class="tbl small">
+  <thead><tr><th>症状</th><th>可能原因</th><th>一行验证</th><th>对策</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>训练 loss 平稳下降，验证集生成质量没变</td>
+      <td>学生只学到教师的表面统计（长度、模板、标点）</td>
+      <td>对比训练前后同一批提示的输出长度分布与重复率</td>
+      <td>长度归一化；数据里混入短答案正例</td>
+    </tr>
+    <tr>
+      <td>蒸馏后输出多样性明显下降，同一提示 8 次几乎一样</td>
+      <td>模式坍缩；采样温度太低，或每题采样数 \(k\) 太小</td>
+      <td>数同一提示 8 次采样的去重答案个数</td>
+      <td>提高采样温度；按第 3 节加入在线蒸馏样本</td>
+    </tr>
+    <tr>
+      <td>KL 项降不下去，卡在某个值不动</td>
+      <td>教师与学生的词表或分词不一致，或温度设置不当</td>
+      <td>打印两边 <code>vocab_size</code>，取一个共同句子比对 token id</td>
+      <td>退化为响应蒸馏；或先做词表对齐</td>
+    </tr>
+    <tr>
+      <td>训练出现 NaN，或输出变成乱码</td>
+      <td>全词表 logits 用 fp16 存储溢出；padding 位置没有 mask</td>
+      <td>统计 logits 里 inf / nan 的个数，检查 loss 是否算在 padding 上</td>
+      <td>KL 用 float32 累加；严格 mask 掉 prompt 与 padding 位置</td>
+    </tr>
+    <tr>
+      <td>学生学会了教师的口头禅，每段都以同一句话开头</td>
+      <td>教师风格被当成任务学走</td>
+      <td>统计高频开头短语在生成结果里的出现率</td>
+      <td>提示里要求风格中性，或对开头做风格过滤</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>7. 词级蒸馏的存储账：为什么你只会存 top-k logits</h3>
+<p>
+  <strong>词级蒸馏在算力上很便宜，在存储上很贵。</strong>
+  教师的那次前向传播你已经付过钱了，但当你决定把「每个位置上的完整分布」留下来当标签时，
+  一个 15 万词表的模型对<em>一个 token</em> 就要写 30 万字节。
+  这一节把这笔账算清楚，并给出工程上的标准做法：只存 top-k，同时把截断偏差量化出来。
+</p>
+
+<h4>7.1 手算三：100 万 token 的数据集有多大</h4>
+<p>取词表大小 \(V = 151936\)（15 万量级模型的常见值），数据集共 100 万 token（约 3000 条 350 token 的样本）：</p>
+<table class="tbl small">
+  <thead><tr><th>步骤</th><th>计算</th><th>结果</th></tr></thead>
+  <tbody>
+    <tr><td>每 token 的完整分布（fp16）</td><td>\(151936 \times 2\) B</td><td>303,872 B ≈ 297 KiB</td></tr>
+    <tr><td>100 万 token 的全词表存储</td><td>\(303872 \times 10^{6}\) B</td><td>\(3.04 \times 10^{11}\) B ≈ <strong>304 GB</strong></td></tr>
+    <tr><td>训练时顺序读 2 遍（按 500 MB/s）</td><td>\(304 \times 2 / 0.5\) s</td><td>1,216 s ≈ 20 分钟纯 IO</td></tr>
+    <tr><td>改成只存 top-50（int32 下标 + fp16 logit）</td><td>\(50 \times (4 + 2) = 300\) B</td><td>100 万 token 只有 <strong>300 MB</strong></td></tr>
+    <tr><td>压缩比</td><td>\(304\ \text{GB} / 300\ \text{MB}\)</td><td><strong>约 1000 倍</strong></td></tr>
+  </tbody>
+</table>
+<p>
+  \(297\ \text{KiB}\) 这个数字值得记住：它意味着「一个 token 的教师分布」比「一个 token 的文本」大三个数量级。
+  如果数据规模到 1000 万 token，全词表存储就是 3 TB 量级——不是训练算不起，是磁盘放不下、dataloader 读不动。
+</p>
+
+<h4>7.2 存法对照表：省多少、丢什么</h4>
+<table class="tbl small">
+  <thead><tr><th>存法</th><th>每 token 字节</th><th>100 万 token 体积</th><th>丢掉的信息</th></tr></thead>
+  <tbody>
+    <tr><td>全词表 fp32</td><td>607,744 B（约 594 KiB）</td><td>608 GB</td><td>无</td></tr>
+    <tr><td>全词表 fp16</td><td>303,872 B（约 297 KiB）</td><td>304 GB</td><td>无，只有舍入误差</td></tr>
+    <tr><td>top-50：int32 下标 + fp16 logit</td><td>\(50 \times 6 = 300\) B</td><td>300 MB</td><td>尾部概率质量，必须监控</td></tr>
+    <tr><td>top-8：同格式</td><td>48 B</td><td>48 MB</td><td>尾部更多，温度高时偏差明显</td></tr>
+    <tr><td>只存 argmax（硬标签）</td><td>4 B</td><td>4 MB</td><td>全部暗知识，退化为普通 SFT</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>截断偏差：尾部质量 m</h4>
+  <p>只存 top-k 再重新归一化，你实际在教一个被截断的分布。偏差的直接度量是<strong>尾部质量</strong>：</p>
+  \[ m = 1 - \sum_{i \in \text{top-}k} p_i^{(T)} \]
+  <p>
+    手算：温度 \(T = 4\)、词表 151,936，某个位置的 top-50 覆盖了 0.974 的概率质量，
+    则 \(m = 0.026\)，也就是 2.6% 的概率质量被丢掉并重新分配。
+    经验判据：在 100 个位置上算 \(m\) 取中位数，<strong>中位数超过 0.05 就提高 \(k\) 或降低 \(T\)</strong>。
+    长尾词表（多语言、代码）的 \(m\) 会明显大于纯英文场景。
+  </p>
+  <pre><code>p = torch.softmax(logits / T, dim=-1)
+cover = p.topk(50, dim=-1).values.sum(-1)   <span class="cm"># top-50 覆盖的概率质量</span>
+m = 1.0 - cover                             <span class="cm"># 被丢掉的尾部质量</span>
+print("tail mass median =", round(m.median().item(), 4))   <span class="cm"># &gt; 0.05 就加大 k 或降低 T</span></code></pre>
+</section>
+
+<h3>8. 怎么证明蒸馏有用：评估协议与最小样本量</h3>
+<p>
+  第 3 节说过「唯一证据是对照实验」。这里补上两个更硬的约束：<strong>测试集要多大</strong>、
+  以及<strong>怎么防止训练数据把测试集污染掉</strong>。没有这两条，你手里的「提升 X%」只是噪声。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>两组对照要多少题</h4>
+  <p>把 A/B 两组看成两个独立比例，差值标准误与所需样本量（每组 \(n\) 题）是</p>
+  \[ \mathrm{SE}(\hat p_B - \hat p_A) \approx \sqrt{\frac{2\bar p (1-\bar p)}{n}}, \qquad n \approx \frac{16\,\bar p\,(1-\bar p)}{\delta^2} \]
+  <p>
+    其中 \(\bar p\) 是两组平均正确率，\(\delta\) 是想检测出的差值。
+    常数 16 来自「双侧 5% 显著性、80% 把握」的正态近似；要 90% 把握就换成约 21。
+  </p>
+</section>
+
+<h4>8.1 手算四：200 道题够不够</h4>
+<ol>
+  <li>设定：硬标签基线 \(\hat p_A = 0.41\)，蒸馏后 \(\hat p_B = 0.46\)，测试集 \(n = 200\) 题。</li>
+  <li>差值 \(\delta = 0.05\)，平均正确率 \(\bar p = 0.435\)。</li>
+  <li>差值标准误：\(\sqrt{2 \times 0.435 \times 0.565 / 200} = \sqrt{0.002458} \approx 0.0496\)，即约 <strong>4.96 个百分点</strong>。</li>
+  <li>观察到的 5 个百分点只相当于 <strong>1.0 个标准误</strong>，双侧 \(p \approx 0.31\)——<strong>不能下结论</strong>。</li>
+  <li>要在 80% 把握下检测 5 个百分点：\(n \approx 16 \times 0.2458 / 0.0025 \approx 1573\)，即<strong>每组约 1600 题</strong>。</li>
+  <li>反过来看 200 题能查出多大差距：\(\delta \approx \sqrt{16 \times 0.2458 / 200} \approx 0.140\)，也就是<strong>约 14 个百分点以下看不出来</strong>。</li>
+  <li>若改成配对设计（同一批题、同一模型，只统计「一个对一个错」的题），所需题数通常能降到几百量级；
+      代价是必须固定题目与解码设置，用 McNemar 检验或自助法。做法见 <a href="#m9">模块 09</a>。</li>
+</ol>
+<p>
+  <strong>这条算式的实用价值</strong>：以后有人告诉你「蒸馏提升了 5 个点」，先问一句「测试集多少题」。
+  200 题的 5 个点是噪声，1600 题的 5 个点才算证据。
+</p>
+
+<h4>8.2 评估协议查表</h4>
+<table class="tbl small">
+  <thead><tr><th>项目</th><th>最低要求</th><th>不做会怎样</th></tr></thead>
+  <tbody>
+    <tr><td>测试集规模</td><td>800–1600 题，或采用配对检验</td><td>5 个百分点的差异淹没在噪声里</td></tr>
+    <tr><td>对照组</td><td>同数据、同步数、同超参的纯硬标签 SFT</td><td>无法区分「蒸馏有效」与「多训了一遍有效」</td></tr>
+    <tr><td>主指标</td><td>pass@1，同时报告平均输出长度</td><td>学生学会「写长」就能刷分</td></tr>
+    <tr><td>效率指标</td><td>每条正确回答消耗的 token 数</td><td>用 3 倍成本换 2 个点，报告里看不出来</td></tr>
+    <tr><td>多样性指标</td><td>同一提示 8 次采样的去重答案个数</td><td>模式坍缩完全不可见</td></tr>
+    <tr><td>教师上界</td><td>教师在同一测试集上的分数</td><td>不知道天花板在哪，也不知道错误继承有多严重</td></tr>
+    <tr><td>污染检查</td><td>测试集与训练数据的长 n-gram 重叠率</td><td>涨的是记忆而不是能力，做法见 <a href="#m9">模块 09</a></td></tr>
+    <tr><td>成本</td><td>每 1000 次请求的 token 与端到端延迟</td><td>上线后才发现超预算</td></tr>
+  </tbody>
+</table>
+
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>合规红线（做之前必读）</h4>
   <ul>
@@ -229,7 +449,109 @@ for step, p in enumerate(prompts):
   </ul>
 </section>
 
-<h3>6. 本讲术语</h3>
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：30 分钟最小实现——把教师输出变成可训练数据集</h4>
+  <p>
+    这个实验<strong>训练那一步可以跳过</strong>也能完成大半：你要亲手把 200 条提示变成一份干净的数据集，
+    并打印三个决定成败的数字。全程 CPU，30 分钟内可跑完。
+  </p>
+  <ol>
+    <li><strong>准备 200 条提示（5 分钟）。</strong>写进 <code>prompts.txt</code>，一行一条，覆盖你真实的任务形态；
+        不要把 200 条都写成同一个问题的不同措辞。</li>
+    <li><strong>每题生成 4 条（10 分钟）。</strong>教师可以是本地小模型，也可以是你能合法调用、条款允许批量生成的接口。
+        写出 <code>raw.jsonl</code>，字段为 <code>prompt</code> 与 <code>completion</code>。</li>
+    <li><strong>去重 + 过滤（5 分钟）。</strong>跑下面这段脚本，它按 4-gram Jaccard 去重、按长度与复读过滤，
+        并打印保留率。</li>
+    <li><strong>训练两组（10 分钟，可跳过）。</strong>A 组只用每题第一条（等价硬标签）；B 组用全部过滤后的样本。
+        两组用同样的步数与超参。</li>
+    <li><strong>评估。</strong>在同一批测试题上比 A/B 的 pass@1，以及平均输出长度。</li>
+  </ol>
+<pre><code>import json, re
+
+def shingles(s, n=4):
+    w = re.findall(r"\w+", s.lower())
+    return set(tuple(w[i:i + n]) for i in range(max(1, len(w) - n + 1)))
+
+def jaccard(a, b):
+    return len(a &amp; b) / max(1, len(a | b))
+
+rows = [json.loads(l) for l in open("raw.jsonl", encoding="utf-8")]
+kept, seen = [], []
+for r in rows:
+    c = r["completion"].strip()
+    ntok = len(c.split())
+    if not c or not (8 &lt;= ntok &lt;= 512):            <span class="cm"># 长度过滤：太短或太长都丢</span>
+        continue
+    if re.search(r"(\b\w+\b)(\s+\1){3,}", c):        <span class="cm"># 复读过滤</span>
+        continue
+    sh = shingles(c)
+    if any(jaccard(sh, s) &gt; 0.85 for s in seen):     <span class="cm"># 近似去重</span>
+        continue
+    seen.append(sh)
+    kept.append(r)
+
+print("raw =", len(rows), " kept =", len(kept), " keep_rate =", round(len(kept) / len(rows), 3))
+json.dump(kept, open("clean.json", "w", encoding="utf-8"), ensure_ascii=False)
+<span class="cm"># 注意：seen 会随数据量线性变大，整体是 O(n^2) 比较。真实规模请换 MinHash/LSH 或向量去重。</span></code></pre>
+  <p><strong>要记录的三个数字：</strong></p>
+  <ol>
+    <li><strong>保留率 <code>keep_rate</code></strong>：低于 0.5 说明提示太像或过滤太狠，先回头核对 6.1 的去重保留率。</li>
+    <li><strong>A/B 的 pass@1 差</strong>：这是「蒸馏有没有用」的唯一证据；差 5 个点以内请按第 8 节先扩测试集。</li>
+    <li><strong>每条正确回答的平均 token 数</strong>：如果 B 组更准但长了 2 倍，你的账单会先撑不住。</li>
+  </ol>
+  <p>
+    规模化提示：200 条提示 × 4 条采样刚好是一次可解释的实验。把它放大到 \(P = 2000\) 之前，
+    先把上面三个数字量一遍——否则你只是把噪声放大了 10 倍。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>落地决策单：crossfade 音频建模项目该不该上蒸馏</h4>
+  <p>
+    <strong>一句话结论：对绝大多数 crossfade 音频建模任务，蒸馏不值——先把评估协议和量化做完，回报高得多。</strong>
+    理由不是「蒸馏不好」，而是这个项目的输出形态让蒸馏的主要收益（软标签里的类间结构）几乎没有用武之地。
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>你的问题形态</th><th>该用什么</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>预测淡入淡出曲线的连续参数（交叉点、时长、增益形状）</td>
+        <td>特征工程 + 小回归 / 树模型，见 <a href="#m16">模块 16</a></td>
+        <td>输出是连续标量，没有「类间相似性」可学；蒸馏的软标签概念在这里不成立</td>
+      </tr>
+      <tr>
+        <td>把音频分析结论写成自然语言解释</td>
+        <td>响应蒸馏：用合成数据做 SFT</td>
+        <td>这是蒸馏最成熟的形态；成本几乎全在教师生成上，30 分钟能跑通</td>
+      </tr>
+      <tr>
+        <td>端侧实时判断两段音频能否平滑交叉</td>
+        <td>DSP 规则 + 阈值</td>
+        <td>实时预算只有几十毫秒，任何 LLM 路线都不合适</td>
+      </tr>
+      <tr>
+        <td>想让小模型复现教师的问答能力与风格</td>
+        <td>蒸馏（词级或响应级）</td>
+        <td>值，但必须先满足第 8 节的评估条件，否则无法证明有效</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>现在就能做的三个动作：</strong></p>
+  <ol>
+    <li>把验证集建到 800 题以上（或改用配对检验），先能量出 5 个百分点的差异——这是后面所有实验的前提。</li>
+    <li>只是想要更小体积？先做 4-bit 量化（<a href="#m8">模块 08</a>），通常够用且不用重训；
+        量化解决不了「能力不足」，那时才轮到蒸馏。</li>
+    <li>真要蒸馏，就按上面的 30 分钟最小实现走一遍，把 <code>keep_rate</code>、A/B 差、
+        每条正确回答的 token 数记下来再决定是否放大。</li>
+  </ol>
+  <p>
+    <strong>什么时候绝对不该用：</strong>当你的测试集还分不清 5 个百分点的差异时。
+    此时蒸馏的收益无法被测量，你花的每一小时都在制造「感觉变好了」的报告——
+    这正是 <a href="#m9">模块 09</a> 反复强调的：<em>没有评估能力，就没有优化能力</em>。
+  </p>
+</section>
+
+<h3>9. 本讲术语</h3>
 <ul>
   <li><span class="t" data-tterm="Knowledge distillation" data-d="让学生模型的输出分布去逼近教师模型，而不只学硬标签。">知识蒸馏</span>、
       <span class="t" data-tterm="Soft targets" data-d="教师模型给出的完整概率分布，包含类间相似性（暗知识）。">软标签</span>。</li>
@@ -281,6 +603,69 @@ for step, p in enumerate(prompts):
   <p class="why">
     没有这个对照，你无法区分「蒸馏有效」与「多训了一遍有效」。
     这也和模块 09 的模型阶梯思想一致：<strong>任何新方法都必须打败一个更简单的基线</strong>。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">你有 100 万个 token 的语料，想用 fp16 保存教师在每个位置上的完整词表分布（词表 151,936）。这笔存储大约是多大？</p>
+  <ul class="opts">
+    <li>约 300 MB</li>
+    <li>约 30 GB</li>
+    <li data-ok>约 300 GB</li>
+    <li>约 3 TB</li>
+  </ul>
+  <p class="why">
+    每 token \(151936 \times 2 \approx 297\ \text{KiB}\)，乘 100 万 token 约等于 304 GB。
+    若只保留 top-50（int32 下标 + fp16 logit，每 token 300 B），同样的语料只要约 300 MB——
+    压缩约 1000 倍。这也解释了为什么工程上几乎没人存全词表分布。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">在 200 题的测试集上，蒸馏组比硬标签基线高 5 个百分点（41% 对 46%）。按本讲的样本量估算，最合理的结论是？</p>
+  <ul class="opts">
+    <li>蒸馏有效，可以写进报告并发布</li>
+    <li data-ok>这个差距约等于 1 个标准误，200 题不足以支撑结论；要检测 5 个百分点约需每组 1600 题，或改用配对检验</li>
+    <li>应该先把采样温度调低再测一次，直到差距拉开</li>
+    <li>只要差值为正，就说明蒸馏有效</li>
+  </ul>
+  <p class="why">
+    两组合并正确率 0.435 时，差值的标准误约为 \(4.96\) 个百分点，观察到的 5 个百分点只有约 1 个标准误
+    （双侧 \(p \approx 0.31\)）。反复调温度或换题集直到差距显著，是典型的 p-hacking——
+    正确做法是扩大测试集或用配对检验。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">你的 crossfade 项目要预测淡入淡出曲线的三个连续参数，同事建议用词级蒸馏把大模型能力搬进小模型。最合理的回答是？</p>
+  <ul class="opts">
+    <li>可以，只要教师足够大就行</li>
+    <li data-ok>不合适：输出是连续标量，没有类间相似性结构可学；应先做特征工程与评估协议，若只是为了压体积则先量化</li>
+    <li>应该先训一个过程奖励模型再蒸馏</li>
+    <li>词级蒸馏一定能提升回归任务的精度</li>
+  </ul>
+  <p class="why">
+    软标签的价值来自「教师认为第 2 类比第 3 类更接近」这类类间结构，回归输出没有这种结构。
+    对照第 8 节：如果连 5 个百分点的差异都测不出来，任何新方法都无法被证明有效；
+    而只想压体积时，4-bit 量化的成本远低于重新训练一个学生。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">设提示数 \(P = 2000\)、每题采样 \(k = 4\)，去重保留率 0.72、规则过滤保留率 0.85。最终可训练样本量约为多少？</p>
+  <ul class="opts">
+    <li>8,000 条</li>
+    <li>5,760 条</li>
+    <li data-ok>4,896 条</li>
+    <li>6,800 条</li>
+  </ul>
+  <p class="why">
+    \(2000 \times 4 = 8000\)，去重后 \(8000 \times 0.72 = 5760\)，过滤后 \(5760 \times 0.85 = 4896\)。
+    两个中间值都是常见误区：只算去重会高估数据量，只算过滤会低估清洗的损失。
   </p>
 </div>
 

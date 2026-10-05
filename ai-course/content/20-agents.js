@@ -5,7 +5,7 @@ COURSE.register({
   num: "20",
   title: "智能体系统：工具、规划、记忆与多智能体",
   en: "Agent Systems — Tools, Planning, Memory",
-  minutes: 40,
+  minutes: 50,
   tags: ["高阶", "智能体", "实用"],
   body: String.raw`
 <p class="lead">
@@ -451,6 +451,215 @@ COURSE.register({
   </tbody>
 </table>
 
+<h3>7. 幂等、超时与重试：把「至少一次」变成「恰好一次效果」</h3>
+<p>
+  第 2.2 节说明了「为什么必须幂等」。这一节把它做成可以照抄的规则：先分类错误，再定退避，
+  最后用幂等键把副作用收口。顺序不能反——先写重试、后补幂等，等于先埋雷再找雷。
+</p>
+<h4>7.1 先分类，再重试</h4>
+<table class="tbl small">
+  <thead><tr><th>错误类别</th><th>典型例子</th><th>可重试</th><th>退避策略</th><th>是否消耗预算</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>瞬时抖动</td><td>连接超时、5xx、429</td><td>是</td>
+      <td>指数退避加抖动，上限 3–5 次</td><td>是（每次尝试都算一次工具调用）</td>
+    </tr>
+    <tr>
+      <td>调用方参数错误</td><td>参数校验失败、缺必填字段、类型不对</td><td>否（重试一万次也不会变好）</td>
+      <td>不重试；把结构化错误回灌给模型改一次</td><td>是</td>
+    </tr>
+    <tr>
+      <td>权限或配额错误</td><td>403、402、余额不足、被限流封禁</td><td>否</td>
+      <td>立即停止并向人升级</td><td>否（不该继续烧钱）</td>
+    </tr>
+    <tr>
+      <td><strong>结果未知</strong></td><td>超时、连接在响应前断开</td><td>只有幂等操作才可重试</td>
+      <td>带同一个幂等键重试</td><td>是</td>
+    </tr>
+    <tr>
+      <td>业务级失败</td><td>校验不通过、测试红、指标不达标</td><td>分情况</td>
+      <td>把失败信息回灌，计入步数而不是重试次数</td><td>是</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>「结果未知」是唯一真正危险的一类</strong>：它既不是成功也不是失败，而重试策略通常写在这一类上。
+  默认规则应该只有一条：<em>这个操作带幂等键，才可以自动重放；否则宁可暂停并交给人。</em>
+  把「业务级失败」和「瞬时抖动」分开也很重要——前者需要的是一次新的推理，后者需要的是一次新的请求，
+  混在一起会让重试预算被业务错误吃光。
+</p>
+<h4>7.2 手算：重试的期望代价与重复概率</h4>
+<p>设单次成功概率 \(p = 0.9\)，失败后最多再试 2 次（共 3 次尝试），则期望尝试次数为</p>
+\[ \mathbb{E}[\text{attempts}] = \frac{1 - 0.1^{3}}{0.9} \approx 1.111 \]
+<p>
+  也就是平均多花约 <strong>11%</strong> 的调用，看起来无害。但真正要看的是「假失败」：
+  假设有 <strong>2%</strong> 的调用其实已经在服务端执行成功、只是响应在返回途中丢了。
+  1000 次写操作里，这类事件约有 <strong>20 次</strong>；如果没有幂等键，就是约 20 次重复副作用。
+  这就是第 2.2 节那句话的量化版本：<em>重复不是概率极低的意外，而是每次超时都会发生的常态</em>。
+</p>
+<p>
+  幂等键本身也要算碰撞概率。用 \(b\) 位随机键、共 \(N\) 次调用，碰撞概率可用生日近似：
+</p>
+\[ P_{\text{collision}} \approx 1 - e^{-N^{2} / 2^{\,b+1}} \]
+<p>
+  \(N = 10^{6}\)、\(b = 128\) 时，\(N^{2}/2^{129} \approx 1.5 \times 10^{-27}\)，可以当成零；
+  而 \(b = 32\) 时同一个量级是 \(10^{12}/2^{33} \approx 116\)，早已饱和——键会大量碰撞，
+  于是「第二次写入被当成已执行」而静默丢数据。<strong>用 128 位（UUIDv4/UUIDv5 或 32 位十六进制哈希）是极便宜的安全边际。</strong>
+  键的构成建议是「任务 id + 步骤 id + 工具名 + 参数哈希」：这样同一步重放天然命中，
+  不同任务也不会互相顶掉。
+</p>
+<h4>7.3 退避参数怎么定</h4>
+<table class="tbl small">
+  <thead><tr><th>参数</th><th>常用取值</th><th>依据</th><th>调错的症状</th></tr></thead>
+  <tbody>
+    <tr><td>单次超时</td><td>该工具历史延迟的 p99，再乘 1.5–2 倍</td><td>超时太短会制造大量假失败与重复；太长会拖住整个循环</td><td>重复副作用变多（太短）；任务墙钟时间失控（太长）</td></tr>
+    <tr><td>最大尝试次数</td><td>3–5 次</td><td>\(p = 0.9\) 时 3 次已到 1.11 次期望；继续加收益极小而尾部成本高</td><td>重试风暴、把下游打死</td></tr>
+    <tr><td>退避基数</td><td>0.2–1 秒，按 \(2^{\text{attempt}}\) 增长</td><td>给下游恢复时间，而不是立刻再打</td><td>服务端抖动被放大成雪崩</td></tr>
+    <tr><td>抖动</td><td>在退避时间上加 \(U(0, 0.1)\) 秒量级的随机</td><td>避免多个客户端同步重试（惊群）</td><td>周期性尖峰</td></tr>
+    <tr><td>熔断阈值</td><td>连续失败 5 次即停用该工具，冷却 30 秒后半开</td><td>下游整体故障时，重试没有意义</td><td>整条任务在必然失败的工具上空转</td></tr>
+  </tbody>
+</table>
+
+<h3>8. 权限、预算与终止条件：把边界写成可执行的清单</h3>
+<p>
+  第 2.1 节讲了「三层校验」，第 6.2 节讲了「预算与沙箱」。这一节把两者收成一个问题：
+  <strong>如果模型的每一步都由它自己决定，那么什么在保证它不会越界、也不会无限烧钱？</strong>
+  答案只能是你代码里的允许列表、预算常量与终止条件，不能是提示词里的请求。
+</p>
+<h4>8.1 手算：47 步任务的 token 账本</h4>
+<p>
+  回到本模块开头那个例子：智能体跑了 47 步、花掉 3.2 M token，最后在对话里说「已完成」。
+  这个数字并不夸张，它来自每一轮都把<em>到目前为止的全部历史</em>重新送进模型——
+  也就是你在为同一个 token 反复付费。设第 \(t\) 步的上下文长度为 \(L_t\)，每步新增内容
+  （模型输出加工具返回）为 \(\Delta\)，则
+</p>
+\[ L_t = L_{t-1} + \Delta, \qquad C_{\text{tokens}} = \sum_{t=1}^{T} L_t \]
+<p>
+  取 \(T = 47\)、起步上下文 \(L_0 = 4000\) 与每步新增 \(\Delta = 1000\)，第 47 步的上下文约
+  \(L_{47} = 4000 + 47 \times 1000 = 51000\) token，整个任务累计
+</p>
+\[ C_{\text{tokens}} = \sum_{t=1}^{47}(4000 + 1000t) = 47 \times 4000 + 1000 \times \frac{47 \times 48}{2} = 188000 + 1128000 = 1316000 \]
+<p>
+  约 1.3 M token；若每步新增换成一个更啰嗦的 2500 token（工具回传完整文件就会这样），
+  累计约 3.0 M，与开头的 3.2 M 是同一量级。<strong>真正的结论不是「47 步很贵」，而是
+  「上下文随步数线性增长，总消耗随步数近似平方增长」</strong>：步数翻倍，账单大约翻两番。
+  这解释了为什么第 4 节的摘要压缩与这里的步数预算其实是同一件事的两端——
+  一个压每次的长度，一个压次数。
+</p>
+<h4>8.2 手算：预算该设多大</h4>
+<p>
+  设每一步有独立概率 \(p = 0.3\) 找到成功动作（试探型任务的典型量级），预算为 \(B\) 步时，
+  至少成功一次的概率是
+</p>
+\[ P(\text{success within } B) = 1 - (1-p)^{B} \]
+<p>
+  \(B = 5\) 时 \(1 - 0.7^{5} \approx 0.832\)；\(B = 10\) 时约 \(0.972\)；\(B = 20\) 时约 \(0.9992\)。
+  <strong>从 10 步加到 20 步，成功率只多 2.7 个百分点，成本却翻倍</strong>——
+  这就是「预算按目标反推，而不是凭感觉设」的具体含义。
+</p>
+<p>反推公式同样简单。先定可接受的单任务失败率，再解步数上限：</p>
+\[ B \ge \frac{\ln(\text{failure tolerance})}{\ln(1-p)} \]
+<p>
+  取 \(p = 0.3\)、允许 5% 失败：\(B \ge \ln 0.05 / \ln 0.7 \approx 8.4\)，取 \(B = 9\)。
+  再用「每步平均成本乘期望步数」估出单任务金额上限，两个数一起写成代码常量。
+  <strong>关键是把它们写成常量，而不是写在系统提示里求模型遵守</strong>——常量会被程序强制执行，
+  提示词只会被模型「尽量考虑」。
+</p>
+<h4>8.3 权限矩阵：按任务发放，而不是按你的身份发放</h4>
+<table class="tbl small">
+  <thead><tr><th>能力</th><th>读 / 写</th><th>作用域</th><th>可逆性</th><th>默认策略</th></tr></thead>
+  <tbody>
+    <tr><td>读取项目文件</td><td>读</td><td>项目目录（白名单）</td><td>不适用</td><td>允许；越界路径直接拒绝并记录</td></tr>
+    <tr><td>写入新文件</td><td>写</td><td>指定输出目录</td><td>可逆（删掉即可）</td><td>允许并限额（如每次任务不超过 3 个文件）</td></tr>
+    <tr><td>修改既有文件</td><td>写</td><td>本次任务显式声明的文件列表</td><td>可逆（有版本控制）</td><td>需要显式声明；超出声明范围一律拒绝</td></tr>
+    <tr><td>执行命令 / 提交代码</td><td>写</td><td>沙箱容器或临时分支</td><td>可逆（分支可弃）</td><td>仅在沙箱内允许；不接触主分支与线上环境</td></tr>
+    <tr><td>删除数据 / 付款 / 对外发消息</td><td>写</td><td>不可控</td><td><strong>不可逆</strong></td><td>默认禁止；必须人工确认，并做软删除兜底</td></tr>
+  </tbody>
+</table>
+<p>
+  这张表要直接变成代码里的允许列表（allowlist）。<strong>系统提示是建议，允许列表才是边界</strong>；
+  只靠前者，一次提示注入（把指令藏在被读取的文档里）就能让边界消失。这与模块 21 的结论一致：
+  提示注入没有「更好的提示词」解，只有把权限收窄。
+</p>
+<h4>8.4 终止条件：成功判据与兜底必须互相独立</h4>
+<ol>
+  <li>
+    <strong>成功终止由外部状态判定</strong>：测试退出码为 0、文件里存在某个字符串、
+    数据库里的目标行符合预期。绝不能是模型说「我完成了」。
+  </li>
+  <li>
+    <strong>兜底终止至少四条</strong>：步数、token、墙钟时间、副作用次数。任意一条触发就停，
+    并把中间产物与完整 trace 写盘交回人。
+  </li>
+  <li>
+    <strong>停滞检测</strong>：连续 \(n\) 步（\(n = 3\) 是常用起点）的动作与观察高度重复，就判定为打转并终止。
+    这是治「长尾步数」最有效的一条。
+  </li>
+  <li>
+    <strong>终止原因必须落盘</strong>：done / step-limit / token-limit / timeout / write-limit / stuck / error。
+    事后归因、算成功率、定预算，全都依赖这一个字段。
+  </li>
+</ol>
+
+<h3>9. 失败模式复现手册：能跑起来的排查表</h3>
+<p>
+  这张表与第 6.4 节的归因表互补：6.4 告诉你<em>该修哪一层</em>，这里告诉你<em>怎么在本地复现出来</em>。
+  「可复现」的意思很具体：按「最小复现」一列做一次，你就能在自己机器上看到同样的症状；
+  否则你只是在猜，而猜错的代价是改错地方。
+</p>
+<table class="tbl small">
+  <thead><tr><th>症状</th><th>最小复现</th><th>根因</th><th>一行验证</th><th>对策</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>上下文被一次工具输出冲垮</td>
+      <td>让某个工具返回一份 1 万行的文件全文</td>
+      <td>工具返回没有上限，观察直接进上下文</td>
+      <td>打印每次 observation 的 token 数分位数，看 p99</td>
+      <td>工具内部截断或摘要，只回传需要的字段与截断标记</td>
+    </tr>
+    <tr>
+      <td>重试造成重复副作用</td>
+      <td>让写工具执行到一半抛超时，再用本地桩强迫重试</td>
+      <td>没有幂等键，「至少一次」语义被放大</td>
+      <td>比对去重表记录数与真实状态变更次数是否相等</td>
+      <td>幂等键加唯一约束；不可逆操作人工确认</td>
+    </tr>
+    <tr>
+      <td>报告成功但状态没变</td>
+      <td>把成功判据改成「工具返回 ok 即成功」，而工具什么都不做</td>
+      <td>用自述当验证，而不是外部状态</td>
+      <td>跑一个只读校验工具，直接读文件或数据库确认目标状态</td>
+      <td>成功判据只认外部状态；把校验步骤写成必走的一步</td>
+    </tr>
+    <tr>
+      <td>第 40 步开始违反第 1 步的约束</td>
+      <td>把系统提示里的硬约束写得很长，然后跑一个 50 步任务</td>
+      <td>历史被摘要压缩，硬约束被「释义」掉了</td>
+      <td>在 trace 里搜索约束关键词，看它最后一次出现在第几步</td>
+      <td>不可压缩区每轮重新注入，放在固定位置，不进摘要管道</td>
+    </tr>
+    <tr>
+      <td>步数长尾（平均 20 步，个别 90 步）</td>
+      <td>同一任务连跑 10 次，记录每次步数</td>
+      <td>缺少停滞检测，遇到死路就无限试探</td>
+      <td>画步数直方图，看 p50 与 p99 的比值</td>
+      <td>加停滞检测；按 p99 设预算；把长尾样本收进回归集</td>
+    </tr>
+    <tr>
+      <td>参数幻觉导致工具报错</td>
+      <td>把工具 schema 的 additionalProperties 限制去掉，观察模型是否开始编字段</td>
+      <td>schema 太松，模型用「看起来合理」的字段名</td>
+      <td>统计校验失败里「未知字段」所占的比例</td>
+      <td>严格 schema 加枚举与必填项；结构化错误只回灌一次</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>怎么用这张表</strong>：每次线上出问题，先把症状归到其中一行，再照着「最小复现」写一个不到 20 行的脚本存进仓库。
+  攒到五六个这样的脚本，你就有了智能体的<em>事故库</em>——
+  它比任何提示词模板都更能防止同类问题复发，也正是第 6.4 节「固定任务集」的野生版本。
+</p>
+
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：给一个最小智能体加上「可验证的成功」</h4>
   <p>
@@ -515,6 +724,84 @@ print(state["trace"])
   </ol>
 </section>
 
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>30 分钟最小实现：零托管服务的可控智能体循环</h4>
+  <p>
+    目标：不调任何托管 API，用 Python 标准库写出一个具备六件事的循环——
+    <strong>schema 校验、幂等键、退避重试、权限允许列表、副作用预算、外部成功判据</strong>。
+    模型用桩函数（真实项目里替换成任意一次文本生成调用即可），工具是内存字典，因此可以完全离线复现。
+  </p>
+<pre><code><span class="cm"># 可控智能体循环：schema 校验 + 幂等键 + 退避重试 + 允许列表 + 双终止（全程离线）</span>
+import json, sqlite3, time, random, uuid
+
+SCHEMA = {"read_note": {"key": str}, "write_note": {"key": str, "text": str}}
+ALLOW  = {"read_note": "read", "write_note": "write"}  <span class="cm"># 本次任务只发这两个权限</span>
+BUDGET = {"steps": 8, "writes": 2, "seconds": 5.0}
+db = sqlite3.connect(":memory:")
+db.execute("CREATE TABLE done(k TEXT PRIMARY KEY, result TEXT)")
+notes, t0 = {}, time.time()
+
+def validate(name, args):
+    if name not in ALLOW:
+        raise PermissionError("denied: " + name)       <span class="cm"># 权限层：默认拒绝</span>
+    for field, typ in SCHEMA[name].items():
+        if field not in args or not isinstance(args[field], typ):
+            raise ValueError("schema: " + name + "." + field)  <span class="cm"># 语法与语义层</span>
+
+def call(name, args, retries=3, base=0.2):
+    validate(name, args)
+    key = str(uuid.uuid5(uuid.NAMESPACE_URL, name + json.dumps(args, sort_keys=True)))
+    row = db.execute("SELECT result FROM done WHERE k=?", (key,)).fetchone()
+    if row:
+        return json.loads(row[0])                      <span class="cm"># 幂等：重放直接返回上次结果</span>
+    for attempt in range(retries):
+        try:
+            out = TOOLS[name](**args)
+            db.execute("INSERT OR REPLACE INTO done VALUES (?, ?)", (key, json.dumps(out)))
+            db.commit()
+            return out
+        except TimeoutError:
+            if attempt == retries - 1:
+                raise
+            time.sleep(base * (2 ** attempt) + random.random() * 0.1)  <span class="cm"># 退避加抖动</span>
+
+TOOLS = {"read_note": lambda key: {"ok": True, "value": notes.get(key)},
+         "write_note": lambda key, text: (notes.setdefault(key, text), {"ok": True})[1]}
+
+def model_step(state):           <span class="cm"># 桩：真实项目里换成一次文本生成调用</span>
+    if state["writes"] &lt; 1:
+        return {"tool": "write_note", "args": {"key": "n1", "text": "hello"}}
+    return {"tool": "read_note", "args": {"key": "n1"}}
+
+state = {"steps": 0, "writes": 0, "done": False, "trace": []}
+while state["steps"] &lt; BUDGET["steps"] and time.time() - t0 &lt; BUDGET["seconds"]:
+    state["steps"] += 1
+    act = model_step(state)
+    if act["tool"] == "write_note":
+        if state["writes"] &gt;= BUDGET["writes"]:
+            state["trace"].append("write-limit")
+            break
+        state["writes"] += 1
+    obs = call(act["tool"], act["args"])
+    state["trace"].append((act["tool"], obs))
+    if act["tool"] == "read_note" and obs.get("value") is not None:
+        state["done"] = True       <span class="cm"># 成功判据 = 外部状态，不是模型自述</span>
+
+print(state["done"], state["steps"], state["writes"], state["trace"])</code></pre>
+  <p>
+    <strong>要记录的三个数字</strong>：
+    ① 同一任务连跑 10 次的<strong>成功率</strong>；
+    ② <strong>步数的 p50 与 p99</strong>（长尾说明缺少停滞检测，见第 9 节）；
+    ③ 写操作的 <strong>「真实状态变更次数 / 请求次数」比值</strong>（幂等生效时应恰为 1.0，小于 1 说明有重复被吞掉，大于 1 说明有重复生效）。
+  </p>
+  <p>
+    三个必做实验：把 <code>validate</code> 里的类型检查删掉，看参数幻觉如何穿过；
+    把 <code>uuid5</code> 换成基于随机数的键（重放不再命中），看去重表的记录数如何翻倍；
+    把 <code>BUDGET</code> 的 steps 改成 3，观察循环是「按预算停」还是「按成功停」——
+    终止原因字段会告诉你是哪一种。
+  </p>
+</section>
+
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>五个常见误区</h4>
   <ol>
@@ -557,7 +844,66 @@ print(state["trace"])
     <span class="t" data-tterm="ReAct" data-d="Reasoning + Acting：推理轨迹与工具动作交错生成的提示范式。">ReAct</span>、
     <span class="t" data-tterm="trace" data-d="一次运行中每一步的完整记录（输入、动作、观察、耗时、成本），调试与审计的基础。">轨迹</span>、
     <span class="t" data-tterm="HITL" data-d="Human-in-the-loop：在关键或有副作用的步骤前插入人工确认。">人机接口</span>、
-    <span class="t" data-tterm="MCP" data-d="Model Context Protocol：用统一协议把工具与数据源接入 LLM 应用的开放标准。">MCP</span>。
+    <span class="t" data-tterm="MCP" data-d="Model Context Protocol：用统一协议把工具与数据源接入 LLM 应用的开放标准。">MCP</span>、
+    <span class="t" data-tterm="idempotency key" data-d="由任务、步骤、工具名与参数哈希拼出的唯一键，服务端保证同一键只生效一次。">幂等键</span>、
+    <span class="t" data-tterm="exponential backoff" data-d="失败后按基数乘二的间隔重试并加随机抖动，避免同步重试把下游打死。">指数退避</span>、
+    <span class="t" data-tterm="least privilege" data-d="按任务需要发放最小权限：能只读就不给写，能给单个目录就不给全盘。">最小权限</span>、
+    <span class="t" data-tterm="sandbox" data-d="把智能体的文件与网络访问限制在隔离环境内，越权失败而不是污染真实状态。">沙箱</span>。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>crossfade 项目上值不值：一个明确回答</h4>
+  <p>
+    <strong>结论：值得，但只值得做「实验编排」这一类智能体，不值得让模型自己决定怎么调音色。</strong>
+    判断标准就是第 6.4 节那句话：<em>要评结果，不要评过程</em>。凡是结果能被脚本判定的环节，智能体划算；
+    凡是只能靠耳朵判断的环节，智能体只会把你的不确定性放大成更多的不确定性。
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>crossfade 里的环节</th><th>可验证的判据</th><th>该不该交给智能体</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>生成实验配置、做网格搜索</td>
+        <td>配置能解析、字段在允许范围内、实验确实跑完</td>
+        <td><strong>该</strong>，这是收益最高的一环</td>
+        <td>每一步都有便宜的机器判据，失败可重跑，几乎没有不可逆副作用</td>
+      </tr>
+      <tr>
+        <td>批量跑训练并收集指标</td>
+        <td>进程退出码、指标文件存在且字段齐全</td>
+        <td><strong>该</strong>，但必须配预算与幂等</td>
+        <td>长任务需要断点恢复；重跑不能产生重复提交（第 7 节）</td>
+      </tr>
+      <tr>
+        <td>分析结果、写报告草稿</td>
+        <td>草稿里引用的数字能在指标文件里找到</td>
+        <td><strong>该</strong>，但要求给出来源 id</td>
+        <td>与模块 19 的引用校验是同一件事：论断必须可回溯</td>
+      </tr>
+      <tr>
+        <td>判断「这段过渡听起来自然吗」</td>
+        <td>没有客观判据，只能人工试听</td>
+        <td><strong>不该</strong></td>
+        <td>无法验证的任务里，智能体的成功只能靠自述，等于买了一个会说谎的随机过程</td>
+      </tr>
+      <tr>
+        <td>删除旧音频数据、覆盖模型权重</td>
+        <td>不可逆</td>
+        <td><strong>绝对不该</strong>自动化</td>
+        <td>第 8.3 节权限矩阵的最后一行：默认禁止，必须人工确认</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    换算成量级：若每个实验平均 6 步、每步 8k token，一次编排开销约 50k token；
+    按模块 11 的口径，这通常远低于一次训练本身的卡时与电费，所以<strong>把编排自动化是划算的</strong>。
+    反过来，如果让智能体反复「试听挑参数」，它每一步都在花你的时间做不可验证的搜索，收益接近零，
+    而成本（包括你复核它的时间）还要另算。
+  </p>
+  <p>
+    一句话版本：<strong>crossfade 上智能体的正确用法是「让它在可判定的闭环里替你跑腿」，而不是「让它替你审美」。</strong>
+    先从上面表格里第一行做起来——一个只负责生成配置、跑实验、收指标、写草稿的循环，
+    加上第 8.4 节的四条终止条件，你就能在一周内得到一个愿意相信其「完成」结论的工具。
   </p>
 </section>
 
@@ -607,6 +953,72 @@ print(state["trace"])
     且需要共享上下文或强依赖的任务并不适合多智能体；Cognition 则从工程角度主张默认用单线程智能体。
     MAST 的失败分类里，多数失败模式属于系统设计、智能体间不对齐与任务验证，而不是单纯的模型能力。
     所以先确认「独立性 + 可合并性 + 经济性」，再决定要不要并行。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">一个写操作工具返回「参数校验失败：缺少字段 target」。按第 7.1 节的错误分类，正确的处理是？</p>
+  <ul class="opts">
+    <li>立即用指数退避重试 3 次，抖动之后再试</li>
+    <li data-ok>不重试；把结构化错误回灌给模型让它改参数，且这次改正计入步数而不是重试次数</li>
+    <li>换一个更大的模型重新调用一次</li>
+    <li>把重试上限提高到 10 次以确保成功</li>
+  </ul>
+  <p class="why">
+    参数错误属于「不可重试」类：同样的参数重试一万次也不会变好，退避与抖动在这里毫无意义。
+    它需要的是<em>一次新的推理</em>（模型改参数），而瞬时抖动需要的是<em>一次新的请求</em>——
+    两者混在一起，重试预算会被业务错误吃光，真正的网络抖动反而没机会重试。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">某任务每一步有 \(p = 0.3\) 的概率找到成功动作，团队希望单任务失败率不超过 5%。按第 8.2 节的公式，步数上限大约取多少？</p>
+  <ul class="opts">
+    <li>3 步</li>
+    <li data-ok>9 步</li>
+    <li>20 步</li>
+    <li>50 步</li>
+  </ul>
+  <p class="why">
+    解 \(B \ge \ln(0.05)/\ln(0.7) \approx 8.4\)，向上取整为 9。
+    3 步只有 \(1 - 0.7^{3} \approx 0.657\) 的成功率，20 步虽然到 0.9992，但相对 9 步只多约 2.6 个百分点、成本却翻倍以上。
+    预算应该按目标失败率反推，而不是凭感觉或按最坏情况无上限地放大。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">你用 32 位随机字符串做幂等键，一年约 \(10^{6}\) 次写调用。会出什么问题？</p>
+  <ul class="opts">
+    <li>没有问题，32 位对一百万次调用绰绰有余</li>
+    <li data-ok>碰撞已经不可忽略：按生日近似期望碰撞量级远超 1，会让「第二次写入被当成已执行」而静默丢数据</li>
+    <li>只有高并发时才会碰撞，串行调用绝对安全</li>
+    <li>碰撞只会导致重复执行，不会造成数据丢失</li>
+  </ul>
+  <p class="why">
+    第 7.2 节的手算：\(b = 128\) 时 \(N^{2}/2^{129} \approx 1.5 \times 10^{-27}\)，可以忽略；
+    但 \(b = 32\) 时 \(N^{2}/2^{33} \approx 116\)，键空间已经饱和。串行也一样会碰撞，因为碰撞只取决于键的取值分布。
+    而且幂等表的方向是「命中就当已执行」，所以碰撞的后果是<em>静默丢弃合法写入</em>——
+    这比重复执行更难发现。用 128 位键的成本几乎为零，没有理由省。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">一个「只读分析」任务里，模型请求调用一个写工具。按本模块的建议，最可靠的拦截方式是？</p>
+  <ul class="opts">
+    <li>在系统提示里写明「严禁写操作」，让模型自律</li>
+    <li data-ok>在宿主程序里维护按任务下发的允许列表，请求不在列表内就直接拒绝</li>
+    <li>让模型在调用前再做一次自我确认</li>
+    <li>把写工具的描述改成「危险，请勿使用」</li>
+  </ul>
+  <p class="why">
+    系统提示是建议，允许列表才是边界：一次提示注入（把指令藏在被读取的文档或工具返回值里）就能让前者失效，
+    而后者在模型之外执行，模型说什么都不影响。
+    把工具描述写得更吓人只是改变了模型的先验，不是一道墙——这与模块 21 的结论一致：
+    提示注入没有「更好的提示词」解，只有把权限收窄。
   </p>
 </div>
 

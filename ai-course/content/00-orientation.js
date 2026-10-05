@@ -55,6 +55,7 @@ COURSE.register({
     <tr><td><strong>Claude Pro</strong>（$20/月，已订阅）</td><td>按「用量」计量的订阅额度（不是消息条数）</td><td>长上下文数学推导、论文精读、写作</td><td>5 小时 + 每周窗口；用 <code>/usage</code> 查；周上限自 2026-09-14 起永久 +25%</td></tr>
     <tr><td><strong>Hugging Face</strong></td><td>模型 / 数据集 / 训练库 / 文档</td><td>TRL 做对齐、datasets 取数据、Hub 存检查点</td><td>注意数据集许可与污染</td></tr>
     <tr><td><strong>YouTube / 访谈记录</strong></td><td>工程经验与经济学</td><td>建立「怎么用」的直觉（第 11–15 模块）</td><td>量级参考，不是精确报价</td></tr>
+    <tr><td><strong>AI 素养官方课</strong>（22 门，免费）</td><td>可迁移的人机协作能力：委派、描述、辨识、尽责</td><td>补「怎么和别人协作使用 AI」这一层，配 <a href="#appG">附录 G</a> 的映射表用</td><td><strong>不要只会上某一家的产品</strong>：学完用附录 G 的中立检查表验收自己</td></tr>
   </tbody>
 </table>
 
@@ -67,7 +68,7 @@ COURSE.register({
     <tr><td><strong>III 算力</strong></td><td>10</td><td>Colab / Kaggle / HF Jobs 上能跑什么、怎么不浪费额度</td></tr>
     <tr><td><strong>IV 经济与基础设施</strong></td><td>11–15</td><td>订阅套利数学、住宅 IP 与代理架构、重置动力学、多线程工作流、硬件与操作系统瓶颈</td></tr>
     <tr><td><strong>V 收束</strong></td><td>16</td><td>把上面全部映射回 8 个检查点，给出可执行的 12 周计划</td></tr>
-    <tr><td><strong>附录</strong></td><td>A–E</td><td>术语表、Colab 实验手册、资源地图、合规提示、综合自测</td></tr>
+    <tr><td><strong>附录</strong></td><td>A–G</td><td>术语表、Colab 实验手册、资源地图、合规提示、综合自测、速查手册、<strong>AI 素养课地图</strong></td></tr>
   </tbody>
 </table>
 
@@ -82,14 +83,14 @@ COURSE.register({
       <td><strong>第一次：通读</strong><br />（约 6–10 小时）</td>
       <td>按顺序读 00 → P → 01 → … → 16，每讲结束做自测；折叠的「深入」可以先跳过，
           等真正用到时再回来</td>
-      <td>正文 18 讲；每讲 20–40 分钟。零基础务必先读 <strong>P 预备课</strong></td>
+      <td>正文 24 讲；每讲 20–60 分钟。零基础务必先读 <strong>P 预备课</strong></td>
     </tr>
     <tr>
       <td><strong>之后：当手册查</strong><br />（每次 1–3 分钟）</td>
       <td>用顶部搜索框（快捷键 <code>/</code>）按关键词定位；或直接翻附录：
           公式、数字、超参、命令、排错决策都在 <a href="#appF">附录 F 速查手册</a>，
-          术语在 <a href="#appA">附录 A 术语表</a>（240 条，按 14 类分好）</td>
-      <td>附录 A（术语）、附录 F（七张速查表）、每讲顶部的「本讲速查」</td>
+          术语在 <a href="#appA">附录 A 术语表</a>（355 条，按 14 类分好）</td>
+      <td>附录 A（术语）、附录 F（七张速查表）、附录 G（22 门 AI 素养官方课怎么用）、每讲顶部的「本讲速查」</td>
     </tr>
   </tbody>
 </table>
@@ -101,6 +102,27 @@ COURSE.register({
   <li><strong>回到顶部</strong>：右下角按钮，长文里随时回到开头。</li>
   <li><strong>打印 / 导出 PDF</strong>：右上角按钮会自动展开全部折叠内容，适合离线当参考书翻。</li>
 </ul>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>高阶章（17–24）怎么读：三层读法</h4>
+  <p>
+    v1.2 把这八章按「能算、能跑、能验证」加厚了一遍。它们比前面几章长，但<strong>不需要一次读完</strong>——
+    每章都是同样的五段结构，按你的目的挑着读：
+  </p>
+  <ol>
+    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章跟你的项目有没有关系。没关系就跳过，这不丢人——
+        八章里有四章对 crossfade 项目是「知道就好」。</li>
+    <li><strong>再读手算例子与查表</strong>：每章都有带具体数字的算例和「症状 → 原因 → 一行验证 → 对策」的失败模式表。
+        这两样是真正会反复回来查的部分，也是别人问你「你懂不懂」时你能立刻答出来的部分。</li>
+    <li><strong>有需要时再动手</strong>：每章有一个 <span class="t" data-tterm="Hands-on block" data-d="课程里所有带 🧪 图标的版块：给出能在 30 分钟内跑完的最小实现与要记录的数字。">30 分钟最小实现</span>，
+        不依赖任何托管服务；跑完只需记住三个数字，写进你的实验记录。</li>
+  </ol>
+  <p>
+    每章末尾还有两样东西：<strong>自测题</strong>（点选项立刻判定）和<strong>「怎么用在真实项目里」</strong>——
+    后者会直接回答「这件事用在 crossfade 项目上值不值、为什么」。如果时间只够读一节，
+    读那一节比读完全章更有用。
+  </p>
+</section>
 
 <h3>5. 界面怎么用</h3>
 <ul>

@@ -16,7 +16,7 @@ COURSE.register({
   <span class="t" data-tterm="Prefill" data-d="把整段提示一次性并行前向、填充 KV cache 的阶段，算力受限。">预填充</span> 与解码、
   <span class="t" data-tterm="LoRA rank" data-d="低秩更新的秩 r，决定可训练参数量，与学习率是两个独立旋钮。">LoRA 的 rank</span> 与学习率、
   <span class="t" data-tterm="Banked reset" data-d="把未用满的额度存起来、之后继续用；与「到点清零」相对。">即时重置</span> 与银行重置。
-  第 15 节把它们逐对列出。术语按 14 个分类组织，条数约 220 条，可直接用于写论文、读文档、和同事对齐口径。
+  第 15 节把它们逐对列出。术语按 14 个分类组织，共 <strong>355 条</strong>（其中 61 条是 v1.2 为 17–24 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
 </p>
 
 <h3>1. 概率与目标函数（Probability and objectives）</h3>
@@ -495,6 +495,71 @@ COURSE.register({
     <tr><td>扩散语言模型</td><td>Diffusion LM</td><td>用去噪过程生成文本，与自回归路线不同；并行生成是潜在优势，成熟度仍在发展。</td></tr>
     <tr><td>视觉语言模型</td><td>VLM</td><td>编码器 + 投影层 + 语言模型的三段式结构，把图像特征接到文本模型的表示空间。</td></tr>
     <tr><td>对比学习 / InfoNCE</td><td>Contrastive learning / InfoNCE</td><td>拉近正样本、推远负样本（CLIP 式训练目标），是多模态对齐的基础损失。</td></tr>
+  </tbody>
+
+  <!-- 高级章（17–24）与附录 G 新增术语 -->
+  <tbody>
+    <tr><td>暗知识</td><td>Dark knowledge</td><td>教师分布里「第 2 类比第 3 类更接近」这类类间结构；硬标签 \([1,0,0]\) 完全丢失，只在软标签中保留，温度 \(T>1\) 时更明显。</td></tr>
+    <tr><td>特征蒸馏</td><td>Feature distillation</td><td>让学生模仿教师的隐藏状态或注意力矩阵，而不只是输出；要求同架构并配投影层，跨家族时基本不可用。</td></tr>
+    <tr><td>词表对齐</td><td>Vocabulary alignment</td><td>词级蒸馏的前提：教师与学生必须共享同一词表与分词，否则每个位置的分布无法逐项比较，只能退化为响应蒸馏。</td></tr>
+    <tr><td>长度漂移</td><td>Length drift</td><td>学生学会「教师的答案更长」这一表面统计，输出越来越长而正确率不变；用长度归一化与数据中的短答案正例纠正。</td></tr>
+    <tr><td>错误继承</td><td>Error inheritance</td><td>教师系统性答错的样本被学生学得更牢，因为教师分布很自信；对策是规则验证器过滤或对低置信样本降权。</td></tr>
+    <tr><td>尾部质量</td><td>Tail mass</td><td>只存 top-k logits 时被丢弃的概率质量 \(m = 1 - \sum_{i \in \text{top-}k} p_i\)；中位数超过 0.05 就加大 k 或降低温度。</td></tr>
+    <tr><td>数据保留率</td><td>Data keep rate</td><td>生成样本经去重与规则过滤后剩下的比例；低于 0.5 说明提示太相似或过滤过狠，应先增加提示数而不是采样数。</td></tr>
+    <tr><td>覆盖率</td><td>Coverage</td><td>采样 \(n\) 次里至少有一条正确的概率 \(1-(1-p)^n\)；它描述候选集合，不等于用户最终看到的答案正确率。</td></tr>
+    <tr><td>无偏估计</td><td>Unbiased pass@k estimator</td><td>由「\(n\) 次采样中 \(c\) 次正确」估计 pass@k 的式子 \(1-\binom{n-c}{k}/\binom{n}{k}\)；\(k=1\) 时退化为 \(c/n\)。</td></tr>
+    <tr><td>裁判精度</td><td>Judge accuracy</td><td>候选里至少有一条正确时，裁判挑中正确那条的概率 \(q\)；交付准确率的上限就是 \(q\)，加采样无法突破。</td></tr>
+    <tr><td>过思考</td><td>Overthinking</td><td>在简单题上生成大量推理 token 却几乎不提升正确率的现象；判据是输出变长而正确率不动，对策是分档限长。</td></tr>
+    <tr><td>预算强制</td><td>Budget forcing</td><td>通过强行截断或反复追加「等一下」来控制思考长度的推理时技巧，可在不重训的情况下把长度拉长或压短。</td></tr>
+    <tr><td>计算最优分配</td><td>Compute-optimal allocation</td><td>按题目难度分配测试时算力而非统一采样数；实证相对朴素 best-of-n 把算力效率提高约 4 倍。</td></tr>
+    <tr><td>思考预算</td><td>Thinking budget</td><td>为每条推理链设定的输出 token 上限；它同时决定 KV 显存、端到端延迟与账单，应做成可调超参。</td></tr>
+    <tr><td>倒数排名融合</td><td>Reciprocal rank fusion (RRF)</td><td>只按名次融合多路检索结果，单个结果贡献 \(1/(\kappa+\mathrm{rank})\)，常数常取 60；无需两路分数可比，代价是丢失分差信息。</td></tr>
+    <tr><td>父子块检索</td><td>Parent-child retrieval</td><td>用小子块建索引保证召回精度，命中后改送它所属的大父块给生成模型；父块常取 1600–2000 token，避免答案被切碎在块边界。</td></tr>
+    <tr><td>上下文预算</td><td>Context budget</td><td>把窗口按区段预先分配：系统指令与输出 schema 属不可压缩区，检索块按融合分数从低到高先砍，并留约 10% 余量给格式开销。</td></tr>
+    <tr><td>硬负例</td><td>Hard negative</td><td>与查询相似但不含答案的文档，用于训练或评估检索器；只喂随机负例时模型学不会区分，Recall@k 会被明显高估。</td></tr>
+    <tr><td>引用支持率</td><td>Citation support rate</td><td>被引段落真正支持所标注句子的比例；它与引用 id 合法率是两个指标，前者需判定式校验，混用会低估风险并修错地方。</td></tr>
+    <tr><td>全文索引</td><td>Full-text search index (FTS)</td><td>为词项建倒排表以支持 BM25 之类打分；SQLite FTS5 自 3.9.0（2015-10-14）内置并自带 bm25() 排名，适合单机语料。</td></tr>
+    <tr><td>幂等键</td><td>Idempotency key</td><td>由任务、步骤、工具名与参数哈希拼出的唯一键，服务端保证同一键只生效一次；建议 128 位，32 位在一百万次调用下碰撞期望量级远超 1。</td></tr>
+    <tr><td>指数退避</td><td>Exponential backoff</td><td>失败后按 \(t \cdot 2^{\text{attempt}}\) 等待重试并加随机抖动；通常最多重试 3–5 次，抖动避免多客户端同步重试造成尖峰。</td></tr>
+    <tr><td>熔断器</td><td>Circuit breaker</td><td>某工具连续失败（常用阈值 5 次）后暂停调用进入冷却，冷却后半开放行试探；防止在必然失败的下游上空转并加剧重试风暴。</td></tr>
+    <tr><td>最小权限</td><td>Least privilege</td><td>按任务而非按操作者身份发放权限：能只读就不给写，能给单个目录就不给全盘；系统提示只是建议，代码里的允许列表才是边界。</td></tr>
+    <tr><td>工具模式校验</td><td>Tool schema validation</td><td>在宿主侧检查工具参数的类型、枚举与必填项（如 additionalProperties 设为 false）；能挡掉大部分参数幻觉，失败时回灌结构化错误。</td></tr>
+    <tr><td>沙箱</td><td>Sandbox</td><td>把智能体的文件与网络访问限制在隔离环境（容器、临时分支、只读挂载）内；越权操作在沙箱里失败，而不是污染真实状态。</td></tr>
+    <tr><td>威胁模型</td><td>Threat model</td><td>一页纸列出资产、攻击者能触及的输入、攻击路径与每层缓解措施；缺了它就无法判断评测到底覆盖了什么。</td></tr>
+    <tr><td>间接提示注入</td><td>Indirect prompt injection</td><td>指令藏在模型会读取的第三方内容（文档、网页、工具返回值）里，攻击者无需与用户对话；区别于用户自行越狱。</td></tr>
+    <tr><td>过优化</td><td>Overoptimization</td><td>对代理奖励优化过深使真实奖励先升后降；差距随优化强度与 \(n\) 增大，必须用独立评估集监控。</td></tr>
+    <tr><td>性能差距恢复率</td><td>Performance gap recovered (PGR)</td><td>\( (S_{w2s} - S_{weak}) / (S_{strong} - S_{weak}) \)；0 表示弱监督没激发新能力，1 表示完全恢复。</td></tr>
+    <tr><td>对齐伪装</td><td>Alignment faking</td><td>模型在能推断「正在训练」时假装服从，以保住部署时偏好的行为；Greenblatt 等 2024 在人为设定中观察到。</td></tr>
+    <tr><td>模型裁判</td><td>LLM-as-judge</td><td>用另一个模型给输出打分；容易被长度与风格说服而非被正确性说服，需多裁判与人工抽检校准。</td></tr>
+    <tr><td>操作化</td><td>Operationalisation</td><td>把模糊概念换成一族可测量指标，并接受指标与目标的差距；代价是结论必须永远带着口径。</td></tr>
+    <tr><td>自我报告稳定性</td><td>Self-report stability</td><td>同一问题换措辞、语言与重复采样后答案的一致程度；极差接近 1 说明答案主要由提示措辞决定。</td></tr>
+    <tr><td>元表征</td><td>Metarepresentation</td><td>系统对自身内部状态的表征层，是 HOT 的核心指标属性；能「谈论」自身状态不等于拥有它。</td></tr>
+    <tr><td>递归处理</td><td>Recurrent processing</td><td>RPT 主张局部循环连接即可产生现象意识；以前馈为主的 Transformer 缺少这一结构。</td></tr>
+    <tr><td>道德地位</td><td>Moral status</td><td>一个系统是否值得道德考量；与「是否有意识」相关但不相同，且无法从行为数据直接估计。</td></tr>
+    <tr><td>行为等价</td><td>Behavioral equivalence</td><td>两个系统在全部可观察行为上无法区分；它不蕴含体验等价，这正是哲学僵尸论证的要点。</td></tr>
+    <tr><td>任务向量</td><td>Task vector</td><td>微调权重与预训练权重之差 \(\tau_t=\theta_t-\theta_{pre}\)，代表权重空间中「朝该任务变好」的方向；可相加或取负，两个 delta 范数差一个数量级时直接相加会被大的淹没。</td></tr>
+    <tr><td>模型汤</td><td>Model soup</td><td>对同一预训练权重的多次微调结果取平均 \(\theta=\frac{1}{K}\sum_k\theta_k\)；推理成本与单模型相同，但要求同源且各解落在同一低误差盆地，否则输出会变得混乱。</td></tr>
+    <tr><td>TIES 合并</td><td>TIES merging</td><td>合并前先裁剪小幅变化、逐参数做符号选举、只合并符号一致的项；它解决冗余与符号冲突两类干扰，缩放系数 \(\lambda\) 常取 0.3 到 1.0。</td></tr>
+    <tr><td>DARE</td><td>Drop And REscale</td><td>以概率 \(p\) 随机丢弃微调增量、再把保留项乘以 \(1/(1-p)\)；期望无偏但方差变大，论文报告 SFT 增量可丢 90% 到 99%。</td></tr>
+    <tr><td>直通估计器</td><td>Straight-through estimator</td><td>把取整与钳位的反向传播当作恒等映射 \(\partial\hat{x}/\partial x\approx 1\)；它是 QAT 能训练的唯一机制，前向仍是真量化，所以训练与部署感受到的误差一致。</td></tr>
+    <tr><td>分组量化</td><td>Group-wise quantization</td><td>每 \(g\) 个连续权重共享一个缩放因子，常用 \(g=128\)；4-bit 下每权重多出 \(4/g\) 字节开销（约 6%），group 越小开销越大、精度越好。</td></tr>
+    <tr><td>2:4 稀疏</td><td>2:4 semi-structured sparsity</td><td>每 4 个连续权重里至少 2 个为零；这是 Ampere 之后 Sparse Tensor Core 直接支持的模式，理论上 2 倍、实测 1.3 到 1.6 倍加速。</td></tr>
+    <tr><td>校准集</td><td>Calibration set</td><td>PTQ 用来估计每层或每组缩放因子与零点的少量无标签数据（几百到几千条）；换一份校准集，会让同一份 4-bit 权重的困惑度出现可观测的变化。</td></tr>
+    <tr><td>选择性扫描</td><td>Selective scan</td><td>让 \(B\)、\(C\)、\(\Delta\) 依赖输入之后卷积核不再固定、FFT 技巧失效；只能在片上 SRAM 做并行前缀扫描，这是 Mamba 把线性复杂度变成实测吞吐的关键。</td></tr>
+    <tr><td>混合架构</td><td>Hybrid architecture</td><td>多数层用 SSM 或滑窗做累积、每隔几层插一个全局注意力层做精确检索；全局层占比是要自己扫的超参，太少索引能力弱、太多成本又回来。</td></tr>
+    <tr><td>解耦 RoPE</td><td>Decoupled RoPE</td><td>MLA 把 K 拆成低秩部分与单独缓存的旋转位置部分（每 token 约 64 维、所有头共享）；因为旋转项无法被低秩投影吸收，只能额外缓存一份。</td></tr>
+    <tr><td>视觉指令微调</td><td>Visual instruction tuning</td><td>用合成多模态指令数据端到端训练投影层与语言模型；只冻结编码器做投影对齐产出的只是翻译器，这一步才产出真正的助手。</td></tr>
+    <tr><td>反转诅咒</td><td>Reversal curse</td><td>模型学会了「A 在 B 之前」却答不出「B 在 A 之后」；自回归的因果掩码使它无法回看，不绑定生成顺序的扩散式训练可以缓解。</td></tr>
+    <tr><td>对比温度</td><td>Contrastive temperature</td><td>InfoNCE 中的 \(\tau\)，把相似度差放大 \(1/\tau\) 倍；\(\tau\) 越小分布越尖、梯度越集中在最难的负样本上，CLIP 这一族常用 0.01 到 0.07。</td></tr>
+    <tr><td>固定容量状态</td><td>Fixed-size state</td><td>SSM 与线性注意力的隐状态 \(h\in\mathbb{R}^{N}\) 与序列长度无关；它擅长累积型信息，按内容做精确回忆必然有损，这是容量约束的必然结果。</td></tr>
+    <tr><td>4D 框架</td><td>AI Fluency 4D framework</td><td>把一次人机协作拆成委派、描述、辨识、尽责四个关口；缺任一维的典型症状是流程很顺但没人对结果负责。</td></tr>
+    <tr><td>委派</td><td>Delegation</td><td>动手前先划边界：判据、抽样、最终签字不交给模型；委派过度的失败模式是把「决定」也一起交出去。</td></tr>
+    <tr><td>描述</td><td>Description</td><td>把需求写到可验收：给输入、输出格式、判据与反例；描述不足的症状是答案看起来对却无法判定对不对。</td></tr>
+    <tr><td>辨识</td><td>Discernment</td><td>用可复核的方法验收输出：基线、分组切分、噪声下限、置换检验；失败模式是把流畅当成正确。</td></tr>
+    <tr><td>尽责</td><td>Diligence</td><td>明确谁签字、留什么记录：每条结论附日期、命令与数字；没有签字人的协作出事后既无法追责也无法复现。</td></tr>
+    <tr><td>AI 素养</td><td>AI Fluency</td><td>与模型协作的可迁移能力：会划边界、会描述、会验收、会负责；它不随某家产品的界面改版而失效。</td></tr>
+    <tr><td>厂商锁定</td><td>Vendor lock-in</td><td>产出依赖某家专有接口或界面，迁移成本高；检测办法是换一个模型把同一任务再做一次并记录迁移率。</td></tr>
+    <tr><td>迁移率</td><td>Transfer rate</td><td>换到第二个模型或开放权重实现后，同一需求原样通过验收的任务比例；低于 0.6 说明需求绑定了原模型。</td></tr>
   </tbody>
 </table>
 

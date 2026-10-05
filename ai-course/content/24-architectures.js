@@ -5,7 +5,7 @@ COURSE.register({
   num: "24",
   title: "前沿架构与多模态：注意力之外的世界",
   en: "Frontier Architectures & Multimodality",
-  minutes: 35,
+  minutes: 42,
   tags: ["高阶", "前沿", "多模态"],
   body: String.raw`
 <p class="lead">
@@ -580,6 +580,301 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
   </p>
 </section>
 
+<h3>7. 选型表：六类架构各自在为什么付费</h3>
+<p>
+  前面六节分别讲了原理。这一节把它压成一张可以直接拿去开会的表。
+  读表的顺序是：先看「每 token 算力」与「每 token KV 字节」两列，它们决定账单；
+  再看「长程精确回忆」那一列，它决定你会不会在评测里翻车；
+  最后看「成熟度」，它决定你要不要自己写内核。
+</p>
+<table class="tbl small">
+  <thead><tr><th>架构族</th><th>每 token 算力</th><th>每 token KV 字节</th><th>长程精确回忆</th><th>服务栈成熟度</th><th>什么时候选它</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>稠密自回归<br />（全局注意力 + GQA）</td>
+      <td>约 \(2N\) FLOPs（\(N\) 为参数量）</td>
+      <td>\(2\,L\,h_{kv}\,d_h\,b\)，参考配置 128 KiB</td>
+      <td>最强</td>
+      <td>最高：投机解码、前缀缓存、分页管理都围绕它建</td>
+      <td>默认选项：序列不超过 32K，需要逐字精确</td>
+    </tr>
+    <tr>
+      <td>滑窗 + 少量全局层</td>
+      <td>接近 \(2N\)，注意力项降到 \(O(TW)\)</td>
+      <td>全局层 \(O(T)\) 加窗口层 \(O(W)\)</td>
+      <td>好（靠全局层兜底）</td>
+      <td>高</td>
+      <td>长度上百 K、KV 卡死显存，且不能重训</td>
+    </tr>
+    <tr>
+      <td>线性注意力</td>
+      <td>\(O(T)\)，但常数更大</td>
+      <td>状态固定，没有 KV cache</td>
+      <td>弱（核函数是有损近似）</td>
+      <td>中</td>
+      <td>超长流式，且对精确回忆要求低</td>
+    </tr>
+    <tr>
+      <td>状态空间模型（SSM）</td>
+      <td>\(O(T)\)，递推常数小</td>
+      <td>状态固定，没有 KV cache</td>
+      <td>弱（累积强、索引弱）</td>
+      <td>中：需要专用扫描内核</td>
+      <td>连续信号、传感器、音频这类长序列的<em>累积</em>任务</td>
+    </tr>
+    <tr>
+      <td>MoE</td>
+      <td>按<strong>激活</strong>参数计（常见是总参数的 1/5 到 1/10）</td>
+      <td>与同规模稠密模型相同</td>
+      <td>取决于注意力层</td>
+      <td>高：主流推理框架已支持</td>
+      <td>显存有余、想买容量而不是买算力</td>
+    </tr>
+    <tr>
+      <td>扩散语言模型</td>
+      <td>步数乘序列长度（与生成长度解耦）</td>
+      <td>前缀可缓存，块内要重复前向</td>
+      <td>中：可双向，没有反转诅咒</td>
+      <td>低：服务栈仍在形成</td>
+      <td>填空、纠错、需要全局结构约束的生成</td>
+    </tr>
+    <tr>
+      <td>多模态（VLM）</td>
+      <td>语言模型加上编码器（视觉 token 数乘每 token 成本）</td>
+      <td>视觉 token 也进 KV，画面越细越贵</td>
+      <td>取决于背后的语言模型</td>
+      <td>高</td>
+      <td>输入本身就是像素或声波，而不是文本</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>表里最容易被忽略的一列是「每 token KV 字节」。</strong>
+  它乘上上下文长度就是你的并发上限。算力与 KV 是两本账：
+  一本决定「跑得动吗」，一本决定「同时能跑几条」。
+</p>
+
+<h3>8. 同预算推导：一张 24 GB 卡、128K 上下文、并发 4 条</h3>
+<p>
+  下面是一次完整的选型推演。约束是硬的：<strong>一张 24 GB 卡、128K 上下文、同时服务 4 条序列、单序列解码要能看。</strong>
+  参考配置沿用第 1 节那个 GQA 模型（\(L=32\)、\(h_{kv}=8\)、\(d_h=128\)），KV 先用 fp16。
+</p>
+<p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉：</p>
+\[ 24 - 3.9 - 2.0 \approx 18 \qquad (\text{GB}) \]
+\[ \text{per-sequence} = \frac{18}{4} = 4.5 \qquad (\text{GB}) \]
+\[ \frac{4.5 \times 2^{30}}{131072} \approx 36 \qquad (\text{KiB/token}) \]
+<p><strong>第二步：拿候选方案去撞这个预算。</strong></p>
+<table class="tbl small">
+  <thead><tr><th>候选</th><th>每 token KV</th><th>单序列 128K 占用</th><th>4 并发合计</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr><td>GQA + fp16 KV</td><td>128 KiB</td><td>16 GiB</td><td>64 GiB</td><td>❌ 超出 3 倍以上</td></tr>
+    <tr><td>GQA + int8 KV</td><td>64 KiB</td><td>8 GiB</td><td>32 GiB</td><td>❌ 仍然超</td></tr>
+    <tr><td>GQA + int4 KV</td><td>约 34 KiB</td><td>约 4.25 GiB</td><td>约 17 GiB</td><td>⚠ 勉强通过，余量不到 1 GB</td></tr>
+    <tr><td>全滑窗 \(W=4096\)</td><td>不随 \(T\) 增长：每序列 \(4096 \times 128\ \text{KiB}\)</td><td>512 MiB</td><td>2 GiB</td><td>✅ 但长程依赖只能靠层间传播</td></tr>
+    <tr><td>混合：8 全局层 + 24 滑窗层</td><td>全局 \(8/32 \times 128 = 32\) KiB；窗口部分每序列 384 MiB</td><td>4 GiB 加 384 MiB</td><td>约 17.6 GiB</td><td>⚠ 接近上限；KV 换 int8 后约 8.8 GiB ✅</td></tr>
+    <tr><td>MLA 类低秩 KV</td><td>1.125 KiB</td><td>144 MiB</td><td>576 MiB</td><td>✅ 但要改架构，通常要重训</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>第三步：算解码时间，检查「能不能看」。</strong>一步要读的字节数是
+  \(B_w + B \cdot T \cdot M_{\text{kv}}\)，仍按 1.0 TB/s 带宽：
+</p>
+<p>
+  fp16 KV：\(3.9\times10^{9} + 4 \times 131072 \times 131072 \approx 7.26\times10^{10}\) B → 约 73 ms/步 → 4 条合计约 55 tok/s<br />
+  int4 KV：\(3.9\times10^{9} + 4 \times 131072 \times 34816 \approx 2.22\times10^{10}\) B → 约 22 ms/步 → 4 条合计约 180 tok/s
+</p>
+<p>
+  <strong>这一步的结论比第一步更重要</strong>：在 128K、4 并发下，KV 流量（69 GB）
+  是 int4 权重流量（3.9 GB）的 <strong>18 倍</strong>。
+  <em>长上下文服务里只量化权重几乎无用</em>——这条和第 23 章第 7.3 节是同一笔账，
+  两个模块在这里合上了。
+</p>
+<h4>8.1 同预算下的选型结论</h4>
+<dl class="kv">
+  <dt>必须 128K 且不能重训</dt><dd>唯一可行的是「KV 量化 + 滑窗/混合」。先做 KV int8（不改模型），不够再上滑窗；全局层保 1/4 左右，注意力算力同步降到约 1/4。</dd>
+  <dt>可以重训</dt><dd>MLA 类低秩 KV 是唯一能在 128K 下留出大量余量的方案：1.125 KiB/token，4 并发只占 576 MiB。代价是额外的投影参数与实现复杂度。</dd>
+  <dt>长度其实只有 8K</dt><dd>上面全部不需要。8K 下 fp16 KV 只有 1 GiB/序列，默认的全局注意力加 GQA 就是最优解，<strong>不要为了「前沿」而换架构</strong>。</dd>
+  <dt>要的是容量不是长度</dt><dd>MoE。它的账完全不同，见 8.2。</dd>
+</dl>
+
+<h4>8.2 MoE：算力与显存不是同一件事</h4>
+<p>MoE 把 FFN 换成 \(E\) 个专家加一个路由器，每个 token 只走其中 \(k\) 个。于是有两个数：</p>
+\[ N_{\text{total}} = N_{\text{attn+emb}} + E\,N_{ffn} \]
+\[ N_{\text{active}} = N_{\text{attn+emb}} + k\,N_{ffn} \]
+<p>
+  把第 23 章的参考配置代进来（\(N_{\text{attn+emb}} = 1.60\) B、\(N_{ffn} = 5.64\) B），取 \(E = 8\)、\(k = 2\)：
+</p>
+\[ N_{\text{total}} = 1.60 + 8 \times 5.64 \approx 46.7 \ \text{B} \]
+\[ N_{\text{active}} = 1.60 + 2 \times 5.64 \approx 12.9 \ \text{B} \]
+<p>
+  读法：<strong>每 token 的算力相当于一个 12.9B 的稠密模型（约为原来 7.2B 的 1.8 倍），
+  但显存要装 46.7B</strong>——int4 下约 24.8 GB，一张 24 GB 卡装不下，而且这还没算 KV。
+  <em>MoE 买的是容量，付的是显存；它不解决显存问题，反而加重显存问题。</em>
+</p>
+<p>
+  如果目标是在同一张卡上既扩容量又装得下，改法是把专家做小、个数减少：
+  取 \(E = 4\)、每个专家是原 FFN 的一半（即 \(N_{ffn}' = 2.82\) B）、\(k = 2\)：
+</p>
+\[ N_{\text{total}} = 1.60 + 4 \times 2.82 \approx 12.9 \ \text{B}, \qquad N_{\text{active}} = 1.60 + 2 \times 2.82 \approx 7.24 \ \text{B} \]
+<p>
+  int4 下约 6.9 GB，装得下，每 token 算力与原来持平。<strong>这才是单卡场景下正确的 MoE 用法：
+  用同样算力换到更大的总容量。</strong>而这需要从头训练或做 upcycling，属于训练侧决策，不是部署侧开关。
+</p>
+
+<h3>9. 多模态最小三段式：编码器 + 投影层 + 语言模型</h3>
+<p>
+  6.1 给的是流程图。这一节把它做成<strong>能跑起来的最小例子</strong>，
+  每一步都说明「这一段在做什么、参数量是多少、哪一段该冻结」。
+  先算一笔在真实项目里最容易被低估的账：视觉 token 数。
+</p>
+<p>
+  以 16×16 的 patch 为例。图片先切成 patch，再做一次 2×2 的像素合并
+  （把相邻 4 个 patch 拼成 1 个 token），token 数就是「patch 数除以 4」：
+</p>
+<table class="tbl small">
+  <thead><tr><th>输入</th><th>patch 数（16×16）</th><th>2×2 合并后的 token 数</th><th>追加的 KV（按 128 KiB/token）</th></tr></thead>
+  <tbody>
+    <tr><td>224 × 224</td><td>196</td><td>49</td><td>6.1 MiB</td></tr>
+    <tr><td>448 × 448</td><td>784</td><td>196</td><td>24.5 MiB</td></tr>
+    <tr><td>1024 × 1024</td><td>4096</td><td>1024</td><td>128 MiB</td></tr>
+    <tr><td>视频 2 帧 × 3840 × 2160</td><td>32400 每帧</td><td>16200</td><td>约 2.0 GiB</td></tr>
+  </tbody>
+</table>
+<p>
+  最后一行是本模块最重要的数字：<strong>一秒钟的 4K 视频（按每秒 2 帧算）就能花掉约 2 GiB 的 KV</strong>，
+  相当于 128 张 448×448 的图。<em>「视频多模态」的账单来源不是模型更大，而是 token 更多。</em>
+  工程上的对策只有三条：降分辨率、降帧率、加时序压缩（把多帧压成一个 token），三条都要牺牲细节。
+</p>
+
+<h4>9.1 三段各自的角色与参数量</h4>
+<div class="flow">
+  <div class="nd hi">像素 / 波形</div><div class="ar">→</div>
+  <div class="nd">编码器（冻结）</div><div class="ar">→</div>
+  <div class="nd">投影层（阶段一唯一训练目标）</div><div class="ar">→</div>
+  <div class="nd">语言模型</div><div class="ar">→</div>
+  <div class="nd">文本</div>
+</div>
+<dl class="kv">
+  <dt>编码器</dt><dd>把像素或频谱变成一串向量。它自带预训练目标（对比学习或掩码重建），所以<strong>阶段一冻结</strong>：你不想用几百条指令数据毁掉它已经学好的表征。</dd>
+  <dt>投影层</dt><dd>一个两层 MLP 就够（或若干可学习 query token）。唯一任务是把编码器输出搬进语言模型的嵌入空间——本质是<strong>一本翻译词典</strong>，参数量通常在百万级，是阶段一唯一要训的部分。</dd>
+  <dt>语言模型</dt><dd>把视觉 token 与文本 token 拼成一条序列做自回归。注意它<em>只看到向量</em>，没有回看像素的通道——这是后面所有物体幻觉的根源。</dd>
+</dl>
+<p>
+  参数量对比很清楚：编码器通常 300M–1B（冻结，不产生梯度），投影层 1M–100M（训练目标），
+  语言模型 1B–10B 以上（阶段二才解冻）。
+  <strong>阶段一真正可训的参数常常不到总参数的 1%</strong>，
+  这也是小团队能做这件事的原因：一次前向加上一个很小的反向就够了。
+</p>
+
+<h4>9.2 对比学习损失：12 行代码与一个必须知道的细节</h4>
+<p>6.2 已经手算过 InfoNCE。这里给出最小实现，它只有十行，却能帮你验证自己是否真的理解了那个公式：</p>
+<pre><code>import torch, torch.nn.functional as F
+
+def info_nce(img_vec, txt_vec, tau=0.07):
+    img_vec = F.normalize(img_vec, dim=-1)      <span class="cm"># 余弦相似度要求先归一化</span>
+    txt_vec = F.normalize(txt_vec, dim=-1)
+    logits = img_vec @ txt_vec.t() / tau        <span class="cm"># (N, N)：对角线是正样本对</span>
+    labels = torch.arange(img_vec.size(0))
+    loss_i = F.cross_entropy(logits, labels)          <span class="cm"># 图 到 文</span>
+    loss_t = F.cross_entropy(logits.t(), labels)      <span class="cm"># 文 到 图</span>
+    return 0.5 * (loss_i + loss_t)
+
+vi, vt = torch.randn(8, 64), torch.randn(8, 64)
+print("随机初始化 =", round(info_nce(vi, vt).item(), 4))</code></pre>
+<p>
+  <strong>一个可以立刻验证的事实</strong>：把 \(\tau\) 设成 1、用随机向量跑，
+  损失应当落在 \(\ln 8 \approx 2.079\) 附近（实测 2.08 上下）。
+  推导很直接：随机向量之间的相似度几乎为零，每个 logit 都在 0 附近，分布接近均匀，
+  于是每一项都是 \(-\log(1/N)\)，取平均就是 \(\ln N\)。
+  <em>这条检查能一次抓出三个常见实现错误：忘了归一化、转置方向错了、温度除在了错的位置。</em>
+</p>
+<p>
+  <strong>由此得到两个工程结论。</strong>① <strong>跨 batch size 比较 loss 没有意义</strong>：
+  每个 batch 的损失起点就是 \(\ln N\)，\(N\) 越大起点越高，而学到的表示可能更好。
+  ② \(\tau\) 是真正的超参：它决定「难负样本拿多少梯度」。
+  \(\tau\) 从 0.07 调到 0.5，等于把所有相似度差缩小 7 倍，分布变平、梯度变软；
+  这一族方法常用 0.01–0.07。
+</p>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>30 分钟最小实现：训一个只有 16 个视觉 token 的三段式模型</h4>
+  <p>
+    下面这段代码在笔记本 CPU 上几十秒就能跑完。它故意把三件事压到最小：
+    8×8 的 patch、16 个视觉 token、一个单层 Transformer。
+    <strong>换成任何真实编码器（ViT、Whisper 编码器、频谱 CNN）都不改变这三段的结构</strong>，
+    你要观察的是「哪一段在学、哪一段被冻结、图像到底有没有被用上」。
+  </p>
+<pre><code>import torch, torch.nn as nn
+
+class Encoder(nn.Module):              <span class="cm"># 第一段：冻结的编码器，8x8 像素块变向量</span>
+    def __init__(s, patch=8, dim=64):
+        super().__init__()
+        s.proj = nn.Linear(3 * patch * patch, dim)
+    def forward(s, img):               <span class="cm"># img: (B, 3, 32, 32)</span>
+        p = img.unfold(2, 8, 8).unfold(3, 8, 8)      <span class="cm"># (B, 3, 4, 4, 8, 8)</span>
+        p = p.permute(0, 2, 3, 1, 4, 5).reshape(img.size(0), 16, -1)
+        return s.proj(p)               <span class="cm"># (B, 16, 64)：16 个视觉 token</span>
+
+class Projector(nn.Module):            <span class="cm"># 第二段：投影层，阶段一唯一要训的部分</span>
+    def __init__(s, d_in=64, d_model=128):
+        super().__init__()
+        s.net = nn.Sequential(nn.Linear(d_in, d_model), nn.GELU(), nn.Linear(d_model, d_model))
+    def forward(s, v):
+        return s.net(v)
+
+class MiniVLM(nn.Module):              <span class="cm"># 第三段：语言模型（这里用单层 Transformer）</span>
+    def __init__(s, vocab=32, d_model=128):
+        super().__init__()
+        s.enc = Encoder()
+        for p in s.enc.parameters():
+            p.requires_grad_(False)    <span class="cm"># 阶段一：冻结编码器</span>
+        s.proj = Projector()
+        s.emb = nn.Embedding(vocab, d_model)
+        s.lm = nn.TransformerEncoderLayer(d_model, 4, 256, batch_first=True)
+        s.head = nn.Linear(d_model, vocab)
+    def forward(s, img, txt):
+        v = s.proj(s.enc(img))
+        t = s.emb(txt)
+        h = s.lm(torch.cat([v, t], dim=1))
+        return s.head(h[:, v.size(1):]) <span class="cm"># 只对文本位置出词表分布</span>
+
+torch.manual_seed(0)
+V, B = 32, 8
+img = torch.rand(B, 3, 32, 32)
+txt = torch.randint(0, V, (B, 12))
+y = torch.roll(txt, -1, dims=1)
+
+m = MiniVLM()
+opt = torch.optim.AdamW([p for p in m.parameters() if p.requires_grad], lr=3e-3)
+for step in range(200):
+    loss = nn.functional.cross_entropy(m(img, txt).reshape(-1, V), y.reshape(-1))
+    opt.zero_grad(); loss.backward(); opt.step()
+    if step % 50 == 0:
+        print("step", step, "loss", round(loss.item(), 3))
+
+trainable = sum(p.numel() for p in m.parameters() if p.requires_grad)
+total = sum(p.numel() for p in m.parameters())
+zero_loss = nn.functional.cross_entropy(m(torch.zeros_like(img), txt).reshape(-1, V), y.reshape(-1))
+print("visual tokens = 16 | trainable =", trainable, "| total =", total)
+print("loss(原图) =", round(loss.item(), 3), "| loss(全零图) =", round(zero_loss.item(), 3))</code></pre>
+  <p><strong>要记录并解释的三个数字：</strong></p>
+  <p>
+    <strong>① <code>trainable / total</code>。</strong>它告诉你阶段一到底在训多少东西。
+    真实项目里这个比例常常小于 1%；如果远大于 10%，说明编码器没冻住，你在花钱重训一个已经训好的编码器。
+  </p>
+  <p>
+    <strong>② 原图与全零图的 loss 差。</strong>把 <code>torch.zeros_like(img)</code> 喂进去再测一次。
+    如果两个 loss 几乎一样，说明<strong>语言模型根本没在用视觉输入</strong>：
+    投影层在训，但信息没有流进预测。这是三段式训练最常见的静默失败，
+    对策是先做纯对比对齐（9.2 那个损失）再进指令阶段，而不是直接端到端硬训。
+  </p>
+  <p>
+    <strong>③ 视觉 token 数。</strong>这里刻意压到 16。把它乘上第 1 节的 \(M_{\text{kv}}\)，
+    就是每张图追加的显存。真实项目里它是一个可调旋钮：
+    降它省显存与算力、丢细节；升它相反。分辨率、切块、池化三个手段最终都是在调这个数。
+  </p>
+</section>
+
 <section class="blk blk-warn">
   <h4><span class="ic">!</span>常见误区</h4>
   <p>
@@ -646,6 +941,51 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
   </p>
 </section>
 
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么用在真实项目里：crossfade 项目该不该换架构、要不要多模态</h4>
+  <p>
+    <strong>先量你的序列长度，这是唯一的选型输入。</strong>假设音频按 22.05 kHz 采样、
+    短时傅里叶用 1024 点窗 / 256 点跳步，则每秒约 \(22050/256 \approx 86\) 帧。
+    100 BPM 下 16 拍是 \(16 \times 0.6 = 9.6\) 秒，也就是约 830 帧；
+    两端各留 2.5 秒上下文，一共约 1260 帧。
+    <em>把跳步减半、拍数翻倍，也只是两三千帧——它离 32K、128K 的注意力瓶颈差两个数量级。</em>
+  </p>
+  <p>
+    把 1260 代进第 1 节的两张账单：注意力分数矩阵物化一次（\(h=32\)、fp16）是
+    \(32 \times 1260^{2} \times 2 \approx 1.0\times10^{8}\) B，约 100 MB；
+    KV 是 \(1260 \times 128\ \text{KiB} \approx 157\) MiB 每条序列，
+    就算 batch 开到 32 也只有约 5 GiB。
+    <strong>两者都不会成为瓶颈</strong>——所以 SSM、线性注意力、滑窗、MLA 这些为长序列准备的工具，
+    在你的主任务上<em>都不值得引入</em>：它们能省的收益你用不到，却要付出「内核不成熟 + 精确回忆变弱」的代价。
+  </p>
+  <p>
+    <strong>默认答案</strong>：全局注意力加 GQA，批次内做 padding 与 mask，先跑通再谈优化。
+    <strong>唯一可能值得重新选型的信号</strong>是任务形态变了：改成流式、要一整场演出连续推理
+    （序列到几十万帧），或者要同时服务很多条长序列。
+    那时按第 8 节的顺序来：KV 量化 → 滑窗 → 混合 → 换架构；前三项不需要重训，第四项通常要重训。
+  </p>
+  <p>
+    <strong>多模态在 crossfade 里值得吗？值得，但方式不是「上一个 VLM 让它看图」。</strong>
+    最划算的用法是：把频谱图当作图像，用预训练视觉编码器（或音频编码器）当特征提取器，
+    接一个小投影层加回归头，输出 \(T^*\)、LUFS 这类连续量。
+    这正是第 9 节的三段式，只是把「语言模型」换成「回归头」，
+    成本从几十 GB 降到几 MB，而且不需要语言模型那套服务栈。
+    反过来，如果你要用 LLM 生成听感报告或标注，才需要真正的三段式 VLM：
+    频谱图编码成视觉 token，喂给本地 4-bit 量化的助手模型（显存账见模块 23）。
+  </p>
+  <p>
+    <strong>别做的事</strong>：为了一个 1260 帧的回归任务去预训练 SSM；
+    或者为了让模型「理解音频」而端到端训一个多模态大模型。
+    前者是拿长序列工具解决短序列问题，后者是拿几十 GB 显存解决一个三层 CNN 就能解决的问题——
+    先用模块 09 的模型阶梯找到最便宜的基线。
+  </p>
+  <p>
+    <strong>一句话答案</strong>：crossfade 项目<em>不需要换架构</em>（序列只有一两千帧）；
+    多模态<em>值得用</em>，但要用「编码器 + 投影层 + 小回归头」，而不是整套 VLM；
+    只有当你把任务扩成流式、整场推理时，第 7、8 节的选型表才真正开始起作用。
+  </p>
+</section>
+
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
   <p class="q">下面关于状态空间模型的哪个说法是对的？</p>
@@ -694,6 +1034,70 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
     POPE 发现频繁出现在指令中的物体最容易被幻觉出来。
     所以评估必须分层：感知（存在性、计数、OCR）、推理（多步）、开放式生成，
     三者不能用同一个分数代表。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">一张 24 GB 卡要服务 128K 上下文、并发 4 条；KV 用 fp16，参考配置每 token 128 KiB。为什么「GQA + fp16 KV」这个组合直接出局？</p>
+  <ul class="opts">
+    <li>因为权重的体积放不下</li>
+    <li data-ok>4 条序列的 KV 需要约 64 GiB，超过整张卡的容量；必须先做 KV 量化或限制窗口，而不是继续优化权重</li>
+    <li>因为注意力的算力不够</li>
+    <li>因为 fp16 的 KV 精度不够</li>
+  </ul>
+  <p class="why">
+    \(16\ \text{GiB} \times 4 = 64\) GiB，这还没算权重与激活。
+    第 8 节的方法是先算 KV 预算（这里是 36 KiB/token），再拿候选去撞它。
+    在长上下文下 KV 流量是权重的十几倍，所以只量化权重解决不了这个问题。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">一个 MoE 的总参数是 46.7B，每个 token 激活 12.9B。下面哪个说法正确？</p>
+  <ul class="opts">
+    <li>算力和显存都按 46.7B 计</li>
+    <li data-ok>算力按 12.9B 计、显存按 46.7B 计；所以它在单张 24 GB 卡上装不下，MoE 买的是容量而不是省显存</li>
+    <li>算力和显存都按 12.9B 计，所以它是免费的扩容</li>
+    <li>激活参数越多，显存占用越小</li>
+  </ul>
+  <p class="why">
+    所有专家都要常驻显存，而每个 token 只走被路由到的少数专家。
+    这就是容量与算力分离的代价与好处：用显存换容量。
+    单卡场景下正确的用法是把专家做小、个数减少（见 8.2），而不是加大扩容倍数。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">训练三段式多模态模型时，把输入图换成全零图，验证 loss 几乎没变化。最可能的原因是？</p>
+  <ul class="opts">
+    <li>学习率太小，需要调大</li>
+    <li data-ok>语言模型没有真正使用视觉输入：投影层还没和语言模型对齐，视觉 token 对预测几乎没有贡献；应先用对比损失做对齐再进指令阶段</li>
+    <li>编码器参数量太大</li>
+    <li>需要把 KV cache 关掉</li>
+  </ul>
+  <p class="why">
+    全零图是一个廉价的因果探针：如果去掉视觉输入对结果毫无影响，说明模型在只靠文本先验预测。
+    这正是 9.1 与 9.2 的顺序问题——先用 InfoNCE 把投影层对齐，再做端到端指令微调，
+    比一开始就硬训三段要稳得多。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">你的 crossfade 模型输入是约 1260 帧的频谱序列（一次过渡加少量上下文），要预测一个连续标量。架构上的默认选择是？</p>
+  <ul class="opts">
+    <li>换成 SSM 或线性注意力，因为线性复杂度更省</li>
+    <li data-ok>保持全局注意力加 GQA，先跑通；1260 帧远没到注意力的瓶颈，换架构只会引入不成熟的内核与更弱的精确回忆</li>
+    <li>换成扩散语言模型，因为可以并行生成</li>
+    <li>必须上 MLA 才装得下</li>
+  </ul>
+  <p class="why">
+    长序列架构解决的是几十万 token 的问题。1260 帧的序列上，KV 只有百 MiB 量级，
+    瓶颈在数据质量与评估协议，不在注意力复杂度。
+    只有当任务扩成流式、整场连续推理时，第 7、8 节的选型表才真正开始起作用。
   </p>
 </div>
 

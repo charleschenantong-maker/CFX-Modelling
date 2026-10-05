@@ -20,7 +20,7 @@ COURSE.register({
     <thead><tr><th></th><th>轨道甲：研究指南（PDF）</th><th>轨道乙：本课程</th></tr></thead>
     <tbody>
       <tr><td><strong>目标</strong></td><td>产出一个可辩护的数学模型 + 可运行引擎 + 答辩材料</td><td>建立 LLM 与训练的完整能力，能读论文、能跑实验</td></tr>
-      <tr><td><strong>推进方式</strong></td><td>按 8 个检查点（CP1–CP8）线性推进，每个检查点有明确产出</td><td>按 18 讲推进，每讲配自测与动手实验</td></tr>
+      <tr><td><strong>推进方式</strong></td><td>按 8 个检查点（CP1–CP8）线性推进，每个检查点有明确产出</td><td>按 24 讲推进，每讲配自测与动手版块</td></tr>
       <tr><td><strong>评价标准</strong></td><td>数学严谨性、实证证据、可复现性</td><td>能否独立跑通、能否识别常见错误</td></tr>
       <tr><td><strong>它不负责</strong></td><td>不负责教你 Transformer、TRL、Colab（那是轨道乙）</td><td>不负责替你做 crossfade 的数学（那是轨道甲）</td></tr>
     </tbody>

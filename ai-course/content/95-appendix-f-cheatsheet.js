@@ -19,7 +19,7 @@ COURSE.register({
   <ol>
     <li><strong>按关键词搜</strong>：顶部搜索框（快捷键 <code>/</code>）会搜标题、正文与公式，比翻页快。</li>
     <li><strong>按主题查</strong>：下面的表按「公式 / 数字 / 工具 / 决策」分区，先定位分区再看行。</li>
-    <li><strong>按术语查</strong>：<a href="#appA">附录 A 术语表</a>有 240 条中英对照，分 14 类；每一讲顶部还有「本讲速查」可展开。</li>
+    <li><strong>按术语查</strong>：<a href="#appA">附录 A 术语表</a>有 355 条中英对照，分 14 类；每一讲顶部还有「本讲速查」可展开。</li>
   </ol>
 </section>
 

@@ -5,7 +5,7 @@ COURSE.register({
   num: "18",
   title: "推理模型与测试时计算：让模型「想久一点」值不值",
   en: "Reasoning Models & Test-Time Compute",
-  minutes: 35,
+  minutes: 50,
   tags: ["高阶", "推理", "实用"],
   body: String.raw`
 <p class="lead">
@@ -335,6 +335,208 @@ COURSE.register({
   反过来的教训同样重要：<strong>对一个没有用长 CoT 数据训练过的模型，在提示词里写「再仔细想想」通常只增加 token，不增加正确率</strong>。
 </p>
 
+<h3>7. 预算怎么算：从目标正确率反推 n、token 与并发</h3>
+<p>
+  前面几节讲的是「为什么有效」和「什么时候饱和」。这一节回答工程上真正会卡住你的问题：
+  <strong>给定一个正确率目标，我要开多大的 \(n\)、每条链允许多长、一张卡能同时跑几条、账单会变成多少？</strong>
+  这四个数都能从单次成功率 \(p\) 一步步推出来，不需要试错。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>第一步：从目标覆盖率反推 n</h4>
+  <p>要求「至少有一条正确」的概率达到 \(C^\star\)，单次成功率 \(p\)，解出所需样本数：</p>
+  \[ 1 - (1-p)^n \ge C^\star \quad \Longrightarrow \quad n_{\min} = \left\lceil \frac{\ln(1 - C^\star)}{\ln(1-p)} \right\rceil \]
+  <p>取目标覆盖率 \(C^\star = 0.95\)，四个典型 \(p\) 的结果：</p>
+  <table class="tbl small">
+    <thead><tr><th>单次成功率 p</th><th>计算</th><th>所需 n</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>0.80</td><td>\(2.996 / 1.609 = 1.86\)</td><td>2</td><td>简单任务上多采样几乎立刻到顶</td></tr>
+      <tr><td>0.40</td><td>\(2.996 / 0.511 = 5.87\)</td><td>6</td><td>最舒服的区间：花 6 倍换约 55 个百分点</td></tr>
+      <tr><td>0.30</td><td>\(2.996 / 0.357 = 8.40\)</td><td>9</td><td>与本模块开头的例子一致：8 次到 94.2%，9 次才到 95%</td></tr>
+      <tr><td>0.05</td><td>\(2.996 / 0.051 = 58.4\)</td><td>59</td><td>已经不该用采样法，见第 9 节</td></tr>
+    </tbody>
+  </table>
+  <p>
+    第三行值得多看一眼：\(n = 8\) 时覆盖率 94.2%，把目标从 95% 提到 99% 要把 \(n\) 从 9 加到 10，
+    但每加一次都要付整条推理链的钱。这不是公式的毛病，而是<strong>指数衰减在接近 1 的地方特别贵</strong>——
+    目标定在 95% 而不是 99%，往往能省掉一半预算。
+  </p>
+</section>
+
+<h4>7.1 手算一：一道题变成 7,200 个输出 token</h4>
+<p>接着上面的例子：\(p = 0.40\)、\(n = 6\)，每条轨迹平均输出 1,200 token（含思考过程与最终答案）。</p>
+<ol>
+  <li>单题输出 token：\(6 \times 1200 = 7200\)。</li>
+  <li>每天 2,000 题：\(7200 \times 2000 = 1.44 \times 10^{7}\)，即 <strong>14.4 M 输出 token/天</strong>。</li>
+  <li>与单次生成对比：基线是 \(1200 \times 2000 = 2.4\) M/天，所以账单正好是 <strong>6 倍</strong>，与 \(n\) 相同——
+      采样法在线性成本上没有任何折扣。</li>
+  <li>换算成钱：把 14.4 M 乘上你的「每百万输出 token 单价」。本课不给价格快照（价格变动快、各家差异大，
+      见 <a href="#m11">模块 11</a>），但方案里必须写出这个乘法，而不是「大概会贵一点」。</li>
+  <li>前提修正：如果裁判精度 \(q &lt; 1\)，交付准确率还要乘 \(q\)。此时把预算投到验证器上，
+      比把 \(n\) 从 6 加到 12 更划算——后者的边际收益已经很小。</li>
+</ol>
+
+<h4>7.2 预算分配表：按难度分档（目标覆盖率 95%）</h4>
+<p>
+  用法：先用 100 道自己的题测出每题的 \(p\)（每题采样 8 次、数正确条数），按 \(p\) 分成四档，再照表配预算。
+  <strong>关键动作是「分档」，不是「给所有题一个统一的 n」</strong>——
+  给简单题多采样是纯浪费，给难题少采样等于没做。
+</p>
+<table class="tbl small">
+  <thead><tr><th>难度档</th><th>单次成功率 p</th><th>采样 n（目标 95%）</th><th>思考长度上限</th><th>单题输出 token 量级</th></tr></thead>
+  <tbody>
+    <tr><td>简单</td><td>\(p \ge 0.8\)</td><td>2</td><td>256</td><td>约 0.5k</td></tr>
+    <tr><td>中等</td><td>\(0.4 \le p &lt; 0.8\)</td><td>6</td><td>1,200</td><td>约 7k</td></tr>
+    <tr><td>困难</td><td>\(0.1 \le p &lt; 0.4\)</td><td>9</td><td>4,000</td><td>约 36k</td></tr>
+    <tr><td>极难</td><td>\(p &lt; 0.1\)</td><td>不建议（需 59 次以上）</td><td>8,000</td><td>数百 k，先换模型或拆题</td></tr>
+  </tbody>
+</table>
+
+<h4>7.3 手算二：一张 24 GB 卡能同时跑几条</h4>
+<p>沿用第 5 节的结论：这个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB。按 24 GB 单卡算：</p>
+<ol>
+  <li>bf16 权重：\(8 \times 10^{9}\) 参数 \(\times 2\) 字节 \(= 16\) GB。</li>
+  <li>激活、框架开销与显存碎片：按经验留 1.5 GB。</li>
+  <li>可给 KV cache 的余量：\(24 - 16 - 1.5 = 6.5\) GB。</li>
+  <li>每条 8,192 token 的推理链：\(128\ \text{KiB} \times 8192 = 1\ \text{GiB}\)。</li>
+  <li>最大并发：\(6.5 / 1 = 6.5\)，取整并留余量，即 <strong>6 条</strong>。</li>
+  <li>于是 \(n = 8\) 的采样要分两轮跑（先 6 条、再 2 条），全部跑完约等于 <strong>2 倍</strong>单条时长。
+      连续批处理让「8 条」没有变成「8 倍时间」，但没有消除排队。</li>
+  <li>若把思考长度上限从 8,192 压到 2,048：每链变成 \(128\ \text{KiB} \times 2048 = 256\ \text{MiB}\)，
+      并发 \(6.5\ \text{GiB} / 256\ \text{MiB} \approx 26\) 条 → 8 条一次进完，端到端接近单条时长。</li>
+</ol>
+<p>
+  <strong>这就是「限制思考长度」最直接的收益</strong>：它不是在省账单，而是把排队换成并发。
+  如果你的服务要同时接多个用户，档位表与长度上限必须一起定，否则显存会先于预算把你拦住。
+</p>
+
+<h4>7.4 手算三：为什么单条解码就是 60 token/s</h4>
+<p>这个数字常被当成「显卡性能」，其实它是<strong>内存带宽</strong>限制，与算力无关：</p>
+<ol>
+  <li>8B 参数、bf16，权重总量 \(8 \times 10^{9} \times 2 = 16\) GB。</li>
+  <li>自回归解码每生成 1 个 token，必须把全部权重<em>读一遍</em>——这是访存密集型操作。</li>
+  <li>消费级卡带宽约 1.0 TB/s：\(16\ \text{GB} / 1.0\ \text{TB/s} \approx 16\) ms，
+      于是理论上限 \(1 / 0.016 \approx 62\) token/s。</li>
+  <li>这就是「单条 60 token/s」的来源。8k token 的推理链：\(8192 / 62 \approx 132\) s；
+      按更保守的 60 token/s 算是约 137 s，与第 5 节的估算同量级。</li>
+  <li>批量 \(b\) 条时权重只读一次，聚合吞吐上限约 \(b \times 62\) token/s（实际更低，
+      因为 KV 读取与调度有开销）。这就是「8 条并行摊薄吞吐」的机制。</li>
+  <li>推论：想缩短端到端时间，<strong>压短思考长度或上投机解码</strong>（<a href="#m8">模块 08</a>）
+      比加卡更直接；加卡提升的是吞吐，不是单条延迟。</li>
+</ol>
+
+<h3>8. 怎么验证「推理能力」真的变强了（而不是变长了）</h3>
+<p>
+  这一节要防一个非常具体的自我欺骗：模型输出变长、测试集上的数字变好，于是宣布「推理能力提升了」。
+  拆穿它只需要三组对照——<strong>同题配对、长度对照、污染检查</strong>——外加一个必报数字：
+  每条正确回答花了多少 token。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>四：多少题才测得出来</h4>
+  <p>两组独立比例，每组 \(n\) 题，要检测差值 \(\delta\)，差值的标准误与所需样本量是</p>
+  \[ \mathrm{SE} \approx \sqrt{\frac{2\bar p (1-\bar p)}{n}}, \qquad n \approx \frac{16\,\bar p\,(1-\bar p)}{\delta^2} \]
+  <p>其中 \(\bar p\) 是两组平均正确率，常数 16 对应「双侧 5% 显著性、80% 把握」。</p>
+</section>
+
+<h4>8.1 手算四：50 题上看到的 10 个百分点是噪声</h4>
+<ol>
+  <li>假设你的推理方案预期把正确率从 0.35 提到 0.50，即 \(\delta = 0.15\)，\(\bar p = 0.425\)。</li>
+  <li>所需题数：\(16 \times 0.425 \times 0.575 / 0.0225 \approx 174\)，即<strong>每组约 170–180 题</strong>。</li>
+  <li>只有 50 题时能分辨的最小差距：\(\sqrt{16 \times 0.2444 / 50} \approx 0.28\)，即约 <strong>28 个百分点</strong>。</li>
+  <li>100 题：\(\sqrt{16 \times 0.2444 / 100} \approx 0.198\)，即约 <strong>20 个百分点</strong>。</li>
+  <li>结论：<strong>50 题上看到 10 个百分点的提升，和抛硬币没有本质区别。</strong>
+      想在 50 题上得到可靠结论，唯一的路是改用配对检验，并固定题目与解码设置。</li>
+</ol>
+<p>
+  这也解释了公开评测为什么动辄几百上千题：不是题目好看，而是<em>题量本身就是统计功效的一部分</em>。
+  把 100 道题的结果写成「提升 12%」，与把 1,500 道题的结果写成「提升 12%」，是两种可信度完全不同的陈述。
+</p>
+
+<h4>8.2 推理能力评测协议查表</h4>
+<table class="tbl small">
+  <thead><tr><th>评测项</th><th>怎么做</th><th>最低量级</th><th>会被什么伪造</th></tr></thead>
+  <tbody>
+    <tr><td>同题配对对照</td><td>同一批题、同一模型，比较 \(n = 1\) 与 \(n = k\) 的逐题结果</td><td>至少 200 题配对</td><td>换一套题再比一次，差异就「出现」了</td></tr>
+    <tr><td>长度对照</td><td>同时报告正确率与每条正确回答的 token 数</td><td>全部样本</td><td>学会写长、写套话，指标变好但能力没变</td></tr>
+    <tr><td>难度分档</td><td>按测得的 \(p\) 把题分 4 档，分档报正确率</td><td>每档至少 50 题</td><td>平均分掩盖「简单题全对、难题全错」</td></tr>
+    <tr><td>污染检查</td><td>算测试集与训练数据的长 n-gram（如 13-gram）重叠率</td><td>全部测试集</td><td>题目或解法在网上、在训练数据里见过</td></tr>
+    <tr><td>答案归一化</td><td>统一单位、有效数字与数值容差之后再比对</td><td>全部样本</td><td>格式一变，规则验证器静默失效</td></tr>
+    <tr><td>裁判审计</td><td>人工抽查若干条被选中的答案，反推裁判精度 \(q\)</td><td>50–100 条</td><td>裁判与生成器同源，只偏好长度与格式</td></tr>
+    <tr><td>复现性</td><td>固定随机种子，同一协议重跑 \(k\) 次并报告方差</td><td>\(k \ge 3\)</td><td>把单次跑出的最好结果当成结论</td></tr>
+  </tbody>
+</table>
+
+<h4>8.3 手算五：13-gram 污染率怎么算</h4>
+<ol>
+  <li>把测试集每道题的参考解切成 13-gram（连续 13 个 token 的片段）。</li>
+  <li>手算规模：200 道题、每题约 60 个 13-gram，共约 12,000 个片段。</li>
+  <li>与训练数据（含教师生成的样本）建成的 13-gram 索引求交集，命中 36 个。</li>
+  <li>污染率 \(36 / 12000 = 0.003\)，即 <strong>0.3%</strong>。</li>
+  <li>判据：超过 1% 就抽样人工看命中的片段是「常见套话」还是「题目原文」。
+      套话（固定解释句）不算污染，题目或解法原文算。</li>
+  <li>这条检查必须对<em>教师生成的训练数据</em>也做一遍——教师见过公开题库，
+      它的输出可能带着测试集原文，这是蒸馏与合成数据里最隐蔽的污染路径。</li>
+</ol>
+
+<h3>9. 什么时候绝对不该用测试时计算</h3>
+<p>
+  高级技术最容易犯的错是把每个都写成必需品。这一节反过来：先列不该用的场景，
+  最后给三条属于你自己的判断清单。
+</p>
+<table class="tbl small">
+  <thead><tr><th>场景</th><th>症状</th><th>原因</th><th>替代方案</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>主观质量任务（好不好听、文案顺不顺）</td>
+      <td>覆盖率涨了，人工抽查不涨</td>
+      <td>没有可靠裁判，交付准确率封顶在 \(q\)</td>
+      <td>收集偏好数据做奖励模型（<a href="#m7">模块 07</a>）</td>
+    </tr>
+    <tr>
+      <td>实时交互（在线混音、逐字提示）</td>
+      <td>延迟远超用户耐心阈值</td>
+      <td>8k 推理链是分钟级，不是毫秒级</td>
+      <td>DSP 规则、阈值算法，或小模型一次前向</td>
+    </tr>
+    <tr>
+      <td>单次成功率 \(p &lt; 0.05\)</td>
+      <td>采样 64 次仍然全错</td>
+      <td>分布里几乎没有正确解，搜索无解可找</td>
+      <td>换更大模型、加检索、把题拆小（<a href="#m9">模块 09</a>）</td>
+    </tr>
+    <tr>
+      <td>答案无法归一化的长文生成</td>
+      <td>投票无法进行，打分器只奖励长答案</td>
+      <td>答案空间开放，没有可比的终态</td>
+      <td>人工盲评或规则打分；不要为了「多个候选」而多采样</td>
+    </tr>
+    <tr>
+      <td>单卡部署且要同时服务多用户</td>
+      <td>并发只有个位数，请求全部排队</td>
+      <td>KV cache 随序列长度线性增长</td>
+      <td>限制长度上限、用 GQA 与分页 KV，或降低 \(n\)</td>
+    </tr>
+    <tr>
+      <td>成本敏感的高 QPS 服务</td>
+      <td>账单随 \(n\) 线性增长</td>
+      <td>token 是线性成本，没有折扣</td>
+      <td>用量化或蒸馏换掉多次前向（模块 08、<a href="#m17">模块 17</a>）</td>
+    </tr>
+  </tbody>
+</table>
+<h4>9.1 三个反问，答不上来就别加预算</h4>
+<ol>
+  <li><strong>我有裁判吗？它的精度 \(q\) 是多少？</strong>答不上来，加 \(n\) 只会把覆盖率变成账单。</li>
+  <li><strong>我的测试集能分辨多大的差距？</strong>少于 100 题就先别谈百分点（见 8.1）。</li>
+  <li><strong>单条轨迹变长还在带来收益吗？</strong>如果输出翻倍而正确率不动，那是过思考，不是推理（见第 4 节）。</li>
+</ol>
+<p>
+  反过来，可以放心用它的判据只有一条组合：<strong>答案可被程序验证（\(q\) 接近 1）、单次成功率不接近 0、
+  且延迟与显存预算允许并发</strong>。三个条件同时成立时，测试时计算是当前性价比最高的能力放大器；
+  缺任何一个，它都会退化成「多花钱买同样的错」。
+</p>
+
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：30 秒的模拟 + 一个真模型评估协议</h4>
   <p><strong>实验 A（纯 CPU，秒级）：</strong>验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。</p>
@@ -450,6 +652,119 @@ gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
   </ol>
 </section>
 
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：30 分钟最小实现——给 1.5B 模型装一个预算控制器</h4>
+  <p>
+    目标不是训模型，而是把「想多久」变成三个可测的数字：单次成功率 \(p\)、裁判精度 \(q\)、
+    以及<strong>每条正确回答消耗的 token 数</strong>。用 20–50 道题，在一台普通笔记本的 CPU 上就能跑完。
+  </p>
+  <ol>
+    <li><strong>准备 30 道有标准答案的题</strong>（数值或短字符串），写进 <code>tasks.jsonl</code>，每题一个字段 <code>answer</code>。</li>
+    <li><strong>阶段一：测 \(p\)。</strong>每题用 <code>temperature=0.8</code> 采样 8 次，把答案归一化后与标准答案比对，记下每题正确的条数 \(c\)。</li>
+    <li><strong>阶段二：装控制器。</strong>实现三种策略：固定 \(n\) 投票、按难度分档的 \(n\)、「前 3 条里有 2 条一致就早停」。</li>
+    <li><strong>阶段三：记账。</strong>每条策略都记录总输出 token、平均每题采样数、每条正确回答的 token 数、P50/P95 延迟。</li>
+    <li><strong>阶段四：审计裁判。</strong>人工抽查 30 条被控制器选中的答案，反推 \(q\) = 选中且正确的比例。</li>
+  </ol>
+<pre><code>import json, re, collections, statistics
+
+def norm(s):                        <span class="cm"># 答案归一化：这一步错了，后面全错</span>
+    s = s.strip().lower()
+    s = re.sub(r"[,%]", "", s)
+    m = re.search(r"-?\d+(\.\d+)?", s)
+    return m.group(0) if m else s
+
+def sample_once(prompt, n):
+    out = []
+    for _ in range(n):
+        text = generate(prompt, temperature=0.8, max_new_tokens=1200)   <span class="cm"># 你的生成函数</span>
+        out.append((text, len(text.split())))    <span class="cm"># 用词数近似 token 数</span>
+    return out
+
+def vote(ans):
+    cnt = collections.Counter(norm(a) for a, _ in ans)
+    top = cnt.most_common(1)[0]
+    return top[0], top[1] / len(ans)             <span class="cm"># 得票率可以当置信度用</span>
+
+def controller(prompt, budget_n, stop_early=True):    <span class="cm"># 预算控制器</span>
+    ans, used = [], 0
+    for i in range(budget_n):
+        a, L = sample_once(prompt, 1)[0]
+        ans.append((a, L))
+        used += L
+        if stop_early and i &gt;= 2:                <span class="cm"># 早停：前 3 条里 2 条一致</span>
+            pick, share = vote(ans)
+            if share &gt;= 2 / 3:
+                break
+    pick, share = vote(ans)
+    return pick, share, used, len(ans)
+
+rows = [json.loads(l) for l in open("tasks.jsonl", encoding="utf-8")]
+report = []
+for r in rows:
+    pick, share, used, k = controller(r["q"], budget_n=8)
+    report.append({"ok": pick == norm(r["answer"]), "used": used, "k": k})
+
+acc = sum(x["ok"] for x in report) / len(report)
+ktok = sum(x["used"] for x in report if x["ok"]) / max(1, sum(x["ok"] for x in report))
+print("accuracy =", round(acc, 3))            <span class="cm"># 交付准确率（已含裁判误差）</span>
+print("avg n    =", round(statistics.mean(x["k"] for x in report), 2))
+print("tokens per correct =", round(ktok))     <span class="cm"># 第三个必记数字</span></code></pre>
+  <p><strong>要记录的三个数字：</strong></p>
+  <ol>
+    <li><strong>\(p\)</strong>（每题 \(c/8\) 的均值）：它决定后面所有预算公式的输入，必须自己测，不能抄别人的。</li>
+    <li><strong>\(q\)</strong>（人工抽查 30 条反推）：它决定你的天花板；\(q\) 低于 0.8 时先改裁判，不要加 \(n\)。</li>
+    <li><strong>每条正确回答的 token 数</strong>：只有把它和「固定 \(n = 1\) 基线」对比，你才说得清这笔交易划不划算。</li>
+  </ol>
+  <p>
+    预期观察：固定 \(n = 8\) 的准确率会略高于早停版，但每条正确回答的 token 数可能高出 2–3 倍；
+    难度分档版通常在同样的 token 预算下拿到最高准确率。这三个数就是属于你自己的 compute-optimal 证据。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>落地决策单：crossfade 音频问答该不该开「想久一点」</h4>
+  <p>
+    <strong>结论只取决于一个问题：你的答案能不能被程序判对？</strong>
+    在 crossfade 项目里，这条分界线非常清楚。
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>你的问题</th><th>值不值</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>「这条 crossfade 的等功率曲线在第几秒偏差最大、偏差多少 dB」——答案是可数值验证的量</td>
+        <td><strong>值</strong></td>
+        <td>\(p\) 通常在 0.3–0.6，且有精确验证器（数值容差比对，\(q\) 接近 1）；照 7.2 配预算，这是边际收益最大的区间</td>
+      </tr>
+      <tr>
+        <td>「这两段音频交叉淡入之后好不好听」——主观判断</td>
+        <td><strong>不值</strong></td>
+        <td>没有裁判，交付准确率封顶在 \(q\)，多采样只买到覆盖率；该做的是收集偏好对训奖励模型（<a href="#m7">模块 07</a>）</td>
+      </tr>
+      <tr>
+        <td>实时混音链路里的每一步判断</td>
+        <td><strong>不值</strong></td>
+        <td>分钟级延迟对几十毫秒的预算完全不可用；用 DSP 与阈值规则</td>
+      </tr>
+      <tr>
+        <td>离线批量质检：把上千条淡入淡出结果逐条分析并解释</td>
+        <td><strong>值</strong></td>
+        <td>延迟不敏感、答案可校验、批量并发能跑满显存；这是测试时计算最舒服的落点</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>三步落地（1 小时以内）：</strong></p>
+  <ol>
+    <li>挑 20–30 道你真实会问的音频问题，写进 <code>tasks.jsonl</code>，每题给一个可程序判定的答案。</li>
+    <li>跑上面的预算控制器脚本：先测 \(p\)，再抽查反推 \(q\)，最后记下每条正确回答的 token 数。</li>
+    <li>按 7.2 的档位表设长度上限与 \(n\)；如果 \(p &lt; 0.1\)，直接跳到「换模型或拆题」，不要加采样。</li>
+  </ol>
+  <p>
+    <strong>什么时候绝对不该用：</strong>（1）问题没有可程序验证的答案；（2）产品对延迟敏感；
+    （3）测试集还分不清 20 个百分点（见 8.1）。三条里中任意一条，就先别开——
+    把测试时计算留给真正可验证、可等待的批量任务。
+  </p>
+</section>
+
 <p>
   <strong>术语速查：</strong>
   <span class="t" data-tterm="long chain-of-thought" data-d="模型在给出最终答案前生成的很长的中间推理序列，通常经 SFT 或 RL 训练得到。">长链式思考</span>、
@@ -503,6 +818,69 @@ gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
     Lightman et al.（2023）报告过程监督显著优于结果监督，其模型解决了 MATH 代表性测试子集的 78%，代价是约 80 万条步骤级标签；
     Zhang et al.（2025）进一步指出蒙特卡洛估计合成的 PRM 数据通常不如 LLM-as-a-judge 与人工标注，
     且常规 best-of-n 评估会因 PRM 宽容「答案对、过程错」的回答而虚高。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">某模型单次成功率 \(p = 0.4\)。要把覆盖率做到 95%，最少要采样几次？</p>
+  <ul class="opts">
+    <li>3 次</li>
+    <li data-ok>6 次</li>
+    <li>10 次</li>
+    <li>20 次</li>
+  </ul>
+  <p class="why">
+    \(n_{\min} = \lceil \ln(1-0.95) / \ln(1-0.4) \rceil = \lceil 2.996 / 0.511 \rceil = \lceil 5.87 \rceil = 6\)。
+    注意这是<em>覆盖率</em>而不是交付准确率：没有可靠裁判时，交付值还要乘上裁判精度 \(q\)（见 7.1 与第 3 节）。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB。24 GB 单卡上 bf16 权重占 16 GB、再留 1.5 GB 给激活与框架开销。每条 8,192 token 的推理链，最多能同时跑几条？</p>
+  <ul class="opts">
+    <li>2 条</li>
+    <li data-ok>6 条</li>
+    <li>12 条</li>
+    <li>64 条</li>
+  </ul>
+  <p class="why">
+    可用 KV 显存 \(24 - 16 - 1.5 = 6.5\) GB，每条 8k 链 \(128\ \text{KiB} \times 8192 = 1\ \text{GiB}\)，
+    于是 \(6.5 / 1 = 6.5\)，取 6 条。把长度上限压到 2,048 后每链只要 256 MiB，并发可以到 26 条——
+    限制思考长度买到的首先是并发，其次才是账单。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">你想证明「加采样让推理变强了」，但测试集只有 50 题，观察到准确率从 35% 升到 45%。最合理的做法是？</p>
+  <ul class="opts">
+    <li>直接发布，10 个百分点已经很大</li>
+    <li data-ok>先扩到每组约 170 题以上，或改用配对检验：50 题只能分辨约 28 个百分点的差距</li>
+    <li>把温度调高再采样几次，直到差距变得更明显</li>
+    <li>换一个更大的模型再测一次</li>
+  </ul>
+  <p class="why">
+    50 题的测试集能分辨的最小差距约 \(0.28\)（28 个百分点），10 个百分点的提升完全落在噪声里。
+    反复调温度或换测试集直到结果显著，是典型的 p-hacking；正确做法是提高统计功效，
+    而不是改变实验条件去迁就结论。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">你的验证器精度 \(q = 0.7\)，把每题采样数从 8 加到 64。最终交付准确率会怎样变化？</p>
+  <ul class="opts">
+    <li>随采样次数线性提升，最终接近 100%</li>
+    <li data-ok>覆盖率会继续上升，但交付准确率的上限被 \(q\) 锁在约 70% 附近</li>
+    <li>完全不变，因为采样与准确率无关</li>
+    <li>会下降，因为候选里错误答案更多</li>
+  </ul>
+  <p class="why">
+    \(P_{\text{final}} \approx q \cdot (1 - (1-p)^n)\)，当 \(n \to \infty\) 时它只趋近 \(q\)。
+    继续加采样买到的是覆盖率，不是交付质量；此时把预算投到验证器上回报更高——
+    这正是第 3 节「验证器决定天花板」那条式子的直接推论。
   </p>
 </div>
 
