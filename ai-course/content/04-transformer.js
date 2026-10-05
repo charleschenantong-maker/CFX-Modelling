@@ -1,262 +1,302 @@
-/* content/04-transformer.js — 模块 04：Transformer 前向与参数量 */
+/* content/04-transformer.js — 模块 04：Transformer 的解剖学 */
 COURSE.register({
   id: "m4",
   part: 1,
   num: "04",
   title: "Transformer 的解剖学：参数、FLOPs 与显存都花在哪",
   en: "Transformer Anatomy — Parameters, FLOPs, Memory",
-  minutes: 35,
+  minutes: 40,
   tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
-  「7B 模型」里的 7B 到底数的是哪些张量？为什么同样 7B，有的能塞进 16 GB 显卡、有的不能？
-  这一模块把整个前向拆成可手算的部件，让你在买卡、开 notebook、写实验计划之前就能估出预算。
+  当工程师谈论「7B、14B 或 70B 模型」时，这些数字究竟指的是哪些张量？
+  为什么同样是 7B 参数的模型，有的能塞进单张 16 GB 消费级显卡，有的微调时却连 80 GB A100 都会瞬间报 OOM（Out Of Memory）？
+  本讲追随 Andrej Karpathy 的 <code>nanoGPT</code> 极简哲学，彻底拆解现代自回归 Transformer 的每一个矩阵与张量算子，
+  给出参数量、计算 FLOPs、显存四大件（权重、梯度、优化器、激活值）以及 Pre-norm 恒等残差流的 STEP 级代数推导与工程账本。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>零基础入口</h4>
+  <h4><span class="ic">✓</span>学习目标：建立硬件算力与模型架构的解析直觉</h4>
   <p>
-    <strong>一句话类比</strong>：把 Transformer 想成一条流水线，原料是 token，成品是概率；
-    这一讲要算的是这条流水线上<em>有多少个旋钮</em>（参数），以及跑一次要花多少内存与算力。<br />
-    <strong>这一讲要建立的直觉</strong>：参数量、显存、算力都可以用三个字母（\(L\)、\(d\)、\(B\)）在纸上估出来。<br />
-    <strong>读完你能回答</strong>：「7B 模型」到底数的是哪些张量？为什么单卡 24 GB 微调 7B 全参数在数学上不可能？
+    阅读完本讲后，你将能够做到：
+    <strong>①</strong> 仅凭纸笔在 5 分钟内准确推算出任意未知 Transformer 模型的参数总量（精确度达 95% 以上）；
+    <strong>②</strong> 严密推导为什么单 Token 矩阵乘法前向需要 \(2N\) FLOPs、反向需要 \(4N\) FLOPs；
+    <strong>③</strong> 从全微分角度证明 Pre-norm 为何比经典 Post-norm 具有更卓越的深度可训练性（恒等梯度直通项）；
+    <strong>④</strong> 逐行解构包含 RMSNorm、SwiGLU 与 Pre-norm 残差流的 Karpathy 风格极简 nanoGPT 代码。
   </p>
 </section>
 
 <section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
+  <h4><span class="ic">◆</span>核心问题</h4>
   <p>
-    你打算在 Colab 上用 LoRA 微调一个 7B 模型。第一个要回答的不是「学习率设多少」，
-    而是：<strong>它占多少显存？</strong>权重、梯度、优化器状态、激活值分别是多少？
-    如果答案是「不知道」，那么你只是在碰运气。
+    你打算在本地或云端训练一个轻量级的专属 Transformer 模块（如 1.5B 级别），
+    或者在云端微调一个 8B 的多任务模型。
+    在启动训练前，你必须向自己清晰交代：
+    <strong>这个模型每前向一个 Token 消耗多少次浮点运算？训练需要多少 GB 显存？
+    权重占多少？AdamW 动量占多少？反向传播的中间激活值占多少？</strong>
+    如果答案是模糊的估算，你将陷入无休止的爆显存试错中。
   </p>
 </section>
 
-<h3>1. 一个 block 的解剖</h3>
+<h3>1. 宏观拓扑：Pre-norm 残差流与子层解剖</h3>
+<p>
+  现代大语言模型（如 Llama-3、DeepSeek、Qwen-2.5）几乎全部摒弃了 2017 年初代 Transformer 的 Post-norm 结构，
+  统一采用<strong>Pre-norm 残差流（Pre-normalization Residual Stream）</strong>：
+</p>
 <div class="flow">
-  <div class="nd">输入 x</div><div class="ar">→</div>
+  <div class="nd">输入表征 \(x_l\)</div><div class="ar">→</div>
   <div class="nd">RMSNorm</div><div class="ar">→</div>
-  <div class="nd hi">多头注意力</div><div class="ar">→</div>
-  <div class="nd">＋ 残差</div><div class="ar">→</div>
+  <div class="nd hi">因果多头自注意力</div><div class="ar">→</div>
+  <div class="nd">＋ 残差连接</div><div class="ar">→</div>
   <div class="nd">RMSNorm</div><div class="ar">→</div>
-  <div class="nd hi">SwiGLU MLP</div><div class="ar">→</div>
-  <div class="nd">＋ 残差</div>
+  <div class="nd hi">SwiGLU 前馈网络 (MLP)</div><div class="ar">→</div>
+  <div class="nd">＋ 残差连接</div><div class="ar">→</div>
+  <div class="nd">输出表征 \(x_{l+1}\)</div>
 </div>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>STEP 级严密分析：Pre-norm 恒等残差流的梯度直通定理</h4>
+  <p>
+    <strong>定理（残差梯度的恒等项分解）</strong>：
+    在 Pre-norm 架构中，第 \(l\) 个 Block 的前向映射表示为：
+  </p>
+  \[ x_{l+1} = x_l + F_l\big(\mathrm{RMSNorm}(x_l)\big) \]
+  <p>
+    通过递归代入，深度为 \(L\) 的网络最终输出 \(x_L\) 可以显式展开为最初输入 \(x_0\) 与所有子层增量的绝对求和：
+  </p>
+  \[ x_L = x_0 + \sum_{l=0}^{L-1} F_l\big(\mathrm{RMSNorm}(x_l)\big) \]
+  <p>
+    根据全微分法则，计算最终损失 \(\mathcal{L}\) 对最底层输入 \(x_0\) 的梯度：
+  </p>
+  \[ \frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L} \frac{\partial x_L}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L} \left( \mathbf{I} + \sum_{l=0}^{L-1} \frac{\partial F_l}{\partial x_0} \right) \]
+  <p>
+    <strong>数学精义剖析</strong>：
+    括号内恒定包含一个<strong>单位矩阵 \(\mathbf{I}\)</strong>！
+    这意味着无论网络堆叠到 32 层还是 128 层，损失梯度都有一条畅通无阻、不衰减也不爆炸的「绿色通道」直接直通最底层 \(x_0\)。
+    相比之下，经典的 Post-norm 形式为 \(x_{l+1} = \mathrm{LN}(x_l + F_l(x_l))\)，
+    求导时反向梯度必须连乘每一层的归一化雅可比矩阵 \(\prod_{l=0}^{L-1} J_{\mathrm{LN}}\)，
+    在深层网络中极易发生指数级梯度消失或爆炸，导致模型极度脆弱。
+  </p>
+</section>
+
+<h3>2. 核心参数量法则：\(12 L d^2 + |\mathcal{V}| d\)</h3>
 <p>
-  这叫 <span class="t" data-tterm="Pre-norm" data-d="归一化放在子层之前，残差路径保持恒等，训练深层网络更稳定；现代 LLM 几乎都用 pre-norm。">pre-norm</span> 结构
-  （2019 年后的标准做法）：归一化在子层输入处，残差是干净的恒等通路，所以深层网络的梯度可以直通底层。
+  记模型隐藏层维度为 \(d\)、层数为 \(L\)、词表大小为 \(|\mathcal{V}|\)、前馈层（FFN）中间隐藏维度为 \(d_{ff}\)。
+  我们逐个矩阵核算单个 Block 内的参数量：
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>参数量公式（背下来）</h4>
-  <p>设隐藏维度 \(d\)、层数 \(L\)、词表大小 \(|\mathcal{V}|\)、FFN 中间维度 \(d_{ff}\)。单层参数：</p>
-  \[
-  \underbrace{4d^2}_{\text{attn}}
-  \;+\;
-  \underbrace{3\,d\,d_{ff}}_{\text{FFN}}
-  \;\approx\; 12\,d^2,
-  \qquad d_{ff} \approx \tfrac{8}{3}d
-  \]
-  <p class="hint">
-    其中 attn 部分 = \(W_Q, W_K, W_V, W_O\) 四个 \(d\times d\) 投影（用 GQA 时 K/V 更小）；
-    FFN 部分 = SwiGLU 的 \(W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}\) 三个矩阵。
+  <h4><span class="ic">∑</span>逐矩阵代数拆解</h4>
+  <ol>
+    <li>
+      <strong>多头自注意力层（MHA）</strong>：
+      包含四个线性投影矩阵 \(W_Q, W_K, W_V \in \mathbb{R}^{d \times d}\) 以及输出融合矩阵 \(W_O \in \mathbb{R}^{d \times d}\)。
+      \[ \text{Param}_{\text{attn}} = 4 \times (d \times d) = 4 d^2 \]
+      <em>注：若使用分组查询注意力 GQA（KV 头数为 \(h_{kv}\)），则 \(W_K, W_V\) 的列维度缩小为 \(h_{kv} d_{\text{head}}\)，参数量相应缩减。</em>
+    </li>
+    <li>
+      <strong>SwiGLU 门控前馈网络（MLP）</strong>：
+      SwiGLU 包含三个投影矩阵——门控矩阵 \(W_{\text{gate}}\)、上升矩阵 \(W_{\text{up}}\) 和下降矩阵 \(W_{\text{down}}\)：
+      \[ \mathrm{SwiGLU}(x) = W_{\text{down}}\Big( \mathrm{SiLU}(W_{\text{gate}} x) \odot (W_{\text{up}} x) \Big) \]
+      其中 \(W_{\text{gate}}, W_{\text{up}} \in \mathbb{R}^{d \times d_{ff}}\)，\(W_{\text{down}} \in \mathbb{R}^{d_{ff} \times d}\)。
+      \[ \text{Param}_{\text{mlp}} = 3 \times (d \times d_{ff}) \]
+      在保持总参数与经典两层 FFN（\(2 \times 4d^2 = 8d^2\)）相当的设计准则下，通常设定 \(d_{ff} \approx \frac{8}{3}d\)。
+      代入得：
+      \[ \text{Param}_{\text{mlp}} \approx 3 \times d \times \left(\tfrac{8}{3}d\right) = 8 d^2 \]
+    </li>
+    <li>
+      <strong>单 Block 参数总和</strong>：
+      \[ \text{Param}_{\text{block}} = 4 d^2 + 8 d^2 = 12 d^2 \]
+    </li>
+  </ol>
+  <p>
+    叠加全网 \(L\) 个层级，并加上词表嵌入矩阵（Embedding 矩阵 \(|\mathcal{V}| \times d\)），便得到了著名的估算公理：
   </p>
-  <p>整模型（词嵌入与输出层共享权重时）：</p>
-  \[ N \;\approx\; 12\,L\,d^2 \;+\; |\mathcal{V}|\,d \]
-  <p>若使用 GQA（\(h_{kv}\) 组 KV），注意力部分降为 \(2d^2 + 2d\,h_{kv}d_{\text{head}}\)，其余不变。</p>
+  \[ N \approx 12 L d^2 + |\mathcal{V}| d \]
+  <p>
+    <strong>几何与缩放洞见</strong>：参数量关于模型宽度 \(d\) 呈二次方增长（\(d^2\)），而关于深度 \(L\) 仅呈一次方线性增长。
+    这意味着增加模型宽度比增加深度更为昂贵，但更宽的模型具备更高的矩阵并行度。
+  </p>
 </section>
 
-<h3>2. 手算三个真实模型</h3>
-<table class="tbl small">
-  <thead><tr><th>模型</th><th>\(L\) / \(d\) / 头数</th><th>\(12Ld^2\)</th><th>词表项 \(|\mathcal{V}|d\)</th><th>合计</th></tr></thead>
-  <tbody>
-    <tr><td>GPT-2 small</td><td>12 / 768 / 12</td><td>\(12\cdot12\cdot768^2 \approx 8.5\times10^{7}\)</td><td>\(5.0\times10^{4}\cdot768 \approx 3.9\times10^{7}\)</td><td>≈ 124 M ✓</td></tr>
-    <tr><td>Llama-3-8B</td><td>32 / 4096 / 32 (8 KV)</td><td>\(12\cdot32\cdot4096^2 \approx 6.4\times10^{9}\)</td><td>\(1.28\times10^{5}\cdot4096 \approx 5.2\times10^{8}\)</td><td>≈ 8.0 B ✓</td></tr>
-    <tr><td>70B 级</td><td>80 / 8192 / 64 (8 KV)</td><td>\(12\cdot80\cdot8192^2 \approx 6.4\times10^{10}\)</td><td>\(1.28\times10^{5}\cdot8192 \approx 1.0\times10^{9}\)</td><td>≈ 65–70 B ✓</td></tr>
-  </tbody>
-</table>
-<p>
-  注意 <strong>\(N \propto L d^2\)</strong>：把 \(d\) 翻倍，参数变 4 倍；把 \(L\) 翻倍只变 2 倍。
-  这解释了为什么「更宽」比「更深」贵得多，也解释了为什么深窄模型在同等参数量下往往训练更稳。
-</p>
+<h3>3. 算力 FLOPs 与显存四大件的 STEP 级账本</h3>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>算力与显存</h4>
-  <p><strong>训练算力</strong>（每个 token）：前向约 \(2N\)，反向约 \(4N\)，合计 \(6N\)。</p>
-  \[ C \approx 6\,N\,D \qquad (\text{FLOPs}) \]
-  <p><strong>推理算力</strong>：每个生成 token 约 \(2N\)（再加上注意力随上下文的那一项）。</p>
-  <p><strong>训练显存</strong>（AdamW + bf16 混合精度，单卡、无并行的下界）：</p>
-  <table class="tbl small">
-    <thead><tr><th>组成部分</th><th>每参数字节数</th><th>7B 模型</th><th>说明</th></tr></thead>
-    <tbody>
-      <tr><td>权重（bf16）</td><td>2</td><td>14 GB</td><td>前向用</td></tr>
-      <tr><td>梯度（bf16）</td><td>2</td><td>14 GB</td><td>反向累积</td></tr>
-      <tr><td>优化器状态（fp32 m, v + 主权重）</td><td>12</td><td>84 GB</td><td>AdamW 的 m、v 各 4 字节 + 4 字节 fp32 主权重</td></tr>
-      <tr><td><strong>小计</strong></td><td>16</td><td><strong>112 GB</strong></td><td>还没算激活值</td></tr>
-      <tr><td>激活值（含重计算）</td><td>—</td><td>数 GB – 数十 GB</td><td>随 \(B \cdot S \cdot L \cdot d\) 线性增长</td></tr>
-    </tbody>
-  </table>
+  <h4><span class="ic">∑</span>为什么前向是 \(2N\)、反向是 \(4N\) FLOPs？</h4>
   <p>
-    这就是为什么 <strong>单卡 24 GB 微调 7B 全参数模型是不可能的</strong>，也是为什么
-    <span class="t" data-tterm="LoRA" data-d="Low-Rank Adaptation：冻结原权重，只训练低秩增量矩阵，可训练参数通常降到 0.1%–2%。">LoRA</span>
-    与 <span class="t" data-tterm="QLoRA" data-d="把基座模型 4-bit 量化后再加 LoRA，使 7B 模型能在 16 GB 显卡上微调。">QLoRA</span>
-    存在：它们把「不可训练」的绝大多数参数的成本压到 4-bit 甚至更低。
+    <strong>命题</strong>：对任意形状为 \((1 \times d_{\text{in}})\) 的行向量与权重矩阵 \(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\) 进行矩阵乘法（GEMM），
+    计算所需的浮点运算次数（FLOPs）严格等于 \(2 \times d_{\text{in}} d_{\text{out}}\)。
   </p>
+  <p><strong>证明</strong>：</p>
+  <p>
+    输出向量的每一个元素均是长度为 \(d_{\text{in}}\) 的向量点积：
+    \[ y_j = \sum_{k=1}^{d_{\text{in}}} x_k W_{kj} \]
+    这需要执行 \(d_{\text{in}}\) 次单精度乘法，以及 \(d_{\text{in}} - 1 \approx d_{\text{in}}\) 次单精度加法。
+    每个输出分量耗费 \(2 d_{\text{in}}\) 次运算，总共 \(d_{\text{out}}\) 个分量，因此浮点运算总量为 \(2 d_{\text{in}} d_{\text{out}}\) FLOPs。
+    由于模型的全部可学习参数 \(N\) 均由这些权重矩阵构成，单个 Token 的纯参数前向矩阵乘开销精确为：
+  </p>
+  \[ C_{\text{forward}} \approx 2N \qquad (\text{FLOPs/token}) \]
+  <p>
+    <strong>反向传播需要做两次矩阵乘法</strong>：
+    在链式法则反向回传时，对于每一层 \(Y = X W\)：
+  </p>
+  <ol>
+    <li>对输入特征的偏导：\(\frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top\)，等价于一次相同尺度的 GEMM（\(2N\) FLOPs）；</li>
+    <li>对权重矩阵的偏导：\(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\)，同样等价于一次相同尺度的 GEMM（\(2N\) FLOPs）。</li>
+  </ol>
+  <p>
+    两者相加，反向传播恰好需要 \(4N\) FLOPs！加上前向的 \(2N\)，完成一个 Token 的完整梯度迭代所需算力为：
+  </p>
+  \[ C_{\text{train}} \approx 6 N D \qquad (\text{FLOPs}) \]
+  <p>其中 \(D\) 是训练消耗的总 Token 数。这就是大模型 Scaling Law（如 Chinchilla）的核心计算基底。</p>
 </section>
 
-<h3>3. 把公式用到真实模型上：Llama-3-8B 逐项核对</h3>
+<h3>4. 训练显存四大件：为什么单卡 24 GB 无法全参数训练 7B 模型</h3>
 <p>
-  上面两条公式是「手算规则」。真实模型的 config 里还有一些细节会让结果偏离几个百分点——
-  把它们算清楚，你才算真的会用这两条公式。下面是 Llama-3-8B 的公开 config（已对照 Hugging Face 上的
-  <code>config.json</code> 逐字段核对）：
+  假设采用标准 bf16 混合精度与经典 AdamW 优化器进行全参数微调。显存开销由四大部分刚性组成：
 </p>
 <table class="tbl small">
-  <thead><tr><th>字段</th><th>值</th><th>含义</th></tr></thead>
+  <thead>
+    <tr>
+      <th>显存占用模块</th>
+      <th>每个参数所需字节数</th>
+      <th>7B 参数模型实际显存</th>
+      <th>底层数学与工程原理</th>
+    </tr>
+  </thead>
   <tbody>
-    <tr><td><code>hidden_size</code> \(d\)</td><td>4096</td><td>隐藏维度</td></tr>
-    <tr><td><code>num_hidden_layers</code> \(L\)</td><td>32</td><td>层数</td></tr>
-    <tr><td><code>num_attention_heads</code></td><td>32</td><td>Q 头数；每头 \(d_{\text{head}} = 4096/32 = 128\)</td></tr>
-    <tr><td><code>num_key_value_heads</code></td><td>8</td><td><strong>GQA</strong>：K/V 只有 8 组，每 4 个 Q 头共享一组</td></tr>
-    <tr><td><code>intermediate_size</code> \(d_{ff}\)</td><td>14336</td><td>FFN 中间维度（注意：<em>不是</em> \(8d/3 \approx 10923\)）</td></tr>
-    <tr><td><code>vocab_size</code></td><td>128256</td><td>词表大小</td></tr>
-    <tr><td><code>tie_word_embeddings</code></td><td>false</td><td><strong>输入 embedding 与输出头不共享参数</strong></td></tr>
-    <tr><td><code>rope_theta</code></td><td>500000</td><td>RoPE 基频（原始论文用 10000，调大有利于长上下文）</td></tr>
-    <tr><td><code>hidden_act</code> / <code>rms_norm_eps</code></td><td>silu / 1e-5</td><td>SwiGLU 的激活函数；RMSNorm 的数值稳定项</td></tr>
-  </tbody>
-</table>
-
-<h4>3.1 逐部件相加（建议拿计算器跟着核一遍）</h4>
-<table class="tbl small">
-  <thead><tr><th>部件</th><th>张量形状</th><th>参数量</th></tr></thead>
-  <tbody>
-    <tr><td>\(W_Q\)</td><td>4096 × 4096</td><td>16.78 M</td></tr>
-    <tr><td>\(W_K\)</td><td>4096 × (8 × 128 = 1024)</td><td>4.19 M</td></tr>
-    <tr><td>\(W_V\)</td><td>4096 × 1024</td><td>4.19 M</td></tr>
-    <tr><td>\(W_O\)</td><td>4096 × 4096</td><td>16.78 M</td></tr>
-    <tr><td>SwiGLU \(W_{\text{gate}}\) / \(W_{\text{up}}\)</td><td>4096 × 14336，两个</td><td>117.44 M</td></tr>
-    <tr><td>SwiGLU \(W_{\text{down}}\)</td><td>14336 × 4096</td><td>58.72 M</td></tr>
-    <tr><td><strong>单层合计</strong></td><td></td><td><strong>218.1 M</strong></td></tr>
-    <tr><td>× 32 层</td><td></td><td>6.979 B</td></tr>
-    <tr><td>词嵌入</td><td>128256 × 4096</td><td>0.525 B</td></tr>
-    <tr><td>输出头（<em>不</em>共享）</td><td>128256 × 4096</td><td>0.525 B</td></tr>
-    <tr><td>RMSNorm 增益（32×2 + 1 = 65 个）</td><td>65 × 4096</td><td>0.0003 B</td></tr>
-    <tr><td><strong>总计</strong></td><td></td><td><strong>≈ 8.03 B</strong> ✓</td></tr>
-  </tbody>
-</table>
-<p>规则估算 \(12Ld^2 + |\mathcal{V}|d = 6.44 + 0.53 = 6.97\) B，与真实值差约 1.06 B。差在哪？三处，都要能解释：</p>
-<ol>
-  <li><strong>GQA 让注意力变小</strong>：规则按 \(4d^2 = 67.1\) M 算，实际只有 41.9 M——
-      K/V 从 32 头降到 8 头，每层省下 25.2 M。</li>
-  <li><strong>FFN 比规则更大</strong>：规则假设 \(d_{ff} = 8d/3 \approx 10923\)，实际 14336，
-      每层多出 \(3 \times 4096 \times (14336-10923) \approx 42.0\) M。</li>
-  <li><strong>词嵌入不共享</strong>：规则只算一份 \(|\mathcal{V}|d\)，实际两份，多出 0.525 B。</li>
-</ol>
-<p>
-  三项相加：\(32 \times (-25.2 + 42.0)\ \text{M} + 525\ \text{M} \approx 1.06\) B，
-  正好把 6.97 B 补到 8.03 B。<strong>规则给你五分钟估出量级；逐项核对让你敢在报告里写下具体数字。</strong>
-  这两件事是两种能力，缺一不可。
-</p>
-
-<h4>3.2 三个部件的精确定义（写报告时要能默写）</h4>
-<p><strong>RMSNorm</strong>——Llama 系列使用的归一化，只按均方根缩放，<em>不减均值、不设偏置</em>：</p>
-\[ \mathrm{RMSNorm}(x) = \frac{x}{\sqrt{\tfrac1d\sum_{i=1}^{d} x_i^2 + \epsilon}} \odot g, \qquad g \in \mathbb{R}^{d} \]
-<p>
-  对比 LayerNorm：\(\mathrm{LN}(x) = \frac{x-\mu}{\sigma}\odot g + b\)。
-  RMSNorm 少了求均值和一组 bias，在 GPU 上更快；在 LLM 上质量相当。
-  这是「工程上更省、质量不掉」的典型案例，也是 2019 年后几乎所有开源模型的默认选择。
-</p>
-<p><strong>SwiGLU</strong>——门控前馈网络：</p>
-\[ \mathrm{SwiGLU}(x) = W_{\text{down}}\Big(\mathrm{SiLU}(W_{\text{gate}}\,x) \odot W_{\text{up}}\,x\Big),
-   \qquad \mathrm{SiLU}(z) = z\,\sigma(z) \]
-<p>
-  记法：\(W_{\text{gate}}\) 决定「放行多少」，\(W_{\text{up}}\) 提供「内容」，逐元素相乘（\(\odot\)）后再降维。
-  这就是它有 3 个矩阵、而不是经典 FFN 的 2 个的原因。
-</p>
-<p><strong>GQA</strong>——分组查询注意力的形状约定：</p>
-\[ Q \in \mathbb{R}^{B\times T\times (h\,d_h)},\qquad K, V \in \mathbb{R}^{B\times T\times (h_{kv}\,d_h)},\qquad h_{kv} \mid h \]
-<p>
-  每 \(h/h_{kv}\) 个 Q 头共享一组 K/V。\(h_{kv} = h\) 就是经典多头（MHA），\(h_{kv} = 1\) 就是 MQA。
-  GQA 的收益全部体现在推理上：KV Cache 缩小到 \(h_{kv}/h\)，并发能力提高同样的倍数。
-</p>
-
-<h4>3.3 激活值显存：为什么系数是 10–20</h4>
-<p>反向传播需要前向的中间结果。以一个 pre-norm 的 block 为例，每个 token 需要保存的张量大致有：</p>
-<table class="tbl small">
-  <thead><tr><th>要保存的量</th><th>等价「\(d\) 维向量」个数</th><th>说明</th></tr></thead>
-  <tbody>
-    <tr><td>RMSNorm 输出（注意力前）</td><td>1</td><td>归一化后的输入</td></tr>
-    <tr><td>Q / K / V 投影</td><td>1 + 0.25 + 0.25</td><td>K/V 只有 \(h_{kv}/h = 1/4\) 的宽度</td></tr>
-    <tr><td>注意力输出 + 残差后</td><td>2</td><td>需要算梯度</td></tr>
-    <tr><td>RMSNorm 输出（MLP 前）</td><td>1</td><td>第二个归一化</td></tr>
-    <tr><td>MLP 的 gate / up 激活</td><td>2 × 3.5</td><td>中间维度 \(d_{ff} \approx 3.5d\)</td></tr>
-    <tr><td>MLP 输出 + 残差后</td><td>2</td><td>每个 block 的出口</td></tr>
+    <tr>
+      <td>模型权重 (Weights)</td>
+      <td>2 字节 (bf16)</td>
+      <td>14 GB</td>
+      <td>用于前向激活计算</td>
+    </tr>
+    <tr>
+      <td>梯度 (Gradients)</td>
+      <td>2 字节 (bf16)</td>
+      <td>14 GB</td>
+      <td>用于反向传播链式求导累加</td>
+    </tr>
+    <tr>
+      <td>优化器状态 (Optimizer)</td>
+      <td>12 字节 (fp32)</td>
+      <td><strong>84 GB</strong></td>
+      <td>AdamW 必须维护 fp32 主权重（4B）、一阶动量 \(m\)（4B）与二阶动量 \(v\)（4B）</td>
+    </tr>
+    <tr>
+      <td><strong>静态显存小计</strong></td>
+      <td><strong>16 字节 / 参数</strong></td>
+      <td><strong>112 GB</strong></td>
+      <td><strong>尚未包含任何批次前向激活值显存！</strong></td>
+    </tr>
+    <tr>
+      <td>前向激活值 (Activations)</td>
+      <td>动态与 \(B \cdot T \cdot L \cdot d\) 成正比</td>
+      <td>20 \(\sim\) 60 GB</td>
+      <td>保存中间结果用于反向求导；可通过激活重计算（Activation Checkpointing）压缩</td>
+    </tr>
   </tbody>
 </table>
 <p>
-  合计约 \(1 + 1.5 + 2 + 1 + 7 + 2 = 14.5\) 个 \(d\) 维向量，
-  所以经验系数取 \(c \approx 10\text{–}20\)（不同实现保存的张量集合略有差异）。
-  再乘 bf16 的 2 字节，就得到每 token 每层的激活字节数——这是模块 04 开头那个估算式的来源。
+  <strong>残酷的现实结论</strong>：
+  单张 24 GB 显存的显卡（如 RTX 4090 或 3090），连 7B 模型的静态权重和梯度都无法完整载入，更不用说高达 84 GB 的 AdamW 优化器状态！
+  这也是为什么 <span class="t" data-tterm="LoRA" data-d="Low-Rank Adaptation：冻结基座权重，仅微调低秩分解增量矩阵，将可训练参数压缩 1000 倍。">LoRA</span>
+  与 <span class="t" data-tterm="QLoRA" data-d="将基座权重 4-bit 量化，使得消费级显卡可微调 7B 级别大模型。">QLoRA</span>
+  能够彻底重塑开源社区生态的根本原因——它们将可训练参数量压缩了上千倍，从而移除了庞大的优化器显存山峦。
 </p>
 
-<h3>4. 现代变体清单（知道名字与动机即可）</h3>
-<table class="tbl small">
-  <thead><tr><th>部件</th><th>经典做法</th><th>现代做法</th><th>动机</th></tr></thead>
-  <tbody>
-    <tr><td>归一化</td><td>LayerNorm + bias</td><td>RMSNorm（无均值、无 bias）</td><td>更快、参数更少、稳定性相当</td></tr>
-    <tr><td>激活</td><td>ReLU / GELU（2 个矩阵）</td><td>SwiGLU（3 个矩阵，门控）</td><td>同参数下质量更好</td></tr>
-    <tr><td>位置</td><td>学习式绝对位置</td><td>RoPE</td><td>相对位置、可外推</td></tr>
-    <tr><td>注意力</td><td>MHA</td><td>GQA / MLA</td><td>压缩 KV Cache，提高并发</td></tr>
-    <tr><td>FFN</td><td>稠密</td><td>MoE（稀疏专家）</td><td>参数量大但每 token 只算一小部分</td></tr>
-    <tr><td>注意力掩码</td><td>全因果</td><td>滑窗 / 混合（局部 + 全局）</td><td>长上下文线性化成本</td></tr>
-  </tbody>
-</table>
+<h3>5. 教科书级实现：Karpathy nanoGPT 极简架构逐行剖析</h3>
+<p>
+  以下是包含 RMSNorm、SwiGLU 与 Pre-norm 结构的现代 Transformer 极简单文件完整实现：
+</p>
 
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>MoE：参数量 ≠ 计算量</h4>
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="kw">class</span> <span class="hi">RMSNorm</span>(nn.Module):
+    <span class="st">"""Root Mean Square Layer Normalization：免均值中心化，极致高效"""</span>
+    <span class="kw">def</span> __init__(self, dim, eps=1e-5):
+        <span class="kw">super</span>().__init__()
+        self.eps = eps
+        <span class="cm"># [逐行剖析] 可学习的缩放参数 gamma（无偏置 bias）</span>
+        self.weight = nn.Parameter(torch.ones(dim))
+
+    <span class="kw">def</span> forward(self, x):
+        <span class="cm"># [逐行剖析] 沿最后一个维度求均方根: sqrt(mean(x^2) + eps)</span>
+        rms = torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
+        <span class="kw">return</span> x * rms * self.weight
+
+<span class="kw">class</span> <span class="hi">SwiGLU</span>(nn.Module):
+    <span class="st">"""门控前馈网络：用门控分支与乘积提供更强非线性容量"""</span>
+    <span class="kw">def</span> __init__(self, dim, hidden_dim):
+        <span class="kw">super</span>().__init__()
+        <span class="cm"># [逐行剖析] 两个上升矩阵：gate 负责控制放行程度，up 负责提供特征内容</span>
+        self.w_gate = nn.Linear(dim, hidden_dim, bias=False)
+        self.w_up = nn.Linear(dim, hidden_dim, bias=False)
+        self.w_down = nn.Linear(hidden_dim, dim, bias=False)
+
+    <span class="kw">def</span> forward(self, x):
+        <span class="cm"># [逐行剖析] SiLU(gate) ⊙ up: 逐元素哈达玛积后降维投射</span>
+        <span class="kw">return</span> self.w_down(F.silu(self.w_gate(x)) * self.w_up(x))
+
+<span class="kw">class</span> <span class="hi">TransformerBlock</span>(nn.Module):
+    <span class="st">"""Pre-norm 残差流 Transformer 核心单层块"""</span>
+    <span class="kw">def</span> __init__(self, dim, n_head, hidden_dim):
+        <span class="kw">super</span>().__init__()
+        self.norm1 = RMSNorm(dim)
+        <span class="cm"># 多头注意力模块（使用 PyTorch 内置高效算子）</span>
+        self.attn = nn.MultiheadAttention(dim, n_head, batch_first=True)
+        self.norm2 = RMSNorm(dim)
+        self.mlp = SwiGLU(dim, hidden_dim)
+
+    <span class="kw">def</span> forward(self, x):
+        <span class="cm"># [逐行剖析] 1. Pre-norm 注意力分支与直通残差相加</span>
+        norm_x = self.norm1(x)
+        attn_out, _ = self.attn(norm_x, norm_x, norm_x, need_weights=False)
+        x = x + attn_out
+        <span class="cm"># [逐行剖析] 2. Pre-norm 前馈分支与直通残差相加</span>
+        x = x + self.mlp(self.norm2(x))
+        <span class="kw">return</span> x
+
+<span class="kw">class</span> <span class="hi">MinimalGPT</span>(nn.Module):
+    <span class="st">"""纯正因果自回归语言模型骨干架构"""</span>
+    <span class="kw">def</span> __init__(self, vocab_size, dim, n_layer, n_head):
+        <span class="kw">super</span>().__init__()
+        self.tok_emb = nn.Embedding(vocab_size, dim)
+        hidden_dim = int(8 * dim / 3)  <span class="cm"># 标准 SwiGLU 隐藏层宽度准则</span>
+        self.layers = nn.ModuleList([
+            TransformerBlock(dim, n_head, hidden_dim) <span class="kw">for</span> _ <span class="kw">in</span> range(n_layer)
+        ])
+        self.final_norm = RMSNorm(dim)
+        self.lm_head = nn.Linear(dim, vocab_size, bias=False)
+        <span class="cm"># 权重绑定（Weight Tying）：输入 embedding 与输出 head 共享参数</span>
+        self.lm_head.weight = self.tok_emb.weight
+
+    <span class="kw">def</span> forward(self, idx):
+        x = self.tok_emb(idx)  <span class="cm"># (Batch, SeqLen, Dim)</span>
+        <span class="kw">for</span> layer <span class="kw">in</span> self.layers:
+            x = layer(x)
+        x = self.final_norm(x)
+        logits = self.lm_head(x)  <span class="cm"># (Batch, SeqLen, VocabSize)</span>
+        <span class="kw">return</span> logits</code></pre>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么连通工业级部署：1.5B 模型的本地端侧推理显存预算</h4>
   <p>
-    混合专家把 FFN 换成 \(E\) 个专家 + 一个路由器，每个 token 只激活 top-\(k\) 个（通常 \(k=1\) 或 \(2\)）。
-    于是你可以拥有 671B 参数，但每个 token 只消耗约 37B 的计算量。
-    <strong>它买到的是「容量」，付出的代价是显存</strong>（所有专家都要装进显存）与负载均衡的工程复杂度。
+    当你训练完一个约 1.5B 的轻量大模型后，如何在消费级硬件或普通笔记本上实现流畅推理？
   </p>
   <p>
-    这对预算决策非常关键：<em>如果是显存受限（单卡实验），MoE 帮不上忙；如果是算力受限（大规模训练），MoE 很划算。</em>
-  </p>
-</section>
-
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：验证参数量公式</h4>
-<pre><code>import torch
-from transformers import AutoConfig, AutoModelForCausalLM
-
-cfg = AutoConfig.from_pretrained("meta-llama/Llama-3.2-1B")   <span class="cm"># 或任意开源小模型</span>
-print(cfg.num_hidden_layers, cfg.hidden_size, cfg.num_attention_heads,
-      cfg.num_key_value_heads, cfg.intermediate_size, cfg.vocab_size)
-
-L, d, V, dff = cfg.num_hidden_layers, cfg.hidden_size, cfg.vocab_size, cfg.intermediate_size
-attn = 4 * d * d
-mlp  = 3 * d * dff          <span class="cm"># SwiGLU</span>
-est  = L * (attn + mlp) + V * d
-mdl  = AutoModelForCausalLM.from_pretrained("meta-llama/Llama-3.2-1B")
-real = sum(p.numel() for p in mdl.parameters())
-print(f"手算 {est/1e9:.3f} B   实际 {real/1e9:.3f} B   误差 {abs(est-real)/real:.1%}")</code></pre>
-  <p>
-    误差通常在 3% 以内。剩下的差异来自：GQA 让 K/V 变小、是否共享词嵌入、以及归一化与 bias 项。
-    <strong>能把这个误差解释清楚，就说明你真的理解了这张表。</strong>
-  </p>
-</section>
-
-<section class="blk blk-lab">
-  <h4><span class="ic">🧮</span>算一算：用下面的计算器估你的实验</h4>
-  <div class="calc" data-calc="vram"></div>
-  <p class="hint">
-    这是<strong>数量级估算</strong>：把「参数规模」设为 7、批×序列设为 16000、层数 32、维度 4096，
-    你会看到全参数训练的显存需求远超 Colab 免费额度——于是 LoRA/QLoRA 或更小的模型就成了唯一选项。
+    <strong>量化与显存账本</strong>：
+    全精度 FP16 / BF16 下，1.5B 权重占用约 \(1.5 \times 10^9 \times 2 \approx 3.0\) GB 显存。
+    通过现代成熟的 4-bit 权重量化（如 AWQ、GPTQ 或 GGUF Q4_K_M），权重体积可直接压缩至 <strong>1.0 GB 左右</strong>！
+    配合 llama.cpp 或 ONNX Runtime，在无独立显卡的普通笔记本 CPU 上也能以数十 Token/s 的速度毫秒级流式输出。
   </p>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">一个 \(L=24\)、\(d=2048\)、词表 32000 的模型（共享词嵌入），参数量最接近？</p>
+  <p class="q">一个 \(L=24\) 层、隐藏维度 \(d=2048\)、词表大小为 32000 的经典架构大模型（采用权重绑定），其全网参数量最接近多少？</p>
   <ul class="opts">
     <li>约 0.3 B</li>
     <li data-ok>约 1.3 B</li>
@@ -264,55 +304,64 @@ print(f"手算 {est/1e9:.3f} B   实际 {real/1e9:.3f} B   误差 {abs(est-real)
     <li>约 12 B</li>
   </ul>
   <p class="why">
-    \(12Ld^2 = 12 \times 24 \times 2048^2 = 1.21\times10^{9}\)，词表项 \(3.2\times10^{4}\times2048 = 0.066\times10^{9}\)，
-    合计约 \(1.27\times10^{9}\) ≈ <strong>1.3 B</strong>。
+    根据核心估算公理：\(N \approx 12 L d^2 + |\mathcal{V}| d\)。代入数值：\(12 \times 24 \times 2048^2 = 288 \times 4.194 \times 10^6 \approx 1.208 \times 10^9\)。词表嵌入项为 \(32000 \times 2048 \approx 0.065 \times 10^9\)。两项相加总计约 \(1.27 \times 10^9 \approx 1.3\text{ B}\)。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">为什么 SwiGLU 的参数量写成 \(3\,d\,d_{ff}\) 而不是 \(2\,d\,d_{ff}\)？</p>
+  <p class="q">为什么现代前馈网络 SwiGLU 的参数量是 \(3 d d_{ff}\)，而原始 Transformer 的经典 FFN 参数量是 \(2 d d_{ff}\)？</p>
   <ul class="opts">
-    <li>因为它有两个隐藏层</li>
-    <li data-ok>因为它有三个矩阵：gate、up、down；门控分支让同参数预算下的质量更好</li>
-    <li>因为激活函数需要额外参数</li>
-    <li>因为要处理 padding</li>
+    <li>因为 SwiGLU 额外添加了一个偏置向量</li>
+    <li data-ok>因为 SwiGLU 引入了门控机制，将原本单一的上升投影拆分为了 Gate 门控投影与 Up 内容投影两个并行的矩阵，与 Down 矩阵一起共需 3 个矩阵</li>
+    <li>因为激活函数本身需要占用矩阵参数</li>
+    <li>因为为了支持残差连接</li>
   </ul>
   <p class="why">
-    \(\mathrm{SwiGLU}(x) = W_{\text{down}}\big(\mathrm{Swish}(W_{\text{gate}}x) \odot W_{\text{up}}x\big)\)。
-    多出来的门控矩阵是「用参数换质量」的典型例子；实践中会把 \(d_{ff}\) 调小（约 \(8d/3\)）以保持总参数与经典 FFN 相当。
+    \(\mathrm{SwiGLU}(x) = W_{\text{down}}\big(\mathrm{SiLU}(W_{\text{gate}} x) \odot (W_{\text{up}} x)\big)\)。它拥有三个可学习矩阵 \(W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}\)。为了维持同等计算量和参数开销，工业界通常将中间维度 \(d_{ff}\) 从传统的 \(4d\) 相应缩减为约 \(\frac{8}{3}d\)。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">某 MoE 模型总参数 671B、激活参数 37B。在单张 80 GB 显卡上做实验，最大的问题是？</p>
+  <p class="q">某 MoE 混合专家模型宣称「总参数量 671B、激活参数量仅 37B」。在单张 80 GB 显存的 GPU 上进行微调或推理时，面临的最致命瓶颈是什么？</p>
   <ul class="opts">
-    <li>算力不够，前向会非常慢</li>
-    <li data-ok>显存装不下全部专家权重，而 MoE 的省算力优势在单卡小批量下基本用不上</li>
-    <li>无法使用 FlashAttention</li>
-    <li>不能做 LoRA</li>
+    <li>算力严重不足，前向推理非常缓慢</li>
+    <li data-ok>单卡显存甚至无法放下全部专家的静态权重（671B 的半精度权重需要 1.3 TB 显存），必须依赖多卡张量并行或显存离线卸载（Offload）</li>
+    <li>MoE 模型无法与自注意力机制兼容</li>
+    <li>模型无法使用任何学习率</li>
   </ul>
   <p class="why">
-    MoE 用「每 token 只激活一部分专家」来省算力，但<em>所有</em>专家都必须驻留显存（或被换入换出）。
-    单卡小规模实验里，反而是同激活参数量的稠密模型更好用。
+    MoE 的核心收益是「用显存换算力」：每个 Token 虽然只激活少量子集的专家（因此计算 FLOPs 仅相当于 37B 密集模型），但在推理或训练中，所有专家权重必须物理驻留在显存或主机内存中。单张 80 GB 显卡在静态权重载入阶段就会瞬间溢出。
   </p>
 </div>
 
-<div class="acc" data-t="深入：激活值为什么是显存杀手？" data-badge="工程">
-  <div class="acc-body">
-    <p>反向传播需要前向的中间结果。每个 block 里要保存的激活包括：归一化输出、Q/K/V、注意力输出、MLP 中间激活（\(d_{ff}\) 维，比 \(d\) 大）、以及各残差和。</p>
-    <p>粗略量级：每个 token 每层需要保存约 \(10\)–\(20\) 个 \(d\) 维向量。于是</p>
-    \[ M_{\text{act}} \approx c \cdot B \cdot S \cdot L \cdot d \cdot \text{bytes}, \qquad c \approx 10\text{–}20 \]
-    <p class="hint">\(M_{\text{act}}\) 就是「激活显存」，系数 \(c\) 表示每个 token 每层大约要存多少个 \(d\) 维向量。</p>
-    <p>
-      代入 7B、\(B\cdot S = 16384\)、bf16：\(16 \times 16384 \times 32 \times 4096 \times 2 \approx 6.9\times10^{10}\) 字节 ≈ <strong>69 GB</strong>。
-      这就是必须做
-      <span class="t" data-tterm="Activation checkpointing" data-d="只保存部分激活，反向时重算其余部分；用约 30% 的额外算力换数倍显存节省。">激活重计算</span>的原因：
-      不保存反向所需激活，反向时重新算一遍，通常能省 60%–80% 显存。
-    </p>
-    <p>相关技巧：梯度累积（用时间换批大小）、ZeRO/FSDP（把状态切到多卡，模块 06）、以及把序列长度当作第一优先级来压（它是线性因子）。</p>
-  </div>
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">为什么现代深层大语言模型普遍放弃 Post-norm 结构，而全面拥抱 Pre-norm 残差结构？</p>
+  <ul class="opts">
+    <li>因为 Pre-norm 的前向矩阵乘法速度快一倍</li>
+    <li data-ok>Pre-norm 的残差主干在反向传播时始终包含一个干净的单位矩阵恒等直通项 \(\mathbf{I}\)，彻底消除了深层网络梯度弥散与爆炸的隐患，极大提升了超深网络训练的稳定性</li>
+    <li>因为 Pre-norm 不需要使用任何学习率</li>
+    <li>为了让模型参数量缩减一半</li>
+  </ul>
+  <p class="why">
+    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导展开后恒定包含单位矩阵项 \(\frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L}(\mathbf{I} + \dots)\)，保证梯度可以直接在残差流中无阻力反向流动；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">在全参数训练大模型时，为什么一个参数量为 \(N\) 的模型，前向传播每 Token 仅耗费约 \(2N\) FLOPs，而反向传播每 Token 却需要耗费约 \(4N\) FLOPs？</p>
+  <ul class="opts">
+    <li>因为优化器更新步骤需要额外的加法</li>
+    <li data-ok>反向传播对于每个线性变换矩阵乘法必须分别计算两组不同的梯度：一组对输入特征计算偏导（用于向上层继续回溯），一组对权重参数计算偏导（用于参数更新），相当于两次等规模的 GEMM 操作</li>
+    <li>因为反向传播必须执行两次前向传播验证</li>
+    <li>这是由于混合精度舍入带来的额外代价</li>
+  </ul>
+  <p class="why">
+    对于前向单步 \(Y = XW\)，需一次矩阵乘法（\(2N\) FLOPs）。而在反向传播中，链式法则要求计算两项：\(\frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top\)（一次全量 GEMM，\(2N\) FLOPs）以及 \(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\)（另一次全量 GEMM，\(2N\) FLOPs），因此反向计算量严格为前向的 2 倍（\(4N\) FLOPs）。
+  </p>
 </div>
 `
 });

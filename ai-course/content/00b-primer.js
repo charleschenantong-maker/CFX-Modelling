@@ -6,328 +6,457 @@ COURSE.register({
   title: "预备课：从「猜下一个词」到「训练」——把基础概念串起来",
   en: "Primer — From Guessing to Training",
   minutes: 60,
-  tags: ["零基础", "必读", "直觉优先"],
+  tags: ["零基础", "必读", "直觉优先", "Karpathy体系"],
   body: String.raw`
 <p class="lead">
-  这一讲的假设只有一个：你听说过 <strong>token</strong>、<strong>神经网络</strong>、<strong>概率预测</strong>这几个词，
-  但不确定它们之间是什么关系，也不确定「训练」到底在做什么。
-  读完这一讲，你会看懂后面所有模块的公式<em>在说什么</em>——即使你暂时还不能自己把它们推出来。
+  这一讲的假设只有一个：你听说过 <strong>Token</strong>、<strong>神经网络</strong>、<strong>概率预测</strong>这几个词，
+  但如果有人问你「训练到底在物理和代码层面转动了哪些齿轮」，你希望能真正搞得一清二楚。
+  我们不调任何现成的深度学习黑盒库，直接借鉴 Andrej Karpathy 的经典教学 <code>micrograd</code>，
+  用最纯粹的 Python 亲手手写一个标量自动求导引擎。
+  用直观通俗的几何直觉配上严谨的微积分链式法则，建立从标量微分到万亿参数模型训练循环的坚固基座。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>这一讲怎么读</h4>
+  <h4><span class="ic">✓</span>学习指引：如何建立直觉与数学的连接</h4>
   <p>
-    <strong>不要跳读，也不要背公式。</strong>每一节都是「先讲一个生活里的例子 → 再写成一行式子 → 再手算一遍」。
-    手算的数字都很小，你可以拿纸跟着算；算过一遍，公式就不再是符号，而是你亲手做过的一件事。
+    <strong>不跳读、手推每一个步骤、亲手运行代码。</strong>
+    不要把机器学习看作某种神秘的魔法，它本质上是<em>多元微积分、线性代数与数值分析在离散图结构上的工程落地</em>。
   </p>
-  <p>读完后你应该能回答四个问题：模型输出的是什么？参数是什么？损失是什么？梯度下降在干什么？</p>
+  <p>
+    学完这一讲，你必须能够胸有成竹地回答五个底层问题：
+    <strong>①</strong> 为什么计算图必须是 DAG，且反向传播必须严格按拓扑逆序执行？<br/>
+    <strong>②</strong> 为什么在分支节点处梯度必须累加（<code>+=</code>）而不是覆盖（<code>=</code>）？<br/>
+    <strong>③</strong> 为什么语言模型的输出必须是概率分布而非单一确定性 Token？<br/>
+    <strong>④</strong> 为什么损失函数选用负对数似然（NLL）？<br/>
+    <strong>⑤</strong> 梯度下降在几何上究竟意味着什么？
+  </p>
 </section>
 
-<h3>1. 先看一张地图：从一句话到一次改进</h3>
+<h3>1. 全景大图：从一段文本到一次权重微调</h3>
 <div class="flow">
-  <div class="nd">一句话</div><div class="ar">→</div>
-  <div class="nd">切成 token</div><div class="ar">→</div>
-  <div class="nd">变成数字（向量）</div><div class="ar">→</div>
-  <div class="nd hi">神经网络算出分数</div><div class="ar">→</div>
-  <div class="nd">变成概率</div><div class="ar">→</div>
-  <div class="nd">和正确答案比 → 损失</div><div class="ar">→</div>
-  <div class="nd hi">微调参数</div>
+  <div class="nd">自然语言序列</div><div class="ar">→</div>
+  <div class="nd">Token 整数序列</div><div class="ar">→</div>
+  <div class="nd">向量空间嵌入 (Embedding)</div><div class="ar">→</div>
+  <div class="nd hi">网络计算图 (前向传播)</div><div class="ar">→</div>
+  <div class="nd">未归一化分值 Logits</div><div class="ar">→</div>
+  <div class="nd">Softmax 概率化</div><div class="ar">→</div>
+  <div class="nd">交叉熵损失 (NLL)</div><div class="ar">→</div>
+  <div class="nd hi">拓扑逆序反向传播 (链式法则)</div><div class="ar">→</div>
+  <div class="nd">参数更新 (梯度下降)</div>
 </div>
 <p>
-  整门课讲的就是这条链子。后面出现的所有名词——tokenizer、embedding、注意力、交叉熵、学习率、LoRA——
-  都只是这条链子上某一个环节的<strong>细节</strong>。
+  整门课程要解构的就是这条因果链条。后续章节出现的各种复杂名词——BPE 分词器、自注意力、残差流、RMSNorm、RoPE 旋转位置编码、AdamW 优化器，
+  全部都只是这个宏大计算图流水线中某一节点的具体实现与数值优化。
 </p>
 
-<h3>2. 「预测」到底预测什么？——一张概率表</h3>
+<h3>2. 核心数学骨架：标量计算图 (DAG) 与多元微积分链式法则</h3>
 <p>
-  你在手机上打字时，输入法会在候选栏给你几个词，而且<strong>顺序是按「它觉得你接下来最可能打哪个」排的</strong>。
-  大模型做的是同一件事，只不过它给出的不是三个候选，而是<strong>词表里每一个 token 的概率</strong>（可能是十几万个）。
+  任何神经网络在计算机底层执行时，不论使用了多少维度的张量（Tensor），都可以展开为一张由基础标量运算（加、减、乘、除、指数、最大值）组成的
+  <strong>有向无环图（Directed Acyclic Graph, DAG）</strong>。
+  在这张图中：
 </p>
-<p>先看一个更熟悉的例子：天气预报。</p>
-<table class="tbl small">
-  <thead><tr><th>天气</th><th>概率</th></tr></thead>
-  <tbody>
-    <tr><td>晴</td><td>0.70</td></tr>
-    <tr><td>阴</td><td>0.20</td></tr>
-    <tr><td>雨</td><td>0.10</td></tr>
-  </tbody>
-</table>
-<p>三个数都 ≥ 0，加起来正好等于 1。这就是<strong>概率分布</strong>：把「所有可能结果」各分一个 0 到 1 之间的数，总和为 1。</p>
-<p>模型内部其实先算出一组<strong>没有归一化的分数</strong>，叫做 <span class="t" data-tterm="Logits" data-d="softmax 之前的原始分数，可以是任意实数（有正有负），还不是概率。">logits</span>。
-  要把它们变成概率，用一个叫 <span class="t" data-tterm="Softmax" data-d="把任意一组实数变成正数且总和为 1 的函数：先取指数，再除以总和。">softmax</span> 的函数：<strong>先取指数，再除以总和</strong>。</p>
+<ul>
+  <li><strong>叶子节点 (Leaf nodes)</strong>：模型可学习的参数权重 \(w, b\) 或外界输入的特征 \(x\)；</li>
+  <li><strong>内部节点 (Internal nodes)</strong>：对前驱节点执行基本算子后得到的中间计算结果；</li>
+  <li><strong>根节点 (Root node)</strong>：标量标尺——标量损失值 \(\mathcal{L}\)（Loss）。</li>
+</ul>
+
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>手算一次 softmax（跟着算一遍）</h4>
-  <p>假设模型对三个候选词给出 logits：\(z = [2.0,\ 1.0,\ 0.1]\)。那么</p>
-  \[ e^{2.0} = 7.39,\qquad e^{1.0} = 2.72,\qquad e^{0.1} = 1.105 \]
-  <p>三者相加 \(7.39+2.72+1.105 = 11.215\)，于是概率是</p>
-  \[ p = \left[\frac{7.39}{11.215},\ \frac{2.72}{11.215},\ \frac{1.105}{11.215}\right] = [0.66,\ 0.24,\ 0.10] \]
+  <h4><span class="ic">∑</span>STEP 级严密推导：多元微积分链式法则 (Multivariable Chain Rule)</h4>
   <p>
-    注意三件事：分数大的概率一定大（指数是单调递增的）；结果一定都是正数；加起来一定是 1。
-    <strong>这三条就是 softmax 存在的全部理由。</strong>
+    在单变量微积分中，复合函数 \(f(g(x))\) 的求导法则由莱布尼茨符号简洁表达为 \(\frac{df}{dx} = \frac{df}{dg} \frac{dg}{dx}\)。
+    但在计算图中，一个变量 \(x\) 的取值往往会同时流向多个后续计算分支。
+  </p>
+  <p>
+    <strong>定理（分支图上的全微分分解）</strong>：设标量损失 \(\mathcal{L}\) 为中间变量集合 \(z_1, z_2, \dots, z_k\) 的光滑函数，
+    而每个 \(z_i = g_i(x)\) 均为自变量 \(x\) 的可微函数。根据多元微积分全微分公式：
+  </p>
+  \[ d\mathcal{L} = \sum_{i=1}^{k} \frac{\partial \mathcal{L}}{\partial z_i} dz_i \]
+  <p>
+    因为每个 \(z_i\) 仅由 \(x\) 变化引起的变化量满足一阶泰勒展开 \(dz_i = \frac{\partial z_i}{\partial x} dx\)，将此式代入全微分方程：
+  </p>
+  \[ d\mathcal{L} = \sum_{i=1}^{k} \frac{\partial \mathcal{L}}{\partial z_i} \left( \frac{\partial z_i}{\partial x} dx \right) = \left( \sum_{i=1}^{k} \frac{\partial \mathcal{L}}{\partial z_i} \frac{\partial z_i}{\partial x} \right) dx \]
+  <p>
+    两端同时除以微元 \(dx\)，立即得到计算图自动微分的根本公理：
+  </p>
+  \[ \frac{\partial \mathcal{L}}{\partial x} = \sum_{z \in \mathrm{Children}(x)} \frac{\partial \mathcal{L}}{\partial z} \cdot \frac{\partial z}{\partial x} \]
+  <p>
+    <strong>数学结论与工程映射</strong>：
+    当一个节点 \(x\) 被多个子节点引用时，它对最终损失 \(\mathcal{L}\) 的总偏导数，
+    <strong>等于沿每一条流出路径回传的梯度贡献之和</strong>。
+    这也是为什么在写自动微分引擎时，节点的反向传播更新必须是 <code>self.grad += ...</code> 而绝不能是 <code>self.grad = ...</code>！
+    如果误写为赋值，后遍历到的分支就会将先前的梯度无情覆盖，导致求导数学错误。
   </p>
 </section>
-<p>
-  为什么要输出概率，而不是直接输出一个答案？三个原因，都很实际：
-  <strong>①</strong> 概率可以「打分」——猜得越准、给正确答案的概率越高，我们才有东西可以优化；
-  <strong>②</strong> 概率可以「采样」——同一个问题能生成不同的回答；
-  <strong>③</strong> 训练时需要知道模型「错得有多离谱」，而不仅仅是对或错。
-</p>
 
-<h3>3. 神经网络 = 一堆可以拧的旋钮</h3>
-<p>
-  先说最小的零件：<strong>一个神经元</strong>。它做三件事——把输入乘上权重、加起来、再过一次非线性函数。
-</p>
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>手算一个神经元</h4>
-  <p>设输入 \(x_1 = 2,\ x_2 = 3\)，权重 \(w_1 = 0.5,\ w_2 = -1\)，偏置 \(b = 1\)：</p>
-  \[ \text{weighted sum} = 0.5\times 2 + (-1)\times 3 + 1 = 1 - 3 + 1 = -1 \]
-  <p class="hint">（左边这个 <code>weighted sum</code> 就是「加权和」。）</p>
-  <p>再用一个非线性函数（例如 ReLU：负数变 0，正数不变）得到输出：</p>
-  \[ \text{output} = \mathrm{ReLU}(-1) = 0 \]
-  <p>如果把 \(w_2\) 从 \(-1\) 改成 \(0\)，加权和变成 \(1+0+1=2\)，输出就变成 \(2\)。<strong>这就是「拧旋钮改变行为」的含义。</strong></p>
-</section>
-<dl class="kv">
-  <dt>参数</dt><dd>就是这些 \(w\) 和 \(b\)。一个 7B 模型有 70 亿个这样的数字。「训练」就是找出让损失最小的那一组合适的数字。</dd>
-  <dt>层</dt><dd>把很多神经元并排放在一起，就是「一层」；一层算完的结果喂给下一层。</dd>
-  <dt>深度</dt><dd>层的数量。层数多 → 能表达的规则更复杂 → 但更难训、更贵。</dd>
-  <dt>非线性</dt><dd>如果每层都只是乘加（线性），多层叠起来还是等价于一层——这是初学最常见的误解。必须夹一个非线性函数（ReLU、GELU、SiLU 等），深度才有意义。</dd>
-</dl>
-<p>
-  <span class="t" data-tterm="Neural network" data-d="由多层「加权求和 + 非线性」组成的可微函数，参数靠梯度下降学习。">神经网络</span>
-  本质上就是一个<strong>参数极多、但结构固定的函数</strong>。给它输入，它给输出；学习只改变参数，不改变结构。
-</p>
-
-<h3>4. 「猜得好不好」怎么衡量？——损失函数</h3>
-<p>
-  训练需要一个可以打分的指标。语言模型用的叫<span class="t" data-tterm="Cross-entropy" data-d="交叉熵：对正确答案的概率取负对数。猜得越准，值越小。">交叉熵</span>，
-  对「下一个 token」的情形，公式简单到只有一项：<strong>正确答案的概率取负对数</strong>。
-</p>
-\[ \text{loss} = -\log p_{\text{correct}} \]
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>手算四种情况的损失</h4>
-  <table class="tbl small">
-    <thead><tr><th>给正确答案的概率 \(p\)</th><th>损失 \(-\ln p\)</th><th>怎么理解</th></tr></thead>
-    <tbody>
-      <tr><td>0.90</td><td>0.105</td><td>很自信且对了 → 惩罚很小</td></tr>
-      <tr><td>0.50</td><td>0.693</td><td>一半把握 → 中等惩罚</td></tr>
-      <tr><td>0.10</td><td>2.303</td><td>几乎没猜到 → 惩罚大</td></tr>
-      <tr><td>0.01</td><td>4.605</td><td><strong>很自信但错了</strong> → 惩罚最大</td></tr>
-    </tbody>
-  </table>
+  <h4><span class="ic">∑</span>经典算例：分叉节点的梯度手算验证</h4>
   <p>
-    最后一行是重点：负对数对「自信的错误」惩罚得极重。这逼着模型<strong>要么别乱自信，要么就真的学对</strong>。
+    考虑一个最简单的分叉图：令输入 \(x = 3.0\)。定义两个分支：
   </p>
-</section>
-<p>
-  为什么偏偏要用对数？因为它把「概率相乘」变成「对数相加」：一整句话的概率是每个位置概率的乘积，
-  取对数后就变成加法，几十万个位置求和也不会数值下溢。顺便，它的单位还是信息论里的「比特」或「nats」，
-  有明确的物理含义（模块 01 会展开）。
-</p>
-<p>
-  把所有位置的损失取平均，就得到训练时看到的 <strong>loss</strong>。对它取指数，就是
-  <span class="t" data-tterm="Perplexity" data-d="困惑度：exp(平均损失)。可以粗略理解为“模型每一步平均在多少个候选中犹豫”。">困惑度</span>：
-  \(\text{PPL} = e^{\text{loss}}\)。loss = 2.303 对应 PPL = 10，意思是「每步大约在 10 个候选之间犹豫」。
-</p>
+  \[ a = 2x, \qquad b = x^2, \qquad \mathcal{L} = a \cdot b \]
+  <p><strong>第一步：解析复合函数直接求导</strong></p>
+  \[ \mathcal{L}(x) = (2x) \cdot (x^2) = 2x^3 \implies \frac{d\mathcal{L}}{dx} = 6x^2 \]
+  <p>代入数值 \(x = 3.0\)：\(\frac{d\mathcal{L}}{dx} = 6 \times 3^2 = 54.0\)。</p>
 
-<h3>5. 怎么把参数改好？——梯度下降（下山）</h3>
-<p>
-  现在我们有了一把「尺子」（损失）。问题变成：70 亿个旋钮，每个该往哪个方向拧、拧多少？
-  答案是<span class="t" data-tterm="Gradient descent" data-d="沿着损失下降最快的方向（负梯度）小步移动参数。">梯度下降</span>。
-  它的直觉只有一句：<strong>如果你站在山坡上，想知道往哪走能最快下山，就看脚下最陡的方向。</strong>
-</p>
-<p>在一维情形里，「最陡方向」就是导数。用一个最简单的例子：</p>
-\[ f(w) = (w - 3)^2 \qquad\Longrightarrow\qquad f'(w) = 2(w-3) \]
-<p>最小值显然在 \(w = 3\)。我们从一个错误的地方出发，看梯度下降怎么走过去（学习率 \(\eta = 0.1\)）：</p>
-<table class="tbl small">
-  <thead><tr><th>步</th><th>当前 \(w\)</th><th>梯度 \(f'(w)=2(w-3)\)</th><th>更新 \(w \leftarrow w - \eta f'(w)\)</th><th>损失 \(f(w)\)</th></tr></thead>
-  <tbody>
-    <tr><td>0</td><td>0.00</td><td>−6.00</td><td>\(0 - 0.1\times(-6) = 0.60\)</td><td>9.00</td></tr>
-    <tr><td>1</td><td>0.60</td><td>−4.80</td><td>\(0.6 - 0.1\times(-4.8) = 1.08\)</td><td>5.76</td></tr>
-    <tr><td>2</td><td>1.08</td><td>−3.84</td><td>\(1.08 + 0.384 = 1.464\)</td><td>3.69</td></tr>
-    <tr><td>3</td><td>1.46</td><td>−3.07</td><td>1.77</td><td>2.36</td></tr>
-  </tbody>
-</table>
-<p>
-  每一小步损失都在下降，而且越靠近谷底步子越小（因为梯度本身变小了）。
-  这里出现了一个新名词：<strong>\(\eta\) 叫学习率</strong>，也就是「步子的大小」。
-</p>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>学习率：初学最容易踩的坑</h4>
-  <ul>
-    <li><strong>太大</strong>：在山谷两侧来回横跳甚至越跳越远（损失变成 NaN）——就像下山时一步跨过整个山谷。</li>
-    <li><strong>太小</strong>：损失确实在降，但慢到你在 Colab 用完额度还没训完。</li>
-    <li><strong>先大后小</strong>：真实训练里学习率会先「热身」（warmup）再逐渐变小（余弦衰减），原因见模块 05。</li>
-  </ul>
-</section>
-<p>
-  真实训练比这个例子多两个部件：<strong>梯度是在一小批数据上算的</strong>（小批量，mini-batch），
-  以及<strong>优化器</strong>会记住历史梯度来调整每一步（AdamW 等，模块 05）。
-  但它们都是在上面那一行更新公式上做改进，方向还是「负梯度」。
-</p>
-
-<h3>6. 把上面五节拼成训练循环</h3>
-<pre><code><span class="cm"># 伪代码：这六行就是“训练”的全部骨架</span>
-for step in range(total_steps):
-    x, y = get_batch()                 <span class="cm"># 1. 取一批数据（输入 x、正确答案 y）</span>
-    logits = model(x)                  <span class="cm"># 2. 前向：算出每个位置对词表的分数</span>
-    probs  = softmax(logits)           <span class="cm"># 3. 变概率</span>
-    loss   = -log(probs[y]).mean()     <span class="cm"># 4. 打分：正确答案的负对数概率</span>
-    grads  = backward(loss)            <span class="cm"># 5. 反向：算出每个参数该往哪拧（链式法则）</span>
-    params = params - lr * grads       <span class="cm"># 6. 更新参数</span></code></pre>
-<p>
-  六个步骤，没有一个可以省略。后面所有「高级技巧」都是在优化其中某一步：
-  第 1 步 → 数据处理与 tokenizer（模块 02）；第 2 步 → 注意力与 Transformer 结构（模块 03、04）；
-  第 4 步 → 各种损失函数（模块 01、07）；第 5–6 步 → 优化器、混合精度、并行（模块 05、06）；
-  而第 6 步之后「怎么知道真的变好了」→ 评估（模块 09）。
-</p>
-<p>
-  顺便解释两个你一定会遇到的名词：<strong>step（步）</strong>是上面循环里的一次迭代；
-  <strong>epoch（轮）</strong>是把整个训练集完整看过一遍。一个 epoch 通常包含很多 step。
-</p>
-
-<h3>7. 从「一个词」到「一整段」：为什么需要 Transformer</h3>
-<p>
-  输入法只看你刚敲的两三个字。但真正的语言理解需要看更远：<em>「他把钱存进了银行」</em>和
-  <em>「他坐在河岸边」</em>，同一个词的含义由远处的上下文决定。
-</p>
-<p>
-  早期做法是固定窗口（只看前 N 个词）或循环网络（把历史压成一个状态），都有明显缺陷。
-  Transformer 的答案是 <span class="t" data-tterm="Attention" data-d="注意力：让每个位置按“内容相似度”去检索整段历史，并加权取回信息。">注意力</span>：
-  <strong>让每个位置主动去「查」整段历史，查谁、查多少由内容相似度决定。</strong>
-</p>
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>一句话类比</h4>
-  <p>
-    把注意力想象成在图书馆查资料：你带着一个问题（query）走进书库，每本书有自己的标签（key），
-    你先比较问题和标签的匹配程度，再按匹配程度把书里的内容（value）按比例取回来。
-    这个「比较 → 加权 → 取回」的过程，就是模块 03 那个看起来吓人的公式。
-  </p>
-</section>
-<p>
-  <strong>这一节不需要你记住公式。</strong>只要记住：模型不是把整段文字当成一个整体处理，
-  而是让每个位置都能「看到」其他位置，并且自己决定看谁。
-</p>
-
-<h3>8. 你需要的最小数学清单</h3>
-<table class="tbl small">
-  <thead><tr><th>工具</th><th>一句话</th><th>在课程哪里用到</th></tr></thead>
-  <tbody>
-    <tr><td>函数与复合</td><td>把输入变成输出；多层就是函数套函数</td><td>整个神经网络</td></tr>
-    <tr><td>加权的和（向量点积）</td><td>两组数逐个相乘再相加，用来衡量「像不像」</td><td>神经元、注意力</td></tr>
-    <tr><td>概率与期望</td><td>可能性的分配；期望是「平均而言」</td><td>语言模型的目标、损失</td></tr>
-    <tr><td>对数与指数</td><td>\(\log\) 把乘法变加法；\(e^x\) 把任意实数变成正数</td><td>softmax、交叉熵、困惑度</td></tr>
-    <tr><td>导数（梯度）</td><td>变化率；告诉你哪个方向下降最快</td><td>反向传播、梯度下降</td></tr>
-    <tr><td>求和符号 \(\sum\)</td><td>把一堆同类项加起来</td><td>损失、参数量、显存公式</td></tr>
-  </tbody>
-</table>
-<p>如果某一条你觉得陌生，<strong>先不急着补数学</strong>：本文档在每个用到它的地方都会重新解释一遍直觉。</p>
-
-<h3>9. 训练实验其实就是 git 工作流</h3>
-<p>你已经熟悉 branch / commit / tag / PR，这套习惯可以直接迁移到实验管理上：</p>
-<table class="tbl small">
-  <thead><tr><th>git 概念</th><th>在实验里的对应物</th></tr></thead>
-  <tbody>
-    <tr><td>branch（分支）</td><td>一次实验尝试：改一个超参、换一份数据</td></tr>
-    <tr><td>commit（提交）</td><td>一次可复现的记录：代码 + config + 结果摘要</td></tr>
-    <tr><td>tag（标签）</td><td>一个里程碑：例如 <code>v0.1-baseline</code>、<code>v0.2-lora-r16</code></td></tr>
-    <tr><td>PR（合并请求）</td><td>把「这次实验的结论」合并进你的笔记/报告，并留下审查记录</td></tr>
-    <tr><td>revert（回滚）</td><td>丢弃一次坏实验，回到上一个能跑的版本</td></tr>
-  </tbody>
-</table>
-<p>
-  这套映射不是比喻——它真的能救命：当你有 20 次实验、两个月后要写报告时，
-  「哪一组数字来自哪个配置」只能靠 commit 记录回答。
-</p>
-
-<h3>10. 新手最常见的 8 个误解</h3>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>先纠正这些，再看后面的模块</h4>
+  <p><strong>第二步：按多元链式法则分步回溯</strong></p>
   <ol>
-    <li><strong>「模型在数据库里查答案」</strong>——不是。它只是算概率，能力来自参数里的统计规律。</li>
-    <li><strong>「loss 降到 0 就是学好了」</strong>——不是。训练集 loss 降到 0 往往是背下来了（过拟合），要看验证集。</li>
-    <li><strong>「参数越多一定越好」</strong>——不是。数据不够时，参数越多越容易过拟合。</li>
-    <li><strong>「训练就是把知识灌进去」</strong>——不准确。训练是调整概率分布；知识以「能压低损失的规律」形式存在。</li>
-    <li><strong>「模型 7B 就有 7GB」</strong>——不是。B 指参数量；7B 在 bf16 下约 14 GB，训练时还要梯度与优化器状态。</li>
-    <li><strong>「梯度下降一次就能找到最优」</strong>——不是。它是一步步逼近，而且通常只能找到「足够好」的解。</li>
-    <li><strong>「换了模型就等于换了知识」</strong>——很多时候你要的是<em>行为</em>（按格式回答），那用微调；要的是<em>知识</em>，优先用检索。</li>
-    <li><strong>「AI 说的一定对」</strong>——语言模型会一本正经地编造，尤其是引用和数字。所有外部事实都要核对（见附录 D）。</li>
+    <li>前向输出：\(a = 2 \times 3 = 6.0\)，\(b = 3^2 = 9.0\)，\(\mathcal{L} = 6.0 \times 9.0 = 54.0\)；</li>
+    <li>损失对输出自身的基底梯度：\(\frac{\partial \mathcal{L}}{\partial \mathcal{L}} = 1.0\)；</li>
+    <li>损失对两分支的偏导：\(\frac{\partial \mathcal{L}}{\partial a} = b = 9.0\)，\(\frac{\partial \mathcal{L}}{\partial b} = a = 6.0\)；</li>
+    <li>分支对输入 \(x\) 的局部导数：\(\frac{\partial a}{\partial x} = 2.0\)，\(\frac{\partial b}{\partial x} = 2x = 6.0\)；</li>
+    <li>求和汇总：
+      \[ \frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial a} \frac{\partial a}{\partial x} + \frac{\partial \mathcal{L}}{\partial b} \frac{\partial b}{\partial x} = 9.0 \times 2.0 + 6.0 \times 6.0 = 18.0 + 36.0 = 54.0 \]
+    </li>
   </ol>
+  <p>两种推导结果严丝合缝。链式法则的精髓正是将一个庞大的全局求导问题，拆解为图上各节点<strong>局部偏导数的局部相乘与汇聚相加</strong>。</p>
+</section>
+
+<h3>3. 为什么必须是拓扑排序？（Topological Sort）</h3>
+<p>
+  在前向传播中，节点依赖关系要求：一个节点必须在它的所有父节点计算完毕后才能计算。
+  反向传播则完全相反：<strong>一个节点必须在它所有的子节点（也就是所有消费了它输出的节点）的梯度全部回传就绪后，才能计算自身的总梯度</strong>。
+</p>
+<p>
+  如果遍历顺序随意发生颠倒，例如节点 \(z\) 还没有累加完来自 \(L\) 的全部贡献，就急于将自己的 <code>grad</code> 传递给输入 \(x\)，
+  那么回传给 \(x\) 的梯度将是不完整的。
+  计算机科学中保证这一严格依赖次序的算法正是<strong>拓扑排序（Topological Sort）</strong>。
+  在有向无环图中，通过后序深度优先搜索（Post-order DFS）即可高效生成拓扑序列，其反转序列便是完美的反向传播执行序列。
+</p>
+
+<h3>4. 教科书级实现：Karpathy micrograd 标量引擎逐行解构</h3>
+<p>
+  以下是包含计算图构建、自动拓扑排序与多元链式求导的纯 Python 完整实现：
+</p>
+
+<pre><code><span class="kw">class</span> <span class="hi">Value</span>:
+    <span class="st">"""带有标量值与梯度的计算图节点"""</span>
+    <span class="kw">def</span> __init__(self, data, _children=(), _op=<span class="st">''</span>):
+        <span class="cm"># [逐行剖析] 节点存储的核心标量数据（浮点数）</span>
+        self.data = float(data)
+        <span class="cm"># [逐行剖析] 该节点关于最终 Loss 的偏导数 dL/d(self)，初始化为 0.0</span>
+        self.grad = 0.0
+        <span class="cm"># [逐行剖析] 局部反向传播闭包：定义当前算子如何将自身梯度推演给父节点</span>
+        self._backward = <span class="kw">lambda</span>: None
+        <span class="cm"># [逐行剖析] 记录前驱节点集合（图的边），用于拓扑排序遍历</span>
+        self._prev = set(_children)
+        <span class="cm"># [逐行剖析] 记录生成该节点的运算符号（调试与可视化用）</span>
+        self._op = _op
+
+    <span class="kw">def</span> __add__(self, other):
+        <span class="cm"># [逐行剖析] 支持与常数相加：若 other 不是 Value 则封装为常量 Value</span>
+        other = other <span class="kw">if</span> isinstance(other, Value) <span class="kw">else</span> Value(other)
+        out = Value(self.data + other.data, (self, other), <span class="st">'+'</span>)
+
+        <span class="kw">def</span> _backward():
+            <span class="cm"># [逐行剖析] 加法规则：z = x + y => dz/dx = 1, dz/dy = 1</span>
+            <span class="cm"># 核心细节：必须使用 += 累加梯度，以正确实现多元微积分链式法则</span>
+            self.grad += 1.0 * out.grad
+            other.grad += 1.0 * out.grad
+        out._backward = _backward
+        <span class="kw">return</span> out
+
+    <span class="kw">def</span> __mul__(self, other):
+        other = other <span class="kw">if</span> isinstance(other, Value) <span class="kw">else</span> Value(other)
+        out = Value(self.data * other.data, (self, other), <span class="st">'*'</span>)
+
+        <span class="kw">def</span> _backward():
+            <span class="cm"># [逐行剖析] 乘法乘积法则：z = x * y => dz/dx = y, dz/dy = x</span>
+            self.grad += other.data * out.grad
+            other.grad += self.data * out.grad
+        out._backward = _backward
+        <span class="kw">return</span> out
+
+    <span class="kw">def</span> __pow__(self, power):
+        <span class="cm"># [逐行剖析] 幂运算：z = x ** n => dz/dx = n * (x ** (n - 1))</span>
+        <span class="kw">assert</span> isinstance(power, (int, float)), <span class="st">"只支持标量幂次"</span>
+        out = Value(self.data ** power, (self,), f<span class="st">'**{power}'</span>)
+
+        <span class="kw">def</span> _backward():
+            self.grad += (power * (self.data ** (power - 1))) * out.grad
+        out._backward = _backward
+        <span class="kw">return</span> out
+
+    <span class="kw">def</span> relu(self):
+        <span class="cm"># [逐行剖析] 激活函数 ReLU：z = max(0, x) => dz/dx = 1 if x > 0 else 0</span>
+        out = Value(max(0.0, self.data), (self,), <span class="st">'ReLU'</span>)
+
+        <span class="kw">def</span> _backward():
+            self.grad += (1.0 <span class="kw">if</span> self.data > 0.0 <span class="kw">else</span> 0.0) * out.grad
+        out._backward = _backward
+        <span class="kw">return</span> out
+
+    <span class="kw">def</span> backward(self):
+        <span class="cm"># [逐行剖析] 1. 后序 DFS 构造拓扑排序列表（Topological Sort）</span>
+        topo = []
+        visited = set()
+        <span class="kw">def</span> build_topo(v):
+            <span class="kw">if</span> v <span class="kw">not in</span> visited:
+                visited.add(v)
+                <span class="kw">for</span> child <span class="kw">in</span> v._prev:
+                    build_topo(child)
+                topo.append(v)
+        build_topo(self)
+
+        <span class="cm"># [逐行剖析] 2. 损失函数关于自身的基底梯度为 dL/dL = 1.0</span>
+        self.grad = 1.0
+
+        <span class="cm"># [逐行剖析] 3. 逆序遍历拓扑图，确保每个节点的子节点全部就绪后才执行 _backward()</span>
+        <span class="kw">for</span> node <span class="kw">in</span> reversed(topo):
+            node._backward()</code></pre>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手验证：有限差分梯度检验 (Numerical Gradient Check)</h4>
+  <p>
+    为了验证纯 Python 引擎的求导正确性，我们可以利用微积分导数定义中的对称中心差商：
+  </p>
+  \[ f'(x) = \lim_{\epsilon \to 0} \frac{f(x + \epsilon) - f(x - \epsilon)}{2\epsilon} + O(\epsilon^2) \]
+  <p>
+    运行以下脚本，比对解析梯度与数值有限差分梯度：
+  </p>
+<pre><code><span class="cm"># 1. 自动微分求解析梯度</span>
+x = Value(3.0)
+a = x * 2.0
+b = x ** 2
+L = a * b
+L.backward()
+analytic_grad = x.grad  <span class="cm"># 应精确等于 54.0</span>
+
+<span class="cm"># 2. 对称有限差分求数值梯度</span>
+eps = 1e-6
+f = <span class="kw">lambda</span> val: (val * 2.0) * (val ** 2)
+numeric_grad = (f(3.0 + eps) - f(3.0 - eps)) / (2 * eps)
+
+print(f"Analytic grad: {analytic_grad:.6f}")
+print(f"Numeric grad:  {numeric_grad:.6f}")
+rel_error = abs(analytic_grad - numeric_grad) / max(1.0, abs(analytic_grad))
+print(f"Relative Error: {rel_error:.2e}")
+<span class="kw">assert</span> rel_error &lt; 1e-5, "梯度检验未通过！"</code></pre>
+</section>
+
+<h3>5. 从标量到向量：Logits、Softmax 与交叉熵损失</h3>
+<p>
+  在语言模型中，最后一层的输出是一个高维向量，其维度等于词表大小 \(|\mathcal{V}|\)。
+  模型直接输出的无约束实数向量称为 <span class="t" data-tterm="Logits" data-d="softmax 之前的原始实数输出，可以取任意实数值（正、负、零），不是概率。">Logits</span> \(z \in \mathbb{R}^{|\mathcal{V}|}\)。
+  为了把任意实数映射为满足概率公理的非负单位和分布，引入了 Softmax 算子：
+</p>
+\[ p_i = \frac{e^{z_i}}{\sum_{j=1}^{|\mathcal{V}|} e^{z_j}} \]
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算一次 Softmax 与交叉熵（跟算一遍）</h4>
+  <p>
+    假设词表中只有 3 个词：<code>["apple", "banana", "cat"]</code>，模型前向输出的 logits 为：
+  </p>
+  \[ z = [2.0, \quad 1.0, \quad 0.1] \]
+  <p><strong>步骤一：求指数（拉到非负实数域）</strong></p>
+  \[ e^{2.0} \approx 7.3891, \qquad e^{1.0} \approx 2.7183, \qquad e^{0.1} \approx 1.1052 \]
+  <p><strong>步骤二：求配分函数（分母归一化和）</strong></p>
+  \[ \sum_{j} e^{z_j} = 7.3891 + 2.7183 + 1.1052 = 11.2126 \]
+  <p><strong>步骤三：逐元素归一化</strong></p>
+  \[ p = \left[ \frac{7.3891}{11.2126}, \; \frac{2.7183}{11.2126}, \; \frac{1.1052}{11.2126} \right] \approx [0.6590, \; 0.2424, \; 0.0986] \]
+  <p><strong>步骤四：计算负对数似然损失（NLL Loss）</strong></p>
+  <p>
+    如果真实标签（Ground Truth）是 <code>"apple"</code>（索引 0）：
+  </p>
+  \[ \mathcal{L} = -\ln p_0 = -\ln(0.6590) \approx 0.4170 \]
+  <p>
+    但若真实标签是 <code>"cat"</code>（索引 2）：
+  </p>
+  \[ \mathcal{L} = -\ln p_2 = -\ln(0.0986) \approx 2.3167 \]
+  <p>
+    <strong>几何意义直觉</strong>：模型对正确类别的置信度越低，惩罚越呈现爆炸式增长。
+    当正确类别的概率趋近于 0 时，损失趋向无穷大 \(-\ln(0^+) = +\infty\)。
+    这迫使模型在反向传播时向正确类别的 Logit 注入极大的上升梯度。
+  </p>
+</section>
+
+<h3>6. 梯度下降动力学：山谷中的步长与振荡</h3>
+<p>
+  优化器拿着所有参数的偏导数向量 \(\nabla_{\mathbf{w}} \mathcal{L}\)，执行一阶梯度更新：
+</p>
+\[ \mathbf{w}^{(t+1)} = \mathbf{w}^{(t)} - \eta \, \nabla_{\mathbf{w}} \mathcal{L} \]
+<p>
+  标量 \(\eta\) 为<span class="t" data-tterm="Learning rate" data-d="梯度下降步长参数。太小则收敛过慢，太大则可能在损失曲面峡谷两壁发散甚至产生 NaN。">学习率</span>。
+  考虑一个一维凸抛物面玩具模型 \(f(w) = (w - 3)^2\)，导数为 \(f'(w) = 2(w - 3)\)，最优解在 \(w^* = 3\)。
+  下表直观揭示了学习率取值对收敛轨迹的决定性影响：
+</p>
+
+<table class="tbl small">
+  <thead>
+    <tr>
+      <th>步数</th>
+      <th>当前 \(w\)</th>
+      <th>梯度 \(f'(w)\)</th>
+      <th>小步长更新 (\(\eta=0.1\))</th>
+      <th>临界步长 (\(\eta=1.0\))</th>
+      <th>发散步长 (\(\eta=1.1\))</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>0</td>
+      <td>0.00</td>
+      <td>-6.00</td>
+      <td>\(w_1 = 0 - 0.1(-6) = 0.60\)</td>
+      <td>\(w_1 = 0 - 1.0(-6) = 6.00\)</td>
+      <td>\(w_1 = 0 - 1.1(-6) = 6.60\)</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>-</td>
+      <td>-</td>
+      <td>\(w_2 = 0.6 - 0.1(-4.8) = 1.08\)</td>
+      <td>\(w_2 = 6 - 1.0(6) = 0.00\) (永久横跳)</td>
+      <td>\(w_2 = 6.6 - 1.1(7.2) = -1.32\) (震荡发散)</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>-</td>
+      <td>-</td>
+      <td>\(w_3 = 1.08 - 0.1(-3.84) = 1.464\)</td>
+      <td>\(w_3 = 0.00\)</td>
+      <td>\(w_3 = 8.35\) (爆炸)</td>
+    </tr>
+  </tbody>
+</table>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>STEP 级思考题：李普希茨常数与最大学习率界限</h4>
+  <p>
+    设损失函数二阶连续可微，若其梯度的李普希茨常数为 \(L_{\text{Lip}}\)（即海森矩阵最大特征值 \(\lambda_{\max}(\nabla^2 f) \le L_{\text{Lip}}\)）。
+    对于函数 \(f(w) = a(w - w^*)^2\)，其海森矩阵标量为 \(2a\)。
+    根据压缩映射原理，迭代式 \(w_{t+1} = w_t - \eta \cdot 2a(w_t - w^*)\) 能够单调收敛的充分必要条件为：
+  </p>
+  \[ |1 - 2a\eta| < 1 \iff 0 < \eta < \frac{1}{a} = \frac{2}{L_{\text{Lip}}} \]
+  <p>
+    当 \(\eta = \frac{1}{a}\) 时系统进入二维周期轨道（在对称点横跳）；当 \(\eta > \frac{1}{a}\) 时系统动力学失稳发散。
+    这就是大型模型训练中如果学习率过高会导致损失瞬间变成 <code>NaN</code> 的根本数学原因。
+  </p>
+</section>
+
+<h3>7. 组合成完整的训练循环</h3>
+<p>
+  上述所有模块组合在一起，就构成了现代大语言模型最基础的训练微循环：
+</p>
+
+<pre><code><span class="cm"># [逐行剖析] 纯 Python 极简训练微循环伪代码</span>
+<span class="kw">for</span> step <span class="kw">in</span> range(max_steps):
+    <span class="cm"># 1. 获取批次数据（输入序列 x 与右移错位一格的目标 y）</span>
+    x, y = get_batch()
+    
+    <span class="cm"># 2. 前向传播：计算整张图各个内部节点，最终输出未归一化的 Logits</span>
+    logits = model(x)
+    
+    <span class="cm"># 3. 概率转换与损失评估：Softmax + 负对数似然</span>
+    probs = softmax(logits)
+    loss = -probs[y].log().mean()
+    
+    <span class="cm"># 4. 反向传播准备：梯度清零（防止上一迭代残余梯度通过 += 错误累加）</span>
+    model.zero_grad()
+    
+    <span class="cm"># 5. 反向传播：基于拓扑排序逆序回溯多元链式法则，算出 dLoss/dw</span>
+    loss.backward()
+    
+    <span class="cm"># 6. 参数更新：沿负梯度方向迈出微调步伐</span>
+    <span class="kw">for</span> param <span class="kw">in</span> model.parameters():
+        param.data -= learning_rate * param.grad</code></pre>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么连通工业级训练：万亿大模型与微型计算图的同一性</h4>
+  <p>
+    亲手跑完这 50 行纯 Python 的 <code>Value</code> 引擎后，你可能会好奇：工业界主流的 PyTorch（例如 <code>torch.Tensor</code>）究竟比我们手写的高级在哪里？
+  </p>
+  <p>
+    <strong>答案是：数学内核完全一致，唯一的差异在于硬件并行与内存吞吐。</strong>
+    PyTorch 不对一个个孤独的标量做计算，而是把成千上万个标量打包成连续显存块（张量 Tensor），
+    并将求导运算编译进底层 CUDA 核心。你在现代大模型代码中调用 <code>loss.backward()</code> 时，
+    底层的 <code>torch.autograd</code> 引擎做的事情，依然是在由算子拼接而成的有向无环图上执行拓扑排序，
+    并把误差沿着多元微积分链式法则逆序累加给每一个参数的 <code>.grad</code> 缓冲区。
+  </p>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">模型对下一个词给出 logits，经过 softmax 后得到三个概率 0.5、0.3、0.2。如果正确答案是第一个词，损失约是多少？</p>
+  <p class="q">模型给正确答案分配的概率是 \(0.5\)，这个位置的损失是多少？</p>
   <ul class="opts">
     <li>0.5</li>
-    <li data-ok>约 0.69</li>
-    <li>约 1.61</li>
+    <li data-ok>约 0.693</li>
+    <li>0</li>
     <li>无法计算</li>
   </ul>
   <p class="why">
-    \(-\ln 0.5 = 0.693\)。记住这个数：<strong>概率 0.5 对应损失 0.69</strong>，它是最常用的「中位参考点」。
+    \(-\ln 0.5 \approx 0.693\)。记住这个基准数字：<strong>概率 0.5 对应损失约 0.69 nats</strong>，它是二元猜测或均等纠结时的重要参考点。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">为什么神经网络每一层之间必须要有非线性函数？</p>
+  <p class="q">为什么神经网络每一层之间必须要夹入非线性激活函数（如 ReLU、GELU）？</p>
   <ul class="opts">
-    <li>为了让计算更快</li>
-    <li data-ok>因为若干线性变换复合起来仍然是线性变换，多层就退化等价于一层</li>
-    <li>为了让参数变少</li>
-    <li>为了处理中文</li>
+    <li>为了让前向计算速度更快</li>
+    <li data-ok>因为若干线性变换复合起来仍然是线性变换，多层就退化等价于单层</li>
+    <li>为了减少网络参数量</li>
+    <li>为了专门处理中文字符</li>
   </ul>
   <p class="why">
-    两个线性映射复合还是线性映射（\(W_2(W_1x) = (W_2W_1)x\)）。夹入非线性（ReLU 等）之后，
-    多层才真正获得表达复杂函数的能力。这是深度学习最基础的一条。
+    设层变换为 \(f_1(x) = W_1 x\)，\(f_2(h) = W_2 h\)，若无激活函数，则 \(f_2(f_1(x)) = (W_2 W_1) x = W' x\)，无论叠加多少层其表现力等价于单层矩阵乘法。夹入非线性激活函数后，网络才具备万能函数近似（Universal Approximation）的能力。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">下面哪件事<strong>不</strong>是训练循环里的必要步骤？</p>
+  <p class="q">下面哪件事<strong>不属于</strong>训练循环内部每一个迭代 step 必须执行的步骤？</p>
   <ul class="opts">
     <li>前向计算得到 logits</li>
-    <li>计算损失</li>
+    <li>计算损失值 Loss</li>
     <li data-ok>把每个参数都手动设定一个初值范围并逐个检查</li>
     <li>反向传播得到梯度并更新参数</li>
   </ul>
   <p class="why">
-    初始化确实重要，但它是<em>训练开始前的一次性步骤</em>（且通常按默认规则随机初始化），
-    不属于循环内的必要步骤。循环内只有：取数据 → 前向 → 算损失 → 反向 → 更新。
+    权重初始化（如 Kaiming 或 Xavier 初始化）是训练启动前仅需执行一次的操作，绝不属于训练循环内部的迭代步骤。训练循环内只有：取 Batch → 前向 → 算 Loss → 梯度清零 → 反向回溯 → 优化器单步更新。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 4</div>
-  <p class="q">你在一维例子里把学习率从 0.1 改成 1.0（\(f(w)=(w-3)^2\)，从 \(w=0\) 出发）。会发生什么？</p>
+  <p class="q">在玩具凸函数 \(f(w) = (w - 3)^2\) 的例子中，若从 \(w = 0\) 出发，但将学习率设为临界值 \(\eta = 1.0\)，会发生什么现象？</p>
   <ul class="opts">
-    <li>收敛更快，一步到位</li>
-    <li data-ok>更新后 \(w = 0 - 1\times(-6) = 6\)，越过最优点 3 到另一侧 3 的位置，来回横跳</li>
+    <li>收敛更快，一步达到最优点 3</li>
+    <li data-ok>更新后 \(w = 0 - 1.0 \times (-6) = 6\)，越过最优点 3 到另一侧 3 的位置，来回横跳</li>
     <li>损失立刻变成 0</li>
     <li>参数不再更新</li>
   </ul>
   <p class="why">
-    \(\eta=1\) 时第一步到 6，第二步梯度 \(2(6-3)=6\)，更新到 \(6-6=0\)——在 0 与 6 之间永久振荡。
-    这就是「学习率太大」的最小可复现例子，也是模块 05 里 loss spike 的雏形。
+    当 \(\eta = 1.0\) 时，第一步由 \(0\) 跳到 \(6\)；第二步梯度 \(f'(6) = 2(6 - 3) = 6\)，更新为 \(6 - 1.0 \times 6 = 0\)。参数在 \(0\) 和 \(6\) 之间发生等幅振荡，永远无法收敛至极小值点 \(3\)。
   </p>
 </div>
 
-<div class="acc" data-t="深入：三小时上手清单（第一次动手就跑这些）" data-badge="动手">
-  <div class="acc-body">
-    <ol>
-      <li><strong>第 0–20 分钟</strong>：打开 <a href="https://colab.research.google.com/notebooks/intro.ipynb" target="_blank" rel="noopener">Colab 入门 notebook</a>，
-          新建 notebook，运行 <code>import torch; print(torch.cuda.is_available())</code>，确认你有 GPU。</li>
-      <li><strong>第 20–60 分钟</strong>：跟着<a href="#m1">模块 01</a>的「动手实验 1」写一遍 bigram，
-          亲手看到损失与困惑度这两个数字。</li>
-      <li><strong>第 60–110 分钟</strong>：跟着<a href="#m2">模块 02</a>解剖 tokenizer，
-          把同一句中文在两种词表下的 token 数记下来。</li>
-      <li><strong>第 110–170 分钟</strong>：跑<a href="#appB">附录 B 的 E7</a>（模型阶梯 + 分组交叉验证 + 置换检验）。
-          这个实验不需要 GPU，却直接产出你申请项目里最有分量的那张图。</li>
-      <li><strong>第 170–180 分钟</strong>：把三份结果写进 <code>notes/Day1.md</code>，<code>git commit</code> 一次。</li>
-    </ol>
-    <p><strong>完成标准</strong>：你能不看笔记说出「loss 是正确答案概率的负对数」与「梯度告诉参数该往哪拧」。</p>
-  </div>
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">在 micrograd 类的计算图中，若自变量 \(x\) 的输出同时传递给两个节点 \(y_1 = x^2\) 和 \(y_2 = 3x\)，最终损失为 \(\mathcal{L} = y_1 + y_2\)。反向传播时 \(x\) 节点的梯度更新操作必须如何实现？</p>
+  <ul class="opts">
+    <li><code>x.grad = (2*x.data + 3.0)</code>，不需要累加</li>
+    <li><code>x.grad = max(y1.grad, y2.grad)</code></li>
+    <li data-ok><code>x.grad += dL/dy1 * dy1/dx</code> 并在另一分支回传时继续执行 <code>x.grad += dL/dy2 * dy2/dx</code></li>
+    <li>先计算左子树更新，右子树直接覆盖</li>
+  </ul>
+  <p class="why">
+    根据多元微积分全微分定理与链式法则，当变量分叉时，总导数等于各路径导数贡献的线性累加。因此底层代码必须使用 <code>x.grad += ...</code> 累加所有后继节点的反向梯度贡献。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">在执行标量自动微分引擎的 <code>backward()</code> 时，为什么必须先对计算图执行拓扑排序并逆序遍历？</p>
+  <ul class="opts">
+    <li>为了节省内存消耗</li>
+    <li data-ok>确保任何一个节点在计算自身局部反向梯度前，其所有消费子节点的梯度贡献均已完全计算并累加完毕</li>
+    <li>为了让 GPU 可以完全并行化执行</li>
+    <li>防止图中出现自环</li>
+  </ul>
+  <p class="why">
+    在计算图中，反向传播的依赖关系方向与前向完全相反。若不保证拓扑逆序，某个节点可能在尚未接收完所有下游分支的梯度回传时就提前触发了自己的反向传递，导致上游祖先节点接收到的梯度严重缺损。
+  </p>
 </div>
 `
 });

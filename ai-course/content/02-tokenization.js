@@ -1,261 +1,348 @@
-/* content/02-tokenization.js — 模块 02：Tokenizer 与数据 */
+/* content/02-tokenization.js — 模块 02：分词与数据表示 */
 COURSE.register({
   id: "m2",
   part: 1,
   num: "02",
   title: "Tokenizer 与数据：模型看到的不是文字",
   en: "Tokenization & Data",
-  minutes: 30,
+  minutes: 35,
   tags: ["核心", "工程", "必做"],
   body: String.raw`
 <p class="lead">
-  模型从来没有见过「字」。它见到的是整数索引，而整数索引的切法决定了成本、上下文长度、
-  甚至某些看起来很蠢的失败。这一模块讲清楚 tokenizer 的算法、特殊 token、以及三种训练数据格式。
+  大语言模型和音频生成模型从不曾真正「阅读」英文字母、汉字或声波采样点。
+  它们眼中的世界，是由离散符号索引构成的整型序列（Token IDs）。
+  分词器（Tokenizer）是连接连续人类符号与离散神经网络张量的数学变换网关。
+  本讲追随 Andrej Karpathy 的 <code>minbpe</code> 极简哲学，
+  从零手写纯 Python 字节级 BPE（Byte-Pair Encoding）算法，
+  并深度对比音频神经离散编码（残差矢量量化 RVQ 码本）与文本分词器的代数同构性。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>零基础入口</h4>
+  <h4><span class="ic">✓</span>学习目标：建立符号压缩与离散量化的严密直觉</h4>
   <p>
-    <strong>一句话类比</strong>：tokenizer 就是「把句子拆成乐高积木」的那把刀——刀口位置不同，
-    同样一句话会被拆成不同数量、不同形状的积木。<br />
-    <strong>这一讲要建立的直觉</strong>：模型看不见文字，只看见一串整数；而切法决定了成本、上下文长度，甚至模型犯某些「低级错误」的原因。<br />
-    <strong>读完你能回答</strong>：为什么同一段中文，在不同模型上「更贵」？为什么微调时必须让 chat template 与推理时完全一致？
+    阅读完本讲后，你将能够做到：
+    <strong>①</strong> 彻底看透 Byte-level BPE 为何能以 256 个初始字节叶子节点彻底终结 OOV（未登录词）问题；
+    <strong>②</strong> 手写频数统计与贪心合并循环，逐行解构从原始字节流到扩展词表的自底向上聚类演化；
+    <strong>③</strong> 洞察文本 Tokenizer 与音频 RVQ（Residual Vector Quantization）之间的代数同构；
+    <strong>④</strong> 掌握工业级训练数据配比、序列打包（Sequence Packing）与损失掩码（Loss Mask）的避坑规范。
   </p>
 </section>
 
 <section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
+  <h4><span class="ic">◆</span>核心问题</h4>
   <p>
-    「<code>strawberry</code> 里有几个 r」这类问题，模型经常答错，而它明明能写出一整段正确的代码。
-    原因往往不在「推理能力」，而在<strong>切分</strong>：如果 <code>strawberry</code> 被切成一个 token，
-    模型要回答「有几个 r」就必须在内部把 token 拆回字母——这是它没有被直接训练过的事。
+    为什么大模型做加减法算术经常翻车？为什么有些罕见字会导致模型生成幻觉？
+    为什么同一段语义，英文消耗 100 个 Token，中文却要消耗 200 个？
+    为什么在现代音频大模型中，一首交响乐可以被压缩为每秒几十个离散数字码？
+    答案全在分词与离散量化（Tokenization & Quantization）的设计准则中。
   </p>
-  <p><strong>模型的基本单位是 token，不是字符，也不是词。理解这一点，能解释大量「模型为什么这样」的现象。</strong></p>
 </section>
 
-<h3>1. Byte-Pair Encoding：一个贪心的合并算法</h3>
+<h3>1. 为什么不能直接用字符或单词？（权衡三角）</h3>
 <p>
-  主流做法是 <span class="t" data-tterm="BPE" data-d="Byte-Pair Encoding：从字节或字符出发，反复合并语料中出现频率最高的相邻对，直到词表达到目标大小。">BPE</span>。算法本身只有几行：
+  离散序列表示存在一个不可调和的工程与理论权衡三角：
 </p>
-<ol>
-  <li>把训练语料初始化为<strong>字节序列</strong>（byte-level BPE 保证了任何 Unicode 文本都能被编码，不会出现未知词）。</li>
-  <li>统计所有相邻 token 对的频率，把频率最高的一对合并成一个新 token，记录这条合并规则。</li>
-  <li>重复第 2 步，直到词表达到目标大小 \(|\mathcal{V}|\)（常见 32k–200k）。</li>
-  <li>编码新文本时，按<strong>学到的合并顺序</strong>贪心应用规则。</li>
-</ol>
-<p>这是纯粹的压缩视角：tokenizer 的目标是在给定词表大小下，让平均每个 token 携带尽量多的信息。</p>
+<table class="tbl small">
+  <thead>
+    <tr>
+      <th>粒度方案</th>
+      <th>词表大小 \(|\mathcal{V}|\)</th>
+      <th>序列展开长度 \(T\)</th>
+      <th>主要缺陷与致命瓶颈</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>单词级 (Word-level)</td>
+      <td>极度庞大（\(10^5 \sim 10^7\)）</td>
+      <td>极短</td>
+      <td>词表爆炸，无法处理未登录新词（OOV），参数矩阵极其稀疏</td>
+    </tr>
+    <tr>
+      <td>字符级 (Character-level)</td>
+      <td>极小（几十至几千）</td>
+      <td>极长（膨胀 4–10 倍）</td>
+      <td>单步语义承载极弱，自注意力 \(O(T^2)\) 计算开销在长序列下直接崩溃</td>
+    </tr>
+    <tr>
+      <td><strong>子词级 BPE</strong> (主流)</td>
+      <td>中等（32k \(\sim\) 128k）</td>
+      <td>均衡</td>
+      <td><strong>高频词整词编码，罕见词拆分为子词/字节，零 OOV，序列紧凑</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2. 教科书级实现：Karpathy 风格 Byte-level BPE 从零构建</h3>
+<p>
+  现代大模型（如 GPT-4、Llama-3）均采用<strong>字节级（Byte-level）BPE</strong>。
+  其核心洞见是：任何文本、代码、公式甚至二进制数据，在底层都是 UTF-8 编码的字节序列（Byte values: 0–255）。
+  只要初始词表包含基础的 256 个字节单元，<strong>世界上任何序列就永远不会发生 OOV 报错</strong>！
+</p>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>纯 Python 从零手写 BPE 训练与编解码引擎</h4>
+<pre><code><span class="cm"># ========================================================</span>
+<span class="cm"># Karpathy minbpe 极简工业级复刻：BPE 算法骨架</span>
+<span class="cm"># ========================================================</span>
+
+<span class="kw">def</span> <span class="hi">get_stats</span>(ids):
+    <span class="st">"""统计整型序列中所有相邻二元对 (pair) 的出现频数"""</span>
+    counts = {}
+    <span class="cm"># [逐行剖析] 滑动窗口步长为 1，扫描所有相邻 token 对</span>
+    <span class="kw">for</span> pair <span class="kw">in</span> zip(ids, ids[1:]):
+        counts[pair] = counts.get(pair, 0) + 1
+    <span class="kw">return</span> counts
+
+<span class="kw">def</span> <span class="hi">merge</span>(ids, pair, idx):
+    <span class="st">"""在整型序列中，将所有连续出现的特定 pair 替换为新分配的合并 token idx"""</span>
+    newids = []
+    i = 0
+    <span class="kw">while</span> i &lt; len(ids):
+        <span class="cm"># [逐行剖析] 匹配到目标 pair 且未越界：替换为新合并 ID，指针前移 2 位</span>
+        <span class="kw">if</span> i &lt; len(ids) - 1 <span class="kw">and</span> ids[i] == pair[0] <span class="kw">and</span> ids[i+1] == pair[1]:
+            newids.append(idx)
+            i += 2
+        <span class="kw">else</span>:
+            newids.append(ids[i])
+            i += 1
+    <span class="kw">return</span> newids
+
+<span class="kw">class</span> <span class="hi">BasicTokenizer</span>:
+    <span class="kw">def</span> __init__(self):
+        <span class="cm"># [逐行剖析] merges 字典：存储合并规则映射 (p0, p1) -> new_idx</span>
+        self.merges = {}
+        <span class="cm"># [逐行剖析] vocab 字典：存储整数 token_id 到对应原始 bytes 的双向查找表</span>
+        self.vocab = {idx: bytes([idx]) <span class="kw">for</span> idx <span class="kw">in</span> range(256)}
+
+    <span class="kw">def</span> train(self, text, vocab_size, verbose=False):
+        <span class="kw">assert</span> vocab_size &gt;= 256, <span class="st">"词表大小必须至少覆盖 256 个基础字节"</span>
+        num_merges = vocab_size - 256
+        
+        <span class="cm"># [逐行剖析] 1. 将输入纯文本按 UTF-8 编码为原始字节整数列表 [0..255]</span>
+        text_bytes = text.encode(<span class="st">"utf-8"</span>)
+        ids = list(text_bytes)
+
+        <span class="cm"># [逐行剖析] 2. 迭代式贪心合并：寻找当前全局频数最高的相邻二元对</span>
+        <span class="kw">for</span> i <span class="kw">in</span> range(num_merges):
+            stats = get_stats(ids)
+            <span class="kw">if</span> <span class="kw">not</span> stats:
+                <span class="kw">break</span>
+            <span class="cm"># 找出出现频数最高的相邻对</span>
+            best_pair = max(stats, key=stats.get)
+            idx = 256 + i
+            <span class="cm"># 替换并记录规则</span>
+            ids = merge(ids, best_pair, idx)
+            self.merges[best_pair] = idx
+            self.vocab[idx] = self.vocab[best_pair[0]] + self.vocab[best_pair[1]]
+            <span class="kw">if</span> verbose:
+                print(f"Merge {i+1}/{num_merges}: {best_pair} -> {idx} ({self.vocab[idx]!r})")
+
+    <span class="kw">def</span> encode(self, text):
+        <span class="cm"># [逐行剖析] 编码：自底向上贪心应用已学到的合并规则表</span>
+        text_bytes = text.encode(<span class="st">"utf-8"</span>)
+        ids = list(text_bytes)
+        <span class="kw">while</span> len(ids) &gt;= 2:
+            stats = get_stats(ids)
+            <span class="cm"># 找出当前序列中在 merges 中排名最靠前（最先合并出来）的 pair</span>
+            pair = min(stats, key=<span class="kw">lambda</span> p: self.merges.get(p, float(<span class="st">"inf"</span>)))
+            <span class="kw">if</span> pair <span class="kw">not in</span> self.merges:
+                <span class="kw">break</span>
+            idx = self.merges[pair]
+            ids = merge(ids, pair, idx)
+        <span class="kw">return</span> ids
+
+    <span class="kw">def</span> decode(self, ids):
+        <span class="cm"># [逐行剖析] 解码：查表还原为字节串，并使用 UTF-8 容错解码还原自然语言</span>
+        part_bytes = [self.vocab[idx] <span class="kw">for</span> idx <span class="kw">in</span> ids]
+        <span class="kw">return</span> b<span class="st">""</span>.join(part_bytes).decode(<span class="st">"utf-8"</span>, errors=<span class="st">"replace"</span>)</code></pre>
+</section>
+
+<h3>3. 前沿理论映射：文本 Tokenizer 与音频 RVQ 码本的代数同构</h3>
+<p>
+  大语言模型处理自然语言，而现代音频神经编解码大模型（如 Meta EnCodec、SoundStream、Descript DAC）则处理连续声学波形。
+  乍看之下，一维离散文字与高维连续声波截然不同，但从<strong>信息论与测度量化</strong>的数学视角看，
+  <strong>文本 BPE 分词器与音频残差矢量量化（Residual Vector Quantization, RVQ）在代数结构上高度同构！</strong>
+</p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>三个必须会算的量</h4>
-  <dl class="kv">
-    <dt>fertility</dt><dd>平均每个词被切成几个 token。英文约 1.3，中文常见 1.5–3（取决于词表）。</dd>
-    <dt>压缩率</dt><dd>字符数 / token 数。越高越省上下文与成本；但对模型来说，单个 token 的预测难度变大。</dd>
-  </dl>
-  <p>上下文长度是<em>以 token 计的</em>，所以它对应的真实文本量是：</p>
-  \[ \text{text amount} \approx \frac{\text{context length}}{\text{fertility}} \quad (\text{words}) \]
-  <p class="hint">读作：上下文窗口能装下的文字量 ≈ 窗口长度 ÷ fertility（平均一个词被切成几个 token）。</p>
-  <p>成本同理。若 API 定价为每百万 token \(c\) 元，一段 \(M\) 个词的文本的输入成本约为 \(c \cdot \text{fertility}\cdot M / 10^6\)。
-  <strong>中文在按 token 计费的体系里通常更贵</strong>，因为同一语义需要更多 token——这不是价格歧视，而是分词效率差异。</p>
-</section>
-
-<h4>1.1 手算一次 BPE：四步就能看出它在干什么</h4>
-<p>
-  教材里最经典的迷你语料是这四个词（数字是出现次数）：<code>low</code>×5、<code>lower</code>×2、
-  <code>newest</code>×6、<code>widest</code>×3。每个词先拆成字母，并在词尾加一个结束标记 <code>&lt;/w&gt;</code>。
-</p>
-<table class="tbl small">
-  <thead><tr><th>步骤</th><th>最高频的相邻对</th><th>频次</th><th>合并后新增的 token</th><th>语料里发生的变化</th></tr></thead>
-  <tbody>
-    <tr><td>初始</td><td>—</td><td>—</td><td>单字母 + <code>&lt;/w&gt;</code></td><td><code>newest</code> → <code>n e w e s t &lt;/w&gt;</code></td></tr>
-    <tr><td>1</td><td>(e, s)</td><td>9</td><td><code>es</code></td><td><code>n e w es t &lt;/w&gt;</code></td></tr>
-    <tr><td>2</td><td>(es, t)</td><td>9</td><td><code>est</code></td><td><code>n e w est &lt;/w&gt;</code></td></tr>
-    <tr><td>3</td><td>(est, <code>&lt;/w&gt;</code>)</td><td>9</td><td><code>est&lt;/w&gt;</code></td><td><code>n e w est&lt;/w&gt;</code></td></tr>
-    <tr><td>4</td><td>(l, o)</td><td>7</td><td><code>lo</code></td><td><code>lo w &lt;/w&gt;</code>、<code>lo w e r &lt;/w&gt;</code></td></tr>
-  </tbody>
-</table>
-<p>
-  频次从哪来：<code>newest</code> 出现 6 次、<code>widest</code> 出现 3 次，它们的结尾都是 <code>est&lt;/code&gt;</code>…，
-  所以 <code>(e,s)</code> 一共 9 次。并列最高频时按固定顺序打破平局（真实实现里这一步是确定性的，保证可复现）。
-</p>
-<p><strong>三个结论：</strong></p>
-<ol>
-  <li>合并规则是<em>按学习到的顺序</em>贪心应用的，不是按频次重新排序——所以同一个词在不同 tokenizer 下切法不同。</li>
-  <li>常见词尾、常见前缀会被合成一个 token，罕见词则被切成多块。这就是为什么英文的 fertility 比中文低。</li>
-  <li>真实 tokenizer 的训练语料是几十亿到几万亿字符，但<strong>算法和上面这张表完全一样</strong>。</li>
-</ol>
-
-<h4>1.2 为什么用「字节级」而不是「字符级」</h4>
-<p>
-  <code>byte-level</code> BPE 的起点不是字符，而是 <strong>UTF-8 字节</strong>（256 个）。
-  好处是<strong>任何 Unicode 文本都能被编码，永远不会出现「未知词」</strong>——
-  哪怕是 emoji、罕见汉字、混合脚本，都能拆成字节再合并。
-</p>
-<p>
-  代价是：一个汉字在 UTF-8 里占 3 个字节，如果不被合并，就会被切成 3 个 token。
-  中文模型的中文分词效率，本质上取决于它的词表里合并了多少常用汉字与词组。
-  <em>这解释了一个常见现象：同一个开源模型，在中文上「更贵、更短上下文」，根源在词表而不在模型能力。</em>
-</p>
-
-<h4>1.3 tokenizer 学到的 vs 模型学到的</h4>
-<p>两者经常被混为一谈，其实是两阶段、两份产物：</p>
-<table class="tbl small">
-  <thead><tr><th></th><th>tokenizer</th><th>模型</th></tr></thead>
-  <tbody>
-    <tr><td>产物</td><td>合并规则 + 词表（通常几 MB）</td><td>几十亿个权重（几 GB）</td></tr>
-    <tr><td>怎么来的</td><td>统计频率的贪心合并，<strong>没有梯度</strong></td><td>梯度下降，最小化交叉熵</td></tr>
-    <tr><td>能改吗</td><td>一旦更换，模型 embedding 全部失效</td><td>可以继续预训练/微调</td></tr>
-    <tr><td>影响什么</td><td>成本、上下文长度、罕见词表现</td><td>能力、知识、行为</td></tr>
-  </tbody>
-</table>
-
-<h3>2. 词表大小是一场权衡</h3>
-<table class="tbl">
-  <thead><tr><th>选择</th><th>好处</th><th>代价</th></tr></thead>
-  <tbody>
-    <tr><td>词表更大（如 200k）</td><td>序列更短 → 上下文里塞更多内容、训练更快</td><td>embedding 与输出层参数变大；稀有 token 训练不充分</td></tr>
-    <tr><td>词表更小（如 32k）</td><td>参数省、每个 token 出现更频繁</td><td>序列变长、注意力 \(O(T^2)\) 成本上升</td></tr>
-    <tr><td>纯字节（256）</td><td>无未知词、跨语言公平</td><td>序列极长，训练与推理都变慢</td></tr>
-  </tbody>
-</table>
-<div class="flow">
-  <div class="nd">原始文本</div><div class="ar">→</div>
-  <div class="nd">规范化 (NFKC)</div><div class="ar">→</div>
-  <div class="nd hi">BPE 合并规则</div><div class="ar">→</div>
-  <div class="nd">token id 序列</div><div class="ar">→</div>
-  <div class="nd">embedding 查表</div>
-</div>
-
-<h3>3. 特殊 token 与 chat template</h3>
-<p>除了自然文本，词表里还有一类<strong>控制 token</strong>，它们决定模型如何区分「谁在说话」：</p>
-<table class="tbl small">
-  <thead><tr><th>Token</th><th>作用</th><th>容易踩的坑</th></tr></thead>
-  <tbody>
-    <tr><td><code>&lt;|endoftext|&gt;</code> / <code>&lt;/s&gt;</code></td><td>序列边界、EOS</td><td>忘了在微调数据里加 EOS → 模型不会停</td></tr>
-    <tr><td><code>&lt;|im_start|&gt;user</code>（ChatML 风格）</td><td>标注角色</td><td><strong>训练用的模板必须与推理时完全一致</strong>，差一个空格都会掉点</td></tr>
-    <tr><td><code>&lt;pad&gt;</code></td><td>对齐批次长度</td><td>很多模型的 pad token 与 eos 相同，需要显式设置，否则 loss 被污染</td></tr>
-    <tr><td><code>&lt;tool_call&gt;</code> 等</td><td>结构化输出、函数调用</td><td>解析器与模板必须成对设计</td></tr>
-  </tbody>
-</table>
-<p>
-  <span class="t" data-tterm="Chat template" data-d="把 (role, content) 列表渲染成一段字符串的规则，通常存在 tokenizer_config.json 里，可用 apply_chat_template 调用。">chat template</span>
-  是 tokenizer 的一部分资产。用 <code>tokenizer.apply_chat_template(messages, tokenize=False)</code> 打印出来看一眼——
-  这是排查「微调没效果」最快的一步。
-</p>
-
-<h3>4. 三种训练数据格式</h3>
-<table class="tbl">
-  <thead><tr><th>阶段</th><th>数据形态</th><th>损失怎么算</th></tr></thead>
-  <tbody>
-    <tr><td>预训练</td><td>连续文本（长序列打包）</td><td>所有位置都算交叉熵</td></tr>
-    <tr><td>SFT（指令微调）</td><td><code>messages</code> 角色对话</td><td><strong>只对 assistant 的 token 算损失</strong>（loss mask），否则模型会学着生成用户的提问</td></tr>
-    <tr><td>偏好优化（DPO 等）</td><td><code>prompt</code> + <code>chosen</code> + <code>rejected</code></td><td>比较两个完整回答的对数概率差</td></tr>
-    <tr><td>RL / GRPO</td><td>只有 <code>prompt</code>，奖励靠规则或模型</td><td>采样多个回答，按奖励加权</td></tr>
-  </tbody>
-</table>
-<p>TRL 对这些格式有明确约定，详见 <a href="https://huggingface.co/docs/trl/dataset_formats" target="_blank" rel="noopener">Dataset Formats</a> 与
-<a href="https://huggingface.co/docs/trl/chat_templates" target="_blank" rel="noopener">Chat Templates</a>。看错格式会让 trainer 静默地训练出无用的模型。</p>
-
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>数据工程里最贵的三件事</h4>
+  <h4><span class="ic">∑</span>代数结构映射：BPE 层次合并 vs RVQ 级联残差量化</h4>
+  <p>
+    <strong>文本领域的 BPE 分词器</strong>：
+    输入是连续时间轴上的离散字符序列。通过自底向上的<strong>时域层次聚合（Hierarchical Aggregation）</strong>，
+    把高频共现的子序列映射为单个整数符号 \(s \in \mathcal{V}_{\text{text}}\)。
+    这在本质上是对离散信息进行无损或近无损的<strong>熵编码重聚类</strong>。
+  </p>
+  <p>
+    <strong>音频领域的 RVQ 离散神经编码器</strong>：
+    连续音频采样点 \(x(t)\) 经由一维因果卷积降采样编码器映射为每秒固定的连续隐空间向量序列 \(\mathbf{z} \in \mathbb{R}^d\)（如 50 Hz 帧率）。
+    由于直接对连续向量 \(\mathbf{z}\) 构建一个超级大码本在计算上不可行（若码本大小为 \(2^{32}\)，内积检索直接超算力），
+    RVQ 引入了优雅的<strong>级联残差逼近结构</strong>：
+  </p>
   <ol>
-    <li><strong>污染（contamination）</strong>：测试集混进训练集。你的模型在 benchmark 上「变强」了，但真实能力没变。
-        做法：对训练集与测试集做 n-gram 重叠检测。</li>
-    <li><strong>重复</strong>：同一文档出现多次会让模型背诵它。用 MinHash / SimHash 近似去重，通常能去掉 10%–40%。</li>
-    <li><strong>标注质量</strong>：SFT 里一条错误示范的破坏力，远大于十条正确示范的建设力。宁可 500 条干净数据，也不要 5000 条噪声。</li>
+    <li><strong>第一级量化</strong>：在第一级码本 \(\mathcal{C}^{(1)} = \{\mathbf{e}_1^{(1)}, \dots, \mathbf{e}_K^{(1)}\}\) 中寻找与 \(\mathbf{z}\) 欧氏距离最近的码字：
+      \[ k_1 = \arg\min_j \|\mathbf{z} - \mathbf{e}_j^{(1)}\|_2^2, \qquad \hat{\mathbf{z}}^{(1)} = \mathbf{e}_{k_1}^{(1)} \]
+    </li>
+    <li><strong>计算一阶残差</strong>：\(\mathbf{r}^{(1)} = \mathbf{z} - \hat{\mathbf{z}}^{(1)}\)；</li>
+    <li><strong>第二级量化</strong>：在第二级码本 \(\mathcal{C}^{(2)}\) 中对残差进行逼近：
+      \[ k_2 = \arg\min_j \|\mathbf{r}^{(1)} - \mathbf{e}_j^{(2)}\|_2^2, \qquad \hat{\mathbf{z}}^{(2)} = \mathbf{e}_{k_2}^{(2)} \]
+    </li>
+    <li><strong>级联递推 \(Q\) 层</strong>：最终连续向量被高保真分解为 \(Q\) 个离散码本索引元组与剩余残差：
+      \[ \mathbf{z} \approx \sum_{q=1}^{Q} \mathbf{e}_{k_q}^{(q)} \]
+    </li>
   </ol>
 </section>
 
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：解剖 tokenizer（完整版见附录 B · E2）</h4>
-<pre><code>!pip -q install tiktoken transformers
+<table class="tbl small">
+  <thead>
+    <tr>
+      <th>维度对比</th>
+      <th>文本分词器 (Byte-level BPE)</th>
+      <th>音频神经离散编码 (RVQ / EnCodec)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>原始输入数据</td>
+      <td>连续文本字符序列（离散符号）</td>
+      <td>连续音频压力波形（连续实数信号）</td>
+    </tr>
+    <tr>
+      <td>离散化机制</td>
+      <td>基于统计频数贪心合并（时域合并）</td>
+      <td>基于欧氏距离的逐层残差矢量量化（空间残差投射）</td>
+    </tr>
+    <tr>
+      <td>输出离散表征</td>
+      <td>一维 Token 索引序列 \((t_1, t_2, \dots)\)</td>
+      <td>多码本并行或交织 Token 矩阵 \([k_t^{(1)}, \dots, k_t^{(Q)}]\)</td>
+    </tr>
+    <tr>
+      <td>词表/码本大小</td>
+      <td>\(|\mathcal{V}| \approx 32\text{k} \sim 128\text{k}\) 单一词表</td>
+      <td>\(Q\) 个层级码本，每个码本 \(K = 1024\) 或 \(2048\)</td>
+    </tr>
+    <tr>
+      <td>下游模型接口</td>
+      <td>输入 Embedding 矩阵行索引查表</td>
+      <td>输入 \(Q\) 个 Embedding 累加：\(\sum_{q=1}^Q \mathbf{E}^{(q)}[k_t^{(q)}]\)</td>
+    </tr>
+  </tbody>
+</table>
 
-import tiktoken
-from transformers import AutoTokenizer
-
-gpt2 = tiktoken.get_encoding("gpt2")
-zh = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B")   <span class="cm"># 中文友好型词表</span>
-
-samples = ["strawberry", "Mathematical Crossfade Modelling", "交叉淡入淡出的功率守恒"]
-for s in samples:
-    a = gpt2.encode(s); b = zh.encode(s)
-    print(f"{s!r:45s} gpt2={len(a):3d}  qwen={len(b):3d}  fertility={len(b)/max(1,len(s.split())):.2f}")
-
-<span class="cm"># 看看一个中文句子到底被切成了什么</span>
-print([zh.decode([t]) for t in zh.encode("交叉淡入淡出的功率守恒")])</code></pre>
-  <p>记录三件事：<strong>同一句话在不同词表下的 token 数</strong>、<strong>切分边界是否对应语义词</strong>、<strong>同一段文本在两种模型下的输入成本差多少</strong>。</p>
-</section>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么连通工业级实践：词表大小与压缩率的工程权衡</h4>
   <p>
-    你的音频项目不做文本生成，但 Checkpoint 7 需要把音乐特征<strong>离散化或编码</strong>：
-    「ΔBPM、调性距离、ΔLUFS、谱通量对比」这四个特征，本质上就是你的「tokenizer」——
-    你选择如何表示输入，直接决定了后续模型能学到什么。这也是为什么研究报告里必须写清楚特征定义与归一化方式。
+    在设计实际的大模型时，词表大小 \(|\mathcal{V}|\) 是一个至关重要的工程权衡：
+  </p>
+  <ul>
+    <li><strong>词表太小（如 8k）</strong>：每个单词被切成很多碎片 Token，导致相同的一句话生成的序列长度 \(T\) 极长，平方级注意力开销 \(\mathcal{O}(T^2)\) 剧增，推理极慢；</li>
+    <li><strong>词表太大（如 150k，如 Qwen 系列）</strong>：Token 压缩率极高（一句话只占很少的 Token），但首尾 Embedding 矩阵占用大量显存（如 \(150000 \times 2048 \times 2\) 字节 \(\approx 600\) MB），在超小模型中 Embedding 参数甚至超过主干网络。</li>
+  </ul>
+  <p>
+    因此，1B 到 3B 级别的小模型通常将词表控制在 32k 到 64k 之间，以实现显存开销与长文本推理效率的最佳平衡。
   </p>
 </section>
 
-<h3>5. 本模块术语</h3>
-<ul>
-  <li><span class="t" data-tterm="Tokenizer" data-d="把字符串映射成整数序列（以及反向映射）的组件，词表与合并规则是训练出来的。" >tokenizer</span>、
-      <span class="t" data-tterm="Vocabulary size" data-d="词表大小 |V|，决定 embedding 与输出层参数量，通常 32k–200k。">词表大小</span>。</li>
-  <li><span class="t" data-tterm="Sequence packing" data-d="把多条短样本拼进一条固定长度序列，减少 padding 浪费，但要注意不能让注意力跨样本泄漏。">序列打包</span>、
-      <span class="t" data-tterm="Loss mask" data-d="在损失里屏蔽不属于目标部分的 token（例如用户提问）。">损失掩码</span>。</li>
-  <li><span class="t" data-tterm="Chat template" data-d="角色消息到字符串的渲染规则。">chat template</span>、
-      <span class="t" data-tterm="Contamination" data-d="测试数据出现在训练集中，导致评估虚高。">数据污染</span>。</li>
-</ul>
+<h3>4. 特殊 Token、Chat Template 与数据格式避坑指南</h3>
+<p>
+  除了普通文本词，工业级 Tokenizer 中还驻留着决定系统生死的<strong>控制 Token</strong>：
+</p>
+<table class="tbl small">
+  <thead>
+    <tr>
+      <th>特殊 Token</th>
+      <th>典型标准字符串</th>
+      <th>核心功能与工程易错点</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>序列终结 (EOS)</td>
+      <td><code>&lt;|endoftext|&gt;</code> / <code>&lt;/s&gt;</code></td>
+      <td>标记生成停止。微调时若漏打 EOS，模型在推理时会陷入永不停止的胡言乱语</td>
+    </tr>
+    <tr>
+      <td>对话角色标记</td>
+      <td><code>&lt;|im_start|&gt;user</code> / <code>&lt;|im_start|&gt;assistant</code></td>
+      <td>ChatML 规范中隔离用户提问与模型输出，必须严格与推理模板一致</td>
+    </tr>
+    <tr>
+      <td>填充对齐 (PAD)</td>
+      <td><code>&lt;pad&gt;</code></td>
+      <td>对齐 Batch 中不同长度序列。在计算交叉熵损失时必须使用 <code>ignore_index=-100</code> 屏蔽</td>
+    </tr>
+  </tbody>
+</table>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">把词表从 32k 扩大到 200k，最直接的两个后果是？</p>
+  <p class="q">把词表大小 \(|\mathcal{V}|\) 从 32k 扩大到 128k，在序列建模中最直接的双重影响是什么？</p>
   <ul class="opts">
-    <li>模型推理变慢，且更容易过拟合</li>
-    <li data-ok>同样文本的 token 数减少（上下文能装更多内容），但 embedding/输出层参数变大</li>
-    <li>交叉熵一定会上升</li>
-    <li>不再需要特殊 token</li>
+    <li>模型推理速度变慢，且更容易产生梯度弥散</li>
+    <li data-ok>相同自然语言文本切分出的 Token 数量显著减少（等价于上下文窗口能容纳更长文本），但模型的 Embedding 与输出层参数量成比例增大</li>
+    <li>交叉熵损失绝对值一定会变大</li>
+    <li>词表中将不再需要任何单字节 Token</li>
   </ul>
   <p class="why">
-    词表变大 → 平均每个 token 覆盖更多字符 → 序列变短（对 \(O(T^2)\) 的注意力是大好事），
-    但 \(|\mathcal{V}| \cdot d\) 的 embedding 与输出投影随之变大，且稀有 token 的梯度稀疏。
+    词表变大后，高频长短语被直接收录为一个 Token，因此相同文本被切成的 Token 序列长度变短，降低了自注意力 \(O(T^2)\) 的计算开销；但代价是参数量 \(|\mathcal{V}| \times d\) 在输入和输出层大幅膨胀，且稀有 Token 的更新梯度更加稀疏。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">做 SFT 时忘记设置 loss mask（对用户提问也计算损失），会发生什么？</p>
+  <p class="q">在进行指令微调（SFT）训练对话模型时，如果忘记为用户 Prompt 部分设置损失掩码（Loss Mask，将其设为 -100），模型在推理时最可能出现什么严重病态？</p>
   <ul class="opts">
-    <li>没有影响，模型会自动忽略</li>
-    <li>训练会直接报错</li>
-    <li data-ok>模型会同时学习「生成用户的提问」，表现为自问自答或角色混乱</li>
-    <li>只会让损失数值变大，效果不变</li>
+    <li>完全没有影响，现代 Transformer 能自动区分角色</li>
+    <li>训练过程会在反向传播时直接报错崩溃</li>
+    <li data-ok>模型会混淆角色边界，常常在生成回答的过程中开始自顾自地假扮用户提问或自问自答</li>
+    <li>只会导致 Loss 数值变大，生成能力反而有所增强</li>
   </ul>
   <p class="why">
-    损失就是你告诉模型「要模仿什么」。把用户提问也算进去，等于在教它模仿用户。
-    正确做法是只在 assistant 片段上计算交叉熵，其余位置置为 -100（PyTorch 的 ignore_index）。
+    损失函数是模型行为的指挥棒。若将用户提问也纳入交叉熵反向传播，模型在反向梯度驱动下会同等学习「如何生成用户提问」，导致推理时角色边界瓦解，出现令人抓狂的自问自答现象。正确做法是只对 <code>assistant</code> 角色输出的 Token 计算损失。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">某 API 按 token 计费。同一段内容，英文 100 词、中文 100 词，中文通常更贵，原因是？</p>
+  <p class="q">在英文为主的 BPE 词表（如原始 GPT-2 词表）上，处理中文或代码时为什么会出现极高的 Fertility（单个词对应的 Token 数很多）？</p>
   <ul class="opts">
-    <li>中文的 Unicode 编码更长</li>
-    <li data-ok>主流词表以英文语料为主训练，中文的 fertility 更高，同一语义需要更多 token</li>
-    <li>中文模型更大</li>
-    <li>这是厂商的定价策略，与分词无关</li>
+    <li>中文 Unicode 编码标准本身存在设计缺陷</li>
+    <li data-ok>BPE 贪心合并规则是根据训练语料中的二元对频数统计驱动的，英文语料占绝大多数导致高频合并规则几乎全被英文子词占据，中文多字节字符无法被有效合并，只能退化为零散字节</li>
+    <li>中文模型故意采用了更复杂的非线性变换</li>
+    <li>这是商业云服务商为了提高计费故意设置的策略</li>
   </ul>
   <p class="why">
-    token 是计费与上下文的基本单位。BPE 的合并频次统计偏向语料中的语言分布，
-    因此在英文占比高的词表上，中文被切得更碎。<em>这也是选模型时要看词表的原因之一。</em>
+    BPE 是一种纯粹基于语料统计频数的贪心无监督算法。若预训练语料中中文占比极低，中文字符的相邻高阶字节对频数不足以挤进全局前数万个合并规则中，导致编码时中文只能退化为单字节或双字节碎片，Fertility 大幅攀升。
   </p>
 </div>
 
-<div class="acc" data-t="深入：什么时候该自己训练 tokenizer？" data-badge="可选">
-  <div class="acc-body">
-    <p><strong>该自己训</strong>：领域文本与通用语料分布差异极大（例如只处理 MIDI、蛋白序列、化学式），且你有足够语料（通常 ≥ 数十 GB 或 ≥ 10\(^8\) token）重训整个模型。</p>
-    <p><strong>不要自己训</strong>：你只是做微调。一旦更换 tokenizer，预训练模型的 embedding 就全部失效，等于放弃了预训练的一切。</p>
-    <p>实践顺序：先用现成 tokenizer 跑通 → 量化 fertility 与成本 → 只有在收益明确（例如序列长度缩短 40%）时才考虑更换。</p>
-    <p>工具：<code>tokenizers</code> 库训练 BPE / Unigram；<code>tiktoken</code> 复现 GPT 系列分词；HF Hub 上可对比多个模型对同一段文本的切分。</p>
-  </div>
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">为什么 Byte-level BPE 能彻底保证在处理世界上任何文本甚至恶意损坏的乱码时，绝不会发生 OOV（未登录词）错误？</p>
+  <ul class="opts">
+    <li>因为词表容纳了无限多的特殊符号</li>
+    <li data-ok>因为初始词表强制预置了 0 到 255 的全部 256 个 UTF-8 基础字节作为不可拆分基底，任何文本在字节层面都可以退化拆分为单字节序列</li>
+    <li>因为遇到底层未知符号时会自动触发在线网络搜索</li>
+    <li>因为遇到未知词时会直接静默丢弃</li>
+  </ul>
+  <p class="why">
+    根据 UTF-8 编码规范，任何计算机文本序列在物理层面都是由 0 到 255 的八位字节构成的。Byte-level BPE 将这 256 个字节作为算法递归合并的不可分割原子叶子节点，因此无论多么罕见、冷门或拼写错误的字符串，最差情形下都可以拆为单字节 Token，永不发生 OOV。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">在神经音频编解码模型（如 EnCodec）中，残差矢量量化（RVQ）引入多级码本级联逼近的核心代数动机是什么？</p>
+  <ul class="opts">
+    <li>为了让声波采样率降低至 1 Hz</li>
+    <li data-ok>避免高比特率下单级超级大码本的指数级存储与最近邻搜索算力爆炸，用 \(Q\) 个大小仅为 \(K\) 的小码本级联贪心拟合，达到等价于 \(K^Q\) 级超精细量化表征能力</li>
+    <li>为了将立体声音频转换为单声道</li>
+    <li>为了绕过傅里叶变换</li>
+  </ul>
+  <p class="why">
+    若使用单级码本实现高保真度量化，例如需要 \(2^{30}\) 种状态，存储该码本并执行欧氏距离最近邻搜索在 GPU 显存和算力上完全不可行。RVQ 采用级联逼近：每一级只负责量化前一级的残差误差，仅需 \(Q\) 个大小为 1024 的微型码本相加，即可实现跨越数个数量级的极高保真度逼近。
+  </p>
 </div>
 `
 });

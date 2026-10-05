@@ -1,333 +1,339 @@
-/* content/01-language-models.js — 模块 01：语言模型是什么 */
+/* content/01-language-models.js — 模块 01：语言模型在算什么 */
 COURSE.register({
   id: "m1",
   part: 1,
   num: "01",
   title: "语言模型在算什么：条件概率、交叉熵与困惑度",
   en: "What a language model actually computes",
-  minutes: 25,
-  tags: ["核心", "概率", "必做"],
+  minutes: 35,
+  tags: ["核心", "概率", "必做", "Karpathy体系"],
   body: String.raw`
 <p class="lead">
-  大模型最底层的描述其实非常朴素：<strong>它每一步只做一件事——给词表里的每个 token 打一个概率。</strong>
-  「智能」「推理」「涌现」这些词，全都建立在这件事之上。这一讲把这个直觉写成可以计算的公式，
-  并告诉你训练信号到底从哪来。
+  大模型最底层的操作其实极为纯粹：<strong>它在每一步仅做一件事——基于给定的上下文历史，为词表中的每个 Token 计算一个条件概率分布。</strong>
+  无论是宏大的「逻辑推理」、「多轮对话」还是「代码生成」，均由这一步概率采样递归迭代而成。
+  本讲专为具有严格数学品味的自学者设计，追随 Andrej Karpathy 的 <code>makemore</code> 体系，
+  从最简 Bigram 统计频数矩阵推演到单层神经网络，严密证明吉布斯不等式、Softmax 平移不变性与优雅的 \(\frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \mathbf{p} - \mathbf{y}\) 梯度公式。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>零基础入口（先读这 20 行）</h4>
+  <h4><span class="ic">✓</span>学习目标：建立概率测度与信息几何的严密桥梁</h4>
   <p>
-    如果你还没读<a href="#mP">预备课 P</a>，建议先花 20 分钟读它：那里用输入法联想讲清了「概率分布」，
-    用天气预报讲清了「softmax」，用下山讲清了「梯度下降」。
-  </p>
-  <p>
-    <strong>这一讲要建立的直觉</strong>：模型不是「想好一句话再打出来」，而是<em>一个字一个字地掷骰子</em>，
-    每一步都重新算一遍概率。<br />
-    <strong>读完你能回答</strong>：为什么一个标量的损失（loss）就足以改进整个模型？
-    以及为什么「模型答错了」往往不是因为它不懂，而是因为它在这一步的概率分配不够好。
+    阅读完本讲后，你将能够做到：
+    <strong>①</strong> 证明为什么条件概率的链式展开是自回归（Autoregressive）建模的唯一公理基础；
+    <strong>②</strong> 用 STEP 级解析技巧推导吉布斯不等式，彻底理解为什么交叉熵的理论下界就是数据源的香农熵；
+    <strong>③</strong> 亲手推导 Softmax 雅可比矩阵，领悟为什么深度学习框架能够将 Softmax 与交叉熵融合为极其稳定的单个算子；
+    <strong>④</strong> 逐行解构从频数统计表到神经网络参数化预测的代数演进。
   </p>
 </section>
 
 <section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
+  <h4><span class="ic">◆</span>核心问题</h4>
   <p>
-    给模型输入 <code>The capital of France is</code>，它输出 <code>Paris</code>。
-    严格地说，它<em>没有</em>输出 <code>Paris</code>——它输出的是 5 万个实数（logits），
-    经过 softmax 变成一个概率分布，<code>Paris</code> 只是其中概率最大的那个。
-    那么：这个分布是怎么定义的？我们凭什么用一个标量损失就能把它训练出来？
+    给模型输入 <code>The capital of France is</code>，它预测输出 <code>Paris</code>。
+    在数学现实中，模型<strong>从来没有直接输出单词</strong>——它输出的是词表维度（如 50,257 维）的原始连续分值向量（Logits），
+    经由非线性映射转化为单纯形（Simplex）上的概率分布，<code>Paris</code> 仅是其中测度最高的点。
+    我们凭什么用一个标量交叉熵损失函数，就能引导数以亿计的权重自我校准至如此精准的概率分布？
   </p>
 </section>
 
-<h3>1. 从「一句话的概率」到逐 token 决策</h3>
+<h3>1. 概率空间与自回归分解的公理化基础</h3>
 <p>
-  设词表为 \(\mathcal{V}\)，一段文本是 token 序列 \(x = (x_1, x_2, \dots, x_T)\)，其中 \(x_t \in \mathcal{V}\)。
-  语言模型要做的是给整段序列赋一个概率。用概率的链式法则，它<strong>必然</strong>可以分解成逐 token 的条件概率：
+  设词表为有限离散集合 \(\mathcal{V}\)。一段长度为 \(T\) 的文本序列表示为随机变量向量 \(\mathbf{x} = (x_1, x_2, \dots, x_T)\)，
+  其中每个分量 \(x_t \in \mathcal{V}\)。
+  根据概率论的基本公理（乘法法则 / 链式法则），任意有限维离散随机变量的联合概率分布，
+  <strong>恒可无损分解为自回归条件概率的连乘积</strong>：
 </p>
-\[ P(x_1, \dots, x_T) \;=\; \prod_{t=1}^{T} P\big(x_t \mid x_1, \dots, x_{t-1}\big) \]
+\[ P(x_1, x_2, \dots, x_T) = \prod_{t=1}^{T} P(x_t \mid x_1, x_2, \dots, x_{t-1}) \]
 <p>
-  模型参数 \(\theta\) 要做的就是逼近右边每一个因子：
-  \( p_\theta(x_t \mid x_{<t}) \in \Delta^{|\mathcal{V}|-1} \)（单纯形上的分布）。
-  这就是<span class="t" data-tterm="Autoregressive" data-d="自回归：把上一步的输出接到输入上，逐步生成。GPT 系列、Claude、Gemini 的文本生成都是自回归的。">自回归</span>的含义：
-  <strong>一次前向只预测一个位置</strong>，但一次训练可以同时监督所有位置。
+  任何自回归模型（GPT 系列、Claude、Llama）在本质上都是用一个带参函数族 \(p_\theta\)
+  去逼近宇宙中真实的条件概率转移分布：
+</p>
+\[ p_\theta(\cdot \mid x_1, \dots, x_{t-1}) \in \Delta^{|\mathcal{V}|-1} \equiv \left\{ \mathbf{p} \in \mathbb{R}^{|\mathcal{V}|} \;\middle|\; p_i \ge 0, \; \sum_{i=1}^{|\mathcal{V}|} p_i = 1 \right\} \]
+
+<h3>2. 从频数统计到最大似然估计：Karpathy Bigram 的极简本质</h3>
+<p>
+  在引入复杂神经网络之前，最朴素的自回归假设是<strong>一阶马尔可夫链（Bigram 语言模型）</strong>：
+  假设当前词出现的概率仅依赖于紧邻的前一个词，即 \(P(x_t \mid x_1, \dots, x_{t-1}) = P(x_t \mid x_{t-1})\)。
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>数学内核：唯一的目标函数</h4>
-  <p>训练用<strong>交叉熵</strong>（等价于最大似然）。对单个样本：</p>
-  \[ \mathcal{L}(\theta) \;=\; -\frac{1}{T}\sum_{t=1}^{T} \log p_\theta\big(x_t \mid x_{<t}\big) \]
-  <p>把它展开成对词表的求和，就看出它其实是「真实分布」与「模型分布」的 KL 散度加一个常数：</p>
-  \[ \mathcal{L} = \underbrace{H(p)}_{\text{entropy of the data}} + D_{\mathrm{KL}}\big(p \,\|\, p_\theta\big) \]
-  <p class="hint">（式中的 <code>entropy of the data</code> 就是「数据本身的熵」，中文说明见下方正文。）</p>
+  <h4><span class="ic">∑</span>极大似然估计 (MLE) 推导条件概率转移矩阵</h4>
   <p>
-    所以最小化交叉熵 = 最小化模型分布与真实分布的 KL 距离。
-    <strong>数据本身的熵 \(H(p)\) 是下界</strong>——这解释了两件事：
-    文本越「不可预测」（比如代码、专业术语），可达到的损失就越低不了多少；
-    而不同数据集之间的 loss 数值<em>不可直接比较</em>。
+    设语料库中所有相邻 Token 对 \((i, j)\) 出现的统计频数为 \(N_{ij}\)。
+    对任意前驱 Token \(i\)，模型参数为其转移概率行向量 \(\mathbf{p}_i = (p_{i1}, p_{i2}, \dots, p_{i|\mathcal{V}|})\)，约束条件为 \(\sum_{j} p_{ij} = 1\)。
+    根据极大似然原理，整篇语料库的对数似然函数为：
   </p>
-  <p>工业界还常用两个等价刻度：</p>
-  \[ \text{Perplexity} = \exp(\mathcal{L}), \qquad \text{Bits/token} = \frac{\mathcal{L}}{\ln 2} \]
+  \[ \ell(\mathbf{p}) = \sum_{i \in \mathcal{V}} \sum_{j \in \mathcal{V}} N_{ij} \ln p_{ij} \]
   <p>
-    Perplexity 可以读作「模型在每个位置平均在多少个候选之间犹豫」。
-    Perplexity 10 ≈ 平均每次在 10 个词里挑一个。它依赖 tokenizer，所以跨模型比较时常用 bits/byte。
+    由于不同行 \(i\) 之间相互独立，引入拉格朗日乘子 \(\lambda\) 建立目标优化方程：
+  </p>
+  \[ \mathcal{J}(\mathbf{p}_i, \lambda) = \sum_{j=1}^{|\mathcal{V}|} N_{ij} \ln p_{ij} - \lambda \left( \sum_{j=1}^{|\mathcal{V}|} p_{ij} - 1 \right) \]
+  <p>求偏导并令其为 0：</p>
+  \[ \frac{\partial \mathcal{J}}{\partial p_{ij}} = \frac{N_{ij}}{p_{ij}} - \lambda = 0 \implies p_{ij} = \frac{N_{ij}}{\lambda} \]
+  <p>代入约束条件 \(\sum_j p_{ij} = 1\)，立即得到 \(\lambda = \sum_k N_{ik}\)。由此完成严密证明：</p>
+  \[ p_{ij}^* = \frac{N_{ij}}{\sum_{k=1}^{|\mathcal{V}|} N_{ik}} \]
+  <p>
+    极大似然转移矩阵的解，恰好等于经验统计频数归一化！
+    然而，一旦上下文长度从 1 扩展至现代模型的几千甚至几十万 Token，纯频数统计表将遭遇无法克服的<strong>维度灾难（Combinatorial Explosion）</strong>，
+    必须借助神经网络的低秩连续嵌入来学习平滑的条件分布。
   </p>
 </section>
 
-<h4>1.1 换个角度看损失：它就是「惊讶程度」</h4>
+<h3>3. 信息论四重奏：自信息、香农熵、交叉熵与 KL 散度</h3>
 <p>
-  前面说损失是「正确答案概率的负对数」。信息论给同一个东西起了一个更直观的名字：
-  <strong>惊讶度（surprisal）</strong>——一件事越不可能发生，它发生时你越惊讶，惊讶度就越大。
+  语言模型的损失函数从何而来？为什么非得是对数形式？这根植于香农（Claude Shannon）1948 年奠定的信息论公理。
 </p>
-<table class="tbl small">
-  <thead><tr><th>模型给正确答案的概率 \(p\)</th><th>惊讶度 \(-\ln p\)（nats）</th><th>换成比特 \(-\log_2 p\)</th></tr></thead>
-  <tbody>
-    <tr><td>0.99</td><td>0.010</td><td>0.014</td></tr>
-    <tr><td>0.90</td><td>0.105</td><td>0.152</td></tr>
-    <tr><td>0.50</td><td>0.693</td><td>1.000</td></tr>
-    <tr><td>0.10</td><td>2.303</td><td>3.322</td></tr>
-    <tr><td>0.01</td><td>4.605</td><td>6.644</td></tr>
-  </tbody>
-</table>
-<p>
-  注意 \(p = 0.5\) 那一行：惊讶度正好是 \(\ln 2 = 0.693\) nats，也就是<strong>1 比特</strong>。
-  这不是巧合——「一个 50/50 的二元选择包含 1 比特信息」正是信息论的定义。
-  用比特而不是 nats 时，公式就变成 \(-\log_2 p\)，除一个 \(\ln 2\) 即可互换。
-</p>
+<dl class="kv">
+  <dt>自信息量 (Surprisal)</dt><dd>\(I(x) = -\ln p(x)\)。事件越罕见，其发生时带来的信息量（惊诧程度）越大；独立事件联合概率相乘，对数运算使其信息量完美相加。</dd>
+  <dt>信息熵 (Shannon Entropy)</dt><dd>\(H(p) = -\sum_i p_i \ln p_i\)。真实分布本身固有的平均不确定性。是任何压缩编码或预测算法不可逾越的理论物理地基。</dd>
+  <dt>交叉熵 (Cross Entropy)</dt><dd>\(H(p, q) = -\sum_i p_i \ln q_i\)。用预估分布 \(q\) 去编码服从真实分布 \(p\) 的样本时，平均每个样本所需的编码长度。</dd>
+  <dt>KL 散度 (Relative Entropy)</dt><dd>\(D_{\mathrm{KL}}(p \parallel q) = \sum_i p_i \ln \frac{p_i}{q_i} = H(p, q) - H(p)\)。由模型拟合不准引起的额外冗余代价。</dd>
+</dl>
+
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>手算一次：熵、交叉熵与 KL</h4>
-  <p>设某个位置的<strong>真实</strong>下一个词分布是 \(p = [0.5,\ 0.3,\ 0.2]\)（三个候选词）。它的<strong>熵</strong>是</p>
-  \[ H(p) = -\sum_i p_i \ln p_i = 0.347 + 0.361 + 0.322 = 1.030\ \text{nats} \]
-  <p>熵的含义：<em>即使你完全知道真实分布，平均每一步也至少要付 1.030 nats 的代价</em>——这是数据本身的不确定性，也是任何模型都不可能突破的地板。</p>
-  <p>现在假设你的模型给出 \(q = [0.7,\ 0.2,\ 0.1]\)，那么交叉熵是</p>
-  \[ H(p, q) = -\sum_i p_i \ln q_i = 0.178 + 0.483 + 0.461 = 1.122\ \text{nats} \]
-  <p>两者的差就是 KL 散度，也就是「因为模型不够准，每步多付的代价」：</p>
-  \[ D_{\mathrm{KL}}(p\,\|\,q) = H(p,q) - H(p) = 1.122 - 1.030 = 0.092\ \text{nats} \]
+  <h4><span class="ic">∑</span>STEP 级严密证明：吉布斯不等式（信息散度非负性）</h4>
   <p>
-    这三个数把训练的目标讲清楚了：<strong>\(H(p)\) 你改不了，\(D_{\mathrm{KL}}\) 才是模型要压的东西。</strong>
-    所以「loss = 2.1」这种绝对值在不同数据集之间没有可比性——每个数据集的地板 \(H(p)\) 不一样。
+    <strong>定理</strong>：对于定义在同一有限样本空间上的任意两个离散概率分布 \(p\) 与 \(q\)，恒有：
+  </p>
+  \[ D_{\mathrm{KL}}(p \parallel q) \ge 0 \]
+  <p>等号成立当且仅当对于所有 \(i\) 均有 \(p_i = q_i\)。</p>
+  
+  <p><strong>证明过程（巧妙运用切线不等式）</strong>：</p>
+  <p>
+    由于对数函数 \(\ln t\) 是严格上凸函数，在其切线处满足基本凸不等式：
+  </p>
+  \[ \ln t \le t - 1 \qquad (\forall t > 0) \]
+  <p>且等号成立当且仅当 \(t = 1\)。</p>
+  <p>
+    考虑负 KL 散度的表达式。假设对于所有的 \(i\)，\(p_i > 0\)（对于 \(p_i = 0\) 的项其在极限下极限值为 0，可直接剔除）。
+    令 \(t = \frac{q_i}{p_i} > 0\)，代入上述切线不等式：
+  </p>
+  \[ \ln\left(\frac{q_i}{p_i}\right) \le \frac{q_i}{p_i} - 1 \]
+  <p>
+    两端同时乘以正数 \(p_i\) 并对所有可能的事件 \(i\) 求和：
+  </p>
+  \[ \sum_{i=1}^{|\mathcal{V}|} p_i \ln\left(\frac{q_i}{p_i}\right) \le \sum_{i=1}^{|\mathcal{V}|} p_i \left( \frac{q_i}{p_i} - 1 \right) \]
+  <p>展开右端级数：</p>
+  \[ \sum_{i=1}^{|\mathcal{V}|} p_i \left( \frac{q_i}{p_i} - 1 \right) = \sum_{i=1}^{|\mathcal{V}|} q_i - \sum_{i=1}^{|\mathcal{V}|} p_i = 1 - 1 = 0 \]
+  <p>因此左端：</p>
+  \[ -D_{\mathrm{KL}}(p \parallel q) = \sum_{i=1}^{|\mathcal{V}|} p_i \ln\left(\frac{q_i}{p_i}\right) \le 0 \implies D_{\mathrm{KL}}(p \parallel q) \ge 0 \]
+  <p>
+    等号成立条件为每一个 \(t = \frac{q_i}{p_i} \equiv 1\)，即 \(p_i = q_i\) 恒成立。证毕。
+  </p>
+  <p>
+    <strong>深刻结论</strong>：
+    \[ \mathcal{L} = H(p, q) = H(p) + D_{\mathrm{KL}}(p \parallel q) \ge H(p) \]
+    无论模型网络参数量多大、训练算力多么充裕，<strong>训练损失的极限下界被自然语言本身的熵 \(H(p)\) 死死卡住</strong>。
+    不同任务语料（如散文 vs 规整代码）由于自身熵 \(H(p)\) 差异巨大，绝对 Loss 没有任何可比性！
   </p>
 </section>
-<p>
-  还有一个常被忽略的换算：如果把困惑度转成「每个字节多少比特」（bits/byte），
-  就能跨 tokenizer 比较模型了。设每 token 平均对应 \(k\) 个字节，则
-  \(\text{bits/byte} = \frac{\log_2 \text{PPL}}{k}\)。
-  PPL = 10 且平均每 token 4 字节时，约为 0.83 bits/byte——这个刻度在论文里比原始 loss 常见得多。
-</p>
 
-<h4>1.2 温度：同一个模型，不同的「性格」</h4>
-<p>生成文本时，我们不直接用模型输出的概率，而是先做一次「软化」或「锐化」：</p>
-\[ p_i(T) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)} \]
-<p>\(T\) 就是<span class="t" data-tterm="Temperature" data-d="采样温度：小于 1 让分布更尖锐（更确定），大于 1 让分布更平坦（更随机）。">温度</span>。用之前那组 logits \(z = [2.0,\ 1.0,\ 0.1]\) 手算三种温度：</p>
-<table class="tbl small">
-  <thead><tr><th>温度 \(T\)</th><th>得到的概率分布</th><th>熵（nats）</th><th>行为</th></tr></thead>
-  <tbody>
-    <tr><td>0.5</td><td>[0.864, 0.117, 0.019]</td><td>0.45</td><td>几乎总是选第一个候选，输出稳定但容易重复</td></tr>
-    <tr><td>1.0</td><td>[0.659, 0.242, 0.099]</td><td>0.85</td><td>原始分布</td></tr>
-    <tr><td>2.0</td><td>[0.502, 0.304, 0.194]</td><td>1.03</td><td>三个候选几乎被拉平，输出多样但容易跑题</td></tr>
-  </tbody>
-</table>
+<h3>4. Softmax 核心代数性质与数值稳定性</h3>
 <p>
-  <strong>关键理解</strong>：温度不改变模型「知道什么」（logits 没变），它只改变<em>从这个分布里抽样的方式</em>。
-  所以「调温度让回答更准确」是一种误解——它只能让回答更确定或更发散。
-  当 \(T \to 0\) 时分布退化成 one-hot，采样等价于贪心解码（永远选概率最大的那个）。
-</p>
-
-<h4>1.3 为什么模型会「自信地胡说」</h4>
-<p>
-  训练目标只奖励一件事：<strong>给训练数据里真实出现的下一个 token 更高的概率</strong>。
-  它从不直接奖励「知道自己不知道」。于是会出现两类偏差：
-</p>
-<ul>
-  <li><strong>分布外的问题</strong>：训练数据里没有的事实，模型没有「不知道」这个选项可用（除了特殊 token 或拒绝回答的训练），
-      它只能从学过的模式里挑一个最像的接上去——这就是幻觉的机制来源。</li>
-  <li><strong>校准（calibration）问题</strong>：模型说「我有 90% 把握」时，实际正确率往往不是 90%。
-      常见修法是<em>温度缩放</em>（用一个在验证集上拟合的温度把概率重新标定），
-      但工程上更实用的做法是：<strong>把模型输出的概率当作排序信号，而不是可信度</strong>。
-  </li>
-</ul>
-<p>
-  对你的项目有直接启发：如果用一个模型来预测「最优过渡时长」，你要评估的是<em>预测误差</em>（RMSE），
-  而不是它输出的置信度；同时必须在留出集上检查误差分布，看它在哪些样本上系统性偏高——那通常意味着特征缺失（模块 09）。
-</p>
-
-<h3>2. 一次前向里，标签从哪来</h3>
-<p>预训练没有任何人工标注：**输入和标签是同一段文本错开一位**。</p>
-<pre><code>tokens :  The  capital  of  France  is  Paris  .
-input  :  The  capital  of  France  is
-label  :       capital  of  France  is  Paris</code></pre>
-<p>
-  这叫 <span class="t" data-tterm="Teacher forcing" data-d="训练时把真实的前缀喂给模型（而不是模型自己上一步的输出），这样所有位置的损失可以并行计算。">teacher forcing</span>。
-  因为每个位置的预测只依赖它左边的内容（因果掩码，见模块 03），一次矩阵乘法就能同时算出 \(T\) 个位置的分布——
-  这是 Transformer 能高效训练的根本原因。
-</p>
-
-<h3>3. 从 n-gram 到 Transformer：同一目标，不同假设</h3>
-<table class="tbl">
-  <thead><tr><th>模型</th><th>条件独立的假设</th><th>表示</th><th>致命弱点</th></tr></thead>
-  <tbody>
-    <tr><td>n-gram</td><td>只依赖前 \(n-1\) 个 token</td><td>计数表</td><td>组合爆炸、无法泛化到未见过的 n 元组</td></tr>
-    <tr><td>神经概率语言模型（2003）</td><td>同上，但用连续表示</td><td>embedding + MLP</td><td>窗口仍然固定</td></tr>
-    <tr><td>RNN / LSTM</td><td>用一个隐状态压缩全部历史</td><td>递归状态</td><td>长程梯度衰减、无法并行</td></tr>
-    <tr><td><strong>Transformer</strong></td><td>无固定窗口，直接对全部历史做加权检索</td><td>注意力</td><td>计算量随长度平方增长</td></tr>
-  </tbody>
-</table>
-<p>
-  注意：<strong>目标函数从头到尾没变</strong>。改变的是「怎么表示 \(x_{<t}\)」。
-  这也意味着：任何声称「新架构让语言模型理解语义」的说法，都要先问它是否真的改变了条件概率的估计方式。
+  模型将隐层表示映射到 Logits 后，Softmax 函数负责生成最终概率。
+  但在浮点计算中，直接使用定义式极易造成数值溢出（Overflow）或下溢（Underflow）。
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>算力与数据的两个经验关系</h4>
-  <p>模型规模 \(N\)（参数）、数据量 \(D\)（token）、训练算力 \(C\)（FLOPs）之间有一个粗略但极其有用的关系：</p>
-  \[ C \;\approx\; 6\,N\,D \]
+  <h4><span class="ic">∑</span>定理一：Softmax 的平移不变性 (Shift Invariance)</h4>
   <p>
-    系数 6 = 前向 2（乘加各算一次） + 反向 4。它让你能在纸上估算：
-    「7B 模型、1T token」≈ \(6 \times 7\times10^9 \times 10^{12} \approx 4.2\times10^{22}\) FLOPs。
-    一块 A100 的 bf16 峰值约 \(3.1\times10^{14}\) FLOP/s，按 40% 利用率算，
-    单卡需要 \(4.2\times10^{22} / (0.4\times3.1\times10^{14}) \approx 3.4\times10^{8}\) 秒 ≈ <strong>11 年</strong>；
-    换成 1000 张卡并假设线性加速，才降到约 4 天——
-    所以真实预训练必须并行（模块 06），而「单卡训 7B」在数学上就是不成立的。
+    <strong>命题</strong>：对任意常数 \(c \in \mathbb{R}\)，Logits 向量整体加上常数偏置后，其 Softmax 概率分布恒定不变：
   </p>
-  <p>缩放律（Chinchilla 之后的主流结论）：在固定算力下，\(N\) 与 \(D\) 应按比例增长；而现代模型为了降低<em>推理</em>成本，
-  会故意<strong>过训练</strong>（数据远多于算力最优配比）。这一点在模块 05 展开。</p>
-</section>
-
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手实验 1：30 行实现 bigram 语言模型</h4>
-  <p>先在最简单的模型上感受「交叉熵 = 平均负对数概率」。在 Colab 里跑：</p>
-<pre><code><span class="cm"># 1) 取一小段文本</span>
-text = ("the quick brown fox jumps over the lazy dog. " * 200).split()
-vocab = sorted(set(text))
-stoi = {w: i for i, w in enumerate(vocab)}
-
-<span class="cm"># 2) 统计 bigram 频次（这就是「模型」）</span>
-import torch
-N = torch.zeros((len(vocab), len(vocab)), dtype=torch.int32)
-for w1, w2 in zip(text, text[1:]):
-    N[stoi[w1], stoi[w2]] += 1
-
-<span class="cm"># 3) 加平滑后取对数概率</span>
-P = (N + 1).float()                      <span class="cm"># Laplace 平滑</span>
-logP = P.log(); logP -= logP.logsumexp(1, keepdim=True)
-
-<span class="cm"># 4) 负对数似然 = 交叉熵</span>
-import math
-nll = [-logP[stoi[w1], stoi[w2]].item() for w1, w2 in zip(text, text[1:])]
-print("loss =", sum(nll) / len(nll), " perplexity =", math.exp(sum(nll) / len(nll)))</code></pre>
+  \[ \mathrm{softmax}(\mathbf{z} - c \mathbf{1})_i = \mathrm{softmax}(\mathbf{z})_i \]
+  <p><strong>代数证明</strong>：</p>
+  \[ \frac{e^{z_i - c}}{\sum_{j=1}^{|\mathcal{V}|} e^{z_j - c}} = \frac{e^{z_i} \cdot e^{-c}}{\sum_{j=1}^{|\mathcal{V}|} (e^{z_j} \cdot e^{-c})} = \frac{e^{-c} \cdot e^{z_i}}{e^{-c} \cdot \sum_{j=1}^{|\mathcal{V}|} e^{z_j}} = \frac{e^{z_i}}{\sum_{j=1}^{|\mathcal{V}|} e^{z_j}} \]
   <p>
-    把 <code>* 200</code> 换成真实文本（例如 TinyStories），观察 perplexity 如何随语料变化。
-    这是全课程唯一的「训练」直觉来源：<strong>损失就是对数概率的平均值</strong>。
+    <strong>工业级数值防爆工程实践</strong>：
+    在计算机 float32 体系中，\(e^{89} \approx 10^{38}\) 就已接近上限，若某 logit 达到 100，直接计算 <code>np.exp(z)</code> 会产生 <code>inf</code>。
+    利用平移不变性，标准做法是令标量 \(c = \max_k z_k\)。
+    平移后的最大分量为 \(z_i - \max(z) \le 0\)，所有指数项满足 \(0 &lt; e^{z_i - c} \le 1\)，<strong>从数学上彻底根除了指数爆炸（溢出）</strong>！
   </p>
 </section>
 
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手实验 2：观察一个真实模型的下一 token 分布</h4>
-<pre><code>!pip -q install transformers torch
-import torch, torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
-tok = AutoTokenizer.from_pretrained("gpt2")
-mdl = AutoModelForCausalLM.from_pretrained("gpt2").eval()
-
-prompt = "The capital of France is"
-ids = tok(prompt, return_tensors="pt").input_ids
-with torch.no_grad():
-    logits = mdl(ids).logits[0, -1]          <span class="cm"># 词表大小的一维向量</span>
-probs = F.softmax(logits, dim=-1)
-top = torch.topk(probs, 8)
-for p, i in zip(top.values, top.indices):
-    print(f"{tok.decode(i):12s} {p.item():.4f}")
-
-<span class="cm"># 温度对分布的影响：T<1 更尖锐，T>1 更平坦</span>
-for T in (0.5, 1.0, 2.0):
-    q = F.softmax(logits / T, dim=-1)
-    print(T, "entropy =", -(q * q.log()).sum().item())</code></pre>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>定理二：Softmax 雅可比矩阵与交叉熵梯度联立化简</h4>
   <p>
-    在这里你会看到模块 08 要讲的<strong>采样</strong>的全部素材：logits → 温度 → softmax → top-k/top-p。
+    设 \(p_i = \frac{e^{z_i}}{\sum_k e^{z_k}}\)。我们严密计算雅可比矩阵元素 \(J_{ij} = \frac{\partial p_i}{\partial z_j}\)：
+  </p>
+  <p><strong>情况 1：对同角分量求导（\(i = j\)）</strong></p>
+  \[ \frac{\partial p_i}{\partial z_i} = \frac{e^{z_i} \left(\sum_k e^{z_k}\right) - e^{z_i} \cdot e^{z_i}}{\left(\sum_k e^{z_k}\right)^2} = \frac{e^{z_i}}{\sum_k e^{z_k}} - \left(\frac{e^{z_i}}{\sum_k e^{z_k}}\right)^2 = p_i(1 - p_i) \]
+  <p><strong>情况 2：对异角分量求导（\(i \ne j\)）</strong></p>
+  \[ \frac{\partial p_i}{\partial z_j} = \frac{0 - e^{z_i} \cdot e^{z_j}}{\left(\sum_k e^{z_k}\right)^2} = - \frac{e^{z_i}}{\sum_k e^{z_k}} \cdot \frac{e^{z_j}}{\sum_k e^{z_k}} = - p_i p_j \]
+  <p>利用克罗内克符号 \(\delta_{ij}\)（当 \(i=j\) 时为 1，否则为 0），紧凑表达为：</p>
+  \[ \frac{\partial p_i}{\partial z_j} = p_i(\delta_{ij} - p_j) \]
+
+  <p><strong>最终合体：交叉熵损失对原始 Logit \(z_i\) 的梯度</strong></p>
+  <p>
+    交叉熵损失标量为 \(\mathcal{L} = -\sum_{k} y_k \ln p_k\)（在自回归下一个词预测中，\(y\) 为真实标签的 One-hot 向量，\(\sum_k y_k = 1\)）。
+    根据多元链式法则求 \(\frac{\partial \mathcal{L}}{\partial z_i}\)：
+  </p>
+  \[ \frac{\partial \mathcal{L}}{\partial z_i} = - \sum_{k} \frac{y_k}{p_k} \frac{\partial p_k}{\partial z_i} \]
+  <p>代入 Softmax 雅可比公式：</p>
+  \[ \frac{\partial \mathcal{L}}{\partial z_i} = - \sum_{k} \frac{y_k}{p_k} \Big[ p_k (\delta_{ki} - p_i) \Big] = - \sum_{k} y_k (\delta_{ki} - p_i) \]
+  <p>拆解求和符号：</p>
+  \[ \frac{\partial \mathcal{L}}{\partial z_i} = - \sum_{k} y_k \delta_{ki} + \sum_{k} y_k p_i = - y_i + p_i \sum_{k} y_k \]
+  <p>因为真实分布满足归一化 \(\sum_k y_k = 1\)，由此诞生了深度学习史上最典雅对称的公式：</p>
+  \[ \frac{\partial \mathcal{L}}{\partial \mathbf{z}} = \mathbf{p} - \mathbf{y} \]
+  <p>
+    <strong>几何与工程直觉</strong>：损失对 Logits 的反向梯度，
+    <strong>恰好精确等于预测概率与目标分布的残差！</strong>
+    如果模型对正确类别的预测概率为 0.99，回传梯度仅有 \(0.99 - 1 = -0.01\)（微调）；若预测概率仅为 0.05，回传梯度为 \(0.05 - 1 = -0.95\)（极其剧烈地往上拉升该 Logit）。
   </p>
 </section>
 
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与你的项目的关系</h4>
+<h3>5. 教科书级实现：Bigram 频数统计 vs 神经网络学习</h3>
+<p>
+  以下代码完整展现了 Karpathy <code>makemore</code> Part 1 的核心对比：纯频数表查找 vs 单层神经网络优化。
+</p>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="cm"># [逐行剖析] 1. 构建玩具字符语料库与字符映射字典</span>
+words = [<span class="st">'emma'</span>, <span class="st">'olivia'</span>, <span class="st">'ava'</span>, <span class="st">'isabella'</span>, <span class="st">'sophia'</span>, <span class="st">'charlotte'</span>]
+chars = sorted(list(set(<span class="st">''</span>.join(words))))
+<span class="cm"># 引入特殊开始/结束标识 '.'</span>
+stoi = {s: i + 1 <span class="kw">for</span> i, s <span class="kw">in</span> enumerate(chars)}
+stoi[<span class="st">'.'</span>] = 0
+itos = {i: s <span class="kw">for</span> s, i <span class="kw">in</span> stoi.items()}
+vocab_size = len(stoi)
+
+<span class="cm"># ========================================================</span>
+<span class="cm"># 方法一：经典统计计数表（显式 MLE 解析解）</span>
+<span class="cm"># ========================================================</span>
+N = torch.zeros((vocab_size, vocab_size), dtype=torch.int32)
+<span class="kw">for</span> w <span class="kw">in</span> words:
+    chs = [<span class="st">'.'</span>] + list(w) + [<span class="st">'.'</span>]
+    <span class="kw">for</span> ch1, ch2 <span class="kw">in</span> zip(chs, chs[1:]):
+        N[stoi[ch1], stoi[ch2]] += 1
+
+<span class="cm"># Laplace 伪计数平滑并按行归一化成转移矩阵 P</span>
+P = (N + 1).float()
+P /= P.sum(1, keepdim=True)
+
+<span class="cm"># ========================================================</span>
+<span class="cm"># 方法二：神经网络单层无偏置线性层（梯度下降法逼近）</span>
+<span class="cm"># ========================================================</span>
+xs, ys = [], []
+<span class="kw">for</span> w <span class="kw">in</span> words:
+    chs = [<span class="st">'.'</span>] + list(w) + [<span class="st">'.'</span>]
+    <span class="kw">for</span> ch1, ch2 <span class="kw">in</span> zip(chs, chs[1:]):
+        xs.append(stoi[ch1])
+        ys.append(stoi[ch2])
+xs = torch.tensor(xs)
+ys = torch.tensor(ys)
+num_samples = xs.nelement()
+
+<span class="cm"># 初始化可学习权重矩阵 W (vocab_size x vocab_size)</span>
+g = torch.Generator().manual_seed(2147483647)
+W = torch.randn((vocab_size, vocab_size), generator=g, requires_grad=True)
+
+<span class="cm"># 梯度下降训练循环</span>
+<span class="kw">for</span> k <span class="kw">in</span> range(100):
+    <span class="cm"># [逐行剖析] 前向传播：将输入索引转为 one-hot 向量后做线性映射</span>
+    <span class="cm"># xenc @ W 本质上就是根据输入索引选择 W 的对应行（即 Embedding 查找）</span>
+    xenc = F.one_hot(xs, num_classes=vocab_size).float()
+    logits = xenc @ W                      <span class="cm"># 线性输出 Logits</span>
+    
+    <span class="cm"># [逐行剖析] 数值稳定 Softmax：减去 max(logits)</span>
+    counts = (logits - logits.max(dim=1, keepdim=True).values).exp()
+    probs = counts / counts.sum(1, keepdims=True)
+    
+    <span class="cm"># [逐行剖析] 负对数似然损失 NLL</span>
+    loss = -probs[torch.arange(num_samples), ys].log().mean()
+    
+    <span class="cm"># [逐行剖析] 反向传播与权重更新</span>
+    W.grad = None                          <span class="cm"># 梯度清零比 zero_() 更高效</span>
+    loss.backward()
+    W.data += -50.0 * W.grad               <span class="cm"># 大步长梯度更新</span>
+
+print(f"统计矩阵交叉熵下界: {-P[xs, ys].log().mean().item():.4f}")
+print(f"神经网络优化达到的损失: {loss.item():.4f}")</code></pre>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么连通工业级推理：从转移矩阵到现代 LLM 采样解码器</h4>
   <p>
-    你的 Checkpoint 7 要预测的是「最优过渡时长 \(T^*\)」这类<strong>连续标量</strong>，不是 token 分布。
-    但两者的训练哲学完全相同：<em>用一个可微（或至少可评估）的目标函数衡量预测与真实的差距</em>。
-    区别在于：语言模型用交叉熵，你的回归用均方误差；而你的样本量只有几百条，
-    所以正则化与交叉验证（模块 09）比模型容量重要得多。
+    我们在 ChatGPT、Claude 或本地模型中调整的 <strong>Temperature（采样温度）</strong>与 <strong>Top-p（核采样）</strong>，
+    其背后的数学根基，正是本讲介绍的条件概率分布与 Softmax 能量形变。
+  </p>
+  <p>
+    <strong>温度调节的本质</strong>：
+    在模型推理阶段，将未归一化的 Logits \(z_i\) 缩放为 \(z_i / T\)：
+    当 \(T \to 0\) 时，概率分布迅速坍缩为 argmax（贪心选择最大概率项，回答最死板确定）；
+    当 \(T = 0.7 \sim 1.0\) 时，平滑拉开候选项的概率分布，兼顾逻辑严密与发散灵感；
+    当 \(T \to \infty\) 时，概率退化为均匀分布（纯随机乱码）。
+    语言模型输出的从来不是一句确定的话，而是一张随时随地根据采样策略展开的概率流。
   </p>
 </section>
-
-<h3>4. 本模块术语</h3>
-<ul>
-  <li><span class="t" data-tterm="Logits" data-d="softmax 之前的原始实数输出，可以是任意实数。">logits</span>
-      → <span class="t" data-tterm="Softmax" data-d="把任意实数向量映射成概率分布：softmax(z)_i = exp(z_i) / Σ_j exp(z_j)。">softmax</span>
-      → 概率分布 → 采样或取 argmax。</li>
-  <li><span class="t" data-tterm="Context window" data-d="模型一次能看到的 token 数上限，由位置编码与训练时的序列长度决定。">上下文窗口</span>、
-      <span class="t" data-tterm="Token" data-d="文本被切分后的最小单位，可能是词、子词或字节。见模块 02。">token</span>。</li>
-  <li><span class="t" data-tterm="Maximum likelihood" data-d="最大化训练数据的似然，等价于最小化交叉熵。">最大似然</span>、
-      <span class="t" data-tterm="KL divergence" data-d="两个分布的相对熵，衡量用 q 近似 p 时多付出的编码长度。">KL 散度</span>。</li>
-  <li><span class="t" data-tterm="Scaling law" data-d="损失随参数量、数据量、算力按幂律下降的经验规律。">缩放律</span>（模块 05 展开）。</li>
-</ul>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">一个语言模型在某语料上的交叉熵是 \(1.2\) nats/token，它的困惑度约是多少？</p>
+  <p class="q">一个语言模型在某验证集上的交叉熵是 \(1.2\) nats/token，其对应的困惑度（Perplexity, PPL）最接近多少？</p>
   <ul class="opts">
     <li>1.2</li>
     <li data-ok>约 3.3</li>
-    <li>约 0.83</li>
+    <li>0.3</li>
     <li>无法从交叉熵推出</li>
   </ul>
   <p class="why">
-    \(\text{PPL}=\exp(1.2)\approx 3.32\)。直观理解：模型平均在约 3.3 个等概率候选之间犹豫。
-    常见错误是把 PPL 当成 \(\log\) 或倒数——它一定是 \(\ge 1\) 的。
+    \(\text{PPL} = \exp(\mathcal{L}) = e^{1.2} \approx 3.32\)。几何直觉解释：模型在每一步预测时，其不确定性平均等价于在约 3.3 个完全等概率的候选 Token 之间进行二选一或三选一纠结。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">为什么预训练可以在一次前向中同时监督全部 \(T\) 个位置？</p>
+  <p class="q">为什么自回归大模型（如 GPT）可以在一次前向计算中，高度并行地计算长度为 \(T\) 的所有序列位置的预测损失？</p>
   <ul class="opts">
-    <li>因为模型很小</li>
-    <li>因为使用了多卡并行</li>
-    <li data-ok>因为因果掩码保证位置 \(t\) 的输出只依赖 \(x_{&lt;t}\)，因此所有位置的标签在训练时都是「已知且合法」的</li>
-    <li>因为训练时用了两遍数据</li>
+    <li>因为模型参数极小</li>
+    <li>因为使用了分布式多卡流水线并行</li>
+    <li data-ok>因为因果下三角掩码保证了位置 \(t\) 的隐层表征只依赖历史，所有位置的目标标签在训练阶段全量已知（Teacher Forcing）</li>
+    <li>因为训练时重复使用了两遍数据</li>
   </ul>
   <p class="why">
-    这是自回归训练效率的核心：掩码让 \(T\) 个预测彼此独立可并行，
-    而生成时必须串行（生成第 \(t\) 个 token 需要先有第 \(t-1\) 个）。
-    <strong>训练并行、推理串行</strong>这个不对称，是后面 KV Cache 与批处理优化的全部动机。
+    在训练期间，真实完整文本全部已知。借助因果掩码遮蔽未来信息，矩阵运算可以一次性计算所有时刻的隐层表示，并与右移一位的目标序列逐位计算交叉熵，实现并行训练；而在自回归推理生成时，下一词尚未诞生，因此必须串行逐步解码。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">两个模型分别在自己的私有数据集上报告了验证损失 2.1 与 1.8。可以直接比较吗？</p>
+  <p class="q">模型 A 在数据集 1 上训练并测得验证集 Loss 为 2.1，模型 B 在数据集 2 上测得 Loss 为 1.8。能否由此断言模型 B 的语言建模能力更强？</p>
   <ul class="opts">
-    <li>可以，损失是绝对指标</li>
-    <li>可以，只要都是 nats/token</li>
-    <li data-ok>不可以：数据分布不同则 \(H(p)\) 不同，且 tokenizer 不同会让「每 token」不可比</li>
-    <li>不可以，必须都用 perplexity</li>
+    <li>可以，交叉熵是放之四海皆准的绝对指标</li>
+    <li>可以，只要单位都是 nats/token</li>
+    <li data-ok>不可以：不同数据集固有的香农信息熵 \(H(p)\) 不同，且不同分词器（Tokenizer）每个 Token 的信息承载量也不一致</li>
+    <li>不可以，必须先转换为 Perplexity 才能比较</li>
   </ul>
   <p class="why">
-    \(\mathcal{L} = H(p) + D_{\mathrm{KL}}(p\|p_\theta)\)。数据本身的熵 \(H(p)\) 是损失的地板，
-    不同的数据地板不同；不同 tokenizer 下「一个 token」的信息量也不同。
-    要比较必须固定数据与分词，或者用 bits/byte 这类归一化刻度。
+    根据定理 \(\mathcal{L} = H(p) + D_{\mathrm{KL}}(p \parallel q)\)，损失下界由数据固有熵 \(H(p)\) 决定。若数据集 2 是语法高度受限的代码，其本身的信息熵可能只有 1.2；而数据集 1 是百科全书，熵为 2.0。此时模型 A 的 KL 散度仅为 0.1，反而远优于模型 B 的 0.6。
   </p>
 </div>
 
-<div class="acc" data-t="深入：为什么「预测下一个 token」能涌现能力？" data-badge="直觉">
-  <div class="acc-body">
-    <p>三个层次的回答，由浅入深：</p>
-    <ol>
-      <li><strong>压缩视角</strong>：最优的下一个 token 预测等价于最优压缩。要压低交叉熵，模型必须发现文本中的规律——
-          语法、事实共现、代码的执行语义，甚至算术规则。这些规律是<em>预测能力的副产品</em>。</li>
-      <li><strong>计算视角</strong>：Transformer 是一台可微分的检索机。深度 \(L\) 意味着可以在 \(L\) 步内做多轮信息交换，
-          这让「先找事实、再组合、再校验」这类多步计算可以在前向中被实现。</li>
-      <li><strong>谨慎的视角</strong>：能压低损失不等于「理解」。模型学到的是<strong>数据的统计结构</strong>，
-          包括其中的偏差与捷径（Clever Hans 效应）。模块 09 的置换检验就是用来检测这种「学到了假信号」的。</li>
-    </ol>
-    <p>对你写申请材料有用的一句话：<em>「语言模型是对文本分布的极大似然估计器；它的能力边界由数据分布与模型容量共同决定。」</em></p>
-  </div>
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">在计算单样本多分类交叉熵损失 \(\mathcal{L} = -\ln p_y\) 时，损失关于未归一化分值 Logits 向量的偏导数 \(\frac{\partial \mathcal{L}}{\partial \mathbf{z}}\) 等于什么？</p>
+  <ul class="opts">
+    <li>\(\mathbf{p} \odot (1 - \mathbf{p})\)</li>
+    <li data-ok>\(\mathbf{p} - \mathbf{y}\)（其中 \(\mathbf{y}\) 为真实的 One-hot 目标向量）</li>
+    <li>\(-\frac{1}{\mathbf{p}}\)</li>
+    <li>\(\mathbf{z} - \mathbf{y}\)</li>
+  </ul>
+  <p class="why">
+    经由前述严密的多元链式法则与 Softmax 雅可比矩阵收缩求和，\(\frac{\partial \mathcal{L}}{\partial z_i} = p_i - y_i\)。这一结果形式极简，意味着每个分值的梯度直接由预测概率与真实指示函数的差值决定。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">为什么工业级推理引擎在计算 <code>softmax(z)</code> 之前，必须先将向量减去其最大值 <code>z - max(z)</code>？</p>
+  <ul class="opts">
+    <li>为了让均值归零，加速后续收敛</li>
+    <li>为了让负数变成正数</li>
+    <li data-ok>利用平移不变性保证数值稳定性，使指数项的最大输入为 0，防止浮点数指数运算发生溢出（Overflow）</li>
+    <li>防止注意力矩阵产生稀疏化</li>
+  </ul>
+  <p class="why">
+    因为 Softmax 具有平移不变性 \(\mathrm{softmax}(z - c) = \mathrm{softmax}(z)\)。令 \(c = \max_k z_k\) 后，指数项的最大自变量为 \(0\)，\(e^0 = 1\)，所有指数项满足 \(0 &lt; e^{z_i - c} \le 1\)，彻底避免了 <code>exp(z)</code> 发生浮点溢出变为 <code>inf</code> 的惨剧。
+  </p>
 </div>
 `
 });

@@ -16,7 +16,7 @@ COURSE.register({
   <span class="t" data-tterm="Prefill" data-d="把整段提示一次性并行前向、填充 KV cache 的阶段，算力受限。">预填充</span> 与解码、
   <span class="t" data-tterm="LoRA rank" data-d="低秩更新的秩 r，决定可训练参数量，与学习率是两个独立旋钮。">LoRA 的 rank</span> 与学习率、
   <span class="t" data-tterm="Banked reset" data-d="把未用满的额度存起来、之后继续用；与「到点清零」相对。">即时重置</span> 与银行重置。
-  第 15 节把它们逐对列出。术语按 14 个分类组织，共 <strong>355 条</strong>（其中 61 条是 v1.2 为 17–24 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
+  第 15 节把它们逐对列出。术语按 14 个分类组织，共 <strong>366 条</strong>（其中 72 条是为 17–25 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
 </p>
 
 <h3>1. 概率与目标函数（Probability and objectives）</h3>
@@ -437,7 +437,7 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>15. 高阶与前沿（Advanced and frontier，对应 17–24 章）</h3>
+<h3>15. 高阶与前沿（Advanced and frontier，对应 17–25 章）</h3>
 <table class="tbl small">
   <thead><tr><th>中文术语</th><th>English</th><th>一句话解释</th></tr></thead>
   <tbody>
@@ -552,6 +552,17 @@ COURSE.register({
     <tr><td>反转诅咒</td><td>Reversal curse</td><td>模型学会了「A 在 B 之前」却答不出「B 在 A 之后」；自回归的因果掩码使它无法回看，不绑定生成顺序的扩散式训练可以缓解。</td></tr>
     <tr><td>对比温度</td><td>Contrastive temperature</td><td>InfoNCE 中的 \(\tau\)，把相似度差放大 \(1/\tau\) 倍；\(\tau\) 越小分布越尖、梯度越集中在最难的负样本上，CLIP 这一族常用 0.01 到 0.07。</td></tr>
     <tr><td>固定容量状态</td><td>Fixed-size state</td><td>SSM 与线性注意力的隐状态 \(h\in\mathbb{R}^{N}\) 与序列长度无关；它擅长累积型信息，按内容做精确回忆必然有损，这是容量约束的必然结果。</td></tr>
+    <tr><td>跨界微调</td><td>Cross-domain fine-tuning</td><td>同一模型同时学通用对话与音频参数回归，音频与对话样本按 7 比 3 混合，配比失衡会导致只会输出数字或指令遗忘。</td></tr>
+    <tr><td>合成管道</td><td>Synthetic feature pipeline</td><td>用经验规则加高斯噪声批量生成双音轨特征到过渡参数标签的映射，标签形如 \(T \in [2.0, 16.0]\)，用于跑通训练代码。</td></tr>
+    <tr><td>调性距离</td><td>Tonal distance</td><td>两个音轨 12 维音级向量的欧氏距离 \(d = \sqrt{\sum (c_1-c_2)^{2}}\)，常取 0 到 3，超过 1.0 时应选用平滑指数过渡。</td></tr>
+    <tr><td>Tonnetz 距离</td><td>Tonnetz Euclidean distance</td><td>6 维和声音程网格空间五度与三度坐标的欧氏距离 \(\Vert \mathbf{t}_A - \mathbf{t}_B \Vert_2\)，比色度图更准确刻画和声转调阻抗。</td></tr>
+    <tr><td>LUFS 响度差</td><td>LUFS difference</td><td>两首曲目感知整合响度绝对差值 \(\lvert \Delta \text{LUFS} \rvert\)，单位分贝，超过 3 dB 时需要动态施加响度补偿与非对称增益曲线。</td></tr>
+    <tr><td>回归头</td><td>Regression head</td><td>挂在隐藏状态 \(h \in \mathbb{R}^{d}\) 后的线性映射层 \(W \in \mathbb{R}^{1 \times d}\)，直接输出标量时长并用均方误差反向传播梯度。</td></tr>
+    <tr><td>联合损失</td><td>Joint multi-task loss</td><td>\(\mathcal{L}_{total} = \mathcal{L}_{LM} + \lambda \mathcal{L}_{cfx}\)，复合交叉熵与回归的损失，\(\lambda\) 过大导致对话坍塌，过小导致音频参数漂移。</td></tr>
+    <tr><td>损失权重</td><td>Loss weight</td><td>联合损失中回归项的调节系数 \(\lambda\)，初始推荐 0.5；验证集困惑度上升超 5% 时须回调至 0.3 并增补对话数据。</td></tr>
+    <tr><td>混合比例</td><td>Instruction mixing ratio</td><td>通用对话样本占总训练样本的比例，1.5B 跨界模型常用 0.2 到 0.4，低于 0.1 则引发灾难性遗忘与泛化退化。</td></tr>
+    <tr><td>适配合并</td><td>Adapter merging</td><td>把 LoRA 低秩矩阵按 \(W = W_{0} + \frac{\alpha}{r} B A\) 加回原始基座全精度权重，推理消除额外旁路分支开销。</td></tr>
+    <tr><td>模型导出</td><td>Model export</td><td>将合并后的 PyTorch 模型转换为 GGUF 或 ONNX 格式，Q4 量化后体积约 1 GB，在普通 CPU 上延迟低至百毫秒级。</td></tr>
     <tr><td>4D 框架</td><td>AI Fluency 4D framework</td><td>把一次人机协作拆成委派、描述、辨识、尽责四个关口；缺任一维的典型症状是流程很顺但没人对结果负责。</td></tr>
     <tr><td>委派</td><td>Delegation</td><td>动手前先划边界：判据、抽样、最终签字不交给模型；委派过度的失败模式是把「决定」也一起交出去。</td></tr>
     <tr><td>描述</td><td>Description</td><td>把需求写到可验收：给输入、输出格式、判据与反例；描述不足的症状是答案看起来对却无法判定对不对。</td></tr>
