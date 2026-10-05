@@ -437,7 +437,68 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>15. 最容易混淆的 8 组概念</h3>
+<h3>15. 高阶与前沿（Advanced and frontier，对应 17–24 章）</h3>
+<table class="tbl small">
+  <thead><tr><th>中文术语</th><th>English</th><th>一句话解释</th></tr></thead>
+  <tbody>
+    <tr><td>知识蒸馏</td><td>Knowledge distillation</td><td>训练小模型去逼近大模型的输出分布，而不只学硬标签；压的是模型规模与架构。</td></tr>
+    <tr><td>软标签</td><td>Soft targets</td><td>教师给出的完整概率分布，携带「类间相似性」这类暗知识，硬标签里没有。</td></tr>
+    <tr><td>温度（蒸馏用）</td><td>Temperature in KD</td><td>\(T>1\) 把教师分布拉平，让暗知识更容易被学生看到；\(T\to\infty\) 会退化成均匀分布。</td></tr>
+    <tr><td>序列级蒸馏</td><td>Sequence-level KD</td><td>只用教师的输出文本当训练数据，属于黑盒蒸馏，本质是「用合成数据做 SFT」。</td></tr>
+    <tr><td>在线蒸馏</td><td>On-policy distillation</td><td>让学生自己生成、教师即时纠正，缓解训练与推理分布不一致（GKD，ICLR 2024）。</td></tr>
+    <tr><td>容量差距</td><td>Capacity gap</td><td>教师与学生规模差太大时学生学不动；教师不是越大越好。</td></tr>
+    <tr><td>正向 / 反向 KL</td><td>Forward / reverse KL</td><td>前者要求覆盖教师所有高概率模式（更平滑），后者只抓教师的高峰（更锐利、易丢多样性）。</td></tr>
+    <tr><td>模式坍缩</td><td>Mode collapse</td><td>学生只学会教师的部分行为，输出多样性明显下降。</td></tr>
+    <tr><td>测试时计算</td><td>Test-time compute</td><td>推理阶段投入更多算力（更长思考、多次采样、搜索）来换正确率。</td></tr>
+    <tr><td>pass@k</td><td>Pass at k</td><td>采样 \(k\) 个回答里至少一个正确的概率；单次正确率 \(p\) 时为 \(1-(1-p)^k\)，边际收益递减。</td></tr>
+    <tr><td>过程 / 结果奖励</td><td>PRM / ORM</td><td>前者对推理每一步打分，后者只看最终答案；PRM 信号更密但标注成本高。</td></tr>
+    <tr><td>验证器</td><td>Verifier</td><td>自动判定答案对错的程序或模型，是可验证奖励（RLVR）的基础。</td></tr>
+    <tr><td>检索增强生成</td><td>RAG</td><td>先从外部资料检索相关内容再生成；解决「缺知识」，不解决「缺行为」。</td></tr>
+    <tr><td>切分</td><td>Chunking</td><td>把长文档切成可检索的小块；粒度直接决定召回率与上下文成本。</td></tr>
+    <tr><td>稠密 / 稀疏检索</td><td>Dense / sparse retrieval</td><td>前者用向量相似度（语义），后者用词频（如 BM25，精确匹配强）；混合检索常优于单一方法。</td></tr>
+    <tr><td>重排</td><td>Reranker</td><td>用交叉编码器对初筛结果精排；比向量检索准，但更慢，通常只对前几十条做。</td></tr>
+    <tr><td>召回@k / nDCG</td><td>Recall@k / nDCG</td><td>检索质量指标：前者看前 k 条里有没有命中，后者看排序质量。</td></tr>
+    <tr><td>忠实度</td><td>Faithfulness</td><td>回答是否只依据检索到的内容；RAG 系统最容易出问题的地方（编造引用）。</td></tr>
+    <tr><td>迷失在中间</td><td>Lost in the middle</td><td>长上下文里中段信息最容易被忽略；把关键内容放头尾更稳。</td></tr>
+    <tr><td>上下文工程</td><td>Context engineering</td><td>把指令、资料、示例、工具结果组织进有限窗口的工程实践，比「写提示词」更系统。</td></tr>
+    <tr><td>工具调用 / 函数调用</td><td>Tool / function calling</td><td>模型输出结构化参数去调用外部函数；需要 schema 校验、超时、重试与权限最小化。</td></tr>
+    <tr><td>ReAct</td><td>ReAct</td><td>推理与行动交替进行的智能体范式：想一步、做一步、看结果、再想。</td></tr>
+    <tr><td>MCP</td><td>Model Context Protocol</td><td>把工具与数据源以统一协议暴露给模型的开放标准，解决「每个工具一套接法」。</td></tr>
+    <tr><td>幂等</td><td>Idempotency</td><td>同一操作重复执行不产生额外副作用；智能体重试机制的前提。</td></tr>
+    <tr><td>终止条件</td><td>Stopping condition</td><td>智能体必须显式定义何时停下（步数、预算、成功判定），否则会死循环。</td></tr>
+    <tr><td>提示注入</td><td>Prompt injection</td><td>把恶意指令藏在被读取的内容里，劫持智能体行为；系统提示不是安全边界。</td></tr>
+    <tr><td>红队</td><td>Red teaming</td><td>主动构造攻击与滥用场景来找出模型弱点，是发布前的标准动作。</td></tr>
+    <tr><td>可扩展监督</td><td>Scalable oversight</td><td>当模型强于人类评审时，如何仍然有效监督；候选手段包括辩论与弱到强泛化。</td></tr>
+    <tr><td>Goodhart 定律</td><td>Goodhart's law</td><td>一旦把代理指标当作目标优化，它就不再是好的指标；奖励黑客的理论根据。</td></tr>
+    <tr><td>探针 / 激活修补</td><td>Probing / activation patching</td><td>可解释性手段：前者从内部状态读出信息，后者通过替换激活来检验因果作用。</td></tr>
+    <tr><td>稀疏自编码器</td><td>Sparse autoencoder (SAE)</td><td>把稠密激活分解成稀疏的、更可读的特征方向，用于解释神经元级行为。</td></tr>
+    <tr><td>取用意识</td><td>Access consciousness</td><td>信息可被用于推理、报告与行动的那一层；与「现象意识」相对（Block, 1995）。</td></tr>
+    <tr><td>现象意识</td><td>Phenomenal consciousness</td><td>「感觉起来像什么」的主观体验本身；目前没有公认的测量方式。</td></tr>
+    <tr><td>难问题</td><td>The hard problem</td><td>为什么信息处理会伴随主观体验（Chalmers, 1995）；与之相对的是可研究的「容易问题」。</td></tr>
+    <tr><td>全局工作空间</td><td>GWT</td><td>信息被广播到容量有限的工作空间即成为意识内容（Baars；Dehaene）。</td></tr>
+    <tr><td>整合信息论</td><td>IIT</td><td>用整合信息量 \( \Phi \) 刻画意识；争议极大，2023 年有百余名研究者联署称其为伪科学。</td></tr>
+    <tr><td>指标属性</td><td>Indicator properties</td><td>从各意识理论推出的可检查特征（Butlin &amp; Long 等, 2023），把哲学问题变成清单。</td></tr>
+    <tr><td>中文屋</td><td>Chinese room</td><td>Searle（1980）的思想实验：按规则操作符号不等于理解。</td></tr>
+    <tr><td>功能主义</td><td>Functionalism</td><td>意识由功能组织决定，因此可在非生物基质上实现；这是主流 AI 研究的默认假设。</td></tr>
+    <tr><td>模型福利</td><td>Model welfare</td><td>在道德地位不确定的前提下，把模型自身可能的福利当作研究议题。</td></tr>
+    <tr><td>AGI</td><td>Artificial general intelligence</td><td>在广泛任务上达到人类水平的能力问题；与意识、RSI 是三件不同的事。</td></tr>
+    <tr><td>RSI</td><td>Recursive self-improvement</td><td>系统加速改进自身能力的动力学问题；不蕴含意识。</td></tr>
+    <tr><td>结构化 / 非结构化剪枝</td><td>Structured / unstructured pruning</td><td>前者删整行整列（硬件友好），后者删单个权重（压缩率高但通用 GPU 难加速）。</td></tr>
+    <tr><td>稀疏度</td><td>Sparsity</td><td>被置零参数的比例；不等于实际加速，需要硬件与 kernel 支持。</td></tr>
+    <tr><td>QAT / PTQ</td><td>Quantization-aware / post-training quantization</td><td>前者在训练中模拟量化误差，后者训练后校准；精度与成本此消彼长。</td></tr>
+    <tr><td>模型合并</td><td>Model merging</td><td>把多个同源微调模型的权重融合（平均、任务算术、TIES、DARE），有时能同时提升多任务表现。</td></tr>
+    <tr><td>MoE upcycling</td><td>MoE upcycling</td><td>把稠密模型「升级」成稀疏专家结构，复用已训练权重而非从头训练。</td></tr>
+    <tr><td>状态空间模型</td><td>State-space model (SSM)</td><td>用递推 \( h_t = A h_{t-1} + B x_t \) 建模序列，复杂度对长度线性；代价是表达方式不同。</td></tr>
+    <tr><td>线性 / 滑窗注意力</td><td>Linear / sliding-window attention</td><td>把 \( O(T^2) \) 的注意力替换为线性或局部形式，长上下文更省，但能力取舍需实测。</td></tr>
+    <tr><td>MLA</td><td>Multi-head latent attention</td><td>用低秩隐向量压缩 KV，进一步缩小 KV Cache（与 GQA/MQA 同族思路）。</td></tr>
+    <tr><td>多 token 预测</td><td>Multi-token prediction (MTP)</td><td>一次预测多个未来 token，提升训练信号密度并可用于推理加速。</td></tr>
+    <tr><td>扩散语言模型</td><td>Diffusion LM</td><td>用去噪过程生成文本，与自回归路线不同；并行生成是潜在优势，成熟度仍在发展。</td></tr>
+    <tr><td>视觉语言模型</td><td>VLM</td><td>编码器 + 投影层 + 语言模型的三段式结构，把图像特征接到文本模型的表示空间。</td></tr>
+    <tr><td>对比学习 / InfoNCE</td><td>Contrastive learning / InfoNCE</td><td>拉近正样本、推远负样本（CLIP 式训练目标），是多模态对齐的基础损失。</td></tr>
+  </tbody>
+</table>
+
+<h3>16. 最容易混淆的 8 组概念</h3>
 <table class="tbl small">
   <thead><tr><th>易混的一对</th><th>前者是什么</th><th>后者是什么</th><th>判别要点</th></tr></thead>
   <tbody>

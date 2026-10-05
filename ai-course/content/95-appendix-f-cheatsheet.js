@@ -217,8 +217,68 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <tr><td>worktree、settle、85/15</td><td>12 工作流与智能体</td></tr>
     <tr><td>APFS、热降频、CI 卸载</td><td>13 硬件与操作系统</td></tr>
     <tr><td>ToS、许可、学术诚信</td><td>14 风险与合规</td></tr>
+    <tr><td>蒸馏、RAG、智能体、意识、压缩、架构</td><td>15 高阶与前沿（对应 17–24 章）</td></tr>
   </tbody>
 </table>
+
+<h3>11. 高阶主题速查（17–24 章）</h3>
+<table class="tbl small">
+  <thead><tr><th>主题</th><th>关键式 / 关键量</th><th>一句话决策</th><th>章</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>蒸馏</td>
+      <td>\( \mathcal{L} = \alpha\,\mathrm{CE}(y,p_S) + (1-\alpha)T^2 D_{\mathrm{KL}}(p_T^{(T)}\|p_S^{(T)}) \)</td>
+      <td>要<strong>跨规模/跨架构</strong>搬能力才用它；只是想改行为就 SFT</td>
+      <td>17</td>
+    </tr>
+    <tr>
+      <td>推理模型</td>
+      <td>\( \text{pass@}k = 1-(1-p)^k \)</td>
+      <td>答案能被程序验证（数学/代码）才值得上 RL；否则先试采样投票</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <td>RAG</td>
+      <td>召回@k、nDCG、忠实度</td>
+      <td><strong>缺知识用检索，缺行为用微调</strong>；检索指标好 ≠ 回答好</td>
+      <td>19</td>
+    </tr>
+    <tr>
+      <td>智能体</td>
+      <td>循环 = 模型 + 工具 + 记忆 + <strong>终止条件</strong></td>
+      <td>有明确可自动判定的验收标准才自动化；否则人来收尾</td>
+      <td>20</td>
+    </tr>
+    <tr>
+      <td>安全与可解释</td>
+      <td>系统提示不是安全边界；探针 ≠ 因果证据</td>
+      <td>把「通过了评测」当作<em>一个</em>证据，而不是结论</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <td>机器意识</td>
+      <td>取用意识 vs 现象意识；指标属性清单</td>
+      <td><strong>自我报告不能当证据</strong>（先做提示扰动实验）</td>
+      <td>22</td>
+    </tr>
+    <tr>
+      <td>压缩与合并</td>
+      <td>稀疏度、保留率、合并权重</td>
+      <td>稀疏<strong>不必然</strong>加速；量化最省事、蒸馏最贵、合并最取巧</td>
+      <td>23</td>
+    </tr>
+    <tr>
+      <td>前沿架构</td>
+      <td>\( h_t = A h_{t-1} + B x_t \)（SSM）；InfoNCE（多模态对齐）</td>
+      <td>注意力不是唯一选择，但「更省」通常伴随「能力取舍」，必须实测</td>
+      <td>24</td>
+    </tr>
+  </tbody>
+</table>
+<p class="hint">
+  与之配套的术语（约 55 条）在<a href="#appA">附录 A 第 15 节</a>；
+  这些主题的完整推导、动手实验与自测在各章正文里。
+</p>
 
 <div class="quiz">
   <div class="qlabel">自测 · 用这张表回答</div>

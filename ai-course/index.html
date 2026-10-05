@@ -194,6 +194,20 @@ html[data-theme="dark"] .bar{background:#222a36}
 .bar>i{display:block; height:100%; width:0; border-radius:99px;
   background:linear-gradient(90deg,var(--accent),var(--green));
   transition:width var(--duration-slow) var(--ease-smooth-out)}
+/* 进度落盘 */
+.prog-stats{display:flex; justify-content:space-between; gap:8px; margin-top:10px;
+  font-size:12.5px; color:var(--muted)}
+.prog-stats b{color:var(--ink-2); font-variant-numeric:tabular-nums}
+.sync-row{display:flex; align-items:center; gap:8px; margin-top:11px; padding-top:10px;
+  border-top:1px dashed var(--line); font-size:12.5px; color:var(--muted); line-height:1.4}
+.sync-dot{flex:none; width:8px; height:8px; border-radius:50%; background:var(--line-2);
+  transition:background var(--duration-quick) var(--ease-in-out)}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.warn{background:var(--amber)}
+.sync-actions{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px}
+.sync-actions .tb-btn{padding:4px 9px; font-size:12px}
+.sync-actions .tb-btn.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent-ink)}
+html[data-theme="dark"] .sync-actions .tb-btn.on{color:var(--accent)}
 .nav-part{margin:16px 0 6px; font-family:var(--font-mono); font-size:11.5px; letter-spacing:.13em;
   text-transform:uppercase; color:var(--muted)}
 .nav a{display:flex; gap:9px; align-items:flex-start; padding:7px 10px; border-radius:var(--radius-sm);
@@ -513,12 +527,26 @@ footer b{color:var(--ink-2)}
 <div class="shell">
   <aside class="side">
     <div class="progress-card">
-      <div class="row"><span class="n" id="progNum">0<span style="font-size:14px;color:var(--muted)">/17</span></span>
+      <div class="row"><span class="n" id="progNum">0<span style="font-size:14px;color:var(--muted)">/24</span></span>
         <span class="lbl">已标记读完</span></div>
       <div class="bar"><i id="progBar"></i></div>
       <div class="row" style="margin-top:11px">
         <span class="lbl">阅读进度 <b id="scrollPct" style="color:var(--ink-2)">0%</b></span>
         <button class="tb-btn" id="resetBtn" style="padding:3px 10px;font-size:12px">重置</button>
+      </div>
+      <div class="prog-stats">
+        <span>自测 <b id="pQuiz">–</b></span>
+        <span>时长 <b id="pTime">–</b></span>
+      </div>
+      <div class="sync-row">
+        <span class="sync-dot" id="syncDot"></span>
+        <span id="syncText">进度存在浏览器本地</span>
+      </div>
+      <div class="sync-actions">
+        <button class="tb-btn" id="pickFolder" title="让页面直接把进度写进你选择的文件夹">选文件夹</button>
+        <button class="tb-btn" id="exportBtn" title="导出为 JSON 文件">导出</button>
+        <button class="tb-btn" id="importBtn" title="从 JSON 文件恢复进度">导入</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden />
       </div>
     </div>
     <nav class="nav" id="nav"></nav>
@@ -574,7 +602,7 @@ window.COURSE = (function () {
   /* ---------- render ---------- */
   const PART_NAMES = {
     0: '0 · 导读', 1: 'I · 底座', 2: 'II · 训练与推理', 3: 'III · 算力与工具',
-    4: 'IV · 经济与基础设施', 5: 'V · 收束', 9: '附录 · 速查'
+    4: 'IV · 经济与基础设施', 5: 'V · 收束', 6: 'VI · 高阶与前沿', 9: '附录 · 速查'
   };
 
   function renderNav() {
@@ -702,6 +730,15 @@ window.COURSE = (function () {
             li.classList.remove('shake'); void li.offsetWidth; li.classList.add('shake');
           }
           const why = $('.why', quiz); if (why) why.setAttribute('aria-live', 'polite');
+          // 记录自测结果（用于侧栏统计与落盘）
+          const mod = quiz.closest('.mod');
+          const mid = (mod && mod.id) || 'unknown';
+          const rec = PROG.data.quizzes[mid] || { attempted: 0, correct: 0 };
+          rec.attempted += 1;
+          if (li.hasAttribute('data-ok')) rec.correct += 1;
+          PROG.data.quizzes[mid] = rec;
+          PROG.data.last = { id: mid, at: new Date().toISOString() };
+          PROG.touch(); paintProgress();
         };
         li.addEventListener('click', pick);
         li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
@@ -806,8 +843,170 @@ window.COURSE = (function () {
     $$('.calc[data-calc]').forEach(root => { const fn = CALCS[root.dataset.calc]; if (fn) fn(root); });
   }
 
+  /* ---------- 学习进度：浏览器本地 + 本地文件落盘 ----------
+     三层：① localStorage（永远可用）② 同目录本地服务 progress_server.py 写的 progress.json
+     ③ File System Access API 直接写你选的文件夹；都不可用时用「导出 / 导入」兜底 */
+  const API = 'api/progress';
+  const PROG_FILE = 'llm-crash-course-progress.json';
+  const PROG = {
+    data: { version: 1, course: 'LLM Crash Course', updated_at: '', done: [], quizzes: {},
+            last: null, time_spent_sec: 0, theme: 'light' },
+    mode: 'browser', dirHandle: null, _t: 0, _ticks: 0,
+    load() {
+      const raw = LS.get('progress', null);
+      if (raw && typeof raw === 'object') this.data = Object.assign(this.data, raw);
+      if (!Array.isArray(this.data.done)) this.data.done = [];
+      if (!this.data.quizzes || typeof this.data.quizzes !== 'object') this.data.quizzes = {};
+    },
+    stamp() { this.data.updated_at = new Date().toISOString(); },
+    local() { this.stamp(); LS.set('progress', this.data); },
+    touch() { this.local(); this.schedule(); },
+    schedule() { clearTimeout(this._t); this._t = setTimeout(() => this.push(), 1500); },
+    merge(other) {
+      if (!other || typeof other !== 'object') return;
+      const d = this.data;
+      (other.done || []).forEach(id => { if (d.done.indexOf(id) < 0) d.done.push(id); });
+      Object.keys(other.quizzes || {}).forEach(k => {
+        const a = d.quizzes[k] || { attempted: 0, correct: 0 }, b = other.quizzes[k] || {};
+        d.quizzes[k] = { attempted: Math.max(a.attempted || 0, b.attempted || 0),
+                         correct: Math.max(a.correct || 0, b.correct || 0) };
+      });
+      d.time_spent_sec = Math.max(d.time_spent_sec || 0, other.time_spent_sec || 0);
+      if (other.last && (!d.last || (other.last.at || '') > (d.last.at || ''))) d.last = other.last;
+    },
+    async push() {
+      this.stamp(); LS.set('progress', this.data);
+      if (this.mode === 'server') {
+        try {
+          const r = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                       body: JSON.stringify(this.data) });
+          syncUI(r.ok ? 'server' : 'server-err');
+        } catch (e) { syncUI('server-err'); }
+      } else if (this.mode === 'folder' && this.dirHandle) {
+        try {
+          const fh = await this.dirHandle.getFileHandle(PROG_FILE, { create: true });
+          const w = await fh.createWritable();
+          await w.write(JSON.stringify(this.data, null, 2));
+          await w.close();
+          syncUI('folder');
+        } catch (e) { syncUI('folder-err'); }
+      }
+    },
+    async detectServer() {
+      if (location.protocol === 'file:') return false;
+      try {
+        const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), 1500);
+        const r = await fetch(API, { cache: 'no-store', signal: ctrl.signal });
+        clearTimeout(t);
+        if (!r.ok) return false;
+        this.merge(await r.json());
+        this.mode = 'server';
+        return true;
+      } catch (e) { return false; }
+    },
+    async restoreFolder() {
+      if (!window.showDirectoryPicker) return false;
+      try {
+        const h = await idbGet('dir');
+        if (!h || !h.queryPermission) return false;
+        if ((await h.queryPermission({ mode: 'readwrite' })) !== 'granted') return false;
+        this.dirHandle = h; this.mode = 'folder';
+        const fh = await h.getFileHandle(PROG_FILE).catch(() => null);
+        if (fh) this.merge(JSON.parse(await (await fh.getFile()).text()));
+        return true;
+      } catch (e) { return false; }
+    },
+    async pickFolder() {
+      if (!window.showDirectoryPicker) {
+        alert('这个浏览器不支持直接写入文件夹。\n可以改用「导出」保存进度，或在 ai-course 目录运行 progress_server.py 后刷新页面。');
+        return;
+      }
+      try {
+        const h = await window.showDirectoryPicker({ id: 'llm-course', mode: 'readwrite' });
+        this.dirHandle = h; this.mode = 'folder';
+        await idbSet('dir', h);
+        const fh = await h.getFileHandle(PROG_FILE).catch(() => null);
+        if (fh) this.merge(JSON.parse(await (await fh.getFile()).text()));
+        await this.push(); paintRead(); paintProgress();
+      } catch (e) { /* 用户取消 */ }
+    },
+    exportFile() {
+      const name = 'llm-crash-course-progress-' + new Date().toISOString().slice(0, 10) + '.json';
+      const blob = new Blob([JSON.stringify(this.data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    },
+    async importFile(file) {
+      try {
+        this.merge(JSON.parse(await file.text()));
+        await this.push(); paintRead(); paintProgress(); stats();
+      } catch (e) { alert('无法读取这个文件：' + e.message); }
+    },
+    addTime(sec) {
+      this.data.time_spent_sec = (this.data.time_spent_sec || 0) + sec;
+      this.stamp(); LS.set('progress', this.data);
+      this._ticks++;
+      if (this._ticks % 4 === 0) this.push();
+      paintProgress();
+    },
+    setTheme(t) { this.data.theme = t; this.local(); }
+  };
+  function idbOpen() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('llm-course', 1);
+      r.onupgradeneeded = () => { r.result.createObjectStore('kv'); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbSet(k, v) {
+    const db = await idbOpen();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('kv', 'readwrite');
+      tx.objectStore('kv').put(v, k);
+      tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error);
+    });
+  }
+  async function idbGet(k) {
+    const db = await idbOpen();
+    return new Promise((res, rej) => {
+      const rq = db.transaction('kv', 'readonly').objectStore('kv').get(k);
+      rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+    });
+  }
+  function syncUI(state) {
+    const dot = $('#syncDot'), txt = $('#syncText');
+    if (!dot || !txt) return;
+    dot.className = 'sync-dot' + (state === 'server' || state === 'folder' ? ' ok'
+      : state === 'server-err' || state === 'folder-err' ? ' warn' : '');
+    txt.textContent =
+      state === 'server' ? '已写入 progress.json（本地服务）'
+      : state === 'folder' ? '已写入所选文件夹（' + PROG_FILE + '）'
+      : state === 'folder-err' ? '文件夹写入失败，请重新选择'
+      : state === 'server-err' ? '本地服务写入失败，已回退到浏览器'
+      : '进度存在浏览器本地';
+  }
+  function fmtTime(sec) {
+    sec = Math.round(sec || 0);
+    if (sec < 60) return sec + ' 秒';
+    const m = Math.floor(sec / 60);
+    if (m < 60) return m + ' 分钟';
+    return Math.floor(m / 60) + ' 小时 ' + (m % 60) + ' 分';
+  }
+  function paintProgress() {
+    let att = 0, cor = 0;
+    Object.keys(PROG.data.quizzes || {}).forEach(k => {
+      const q = PROG.data.quizzes[k] || {}; att += q.attempted || 0; cor += q.correct || 0;
+    });
+    const pq = $('#pQuiz'), pt = $('#pTime');
+    if (pq) pq.textContent = att ? cor + '/' + att + '（' + Math.round(100 * cor / att) + '%）' : '–';
+    if (pt) pt.textContent = PROG.data.time_spent_sec ? fmtTime(PROG.data.time_spent_sec) : '–';
+  }
+
   /* ---------- read state ---------- */
-  function readSet() { return LS.get('done', []); }
+  function readSet() { return PROG.data.done; }
   function paintRead() {
     const set = readSet();
     $$('.mark-done').forEach(el => {
@@ -820,13 +1019,15 @@ window.COURSE = (function () {
     const total = COURSE.items.length || 1;
     $('#progNum').innerHTML = set.length + '<span style="font-size:14px;color:var(--muted)">/' + total + '</span>';
     $('#progBar').style.width = Math.round(100 * set.length / total) + '%';
+    paintProgress();
   }
   function wireRead() {
     document.addEventListener('click', e => {
       const el = e.target.closest && e.target.closest('.mark-done'); if (!el) return;
       const id = el.dataset.mark; const set = readSet(); const i = set.indexOf(id);
       if (i >= 0) set.splice(i, 1); else set.push(id);
-      LS.set('done', set); paintRead();
+      if (i < 0) PROG.data.last = { id: id, at: new Date().toISOString() };
+      PROG.touch(); paintRead();
     });
   }
 
@@ -937,23 +1138,48 @@ window.COURSE = (function () {
 
   /* ---------- boot ---------- */
   window.COURSE.boot = function () {
+    PROG.load();
     initTheme();
-    $('.nav') && null;
     renderNav(); renderSections();
     buildMiniToc();
     buildIndex();
     wireAccordions(); wireQuizzes();
     renderMath();
     wireTooltips(); wireCalcs(); wireRead(); wireSearch(); wireScroll();
-    paintRead(); stats();
+    paintRead(); stats(); syncUI('browser');
     requestAnimationFrame(() => {
       $('#heroReveal').classList.add('in'); $('#heroCards').classList.add('in');
     });
     $('#themeBtn').addEventListener('click', () => {
-      applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next); PROG.setTheme(next);
     });
     $('#printBtn').addEventListener('click', () => window.print());
-    $('#resetBtn').addEventListener('click', () => { LS.set('done', []); paintRead(); });
+    $('#resetBtn').addEventListener('click', () => {
+      PROG.data.done = []; PROG.data.quizzes = {}; PROG.data.time_spent_sec = 0;
+      PROG.data.last = null; PROG.touch();
+      paintRead(); paintProgress();
+    });
+    // 进度落盘：优先本地服务，其次浏览器文件夹，最后导出/导入
+    $('#pickFolder').addEventListener('click', () => PROG.pickFolder());
+    $('#exportBtn').addEventListener('click', () => PROG.exportFile());
+    $('#importBtn').addEventListener('click', () => $('#importFile').click());
+    $('#importFile').addEventListener('change', e => {
+      const f = e.target.files && e.target.files[0];
+      if (f) PROG.importFile(f);
+      e.target.value = '';
+    });
+    PROG.detectServer().then(ok => {
+      if (ok) { paintRead(); stats(); paintProgress(); syncUI('server'); }
+      else PROG.restoreFolder().then(ok2 => {
+        if (ok2) { paintRead(); stats(); paintProgress(); syncUI('folder'); }
+      });
+    });
+    setInterval(() => { if (document.visibilityState === 'visible') PROG.addTime(15); }, 15000);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') PROG.push();
+    });
+    window.addEventListener('beforeunload', () => { PROG.local(); });
     if (location.hash) {
       const el = document.querySelector(location.hash);
       if (el) setTimeout(() => el.scrollIntoView({ behavior: 'auto', block: 'start' }), 60);
@@ -983,6 +1209,14 @@ window.COURSE = (function () {
 <script src="content/14-workflow.js"></script>
 <script src="content/15-hardware.js"></script>
 <script src="content/16-project.js"></script>
+<script src="content/17-distillation.js"></script>
+<script src="content/18-reasoning.js"></script>
+<script src="content/19-rag.js"></script>
+<script src="content/20-agents.js"></script>
+<script src="content/21-safety.js"></script>
+<script src="content/22-consciousness.js"></script>
+<script src="content/23-compression.js"></script>
+<script src="content/24-architectures.js"></script>
 <script src="content/90-appendix-a-glossary.js"></script>
 <script src="content/91-appendix-b-labs.js"></script>
 <script src="content/92-appendix-c-resources.js"></script>

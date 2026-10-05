@@ -5,3 +5,8 @@ Thumbs.db
 # 临时文件
 *.tmp
 *~
+
+# 学习进度（默认只留在本地；想让进度随 git 同步，删掉下面三行即可）
+ai-course/progress.json
+ai-course/llm-crash-course-progress.json
+ai-course/*.json.tmp
