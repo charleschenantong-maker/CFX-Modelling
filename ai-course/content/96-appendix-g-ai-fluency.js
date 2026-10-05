@@ -554,11 +554,15 @@ COURSE.register({
     </tbody>
   </table>
   <p>符号检验可以直接跑四行程序（把 <code>n_eff</code> 与 <code>k</code> 换成你的数）：</p>
-  <pre><code>from math import comb
-n_eff = 7        <span class="cm"># 去掉平局后的有效比较次数</span>
-k = 6            <span class="cm"># v2 赢的次数</span>
-p = 2 * sum(comb(n_eff, i) for i in range(k, n_eff + 1)) / 2 ** n_eff
-print(round(p, 3))   <span class="cm"># 0.125</span></code></pre>
+  <pre><code><span class="cm"># [逐行剖析] 配对符号检验 (Sign Test) 离散二项分布双尾精确 p 值计算</span>
+from math import comb
+<span class="cm"># 1. 剔除平局 (Tie) 后的有效配对对比总次数 n_eff</span>
+n_eff = 7
+<span class="cm"># 2. 新策略 v2 胜出的离散观测频次 k</span>
+k = 6
+<span class="cm"># 3. 计算双尾 p 值: 2 * sum_{i=k}^{n} C(n, i) * (0.5)^n</span>
+p = 2 * sum(comb(n_eff, i) for i in range(k, n_eff + 1)) / (2 ** n_eff)
+print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># 检验在 alpha=0.05 下是否具备统计学泛化显著性</span></code></pre>
   <p><strong>记录表（照抄进你的台账）</strong>：</p>
   <table class="tbl small">
     <thead><tr><th>日期</th><th>任务</th><th>有效比较 n_eff</th><th>v2 胜次 k</th><th>p 值</th><th>迁移率</th><th>结论（一句话）</th></tr></thead>

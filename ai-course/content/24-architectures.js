@@ -770,17 +770,24 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
 <p>6.2 已经手算过 InfoNCE。这里给出最小实现，它只有十行，却能帮你验证自己是否真的理解了那个公式：</p>
 <pre><code>import torch, torch.nn.functional as F
 
+<span class="cm"># [逐行剖析] 对称双向多模态对比学习损失 (InfoNCE / CLIP Loss)</span>
 def info_nce(img_vec, txt_vec, tau=0.07):
-    img_vec = F.normalize(img_vec, dim=-1)      <span class="cm"># 余弦相似度要求先归一化</span>
+    <span class="cm"># 动态形状: img_vec -> (N, D), txt_vec -> (N, D)</span>
+    <span class="cm"># 几何投影: 投影到单位超球面，消除模长对相似度的虚假干扰</span>
+    img_vec = F.normalize(img_vec, dim=-1)
     txt_vec = F.normalize(txt_vec, dim=-1)
-    logits = img_vec @ txt_vec.t() / tau        <span class="cm"># (N, N)：对角线是正样本对</span>
-    labels = torch.arange(img_vec.size(0))
-    loss_i = F.cross_entropy(logits, labels)          <span class="cm"># 图 到 文</span>
-    loss_t = F.cross_entropy(logits.t(), labels)      <span class="cm"># 文 到 图</span>
+    
+    <span class="cm"># 动态形状: logits -> (N, N) [float32] | 对角线为正配对，非对角线为负样本</span>
+    logits = img_vec @ txt_vec.t() / tau
+    labels = torch.arange(img_vec.size(0), device=img_vec.device)
+    
+    <span class="cm"># 双向对称交叉熵损失</span>
+    loss_i = F.cross_entropy(logits, labels)      <span class="cm"># 图查文损失</span>
+    loss_t = F.cross_entropy(logits.t(), labels)  <span class="cm"># 文查图损失</span>
     return 0.5 * (loss_i + loss_t)
 
 vi, vt = torch.randn(8, 64), torch.randn(8, 64)
-print("随机初始化 =", round(info_nce(vi, vt).item(), 4))</code></pre>
+print("初始对齐损失 =", round(info_nce(vi, vt).item(), 4))</code></pre>
 <p>
   <strong>一个可以立刻验证的事实</strong>：把 \(\tau\) 设成 1、用随机向量跑，
   损失应当落在 \(\ln 8 \approx 2.079\) 附近（实测 2.08 上下）。
@@ -806,57 +813,70 @@ print("随机初始化 =", round(info_nce(vi, vt).item(), 4))</code></pre>
   </p>
 <pre><code>import torch, torch.nn as nn
 
-class Encoder(nn.Module):              <span class="cm"># 第一段：冻结的编码器，8x8 像素块变向量</span>
-    def __init__(s, patch=8, dim=64):
+<span class="cm"># [逐行剖析] 1. 视觉分块与线性投影编码器 (Patch Unfolding + Linear Projection)</span>
+class Encoder(nn.Module):
+    def __init__(self, patch=8, dim=64):
         super().__init__()
-        s.proj = nn.Linear(3 * patch * patch, dim)
-    def forward(s, img):               <span class="cm"># img: (B, 3, 32, 32)</span>
-        p = img.unfold(2, 8, 8).unfold(3, 8, 8)      <span class="cm"># (B, 3, 4, 4, 8, 8)</span>
-        p = p.permute(0, 2, 3, 1, 4, 5).reshape(img.size(0), 16, -1)
-        return s.proj(p)               <span class="cm"># (B, 16, 64)：16 个视觉 token</span>
+        self.patch = patch
+        <span class="cm"># 将 3 * patch * patch 维度的展平像块映射到特征子空间 dim</span>
+        self.proj = nn.Linear(3 * patch * patch, dim)
 
-class Projector(nn.Module):            <span class="cm"># 第二段：投影层，阶段一唯一要训的部分</span>
-    def __init__(s, d_in=64, d_model=128):
-        super().__init__()
-        s.net = nn.Sequential(nn.Linear(d_in, d_model), nn.GELU(), nn.Linear(d_model, d_model))
-    def forward(s, v):
-        return s.net(v)
+    def forward(self, img):
+        <span class="cm"># 动态形状: img -> (B, 3, 32, 32)</span>
+        <span class="cm"># 滑动展开无重叠像块: unfold -> (B, 3, 4, 4, 8, 8)</span>
+        p = img.unfold(2, self.patch, self.patch).unfold(3, self.patch, self.patch)
+        <span class="cm"># 内存重排与展平: -> permute -> (B, 4, 4, 3, 8, 8) -> reshape -> (B, 16, 192)</span>
+        p = p.permute(0, 2, 3, 1, 4, 5).contiguous().reshape(img.size(0), 16, -1)
+        return self.proj(p)  <span class="cm"># 动态形状: (B, 16, dim) [16 个视觉 Token]</span>
 
-class MiniVLM(nn.Module):              <span class="cm"># 第三段：语言模型（这里用单层 Transformer）</span>
-    def __init__(s, vocab=32, d_model=128):
+<span class="cm"># [逐行剖析] 2. 多模态投影适配器 (Vision-Language Projector)</span>
+class Projector(nn.Module):
+    def __init__(self, d_in=64, d_model=128):
         super().__init__()
-        s.enc = Encoder()
-        for p in s.enc.parameters():
-            p.requires_grad_(False)    <span class="cm"># 阶段一：冻结编码器</span>
-        s.proj = Projector()
-        s.emb = nn.Embedding(vocab, d_model)
-        s.lm = nn.TransformerEncoderLayer(d_model, 4, 256, batch_first=True)
-        s.head = nn.Linear(d_model, vocab)
-    def forward(s, img, txt):
-        v = s.proj(s.enc(img))
-        t = s.emb(txt)
-        h = s.lm(torch.cat([v, t], dim=1))
-        return s.head(h[:, v.size(1):]) <span class="cm"># 只对文本位置出词表分布</span>
+        self.net = nn.Sequential(nn.Linear(d_in, d_model), nn.GELU(), nn.Linear(d_model, d_model))
+
+    def forward(self, v):
+        <span class="cm"># 动态形状: v (B, 16, 64) -> net -> (B, 16, 128)</span>
+        return self.net(v)
+
+<span class="cm"># [逐行剖析] 3. 极简端到端多模态大模型 (MiniVLM)</span>
+class MiniVLM(nn.Module):
+    def __init__(self, vocab=32, d_model=128):
+        super().__init__()
+        self.enc = Encoder()
+        <span class="cm"># 显存机制: 视觉基座冻结 (requires_grad_(False))，不计算视觉梯度</span>
+        for p in self.enc.parameters():
+            p.requires_grad_(False)
+        self.proj = Projector()
+        self.emb = nn.Embedding(vocab, d_model)
+        self.lm = nn.TransformerEncoderLayer(d_model, 4, 256, batch_first=True)
+        self.head = nn.Linear(d_model, vocab)
+
+    def forward(self, img, txt):
+        <span class="cm"># 动态形状: img -> (B, 3, 32, 32), txt -> (B, T_txt) = (B, 12)</span>
+        v = self.proj(self.enc(img))  <span class="cm"># (B, 16, 128)</span>
+        t = self.emb(txt)             <span class="cm"># (B, 12, 128)</span>
+        <span class="cm"># 多模态前缀拼接: (B, 16 + 12, 128) = (B, 28, 128)</span>
+        h = self.lm(torch.cat([v, t], dim=1))
+        <span class="cm"># 仅对文本 Token 位置计算语言模型预测 Logits: (B, 12, vocab)</span>
+        return self.head(h[:, v.size(1):])
 
 torch.manual_seed(0)
 V, B = 32, 8
 img = torch.rand(B, 3, 32, 32)
 txt = torch.randint(0, V, (B, 12))
-y = torch.roll(txt, -1, dims=1)
+y = torch.roll(txt, -1, dims=1)  <span class="cm"># 目标标签自回归右移</span>
 
 m = MiniVLM()
 opt = torch.optim.AdamW([p for p in m.parameters() if p.requires_grad], lr=3e-3)
-for step in range(200):
-    loss = nn.functional.cross_entropy(m(img, txt).reshape(-1, V), y.reshape(-1))
-    opt.zero_grad(); loss.backward(); opt.step()
+for step in range(100):
+    logits = m(img, txt)  <span class="cm"># 动态形状: (B, 12, V)</span>
+    loss = nn.functional.cross_entropy(logits.reshape(-1, V), y.reshape(-1))
+    opt.zero_grad(set_to_none=True)
+    loss.backward()
+    opt.step()
     if step % 50 == 0:
-        print("step", step, "loss", round(loss.item(), 3))
-
-trainable = sum(p.numel() for p in m.parameters() if p.requires_grad)
-total = sum(p.numel() for p in m.parameters())
-zero_loss = nn.functional.cross_entropy(m(torch.zeros_like(img), txt).reshape(-1, V), y.reshape(-1))
-print("visual tokens = 16 | trainable =", trainable, "| total =", total)
-print("loss(原图) =", round(loss.item(), 3), "| loss(全零图) =", round(zero_loss.item(), 3))</code></pre>
+        print(f"step {step:2d} | loss = {loss.item():.3f}")</code></pre>
   <p><strong>要记录并解释的三个数字：</strong></p>
   <p>
     <strong>① <code>trainable / total</code>。</strong>它告诉你阶段一到底在训多少东西。

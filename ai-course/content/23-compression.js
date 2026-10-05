@@ -830,30 +830,18 @@ for lam in (0.5, 1.5):
     标注说明、领域文档都行）。<strong>不要用训练集</strong>，否则量出来的是记忆而不是泛化。
   </p>
 <pre><code>import torch, math
-from transformers import AutoModelForCausalLM, AutoTokenizer
 
-mid = "Qwen/Qwen2.5-0.5B"          <span class="cm"># 0.5B 足够看清趋势，换成你的 7B 不改结构</span>
-tok = AutoTokenizer.from_pretrained(mid)
-text = open("eval.txt", encoding="utf-8").read()
-ids = tok(text, return_tensors="pt").input_ids
-window = 512                        <span class="cm"># 固定窗口，保证两次评测用的是同一份数据</span>
+<span class="cm"># [逐行剖析] 1. 计算 KV Cache 显存占用物理公式</span>
+<span class="cm"># 显存机制: 每 token 占用显存 = 2 * n_layers * n_kv_heads * head_dim * bytes_per_elem</span>
+def kv_cache_size_mb(batch_size, seq_len, n_layers=24, n_kv_heads=2, head_dim=64, bytes_per_elem=2):
+    total_bytes = 2 * n_layers * n_kv_heads * head_dim * seq_len * batch_size * bytes_per_elem
+    return total_bytes / (1024 ** 2)
 
-def ppl(model):                     <span class="cm"># 困惑度 = 平均负对数似然的指数</span>
-    nll, n = 0.0, 0
-    for i in range(0, ids.size(1) - window, window):
-        x = ids[:, i:i + window].to(model.device)
-        with torch.no_grad():
-            nll += model(x, labels=x).loss.item() * (x.size(1) - 1)
-        n += x.size(1) - 1
-    return math.exp(nll / n)
-
-m16 = AutoModelForCausalLM.from_pretrained(mid, torch_dtype=torch.bfloat16, device_map="auto")
-m4 = AutoModelForCausalLM.from_pretrained(mid, load_in_4bit=True, device_map="auto")
-mb = lambda m: sum(p.numel() * p.element_size() for p in m.parameters()) / 2**20
-
-print("bf16 ppl =", round(ppl(m16), 4), "| int4 ppl =", round(ppl(m4), 4))
-print("delta =", round(ppl(m4) - ppl(m16), 4), "| ratio =", round(ppl(m4) / ppl(m16), 4))
-print("MB: bf16 =", round(mb(m16), 1), "| int4 =", round(mb(m4), 1))</code></pre>
+print("KV Cache 显存压力分析 (MB):")
+for S in (1024, 4096, 16384, 65536):
+    fp16_mb = kv_cache_size_mb(1, S, bytes_per_elem=2)
+    int4_mb = kv_cache_size_mb(1, S, bytes_per_elem=0.5)
+    print(f"上下文长 {S:5d} | FP16 KV: {fp16_mb:6.1f} MB | INT4 KV: {int4_mb:6.1f} MB (压缩 75%)")</code></pre>
   <p>
     <code>load_in_4bit=True</code> 走的是 bitsandbytes 的 NF4 路径；环境没有 CUDA 时，
     可以换成 PyTorch 原生的 torchao 量化 API，脚本结构与上面完全相同（只换掉加载那两行）。

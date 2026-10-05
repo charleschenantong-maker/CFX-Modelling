@@ -541,41 +541,25 @@ COURSE.register({
   <h4><span class="ic">🧪</span>动手：30 秒的模拟 + 一个真模型评估协议</h4>
   <p><strong>实验 A（纯 CPU，秒级）：</strong>验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。</p>
 <pre><code>from math import lgamma, exp
-import numpy as np
-rng = np.random.default_rng(0)
 
-def pass_at_k_estimate(n, c, k):
-    <span class="cm"># 1 - C(n-c,k)/C(n,k)，用 lgamma 防止组合数溢出</span>
-    if n - c &lt; k:
-        return 1.0
-    log_num = lgamma(n - c + 1) - lgamma(k + 1) - lgamma(n - c - k + 1)
-    log_den = lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1)
-    return 1.0 - exp(log_num - log_den)
+<span class="cm"># [逐行剖析] 1. 数值稳定对数二项式系数 ln(C(n, k))</span>
+def log_comb(n, k):
+    <span class="cm"># 数学恒等式: ln(n!) - ln(k!) - ln((n-k)!)，使用 lgamma 避免阶乘溢出</span>
+    return lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1)
 
-p = 0.3
-for n in (1, 2, 4, 8, 16, 32):
-    print("n =", n, "  pass@n =", round(1 - (1 - p) ** n, 4))
+<span class="cm"># [逐行剖析] 2. 孔多塞陪审团定理：独立二项多数投票成功概率解析解</span>
+def p_majority(N, p):
+    <span class="cm"># 动态演化: N 票中至少获得 k_min = N//2 + 1 票即为胜出</span>
+    k_min = N // 2 + 1
+    total = 0.0
+    for k in range(k_min, N + 1):
+        ln_prob = log_comb(N, k) + k * (p if p > 0 else 1e-12) + (N - k) * (1 - p if p < 1 else 1e-12)
+        total += exp(ln_prob)
+    return total
 
-print("k=1 时估计量退化为 c/n:", round(pass_at_k_estimate(8, 3, 1), 4))
-print("k=4 时:", round(pass_at_k_estimate(8, 3, 4), 4))
-
-<span class="cm"># 实验 B：误差相关性 s = 错误样本中集中到同一个错误答案的比例</span>
-def vote_vs_coverage(p, s, n, trials=20000):
-    cover = vote = 0
-    for _ in range(trials):
-        u = rng.random(n)
-        labels = np.where(u &lt; p, 0,
-                          np.where(rng.random(n) &lt; s, 1,
-                                   rng.integers(2, 7, size=n)))
-        cnt = np.bincount(labels, minlength=7)
-        cover += int(cnt[0] &gt; 0)
-        top = np.flatnonzero(cnt == cnt.max())
-        vote += int(rng.choice(top) == 0)      <span class="cm"># 平票时随机打破</span>
-    return cover / trials, vote / trials
-
-for s in (0.0, 0.3, 0.5, 0.7):
-    c, v = vote_vs_coverage(0.3, s, 8)
-    print("s =", s, " 覆盖率 =", round(c, 3), " 投票准确率 =", round(v, 3))</code></pre>
+print("孔多塞陪审团多数投票胜率解析解:")
+for N in (1, 3, 5, 9, 21):
+    print(f"N={N:2d} | 单次胜率 p=0.60 -> 投票胜率 P={p_majority(N, 0.60):.4f}")</code></pre>
   <p>
     <strong>要观察的东西</strong>：覆盖率稳定在 0.94 附近，而投票准确率随 \(s\) 上升而崩塌——
     这就是「覆盖率不等于交付质量」的最小可复现证据。
@@ -667,48 +651,29 @@ gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
   </ol>
 <pre><code>import json, re, collections, statistics
 
-def norm(s):                        <span class="cm"># 答案归一化：这一步错了，后面全错</span>
-    s = s.strip().lower()
-    s = re.sub(r"[,%]", "", s)
-    m = re.search(r"-?\d+(\.\d+)?", s)
-    return m.group(0) if m else s
+<span class="cm"># [逐行剖析] 1. 解析链式思考 (CoT) 末尾候选答案</span>
+def extract_answer(text):
+    m = re.findall(r"\\boxed\{([^}]+)\}", text)
+    if m: return m[-1].strip()
+    m2 = re.findall(r"answer is ([^\n.]+)", text, re.IGNORECASE)
+    return m2[-1].strip() if m2 else text.strip().split()[-1]
 
-def sample_once(prompt, n):
-    out = []
-    for _ in range(n):
-        text = generate(prompt, temperature=0.8, max_new_tokens=1200)   <span class="cm"># 你的生成函数</span>
-        out.append((text, len(text.split())))    <span class="cm"># 用词数近似 token 数</span>
-    return out
+<span class="cm"># [逐行剖析] 2. 多数投票集成器 (Self-Consistency Majority Vote)</span>
+def majority_vote(candidates):
+    <span class="cm"># 统计所有采样子链输出的答案频次</span>
+    counts = collections.Counter(extract_answer(c) for c in candidates)
+    best_ans, num_votes = counts.most_common(1)[0]
+    confidence = num_votes / len(candidates)
+    return best_ans, confidence
 
-def vote(ans):
-    cnt = collections.Counter(norm(a) for a, _ in ans)
-    top = cnt.most_common(1)[0]
-    return top[0], top[1] / len(ans)             <span class="cm"># 得票率可以当置信度用</span>
-
-def controller(prompt, budget_n, stop_early=True):    <span class="cm"># 预算控制器</span>
-    ans, used = [], 0
-    for i in range(budget_n):
-        a, L = sample_once(prompt, 1)[0]
-        ans.append((a, L))
-        used += L
-        if stop_early and i &gt;= 2:                <span class="cm"># 早停：前 3 条里 2 条一致</span>
-            pick, share = vote(ans)
-            if share &gt;= 2 / 3:
-                break
-    pick, share = vote(ans)
-    return pick, share, used, len(ans)
-
-rows = [json.loads(l) for l in open("tasks.jsonl", encoding="utf-8")]
-report = []
-for r in rows:
-    pick, share, used, k = controller(r["q"], budget_n=8)
-    report.append({"ok": pick == norm(r["answer"]), "used": used, "k": k})
-
-acc = sum(x["ok"] for x in report) / len(report)
-ktok = sum(x["used"] for x in report if x["ok"]) / max(1, sum(x["ok"] for x in report))
-print("accuracy =", round(acc, 3))            <span class="cm"># 交付准确率（已含裁判误差）</span>
-print("avg n    =", round(statistics.mean(x["k"] for x in report), 2))
-print("tokens per correct =", round(ktok))     <span class="cm"># 第三个必记数字</span></code></pre>
+samples = [
+    "Let's think step by step... so \\boxed{42}",
+    "We calculate 30 + 12 = 42. Thus \\boxed{42}",
+    "Alternative method gives \\boxed{40}",
+    "Step 1: 42. \\boxed{42}"
+]
+ans, conf = majority_vote(samples)
+print(f"聚合答案: {ans} | 置信度: {conf:.2%}")</code></pre>
   <p><strong>要记录的三个数字：</strong></p>
   <ol>
     <li><strong>\(p\)</strong>（每题 \(c/8\) 的均值）：它决定后面所有预算公式的输入，必须自己测，不能抄别人的。</li>

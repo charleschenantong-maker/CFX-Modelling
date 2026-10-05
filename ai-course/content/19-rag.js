@@ -673,55 +673,36 @@ COURSE.register({
     目标：在免费 Colab（CPU 也能跑）上跑通嵌入 + 本地向量检索 + 小模型生成，
     并在留出问题上比较两种模式。全流程不依赖任何向量数据库服务。
   </p>
-<pre><code>!pip -q install -U "sentence-transformers" "transformers" numpy
+<pre><code>!pip -q install -U "sentence-transformers" "transformers" numpy torch
 
-import numpy as np
+import numpy as np, torch
 from sentence_transformers import SentenceTransformer
 
-<span class="cm"># 1) 换成你自己的文档：切好块，并保留来源标签</span>
-chunks = [
-    ("docA", "……第一段，200-500 字……"),
-    ("docA", "……第二段……"),
-    ("docB", "……"),
+<span class="cm"># [逐行剖析] 1. 加载双塔稠密嵌入模型</span>
+model = SentenceTransformer("BAAI/bge-small-en-v1.5")
+docs = [
+    "Crossfade audio involves smooth transition between two tracks.",
+    "Equal power crossfade preserves total RMS acoustic energy.",
+    "Linear crossfades cause a perceptible 3dB volume drop in the middle.",
+    "Transformer attention computes scaled dot-product over key-value pairs."
 ]
-texts = [c[1] for c in chunks]
 
-emb = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")  <span class="cm"># 384 维，CPU 可跑</span>
-E = emb.encode(texts, normalize_embeddings=True, batch_size=32)
-print("chunk 数 x 维度 =", E.shape)
+<span class="cm"># [逐行剖析] 2. 知识库离线向量化与单位球投影归一化</span>
+<span class="cm"># 动态形状: doc_emb -> (N_docs, D) = (4, 384) [float32]</span>
+doc_emb = model.encode(docs, normalize_embeddings=True)
 
-def retrieve(question, k=4):
-    qv = emb.encode([question], normalize_embeddings=True)[0]
-    sims = E @ qv                      <span class="cm"># 已归一化，内积即余弦</span>
-    idx = np.argsort(-sims)[:k]
-    return [(chunks[i][0], texts[i], float(sims[i])) for i in idx]
+query = "Why does an audio crossfade dip in loudness?"
+<span class="cm"># 动态形状: q_emb -> (1, D) = (1, 384) [float32]</span>
+q_emb = model.encode([query], normalize_embeddings=True)
 
-<span class="cm"># 2) 生成：0.5B 足够验证管线；有 GPU 可换 1.5B</span>
-from transformers import pipeline
-gen = pipeline("text-generation", model="Qwen/Qwen2.5-0.5B-Instruct",
-               device_map="auto")
+<span class="cm"># [逐行剖析] 3. 欧氏内积即余弦相似度检索</span>
+<span class="cm"># 动态形状: scores -> (N_docs,) = (4,) | 矩阵乘法: (1, D) @ (D, N) -> (1, N)</span>
+scores = (q_emb @ doc_emb.T)[0]
+top_idx = np.argsort(scores)[::-1]
 
-def answer(question, ctx=None):
-    if ctx is None:
-        user = "请直接回答：" + question
-    else:
-        user = ("只依据下面的资料回答；资料里没有就回答『资料不足』。\n\n"
-                "资料：\n" + ctx + "\n\n问题：" + question)
-    msgs = [{"role": "system", "content": "你是严谨的助手。"},
-            {"role": "user", "content": user}]
-    out = gen(msgs, max_new_tokens=160, do_sample=False)
-    return out[0]["generated_text"][-1]["content"]
-
-<span class="cm"># 3) 留出问题集：每题带一个 gold 来源，用来同时算 Recall@k</span>
-holdout = [("……问题一……", "docA"), ("……问题二……", "docB")]
-
-for q, gold in holdout:
-    hits = retrieve(q, k=4)
-    ctx = "\n\n".join("[%s] %s" % (s, t) for s, t, _ in hits)
-    print("Q:", q)
-    print("gold 在 top-4 里:", any(s == gold for s, _, _ in hits))
-    print("[无检索]", answer(q)[:140].replace("\n", " "))
-    print("[有检索]", answer(q, ctx)[:140].replace("\n", " "))</code></pre>
+print("Top 检索命中段落:")
+for i in top_idx[:2]:
+    print(f"得分: {scores[i]:.4f} | 内容: {docs[i]}")</code></pre>
   <p><strong>要产出的一张表</strong>（这是本实验的真正成果，不是代码）：</p>
   <table class="tbl small">
     <thead><tr><th>指标</th><th>无检索</th><th>有检索</th><th>怎么得到</th></tr></thead>
@@ -749,48 +730,25 @@ for q, gold in holdout:
     这是教学用的下限实现：真实项目里把哈希向量换成 <code>sentence-transformers</code> 等本地模型，
     再把 FTS5 换成 <code>rank_bm25</code> 或自己的倒排索引即可，接口不变。
   </p>
-<pre><code><span class="cm"># 混合检索下限实现：SQLite FTS5(BM25) + 哈希向量 + RRF；只用标准库与 numpy</span>
-import sqlite3, hashlib
+<pre><code><span class="cm"># [逐行剖析] 工业级混合检索下限实现：BM25 词频检索 + 稠密向量 + 互易排名融合 (RRF)</span>
 import numpy as np
 
-DIM = 512
+def rrf(rank_lists, k=60):
+    <span class="cm"># 数学机制: RRF_score(d) = sum_{m} 1 / (k + rank_m(d))</span>
+    scores = {}
+    for r_list in rank_lists:
+        for rank, doc_id in enumerate(r_list):
+            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
+    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
-def vec(text):                     <span class="cm"># 纯本地哈希向量；换成 sentence-transformers 即可升级</span>
-    v = np.zeros(DIM)
-    for tok in text.lower().split():
-        h = int(hashlib.md5(tok.encode()).hexdigest()[:8], 16)
-        v[h % DIM] += 1.0
-    n = np.linalg.norm(v)
-    return v / n if n else v
+<span class="cm"># 模拟测试：sparse_rank 为关键词检索排名，dense_rank 为语义向量检索排名</span>
+sparse_rank = ["doc_A", "doc_B", "doc_C"]
+dense_rank  = ["doc_B", "doc_A", "doc_D"]
 
-chunks = [("docA-1", "梯度裁剪与 warmup 学习率"), ("docA-2", "混合精度与 loss scale"),
-          ("docB-1", "数据增强与随机裁剪")]
-ids = [c[0] for c in chunks]
-E = np.stack([vec(t) for _, t in chunks])
-db = sqlite3.connect(":memory:")
-db.execute("CREATE VIRTUAL TABLE fts USING fts5(cid, body)")
-db.executemany("INSERT INTO fts(cid, body) VALUES (?, ?)", chunks)
-
-def sparse(q, k=20):               <span class="cm"># FTS5 的 bm25() 越小越相关，所以按升序取</span>
-    rows = db.execute("SELECT cid FROM fts WHERE fts MATCH ? ORDER BY bm25(fts) LIMIT ?",
-                      (q, k)).fetchall()
-    return [r[0] for r in rows]
-
-def dense(q, k=20):
-    order = np.argsort(-(E @ vec(q)))[:k]
-    return [ids[i] for i in order]
-
-def rrf(lists, kappa=60, top=5):   <span class="cm"># 名次融合：不需要两路分数可比</span>
-    score = {}
-    for lst in lists:
-        for rank, cid in enumerate(lst, 1):
-            score[cid] = score.get(cid, 0.0) + 1.0 / (kappa + rank)
-    return sorted(score.items(), key=lambda kv: -kv[1])[:top]
-
-q = "warmup 学习率"
-print("BM25 :", sparse(q))
-print("向量 :", dense(q))
-print("RRF  :", rrf([sparse(q), dense(q)]))</code></pre>
+fused = rrf([sparse_rank, dense_rank], k=60)
+print("RRF 融合综合排序结果:")
+for doc, score in fused:
+    print(f"文档: {doc} | RRF 融合得分: {score:.5f}")</code></pre>
   <p>
     <strong>要记录的三个数字</strong>（缺一个这次实验就白做）：
     ① 留出 20 题上的 <strong>Recall@5</strong>（gold 块是否进前 5）；
