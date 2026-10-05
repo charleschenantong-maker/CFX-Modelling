@@ -73,6 +73,52 @@ COURSE.register({
   </p>
 </section>
 
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 A：方差守恒定理的 AS Further Maths 级推导</h4>
+  <p>
+    给 Charles 的打草稿顺序：先抄三条前置定义，再逐行证明期望与方差，
+    每一步在纸上注明所用的独立性依据，最后才看缩放因子的结论。
+  </p>
+  <p>
+    <strong>前置定义 1（向量内积）：</strong>对列向量 \(q\) 与 \(k\)，
+    点积定义为 \(s = q^{T} k = \sum_{i=1}^{d} q_{i} k_{i}\)，
+    即对应分量相乘后再求和。
+  </p>
+  <p>
+    <strong>前置定义 2（正交投影对比）：</strong>矩阵 \(P\) 为正交投影当且仅当
+    \(P = P^{T}\) 且 \(P^{2} = P\)。普通注意力权重矩阵每行和为 \(1\)，
+    但一般既不对称也不幂等，因此只能叫凸组合，不能叫投影。
+  </p>
+  <p>
+    <strong>前置定义 3（标准正态线性组合方差）：</strong>若
+    \(z_{i} \sim \mathcal{N}(0,1)\) 相互独立，则
+    \(\mathrm{Var}(\sum_{i} a_{i} z_{i}) = \sum_{i} a_{i}^{2}\)。
+    特别当所有 \(a_{i} = 1\) 时方差等于项数。
+    独立是方差可加的唯一通行证，相关时必须另加协方差项。
+  </p>
+  <p><strong>草稿第 1 步：单个乘积的期望</strong></p>
+  \[ E[q_{i} k_{i}] = E[q_{i}] E[k_{i}] = 0 \times 0 = 0 \]
+  <p>
+    依据：\(q_{i}\) 与 \(k_{i}\) 独立，独立变量乘积的期望等于期望的乘积。
+  </p>
+  <p><strong>草稿第 2 步：单个乘积的二阶矩与方差</strong></p>
+  \[ E[(q_{i} k_{i})^{2}] = E[q_{i}^{2}] E[k_{i}^{2}] = 1 \times 1 = 1 \]
+  \[ \mathrm{Var}(q_{i} k_{i}) = E[(q_{i} k_{i})^{2}] - (E[q_{i} k_{i}])^{2} = 1 - 0 = 1 \]
+  <p>
+    依据：\(E[q_{i}^{2}] = \mathrm{Var}(q_{i}) + (E[q_{i}])^{2} = 1 + 0 = 1\)，
+    对 \(k_{i}\) 同理；平方后独立性依然保持，故期望可拆。
+  </p>
+  <p><strong>草稿第 3 步：求和的期望与方差</strong></p>
+  \[ E[S] = \sum_{i=1}^{d_{k}} E[q_{i} k_{i}] = 0 \]
+  \[ \mathrm{Var}(S) = \sum_{i=1}^{d_{k}} \mathrm{Var}(q_{i} k_{i}) = \sum_{i=1}^{d_{k}} 1 = d_{k} \]
+  <p>
+    依据：不同下标 \(i\) 的乘积项 \(q_{i} k_{i}\) 相互独立，
+    独立求和的方差等于方差之和。于是点积标准差为 \(\sqrt{d_{k}}\)，
+    除以 \(\sqrt{d_{k}}\) 后方差恰好回到 \(1\)：
+  </p>
+  \[ \mathrm{Var}\left(\frac{S}{\sqrt{d_{k}}}\right) = \frac{1}{d_{k}} \mathrm{Var}(S) = 1 \]
+</section>
+
 <h3>2. 极简小数字手算：一个 \(2 \times 2\) 的完整注意力流</h3>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>纸面手算验证（跟算一遍，建立直觉）</h4>
@@ -93,6 +139,38 @@ COURSE.register({
   <p>
     第一行 Token 明显更关注第一个 Value（权重 0.67）；第二行 Token 则平权吸收了两个 Value 的信息。
     没有黑盒，全是最直白的线性代数。
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：第二组数字的完整手算（请跟着抄算）</h4>
+  <p>
+    上一节的例子已经很清楚，这里再给一组新数字，专门练习出现负分与不均匀权重的情形。
+    取序列长 \(T = 2\)，维度 \(d_{k} = 2\)，令：
+  </p>
+  \[ Q = \begin{bmatrix} 2 & 0 \\ 0 & 1 \end{bmatrix}, \qquad K = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix}, \qquad V = \begin{bmatrix} 4 & 0 \\ 0 & 6 \end{bmatrix} \]
+  <p><strong>草稿第 1 步：逐项手算点积矩阵 \(QK^{T}\)</strong></p>
+  \[ QK^{T} = \begin{bmatrix} 2 & 2 \\ 1 & -1 \end{bmatrix} \]
+  <p>
+    打草稿逐项验算：第一行点积为 \(2 \times 1 + 0 \times 1 = 2\)，
+    \(2 \times 1 + 0 \times (-1) = 2\)；第二行点积为 \(0 \times 1 + 1 \times 1 = 1\)，
+    \(0 \times 1 + 1 \times (-1) = -1\)。
+  </p>
+  <p><strong>草稿第 2 步：除以 \(\sqrt{d_{k}} = \sqrt{2} \approx 1.414\)</strong></p>
+  \[ \frac{QK^{T}}{\sqrt{2}} \approx \begin{bmatrix} 1.414 & 1.414 \\ 0.707 & -0.707 \end{bmatrix} \]
+  <p><strong>草稿第 3 步：逐行 Softmax 归一化</strong></p>
+  <p>
+    第一行两数相等，权重为 \([0.50, 0.50]\)；
+    第二行 \(e^{0.707} \approx 2.028\)，\(e^{-0.707} \approx 0.493\)，
+    和为 \(2.521\)，权重为 \([0.80, 0.20]\)（保留两位小数约为 \([0.80, 0.20]\)）。
+  </p>
+  \[ A \approx \begin{bmatrix} 0.50 & 0.50 \\ 0.80 & 0.20 \end{bmatrix} \]
+  <p><strong>草稿第 4 步：加权汇总 \(V\)</strong></p>
+  \[ AV \approx \begin{bmatrix} 0.50 & 0.50 \\ 0.80 & 0.20 \end{bmatrix} \begin{bmatrix} 4 & 0 \\ 0 & 6 \end{bmatrix} = \begin{bmatrix} 2.00 & 3.00 \\ 3.20 & 1.20 \end{bmatrix} \]
+  <p>
+    第一行平权混合两个值向量得到 \([2.00, 3.00]\)；
+    第二行更偏向第一个值向量，得到约 \([3.20, 1.20]\)。
+    负分 \(-0.707\) 在指数化后只是变小，并不会变成负权重。
   </p>
 </section>
 
@@ -226,6 +304,10 @@ COURSE.register({
 <p>
   \(W_QW_K^\top\) 是一个<span class="t" data-tterm="Bilinear form" data-d="形如 \(x^\top M y\) 的双线性评分；在注意力中 \(M=W_QW_K^\top\)，所以模型学习的是子空间度量。">双线性形式</span>，
   不是固定的欧氏距离。若列向量恰好正交，它才可解释为在正交基上的坐标内积；一般训练后的基并不正交。
+</p>
+\[ W_Q=W_K=U,\qquad U^\top U=I_r \implies s_{ij}=x_i^\top UU^\top x_j=x_i^\top P_Ux_j \]
+<p>
+  这里 \(P_U=UU^\top\) 满足 \(P_U^\top=P_U\) 与 \(P_U^2=P_U\)，所以它正是投到 \(U\) 所张成正交子空间的正交投影；评分也等于 \(\langle P_Ux_i,P_Ux_j\rangle\)。一般注意力只保留双线性度量，不满足这些对称与幂等条件，因而不能把每个 attention map 都称为投影。
 </p>
 \[ A=\mathrm{softmax}(S+M),\qquad A_{ij}\ge0,\qquad \sum_jA_{ij}=1,\qquad Y=AV \]
 <p>
@@ -363,6 +445,37 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
   \[ \langle R_m q, \; R_n k \rangle = q^T R_{n-m} k \]
   <p>
     内积只依赖于相对距离 \(n - m\)，与绝对位置无关！高维向量只需两两配对切成二维平面，分别乘以不同频率的旋转矩阵即可。
+  </p>
+  <p>
+    若把相对位移记作 \(\Delta=m-n\)，则可定义 \(g(q,k,\Delta)=q^\top R_{-\Delta}k\)，于是 \(\langle R_mq,R_nk\rangle=g(q,k,m-n)\)。负号只来自旋转方向的约定，不改变“只依赖相对位置”的结论。
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：RoPE 二维旋转的具体数字手算</h4>
+  <p>
+    把复数旋转落实为一次可手算的数字例子。取频率 \(\theta = \pi / 2\)，
+    即 \(90\) 度旋转，有 \(\cos(\theta) = 0\) 且 \(\sin(\theta) = 1\)。
+  </p>
+  <p><strong>草稿第 1 步：单个向量的旋转</strong></p>
+  \[ R_{1} = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix}, \qquad x = \begin{bmatrix} 1 \\ 0 \end{bmatrix} \]
+  \[ R_{1} x = \begin{bmatrix} 0 & -1 \\ 1 & 0 \end{bmatrix} \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} 0 \\ 1 \end{bmatrix} \]
+  <p>
+    复数视角为 \((0 + i \times 1) \times (1 + i \times 0) = 0 + i \times 1\)，
+    正好把横轴单位向量搬到纵轴上。
+  </p>
+  <p><strong>草稿第 2 步：相对距离只剩差值</strong></p>
+  \[ R_{m}^{T} R_{n} = R_{n-m} \]
+  <p>
+    取查询在位置 \(m = 1\)，键在位置 \(n = 2\)，
+    相对位移为 \(n - m = 1\)，内积化为：
+  </p>
+  \[ \langle R_{1} q, R_{2} k \rangle = q^{T} R_{1} k \]
+  <p>
+    取最简数字 \(q = k = [1, 0]^{T}\)，则 \(R_{1} k = [0, 1]^{T}\)，
+    内积为 \(1 \times 0 + 0 \times 1 = 0\)。
+    若把两者放在同一位置，则相对角为 \(0\)，内积回到 \(1\)。
+    这就是相对位置决定相似度的全部秘密。
   </p>
 </section>
 

@@ -165,6 +165,202 @@ COURSE.register({
         return b"".join(part_bytes).decode("utf-8", errors="replace")</code></pre>
 </section>
 
+<h3>2.5 Charles 草稿纸演算区：玩具语料库 BPE 手算全过程</h3>
+<p>
+  本节是为 Charles 准备的打草稿区。规则是：先写前置定义与符号约定，
+  再用极小数字在草稿纸上完整走一遍，最后才总结一般规律。
+  请拿出一张纸，跟着下面的每一张草稿表亲手抄算一遍。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>前置定义：字符、字节与合并原则（先抄这三条）</h4>
+  <p>
+    <strong>定义 1（字符集合）：</strong>设初始符号集合为单个字符与词尾标记的并集。
+    在本节玩具例子中，字符表为 \(C = \{l, o, w, e, s, t, n, r, i, d\}\)，
+    再加上词尾边界标记 \(\#\)，初始词表为 \(V_{0} = C \cup \{\#\}\)。
+  </p>
+  <p>
+    <strong>定义 2（字节编码原则）：</strong>真实工业系统从 UTF-8 字节出发，
+    初始词表固定包含 \(256\) 个单字节值 \(B = \{0, 1, \dots, 255\}\)。
+    本节为了手算可行，把字节退化为可读字符，但原理完全相同：
+    任何字符串都可以拆成初始词表中的原子符号，因此永不出现编不出的词。
+  </p>
+  <p>
+    <strong>定义 3（字节对合并原则）：</strong>每一轮统计当前切分下所有相邻二元对
+    \((a, b)\) 的加权频数 \(f(a, b)\)，贪心选取频数最大者
+    \((a^{\ast}, b^{\ast}) = \arg\max f(a, b)\) 合并为新符号 \(a^{\ast}b^{\ast}\)，
+    并把词表扩充为 \(V_{k+1} = V_{k} \cup \{a^{\ast}b^{\ast}\}\)。
+    若最高频数并列，按首次出现顺序取第一个。
+  </p>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>玩具语料库约定（共 4 个单词，先抄切分表）</h4>
+  <p>
+    设定词频：\(low\) 出现 \(5\) 次，\(lowest\) 出现 \(2\) 次，
+    \(newer\) 出现 \(6\) 次，\(wider\) 出现 \(3\) 次。
+    每个单词末尾加一个边界标记 \(\#\)，初始切分全部拆到单字符：
+  </p>
+  <table class="tbl small">
+    <thead>
+      <tr>
+        <th>单词</th>
+        <th>频数 \(f\)</th>
+        <th>初始切分</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>low</td>
+        <td>\(5\)</td>
+        <td>\(l\) \(o\) \(w\) \(\#\)</td>
+      </tr>
+      <tr>
+        <td>lowest</td>
+        <td>\(2\)</td>
+        <td>\(l\) \(o\) \(w\) \(e\) \(s\) \(t\) \(\#\)</td>
+      </tr>
+      <tr>
+        <td>newer</td>
+        <td>\(6\)</td>
+        <td>\(n\) \(e\) \(w\) \(e\) \(r\) \(\#\)</td>
+      </tr>
+      <tr>
+        <td>wider</td>
+        <td>\(3\)</td>
+        <td>\(w\) \(i\) \(d\) \(e\) \(r\) \(\#\)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿表 1：第 0 轮相邻对频数统计（逐项手算）</h4>
+  <p>
+    把每个单词内部相邻两符号组成一对，乘以该单词频数后累加。
+    例如 \(low\) 贡献 \((l,o):5\)，\((o,w):5\)，\((w,\#):5\)。
+    全部累加得到：
+  </p>
+  <table class="tbl small">
+    <thead>
+      <tr>
+        <th>相邻对 \((a,b)\)</th>
+        <th>频数 \(f(a,b)\)</th>
+        <th>来源拆解</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>\((l,o)\)</td>
+        <td>\(7\)</td>
+        <td>\(5 + 2\)</td>
+      </tr>
+      <tr>
+        <td>\((o,w)\)</td>
+        <td>\(7\)</td>
+        <td>\(5 + 2\)</td>
+      </tr>
+      <tr>
+        <td>\((w,e)\)</td>
+        <td>\(8\)</td>
+        <td>\(2 + 6\)</td>
+      </tr>
+      <tr>
+        <td>\((e,r)\)</td>
+        <td>\(9\)</td>
+        <td>\(6 + 3\)</td>
+      </tr>
+      <tr>
+        <td>\((r,\#)\)</td>
+        <td>\(9\)</td>
+        <td>\(6 + 3\)</td>
+      </tr>
+      <tr>
+        <td>\((n,e)\)</td>
+        <td>\(6\)</td>
+        <td>\(6\)</td>
+      </tr>
+      <tr>
+        <td>\((e,w)\)</td>
+        <td>\(6\)</td>
+        <td>\(6\)</td>
+      </tr>
+      <tr>
+        <td>\((w,\#)\)</td>
+        <td>\(5\)</td>
+        <td>\(5\)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    草稿结论：最高频数为 \(9\)，有两个并列冠军 \((e,r)\) 与 \((r,\#)\)。
+    按首次出现顺序取第一个，故第 1 轮合并 \((e,r)\) 为新符号 \(er\)。
+  </p>
+  \[ V_{1} = V_{0} \cup \{er\} \]
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿表 2：第 1 轮合并后重写语料（只改含 er 的行）</h4>
+  <p>
+    把所有相邻的 \(e\) \(r\) 连写成一个整体 \(er\)，其余行原样抄写：
+  </p>
+  <table class="tbl small">
+    <thead>
+      <tr>
+        <th>单词</th>
+        <th>频数 \(f\)</th>
+        <th>第 1 轮后切分</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>low</td>
+        <td>\(5\)</td>
+        <td>\(l\) \(o\) \(w\) \(\#\)</td>
+      </tr>
+      <tr>
+        <td>lowest</td>
+        <td>\(2\)</td>
+        <td>\(l\) \(o\) \(w\) \(e\) \(s\) \(t\) \(\#\)</td>
+      </tr>
+      <tr>
+        <td>newer</td>
+        <td>\(6\)</td>
+        <td>\(n\) \(e\) \(w\) \(er\) \(\#\)</td>
+      </tr>
+      <tr>
+        <td>wider</td>
+        <td>\(3\)</td>
+        <td>\(w\) \(i\) \(d\) \(er\) \(\#\)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p>
+    草稿验证：新符号 \(er\) 总共出现 \(9\) 次，即 \(6 + 3\)，
+    恰好等于上一轮被合并掉的 \((e,r)\) 对频数，账目是平的。
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿表 3：第 2 轮频数重算与合并（收尾）</h4>
+  <p>
+    在新切分下重新统计含 \(er\) 的相邻对。关键两项为：
+    \((w,er):6\) 来自 \(newer\)，\((d,er):3\) 来自 \(wider\)，
+    而 \((er,\#) = 6 + 3 = 9\) 成为新的全局最高频。
+  </p>
+  \[ f(er, \#) = 6 + 3 = 9 \]
+  <p>
+    故第 2 轮合并 \((er,\#)\) 为新符号 \(er\#\)，词表再次扩充：
+  </p>
+  \[ V_{2} = V_{1} \cup \{er\#\} \]
+  <p>
+    合并后 \(newer\) 收尾变为 \(n\) \(e\) \(w\) \(er\#\)，
+    \(wider\) 收尾变为 \(w\) \(i\) \(d\) \(er\#\)。
+    一般规律就此显现：高频后缀整体先被吃掉，低频词干仍保持散装，
+    这正是 BPE 高频整词编码、低频退化拆分的缩影。
+  </p>
+</section>
+
 <h3>3. 前沿理论映射：文本 Tokenizer 与音频 RVQ 码本的代数同构</h3>
 <p>
   大语言模型处理自然语言，而现代音频神经编解码大模型（如 Meta EnCodec、SoundStream、Descript DAC）则处理连续声学波形。

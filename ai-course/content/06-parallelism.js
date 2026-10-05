@@ -11,7 +11,7 @@ COURSE.register({
 <p class="lead">
   模块 04 已经算出：7B 模型做全参数 AdamW 训练需要约 112 GB 显存。单卡放不下，
   于是必须把「参数、梯度、优化器状态、激活值」切到多张卡上——这就是并行。
-  这一模块给出四种切法的分工、代价，以及 JAX 里怎么写。
+  这一模块给出四种切分的分工、代价，以及 JAX 里怎么写。
 </p>
 
 <section class="blk blk-tip">
@@ -60,7 +60,142 @@ COURSE.register({
   <p>所以流水线并行必须配合足够多的 micro-batch（梯度累积）才能把利用率拉回来。</p>
 </section>
 
-<h3>2. 选择顺序（照这个顺序做，别跳）</h3>
+<h3>2. 草稿纸演算区：从分块矩阵到 Megatron-LM 与 3D 并行</h3>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与通信算子约定</h4>
+  <p>
+    给 Charles 的打草稿顺序：先明确矩阵分块在代数上的行列规则，再对齐通信算子的集合语义。
+    每一步在纸上写清张量形状（Shape）与设备归属，直观理解分布式系统中的数据切分。
+  </p>
+  <p>
+    <strong>前置定义 1（分块矩阵乘法 Block Matrix Multiplication）：</strong>
+    设矩阵 \(A \in \mathbb{R}^{m \times k}, B \in \mathbb{R}^{k \times n}\)。若将 \(A\) 按列切分为 \(p\) 块，\(B\) 按行切分为 \(p\) 块：
+  </p>
+  \[ A = [A_1 \mid A_2 \mid \dots \mid A_p], \qquad B = \begin{bmatrix} B_1 \\ B_2 \\ \vdots \\ B_p \end{bmatrix} \]
+  <p>
+    其中 \(A_i \in \mathbb{R}^{m \times k_i}, B_i \in \mathbb{R}^{k_i \times n}\) 且 \(\sum_{i=1}^p k_i = k\)。则矩阵乘积可展开为分块乘积之和：
+  </p>
+  \[ AB = \sum_{i=1}^p A_i B_i = A_1 B_1 + A_2 B_2 + \dots + A_p B_p \]
+  <p>
+    若将 \(B\) 按列切分 \(B = [B_1 \mid B_2 \mid \dots \mid B_p]\)，则 \(AB = [AB_1 \mid AB_2 \mid \dots \mid AB_p]\)。
+  </p>
+  <p>
+    <strong>前置定义 2（列分块 Column Partition 与行分块 Row Partition）：</strong>
+    在神经网络线性层 \(Y = XW\) 中（输入 \(X \in \mathbb{R}^{b \times d_{\text{in}}}\)，权重 \(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)）：
+  </p>
+  <ul>
+    <li><strong>列分块（Column Parallel）：</strong>权重按输出通道列切 \(W = [W_1 \mid W_2]\)。各卡持有 \(W_i \in \mathbb{R}^{d_{\text{in}} \times (d_{\text{out}}/2)}\)。输入 \(X\) 完整广播到各卡，卡内各自计算 \(Y_i = X W_i\)。输出自然横向拼接为 \(Y = [Y_1 \mid Y_2]\)，<strong>前向计算完全无需跨卡通信</strong>！</li>
+    <li><strong>行分块（Row Parallel）：</strong>权重按输入通道行切 \(W = \begin{bmatrix} W_1 \\ W_2 \end{bmatrix}\)。输入也相应切分为列分块 \(X = [X_1 \mid X_2]\)。各卡持有局部输入与局部权重，独立计算部分和 \(Y_i = X_i W_i\)。全局真实输出必须求和：\(Y = Y_1 + Y_2\)。<strong>此时必须调用一次跨卡规约（Sum Reduction）通信</strong>！</li>
+  </ul>
+  <p>
+    <strong>前置定义 3（集合通信算子 Collective Primitives）：</strong>
+    设集群有 \(P\) 张 GPU，每张卡持有大小为 \(M\) 的张量分片：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>通信算子</th><th>各卡输入状态</th><th>通信后各卡输出</th><th>Ring 拓扑通信数据量</th></tr></thead>
+    <tbody>
+      <tr><td><strong>All-Reduce</strong></td><td>每卡各有一份局部张量 \(T_i \in \mathbb{R}^M\)</td><td>所有卡都得到完全一致的求和 \(\sum_{i=1}^P T_i\)</td><td>\(2 \times \frac{P-1}{P} M \approx 2M\)</td></tr>
+      <tr><td><strong>Reduce-Scatter</strong></td><td>每卡各有一份局部张量 \(T_i \in \mathbb{R}^M\)</td><td>第 \(i\) 张卡仅获得分片结果 \((\sum_{j=1}^P T_j)_i \in \mathbb{R}^{M/P}\)</td><td>\(\frac{P-1}{P} M \approx M\)</td></tr>
+      <tr><td><strong>All-Gather</strong></td><td>第 \(i\) 张卡持有一小块分片 \(t_i \in \mathbb{R}^{M/P}\)</td><td>所有卡都收集拼接齐完整的全量张量 \([t_1 \mid \dots \mid t_P] \in \mathbb{R}^M\)</td><td>\(\frac{P-1}{P} M \approx M\)</td></tr>
+      <tr><td><strong>Broadcast</strong></td><td>仅根节点持有张量 \(T \in \mathbb{R}^M\)</td><td>所有节点均复制一份完整的 \(T\)</td><td>\(\frac{P-1}{P} M \approx M\)</td></tr>
+    </tbody>
+  </table>
+  <p>
+    核心恒等式：\(\text{All-Reduce} \equiv \text{Reduce-Scatter} + \text{All-Gather}\)。ZeRO-3 与 FSDP 的参数切分机制正是将 All-Reduce 拆解为这两个半程算子。
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：Megatron-LM 张量并行极简小数字手算（4×4 矩阵）</h4>
+  <p>
+    两层 MLP 结构为 \(Y = \sigma(X W_1) W_2\)，其中 \(\sigma\) 为逐元素激活函数（如 ReLU / GeLU）。
+    设设备数 \(P=2\)（GPU 0 与 GPU 1），维度 \(b=4, d=4, d_{ff}=4\)。
+    输入矩阵为 \(4 \times 4\) 整数矩阵：
+  </p>
+  \[ X = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 2 & 0 & 1 \\ 1 & 1 & 1 & 0 \\ 0 & 0 & 2 & 1 \end{bmatrix} \]
+  <p>
+    <strong>权重切分规划：</strong>第一层 \(W_1\) 采用<strong>列分块</strong>，第二层 \(W_2\) 采用<strong>行分块</strong>：
+  </p>
+  \[ W_1 = [W_{1,1} \mid W_{1,2}], \qquad W_{1,1} = \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 0 \\ 0 & 1 \end{bmatrix}, \quad W_{1,2} = \begin{bmatrix} 0 & 2 \\ 1 & 0 \\ 0 & 1 \\ 1 & 0 \end{bmatrix} \]
+  \[ W_2 = \begin{bmatrix} W_{2,1} \\ W_{2,2} \end{bmatrix}, \qquad W_{2,1} = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \end{bmatrix}, \quad W_{2,2} = \begin{bmatrix} 1 & 1 & 0 & 0 \\ 0 & 0 & 1 & 1 \end{bmatrix} \]
+  <p><strong>草稿第 1 步：GPU 0 与 GPU 1 本地并行计算第一层（零通信）</strong></p>
+  <p>
+    GPU 0 独立计算 \(Z_1 = X W_{1,1} \in \mathbb{R}^{4 \times 2}\)：
+  </p>
+  \[ Z_1 = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 2 & 0 & 1 \\ 1 & 1 & 1 & 0 \\ 0 & 0 & 2 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & 0 \\ 0 & 1 \end{bmatrix} = \begin{bmatrix} 1+1 & 0 \\ 0 & 2+1 \\ 1+1 & 1 \\ 2 & 1 \end{bmatrix} = \begin{bmatrix} 2 & 0 \\ 0 & 3 \\ 2 & 1 \\ 2 & 1 \end{bmatrix} \]
+  <p>
+    GPU 1 独立计算 \(Z_2 = X W_{1,2} \in \mathbb{R}^{4 \times 2}\)：
+  </p>
+  \[ Z_2 = \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 2 & 0 & 1 \\ 1 & 1 & 1 & 0 \\ 0 & 0 & 2 & 1 \end{bmatrix} \begin{bmatrix} 0 & 2 \\ 1 & 0 \\ 0 & 1 \\ 1 & 0 \end{bmatrix} = \begin{bmatrix} 0 & 2+1 \\ 2+1 & 0 \\ 1 & 2+1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 0 & 3 \\ 3 & 0 \\ 1 & 3 \\ 1 & 2 \end{bmatrix} \]
+  <p><strong>草稿第 2 步：逐元素激活函数的数学穿透（零通信的关键）</strong></p>
+  <p>
+    取激活函数 \(\sigma(z) = \max(0, z)\)（ReLU）。由于 \(Z_1, Z_2\) 元素均非负，激活后 \(H_1 = \sigma(Z_1) = Z_1, H_2 = \sigma(Z_2) = Z_2\)。
+    <strong>数学审视：</strong>因为激活函数是逐元素作用（Element-wise）的，列拼接与非线性函数严格可交换：
+  </p>
+  \[ \sigma([Z_1 \mid Z_2]) = [\sigma(Z_1) \mid \sigma(Z_2)] = [H_1 \mid H_2] \]
+  <p>
+    这意味着：<strong>两张卡根本不需要把 \(Z_1\) 与 \(Z_2\) 汇总拼接</strong>，直接在各自显存内对局部中间张量执行激活计算！
+  </p>
+  <p><strong>草稿第 3 步：第二层行切分局部矩阵乘法（零通信）</strong></p>
+  <p>
+    GPU 0 持有 \(H_1 \in \mathbb{R}^{4 \times 2}\) 与行切权重 \(W_{2,1} \in \mathbb{R}^{2 \times 4}\)，独立计算部分积 \(Y_1 = H_1 W_{2,1} \in \mathbb{R}^{4 \times 4}\)：
+  </p>
+  \[ Y_1 = \begin{bmatrix} 2 & 0 \\ 0 & 3 \\ 2 & 1 \\ 2 & 1 \end{bmatrix} \begin{bmatrix} 1 & 0 & 1 & 0 \\ 0 & 1 & 0 & 1 \end{bmatrix} = \begin{bmatrix} 2 & 0 & 2 & 0 \\ 0 & 3 & 0 & 3 \\ 2 & 1 & 2 & 1 \\ 2 & 1 & 2 & 1 \end{bmatrix} \]
+  <p>
+    GPU 1 持有 \(H_2 \in \mathbb{R}^{4 \times 2}\) 与行切权重 \(W_{2,2} \in \mathbb{R}^{2 \times 4}\)，独立计算部分积 \(Y_2 = H_2 W_{2,2} \in \mathbb{R}^{4 \times 4}\)：
+  </p>
+  \[ Y_2 = \begin{bmatrix} 0 & 3 \\ 3 & 0 \\ 1 & 3 \\ 1 & 2 \end{bmatrix} \begin{bmatrix} 1 & 1 & 0 & 0 \\ 0 & 0 & 1 & 1 \end{bmatrix} = \begin{bmatrix} 0 & 0 & 3 & 3 \\ 3 & 3 & 0 & 0 \\ 1 & 1 & 3 & 3 \\ 1 & 1 & 2 & 2 \end{bmatrix} \]
+  <p><strong>草稿第 4 步：单次 All-Reduce 聚合全量输出</strong></p>
+  <p>
+    根据分块矩阵乘法原理，全局完整输出恰为两卡局部部分积的代数相加：
+  </p>
+  \[ Y = H W_2 = [H_1 \mid H_2] \begin{bmatrix} W_{2,1} \\ W_{2,2} \end{bmatrix} = H_1 W_{2,1} + H_2 W_{2,2} = Y_1 + Y_2 \]
+  \[ Y = \begin{bmatrix} 2 & 0 & 2 & 0 \\ 0 & 3 & 0 & 3 \\ 2 & 1 & 2 & 1 \\ 2 & 1 & 2 & 1 \end{bmatrix} + \begin{bmatrix} 0 & 0 & 3 & 3 \\ 3 & 3 & 0 & 0 \\ 1 & 1 & 3 & 3 \\ 1 & 1 & 2 & 2 \end{bmatrix} = \begin{bmatrix} 2 & 0 & 5 & 3 \\ 3 & 6 & 0 & 3 \\ 3 & 2 & 5 & 4 \\ 3 & 2 & 4 & 3 \end{bmatrix} \]
+  <p>
+    <strong>代数证明结论：为什么必须是「列切 + 行切」？</strong>
+    若颠倒顺序为「行切 + 列切」：第一层行切输出为 \(X_1 W_{1,1} + X_2 W_{1,2}\)，由于非线性激活函数对加法不满足分配律（\(\sigma(u + v) \neq \sigma(u) + \sigma(v)\)），必须在进入激活函数前强制做一次 All-Reduce 通信；第二层列切结束又需做通信收集，两层 MLP 前向将需要 2 次通信。
+    而<strong>「列切 \(W_1\) \(\to\) 逐元素激活 \(\to\) 行切 \(W_2\)」的优雅设计，利用了非线性算子对列拼接的可交换性，将通信完全延后到了第二层末尾，使整个 MLP 块仅需 1 次 All-Reduce</strong>！
+  </p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：3D 并行显存与通信量代数手算</h4>
+  <p>
+    设大模型总参数量为 \(\Phi\)（以 16-bit 浮点存储，每参数 2 字节），隐藏层维度为 \(d\)，层数为 \(L\)，序列长度为 \(S\)，单卡 micro-batch 大小为 \(b\)。
+    集群划分为 3D 拓扑：张量并行度 \(t\)（TP）、流水线并行度 \(p\)（PP）、数据并行度 \(d_p\)（DP），总 GPU 数 \(N_{\text{gpu}} = t \cdot p \cdot d_p\)。
+  </p>
+  <p><strong>1. 单卡显存占用代数式（四项拆解）：</strong></p>
+  <ul>
+    <li><strong>模型参数（Parameters）：</strong>全模型参数被 TP 按列/行切分，被 PP 按层切分，单卡显存为：
+      \[ M_{\text{param}} = \frac{2\Phi}{t \cdot p} \quad (\text{bytes}) \]
+    </li>
+    <li><strong>梯度（Gradients）：</strong>反向传播时对应的 fp16/bf16 梯度显存为：
+      \[ M_{\text{grad}} = \frac{2\Phi}{t \cdot p} \quad (\text{bytes}) \]
+    </li>
+    <li><strong>优化器状态（Optimizer States - AdamW）：</strong>
+      标准 AdamW 需维护 fp32 主权重（4 字节）、fp32 一阶动量（4 字节）、fp32 二阶动量（4 字节），共 12 字节/参数。
+      在纯 TP+PP 下为 \(\frac{12\Phi}{t \cdot p}\)；若开启 ZeRO-1 / FSDP 优化器状态分片，状态在 DP 维度均摊：
+      \[ M_{\text{opt}} = \frac{12\Phi}{t \cdot p \cdot d_p} = \frac{12\Phi}{N_{\text{gpu}}} \quad (\text{bytes}) \]
+    </li>
+    <li><strong>激活值显存（Activations）：</strong>
+      在选择性激活重计算（Selective Activation Recomputation）下，注意力与 MLP 的线性投影被释放，仅保留必须的输入，单卡激活量为：
+      \[ M_{\text{act}} \approx \frac{L}{p} \cdot \frac{b \cdot S \cdot d}{t} \cdot c_{\text{act}} \quad (\text{bytes}) \]
+      其中 \(c_{\text{act}}\) 为单层保留张量常数（通常约 10–14 字节）。
+    </li>
+  </ul>
+  <p><strong>2. 通信量代数手算与拓扑映射原则：</strong></p>
+  <table class="tbl small">
+    <thead><tr><th>并行维度</th><th>每步发生通信的频次</th><th>单卡单步通信量代数式</th><th>硬件映射要求与理由</th></tr></thead>
+    <tbody>
+      <tr><td><strong>TP（张量并行）</strong></td><td>每层前向 2 次 + 反向 2 次（共 \(4L\) 次 All-Reduce）</td><td>\(4L \times 2 \frac{t-1}{t} \cdot b S d \times 2\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
+      <tr><td><strong>PP（流水线并行）</strong></td><td>仅在 stage 边界传递边界激活与梯度，每 micro-batch 1 次前向 + 1 次反向</td><td>\(2 \times m \cdot b S d \times 2\) 字节（\(m\) 为 micro-batch 数量）</td><td><strong>适合跨机（走 InfiniBand）</strong>。通信量极小，只传单层输出，但需通过增加 \(m\) 压缩气泡率 \(\frac{p-1}{m+p-1}\)。</td></tr>
+      <tr><td><strong>DP（数据并行）</strong></td><td>每步反向结束对梯度做 1 次 All-Reduce</td><td>\(2 \frac{d_p-1}{d_p} \cdot \frac{2\Phi}{t \cdot p}\) 字节</td><td><strong>适合跨节点机架间</strong>。通信量只与参数量相关，与上下文长度 \(S\) 无关，可完全与反向计算重叠（Overlap）。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<h3>3. 选择顺序（照这个顺序做，别跳）</h3>
 <div class="flow">
   <div class="nd hi">1. 单卡能装下？</div><div class="ar">→</div>
   <div class="nd">DDP + 梯度累积</div><div class="ar">→</div>
@@ -75,7 +210,7 @@ COURSE.register({
   <em>知道后面的层级，是为了能读懂大厂的训练报告，而不是为了自己复现。</em>
 </p>
 
-<h3>3. JAX 的写法：把切分写进「类型」</h3>
+<h3>4. JAX 的写法：把切分写进「类型」</h3>
 <p>
   JAX 与 PyTorch 的哲学差异在并行上最明显。PyTorch 需要显式插入集合通信（或靠 FSDP 包装类），
   而 JAX 把 <strong>sharding 声明为数组类型的一部分</strong>，由 XLA 编译器自动插入通信（GSPMD）。
@@ -121,7 +256,7 @@ print(jax.devices())  <span class="cm"># 打印设备拓扑: 验证 8 个独立�
   这正是教程里那句话的含义：<em>JAX 让不同切分策略之间的切换变成一行代码</em>。
 </p>
 
-<h3>4. JAX 生态速查（对照 PyTorch）</h3>
+<h3>5. JAX 生态速查（对照 PyTorch）</h3>
 <table class="tbl small">
   <thead><tr><th>功能</th><th>PyTorch</th><th>JAX</th></tr></thead>
   <tbody>
@@ -161,7 +296,7 @@ print(jax.devices())  <span class="cm"># 打印设备拓扑: 验证 8 个独立�
   <ul class="opts">
     <li>因为跨机不支持张量并行</li>
     <li data-ok>它每层都要通信激活，通信量与层数、批量、序列长度成正比，跨机延迟会抵消收益</li>
-    <li>因为它会让参数量翻倍</li>
+    <li>因为它是让参数量翻倍</li>
     <li>因为张量并行只能用于 MoE</li>
   </ul>
   <p class="why">
@@ -201,6 +336,34 @@ print(jax.devices())  <span class="cm"># 打印设备拓扑: 验证 8 个独立�
   </p>
 </div>
 
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">Megatron-LM 在两层 MLP（\(Y = \sigma(X W_1) W_2\)）中，为什么第一层 \(W_1\) 采用列切分、第二层 \(W_2\) 采用行切分？</p>
+  <ul class="opts">
+    <li>因为行切分比列切分的显存占用更小</li>
+    <li data-ok>列切输出自然按列拼接，逐元素激活函数满足 \(\sigma([Z_1 \mid Z_2]) = [\sigma(Z_1) \mid \sigma(Z_2)]\) 无需通信，与第二层行切分自然相加衔接，使整个 MLP 块仅需 1 次 All-Reduce</li>
+    <li>为了让输入 \(X\) 在第一层就被切分以减少通信</li>
+    <li>因为第二层必须做 Softmax 归一化</li>
+  </ul>
+  <p class="why">
+    若先做行切分，第一层输出是两卡部分和相加；由于非线性激活函数 \(\sigma\) 对加法不满足分配律（\(\sigma(u+v) \neq \sigma(u)+\sigma(v)\)），必须在激活前强行做一次 All-Reduce，导致两层 MLP 总共需要 2 次通信。先列切再行切的设计巧妙避开了激活前的规约通信。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">在 3D 并行混合配置下（设参数量 \(\Phi = 70 \times 10^9\)，\(TP=8, PP=4, DP=8\)，采用 16-bit 权重，开启 ZeRO-1 对优化器状态分片），单卡存储 AdamW 优化器状态（fp32 动量与主权重共 12 字节/参数）所需的显存约为？</p>
+  <ul class="opts">
+    <li>约 105 GB</li>
+    <li>约 26.25 GB</li>
+    <li data-ok>约 3.28 GB</li>
+    <li>约 840 GB</li>
+  </ul>
+  <p class="why">
+    AdamW 全量优化器状态总大小为 \(12 \times 70\text{B} = 840\text{GB}\)。总 GPU 数为 \(N_{\text{gpu}} = TP \times PP \times DP = 8 \times 4 \times 8 = 256\)。开启 ZeRO-1 后，优化器状态在全集群 256 张卡上均匀分片：\(M_{\text{opt}} = 840\text{GB} / 256 \approx 3.28\text{GB}\)。相比未分片时的 \(840 / (8 \times 4) = 26.25\text{GB}\)，显存大幅降低。
+  </p>
+</div>
+
 <div class="acc" data-t="深入：一个 7B 模型的实际并行配方" data-badge="工程">
   <div class="acc-body">
     <p>假设 64 张 A100 80 GB、机内 NVLink 8 卡、机间 InfiniBand：</p>
@@ -209,7 +372,7 @@ print(jax.devices())  <span class="cm"># 打印设备拓扑: 验证 8 个独立�
       <tbody>
         <tr><td>TP</td><td>8</td><td>正好用满机内 NVLink 域，通信最贵的部分不跨机</td></tr>
         <tr><td>PP</td><td>2–4</td><td>跨机通信量小；用足量 micro-batch 压气泡</td></tr>
-        <tr><td>DP</td><td>剩余（64/(TP×PP)）</td><td>扩大全局批大小，收敛更稳</td></tr>
+        <tr><td>DP</td><td>其余（64/(TP×PP)）</td><td>扩大全局批大小，收敛更稳</td></tr>
         <tr><td>优化器状态</td><td>ZeRO-1/2（配合 DP）</td><td>把 8 字节/参数的状态均摊，避免显存成为瓶颈</td></tr>
         <tr><td>激活</td><td>全部重计算</td><td>激活是唯一随序列长度爆炸的项</td></tr>
       </tbody>

@@ -143,6 +143,24 @@ COURSE.register({
   若已有可靠验证器 → 上 best-of-n；只有当「中间步骤能被稳定打分」并且问题确实需要前瞻时，才值得上树搜索。
 </p>
 
+<section class="blk blk-m">
+  <h4><span class="ic">✎</span>草稿纸演算：CoT、树搜索与 UCB1</h4>
+  <p><strong>先定符号：</strong>思维链（CoT）是一条逐步生成的推理轨迹；树搜索把中间状态展开成多个分支。对分支 \(i\)，\(N_i\) 是访问次数，\(Q_i\) 是平均收益，父节点总访问次数为 \(N\)。UCB1 为</p>
+  \[ \operatorname{UCB1}_i=Q_i+c\sqrt{\frac{\ln N}{N_i}} \]
+  <p>它在利用当前高收益与探索少访问分支之间作平衡。</p>
+  <h5>小数字手算：下一步选哪条分支</h5>
+  <p>取探索常数 \(c=\sqrt{2}\)，父节点已访问 \(N=10\) 次：</p>
+  <table class="tbl small">
+    <thead><tr><th>分支</th><th>\(N_i\)</th><th>\(Q_i\)</th><th>探索项</th><th>UCB1</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td>5</td><td>0.60</td><td>\(\sqrt{2}\sqrt{\ln10/5}\approx0.960\)</td><td>\(1.560\)</td></tr>
+      <tr><td>B</td><td>2</td><td>0.50</td><td>\(\sqrt{2}\sqrt{\ln10/2}\approx1.517\)</td><td>\(2.017\)</td></tr>
+      <tr><td>C</td><td>1</td><td>0.40</td><td>\(\sqrt{2}\sqrt{\ln10}\approx2.146\)</td><td>\(2.546\)</td></tr>
+    </tbody>
+  </table>
+  <p>因为 \(2.546>2.017>1.560\)，下一步选 C。访问 C 后更新 \(N_C\) 与 \(Q_C\)，再重算；这就是树搜索的“展开—评估—回传”循环。</p>
+</section>
+
 <h3>3. 过程奖励与结果奖励：谁来当裁判</h3>
 <p>
   搜索和筛选都需要一个裁判。裁判有两种粒度：

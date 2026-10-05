@@ -50,6 +50,15 @@ COURSE.register({
 </p>
 \[ p_\theta(\cdot \mid x_1, \dots, x_{t-1}) \in \Delta^{|\mathcal{V}|-1} \equiv \left\{ \mathbf{p} \in \mathbb{R}^{|\mathcal{V}|} \;\middle|\; p_i \ge 0, \; \sum_{i=1}^{|\mathcal{V}|} p_i = 1 \right\} \]
 
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算区：概率对象先对齐</h4>
+  <p>
+    概率测度 \(P\) 给事件分配非负质量并满足 \(P(\Omega)=1\)。有限词表上的概率向量落在单纯形
+    \(\Delta^{V-1}=\{\mathbf{p}\in\mathbb{R}^{V}:p_i\ge0,\sum_i p_i=1\}\)。给定样本后，把每个词出现的相对频率记为经验分布 \(\hat p_i=n_i/N\)。交叉熵是
+    \(H(p,q)=-\sum_i p_i\ln q_i\)，表示用 \(q\) 编码来自 \(p\) 的样本时的平均代价。
+  </p>
+</section>
+
 <h3>2. 从频数统计到最大似然估计：Karpathy Bigram 的极简本质</h3>
 <p>
   在引入复杂神经网络之前，最朴素的自回归假设是<strong>一阶马尔可夫链（Bigram 语言模型）</strong>：
@@ -246,7 +255,7 @@ W = torch.randn((vocab_size, vocab_size), generator=g, requires_grad=True)
     <span class="cm"># [逐行剖析] 前向传播 3: 数值稳定的 Softmax（减去行最大值防止 exp 溢出）</span>
     <span class="cm"># 动态形状: counts -> (N, V) [float32], probs -> (N, V) [float32] (每行和为 1.0)</span>
     counts = (logits - logits.max(dim=1, keepdim=True).values).exp()
-    probs = counts / counts.sum(1, keepdims=True)
+    probs = counts / counts.sum(1, keepdim=True)
     
     <span class="cm"># [逐行剖析] 损失函数: 负对数似然损失 (NLL / 交叉熵)</span>
     <span class="cm"># 动态形状: probs[torch.arange(N), ys] -> (N,) -> .log().mean() -> loss [标量 float32]</span>
@@ -258,7 +267,8 @@ W = torch.randn((vocab_size, vocab_size), generator=g, requires_grad=True)
     loss.backward()  <span class="cm"># 自动微分: 回溯 DAG 计算 dLoss/dW</span>
     
     <span class="cm"># [逐行剖析] 原地权重更新: 脱离 autograd 追踪 (in-place)</span>
-    W.data += -50.0 * W.grad
+    with torch.no_grad():
+        W -= 50.0 * W.grad
 
 print(f"统计矩阵交叉熵下界: {-P[xs, ys].log().mean().item():.4f}")
 print(f"神经网络优化达到的损失: {loss.item():.4f}")</code></pre>

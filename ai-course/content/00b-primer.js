@@ -112,6 +112,36 @@ COURSE.register({
   <p>两种推导结果严丝合缝。链式法则的精髓正是将一个庞大的全局求导问题，拆解为图上各节点<strong>局部偏导数的局部相乘与汇聚相加</strong>。</p>
 </section>
 
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算区：三变量计算图与总梯度</h4>
+  <p>
+    先固定四个符号：计算图节点记为 \(v\)，节点的前向标量值记为 \(v.data\)；若节点 \(u\) 直接连到节点 \(v\)，局部偏导数记为 \(\frac{\partial v}{\partial u}\)；从损失节点 \(L\) 回到节点 \(u\) 的总梯度记为 \(\frac{\partial L}{\partial u}\)。反向传播按拓扑逆序处理节点，并把每条下游路径的贡献相加：
+  </p>
+  \[ \frac{\partial L}{\partial u} = \sum_{v \in \mathrm{Children}(u)} \frac{\partial L}{\partial v} \frac{\partial v}{\partial u} \]
+  <p>玩具图取 \(a=2\)、\(b=3\)、\(c=1\)，\(u=a b\)，\(v=u+c\)，\(L=v^2\)。先不要看答案，沿着箭头把空格填完：</p>
+  <pre>
+前向：       a = 2       b = 3       c = 1
+             u = a*b = ______
+             v = u+c = ______
+             L = v^2 = ______
+
+局部导数：   ∂u/∂a = b = ______       ∂u/∂b = a = ______
+             ∂v/∂u = 1                 ∂v/∂c = 1
+             ∂L/∂v = 2v = ______
+
+反向总梯度（从 L 逆序）：
+             ∂L/∂v = ______
+             ∂L/∂u = (∂L/∂v)(∂v/∂u) = ______
+             ∂L/∂a = (∂L/∂u)(∂u/∂a) = ______
+             ∂L/∂b = (∂L/∂u)(∂u/∂b) = ______
+             ∂L/∂c = (∂L/∂v)(∂v/∂c) = ______
+  </pre>
+  <p>
+    汇聚处是 \(v\)：它同时把 \(u\) 与 \(c\) 的贡献送进 \(L\)。若一个节点 \(x\) 同时进入两个后继节点 \(r\)、\(s\)，就必须写成
+    \(\frac{\partial L}{\partial x} = \frac{\partial L}{\partial r}\frac{\partial r}{\partial x} + \frac{\partial L}{\partial s}\frac{\partial s}{\partial x}\)，代码对应 <code>grad += contribution</code>；用 <code>grad = contribution</code> 会覆盖第一条路径。
+  </p>
+</section>
+
 <h3>3. 为什么必须是拓扑排序？（Topological Sort）</h3>
 <p>
   在前向传播中，节点依赖关系要求：一个节点必须在它的所有父节点计算完毕后才能计算。
@@ -155,6 +185,21 @@ COURSE.register({
             other.grad += 1.0 * out.grad
         out._backward = _backward
         <span class="kw">return</span> out
+
+    <span class="kw">def</span> __sub__(self, other):
+        <span class="kw">return</span> self + (-other)
+
+    <span class="kw">def</span> __radd__(self, other):
+        <span class="kw">return</span> self + other
+
+    <span class="kw">def</span> __rmul__(self, other):
+        <span class="kw">return</span> self * other
+
+    <span class="kw">def</span> __truediv__(self, other):
+        <span class="kw">return</span> self * (other ** -1)
+
+    <span class="kw">def</span> __neg__(self):
+        <span class="kw">return</span> self * -1.0
 
     <span class="kw">def</span> __mul__(self, other):
         other = other <span class="kw">if</span> isinstance(other, Value) <span class="kw">else</span> Value(other)
@@ -319,6 +364,27 @@ print(f"Relative Error: {rel_error:.2e}")
     </tr>
   </tbody>
 </table>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算区：凸二次抛物面的步长</h4>
+  <p>取 \(f(w)=(w-3)^2\)，所以 \(\nabla f(w)=2(w-3)\)，从 \(w_0=0\) 开始。每一步只用 \(w_{t+1}=w_t-\eta\nabla f(w_t)\)。分别代入 \(\eta=0.1\) 与 \(\eta=1.5\)：</p>
+  <pre>
+η = 0.1（小步长）
+t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-0.1*梯度
+0   0.000     -6.000              w1 = 0 - 0.1*(-6) = 0.600
+1   0.600     -4.800              w2 = 0.6 - 0.1*(-4.8) = 1.080
+2   1.080     -3.840              w3 = 1.08 - 0.1*(-3.84) = 1.464
+
+η = 1.5（过大步长）
+t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-1.5*梯度
+0   0.000     -6.000              w1 = 0 - 1.5*(-6) = 9
+1   9.000      12.000              w2 = 9 - 1.5*(12) = -9
+2  -9.000     -24.000              w3 = -9 - 1.5*(-24) = 27
+3  27.000      48.000              w4 = 27 - 1.5*(48) = -45
+4 -45.000     -96.000              w5 = -45 - 1.5*(-96) = 99
+  </pre>
+  <p>第二行不断跨过最优点 \(w^*=3\)，且偏离距离依次为 \(6,12,24,48,96\)；这就是震荡发散。对这个函数，更新可写成 \(w_{t+1}-3=(1-2\eta)(w_t-3)\)，所以 \(\eta=1.5\) 的放大因子为 \(-2\)。</p>
+</section>
 
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>STEP 级思考题：李普希茨常数与最大学习率界限</h4>

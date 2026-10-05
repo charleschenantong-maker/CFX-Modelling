@@ -9,12 +9,12 @@ COURSE.register({
   tags: ["实战", "Colab Pro", "QLoRA", "1.5B模型", "GGUF导出"],
   body: String.raw`
 <p class="lead">
-  在前前面的二十四讲中，你已经推导了从标量计算图、注意力矩阵、KV Cache 到分布式并行的全部数学底座。
-  但学 AI 绝不能只停留在黑板与推导上——你必须亲自经历一次「数据进、损失降、权重出、本地跑」的工程闭环。
+  在前面的二十四讲中，你已经推导了从标量计算图、注意力矩阵、KV Cache 到分布式并行的全部数学底座。
+  但学 AI 绝不能只停留在黑板与推导上——你必须亲自经历一次「数据进、损失降、权重出、本地跑」的工业级工程闭环。
   很多初学者在本地笔记本上尝试运行 1.7B 或更大模型时，常常感叹「为什么又笨又慢、风扇狂转还经常卡死」？
-  本讲针对这一现实痛点，利用 Google Colab Pro 云端 GPU（T4 或 A100）的充沛算力，
+  本讲针对这一现实痛点，面向具备 Google Colab（T4 或 A100）算力环境的学生，
   手把手带你完成一个 <strong>1.5B 级别开源大模型（以高性价比的 Qwen2.5-1.5B 为例）的指令微调（SFT）全流程</strong>。
-  从显存账本精确手算、LoRA 奇异值低秩分解、NF4 四位量化数学原理，到一键合并导出 GGUF 并在本地极速秒回，
+  从 NF4 四位量化分位点编码、双重量化数学手算、LoRA 秩矩阵乘积、ChatML 标签掩码机制，到 Colab 实战避坑与一键导出 GGUF 本地毫秒级秒回，
   彻底打通算法理论到端侧生产落地的最后一公里。
 </p>
 
@@ -22,159 +22,370 @@ COURSE.register({
   <h4><span class="ic">✓</span>学习目标：掌握端到端大模型工程闭环</h4>
   <p>
     完成本讲后，你将能够独立做到：
-    <strong>①</strong> 纸面精确手算 1.5B 模型在全参数、LoRA 与 QLoRA 下的显存开销，准确避开 CUDA OOM 陷阱；
-    <strong>②</strong> 用 STEP 级奇异值分解（SVD）几何理解 LoRA 的内在低秩假设，证明权重初始化的数学精妙性；
-    <strong>③</strong> 亲手编写基于 Hugging Face <code>peft</code>、<code>transformers</code> 与 <code>trl</code> 的生产级微调脚本；
-    <strong>④</strong> 掌握 Label Masking（标签掩码）机制，明白为什么损失只对助手回答计算；
-    <strong>⑤</strong> 将云端微调后的 Adapter 权重与基座合并，并量化转换为 GGUF 格式，实现本地无网离线毫秒级推理。
+    <strong>①</strong> 在草稿纸上纯手工精算 1.5B 模型在全参数、LoRA 与 QLoRA 下的真实 MB 级显存账本，精确避开 CUDA OOM 陷阱；
+    <strong>②</strong> 深入理解 NF4（NormalFloat4）四位最优分位点编码与双重量化（Double Quantization）的信息论本质；
+    <strong>③</strong> 掌握 ChatML 数据格式与 Label Masking（标签掩码）机制，手算追踪 10-Token 玩具序列的交叉熵损失参与状态；
+    <strong>④</strong> 编写并运行基于 <code>peft</code>、<code>transformers</code> 与 <code>trl</code> 的生产级微调脚本，避开 Colab T4 / A100 的 3 种典型暗礁；
+    <strong>⑤</strong> 将微调得到的 LoRA 适配器权重与基座合并，导出为现代 GGUF 格式并在本地终端实现免显卡离线极速推理。
   </p>
 </section>
 
 <h3>1. 痛点破局：为什么本地慢？为什么要在云端训练？</h3>
 <p>
-  许多人在本地电脑体验小模型（如 1.5B ~ 1.7B）时，常有两大抱怨：<strong>回答指令不听话</strong>，且<strong>每秒吐字极慢</strong>。
+  许多人在本地笔记本体验小模型（如 1.5B ~ 1.7B）时，常有两大抱怨：<strong>回答指令不听话</strong>，且<strong>每秒吐字极慢</strong>。
   这背后是两个物理现实：
 </p>
 <ul>
   <li><strong>算力与内存带宽壁垒</strong>：大模型自回归解码是受内存带宽限制（Memory Bandwidth Bound）的。
       本地普通 CPU 搭配 DDR4/DDR5 内存，带宽通常只有 30 ~ 60 GB/s；
-      而哪怕是 Google Colab 免费提供的英伟达 T4 也有 300 GB/s，A100 更有 1.5 ~ 2.0 TB/s 的高带宽显存（HBM2）。
+      而 Google Colab 基础级英伟达 T4 拥有 300 GB/s 显存带宽，A100 更拥有高达 1.5 ~ 2.0 TB/s 的高带宽显存（HBM2）。
       训练涉及庞大的反向传播全微分计算，在本地普通电脑上几乎不可行。</li>
   <li><strong>基座模型 vs 对齐模型</strong>：刚下载的基座模型（Base Model）是一个单纯的「文本续写补全机」，
-      它根本不知道什么叫「你问我答」。要让它具备问答逻辑，必须经过高质量指令监督微调（Supervised Fine-Tuning, SFT）。</li>
+      它根本不知道什么叫「你问我答」。要让它具备精准遵循人类指令的问答逻辑，必须经过高质量指令监督微调（Supervised Fine-Tuning, SFT）。</li>
 </ul>
 <p>
   <strong>最优解工程策略</strong>：<strong>云端（Google Colab）微调大模型，端侧（本地电脑）量化流式推理。</strong>
 </p>
 
-<h3>2. 纸面精算：1.5B 模型的显存账本</h3>
+<h3>2. 显存底座：LoRA 与 QLoRA 数学内核草稿纸</h3>
 <p>
-  在启动任何 GPU 训练任务之前，合格的算法工程师必须先在草稿纸上算清显存开销。
-  设模型参数量为 \(N = 1.54 \times 10^9\)（约 1.54B 参数）。
+  给 Charles 的草稿纸第一步：先推导核心数学定义，再进入具体的显存预算账本。
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>方案一：全参数微调（Full Fine-Tuning）的显存崩溃分析</h4>
-  <p>全参数微调时，显存由四个刚性部分构成（按 16 位浮点数 half precision 计算）：</p>
-  <ol>
-    <li><strong>模型静态权重</strong>：每个参数 2 字节（fp16 / bf16）：
-      \[ M_{\text{weights}} = 1.54 \times 10^9 \times 2 \text{ bytes} \approx 3.08 \text{ GB} \]
-    </li>
-    <li><strong>反向传播梯度</strong>：每个可训练参数对应一个梯度标量（fp16 / bf16）：
-      \[ M_{\text{grads}} = 1.54 \times 10^9 \times 2 \text{ bytes} \approx 3.08 \text{ GB} \]
-    </li>
-    <li><strong>AdamW 优化器状态</strong>：AdamW 必须维护一阶动量（fp32，4 字节）、二阶动量（fp32，4 字节）以及主权重备份（fp32，4 字节），合计每参数 12 字节：
-      \[ M_{\text{opt}} = 1.54 \times 10^9 \times 12 \text{ bytes} \approx 18.48 \text{ GB} \]
-    </li>
-    <li><strong>前向激活值（Activations）</strong>：设 batch size 为 4，序列长度为 2048，未开启梯度检查点时占用约 \(4 \sim 8 \text{ GB}\)。</li>
-  </ol>
+  <h4><span class="ic">∑</span>草稿纸演算区 A：NF4 分位点量化、双重量化与 LoRA 秩积推导</h4>
   <p>
-    <strong>总显存需求</strong>：
-    \[ M_{\text{total}} = 3.08 + 3.08 + 18.48 + 6.00 \approx 30.64 \text{ GB} \]
-    结论：一块 16GB 的 T4 显卡在执行第 1 个 step 时就会瞬间遭遇 <code>CUDA Out of Memory</code> 崩溃！
+    <strong>前置定义 1（NF4 四位量化分位点编码）：</strong>
+    预训练语言模型的权重张量经验上高度逼近零均值正态分布 \(W \sim \mathcal{N}(0, \sigma^2)\)。
+    若采用传统的均匀量化（Uniform Quantization），量化区间在分布两侧极稀疏的尾部与中间高密度区域等距划分，导致信息熵严重损失（均值附近量化误差骤增）。
+    NF4（NormalFloat4, Dettmers et al., 2023）基于最优标量量化器（Lloyd-Max Quantizer）原理，
+    寻找 16 个离散量化点 \(q_0, q_1, \dots, q_{15}\)，使得对标准正态分布的期望均方误差（MSE）最小化：
   </p>
-</section>
+  \[ \min_{q_0, \dots, q_{15}} \mathbb{E}_{w \sim \mathcal{N}(0, 1)} \left[ (w - q(w))^2 \right] \]
+  <p>
+    其理论解要求每个区间的积分概率相等（等分位点原则）：
+  </p>
+  \[ q_i = \frac{1}{2} \left( Q_X\left(\frac{i}{2^k}\right) + Q_X\left(\frac{i+1}{2^k}\right) \right) \]
+  <p>
+    其中 \(Q_X(\cdot)\) 为标准正态分布累计分布函数（CDF）的逆分位数函数，\(k=4\)。
+    经零点精确对称化处理后，将 16 个点规范化缩放到 \([-1, 1]\) 区间。
+    在工程实现中，将张量划分为块大小为 \(B = 64\) 的连续小块，计算绝对最大值缩放因子：
+  </p>
+  \[ c = \max_{j=1}^{B} |w_j| \]
+  <p>
+    量化时，每个权重仅需存储 4 个二进制位（即 16 个量化点中最接近项的下标索引 \(\tilde{w}_j \in \{0, \dots, 15\}\)）：
+  </p>
+  \[ \tilde{w}_j = \arg\min_{i \in \{0, \dots, 15\}} \left| \frac{w_j}{c} - q_i \right| \]
+  <p>
+    在前向传播计算矩阵乘法时，硬件在 GPU 寄存器中瞬时完成反量化（Dequantization）：
+  </p>
+  \[ \hat{w}_j = c \cdot q_{\tilde{w}_j} \]
+  <p>
+    因此，1.5B 参数的基座模型在静态显存中只需占用 4 bits/参数（即 0.5 字节/参数），显存占用仅为 16-bit 浮点数的四分之一！
+  </p>
 
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>方案二：QLoRA 4-bit 救赎账本（极简优雅）</h4>
   <p>
-    QLoRA（Dettmers et al., 2023）通过三大数学创新彻底重构了显存账本：
+    <strong>前置定义 2（双重量化 Double Quantization, DQ）：</strong>
+    虽然基座权重压缩到了 4 bits，但为了保证量化精度，每 64 个参数必须保留一个缩放因子 \(c\)。
+    若缩放因子采用标准 FP32（32 bits）存储，其本身带来的额外显存开销为：
   </p>
-  <ol>
-    <li><strong>NF4 四位量化基座</strong>：基座参数被压缩为 4 位（0.5 字节）：
-      \[ M_{\text{base}} = 1.54 \times 10^9 \times 0.5 \text{ bytes} \approx 0.77 \text{ GB} \]
-    </li>
-    <li><strong>低秩适配器（LoRA，秩 \(r=16\)）</strong>：仅对注意力与 MLP 的投影矩阵外挂低秩侧支，可训练参数仅占总量的 \(0.2\%\)（约 \(3 \times 10^6\) 参数）：
-      \[ M_{\text{lora\_opt}} = 3 \times 10^6 \times 16 \text{ bytes} \approx 0.048 \text{ GB} \]
-    </li>
-    <li><strong>梯度检查点（Gradient Checkpointing）</strong>：用时间换空间，前向不保存中间层激活，反向时局部重算，将激活显存压低至约 \(1.2 \text{ GB}\)。</li>
-  </ol>
+  \[ M_{\text{scale1}} = \frac{32 \text{ bits}}{64} = 0.5 \text{ bits/param} \]
   <p>
-    <strong>QLoRA 训练总显存</strong>：
-    \[ M_{\text{total}} = 0.77 + 0.05 + 1.20 + 0.50 \approx 2.52 \text{ GB} \sim 4.50 \text{ GB} \]
-    <strong>工程结论</strong>：在 Google Colab 最基础的 16GB T4 GPU 上，显存占用还不到 \(30\%\)，你可以从容开大 batch size 和更长上下文！
+    这意味着原本 4.0 bits 的权重膨胀为了 4.5 bits，附加显存开销高达 \(12.5\%\)！
+    双重量化（Double Quantization）对第一层缩放因子 \(c_1\) 再次执行量化：
+    以 256 为二级块大小，将 \(c_1\) 压缩为 8-bit FP8 格式，并引入第二层极低频的 FP32 缩放因子 \(c_2\)。
+    此时，每个参数平摊的缩放因子显存开销骤降为：
   </p>
-</section>
+  \[ M_{\text{DQ}} = \frac{8 \text{ bits}}{64} + \frac{32 \text{ bits}}{64 \times 256} = 0.125 + 0.00195 \approx 0.127 \text{ bits/param} \]
+  <p>
+    相比单层量化的 \(0.5 \text{ bits/param}\)，双重量化节省了：
+  </p>
+  \[ \Delta M = 0.5 - 0.127 = 0.373 \text{ bits/param} \]
+  <p>
+    对于 1.54B 参数模型，双重量化直接在静态常量显存上削减了：
+  </p>
+  \[ \Delta S = \frac{1.5437 \times 10^9 \times 0.373}{8 \times 1024 \times 1024} \approx 68.6 \text{ MB} \]
 
-<h3>3. STEP 级数学内核：LoRA 的低秩流形与 SVD 本质</h3>
-<p>
-  为什么我们不需要改动原模型的 1.5B 权重，只训练极其少量的旁路矩阵就能让模型脱胎换骨？
-</p>
-
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>定理推导：内在维度与矩阵低秩分解</h4>
   <p>
-    考虑神经网络中任意一个冻结的线性投影层：\(h = W_0 x\)，其中 \(W_0 \in \mathbb{R}^{d \times k}\)。
-    微调时，参数更新量为 \(\Delta W \in \mathbb{R}^{d \times k}\)，更新后的前向计算为：
-  </p>
-  \[ h = (W_0 + \Delta W) x = W_0 x + \Delta W x \]
-  <p>
-    <strong>Aghajanyan 等人（2020）的内在维度假设</strong>：
-    预训练大语言模型的参数虽然处于极高维的欧氏空间，但针对特定下游任务有效微调所需的更新矩阵 \(\Delta W\)，
-    其本质上落在秩极低的内在子空间（Intrinsic Low-rank Subspace）中。
-  </p>
-  <p>
-    因此，我们将全秩矩阵 \(\Delta W\) 分解为两个低秩矩阵的乘积：
+    <strong>前置定义 3（LoRA 秩矩阵乘积与零扰动起步）：</strong>
+    设基座网络某线性投影层输入为 \(x \in \mathbb{R}^{k}\)，固定冻结权重为 \(W_0 \in \mathbb{R}^{d \times k}\)。
+    LoRA 将微调增量矩阵分解为两个极低秩矩阵的乘积：
   </p>
   \[ \Delta W = \frac{\alpha}{r} (B \cdot A) \]
   <p>
-    其中 \(B \in \mathbb{R}^{d \times r}\)，\(A \in \mathbb{R}^{r \times k}\)，且内在秩 \(r \ll \min(d, k)\)。\(\alpha\) 为常数缩放因子。
+    其中 \(B \in \mathbb{R}^{d \times r}\)，\(A \in \mathbb{R}^{r \times k}\)，且内在秩 \(r \ll \min(d, k)\)。
+    根据矩阵代数中的秩不等式：
   </p>
-  <p><strong>参数缩减比严格计算</strong>：</p>
+  \[ \mathrm{rank}(\Delta W) \le \min(\mathrm{rank}(B), \mathrm{rank}(A)) \le r \]
   <p>
-    以 Qwen2.5-1.5B 中隐藏维度 \(d = 1536\)，投影维度 \(k = 1536\)，设秩 \(r = 16\)：<br/>
-    全矩阵参数量：
+    参数量从原本全矩阵的 \(d \times k\) 缩减至 \(r(d + k)\)。
+    常数缩放因子 \(\frac{\alpha}{r}\)（通常设 \(\alpha = 2r\)）的作用是：当调整秩 \(r\) 进行实验对比时，
+    梯度的数值尺度保持稳定，免去针对不同秩重新网格搜索学习率。
   </p>
-  \[ N_{\text{full}} = 1536 \times 1536 = 2,359,296 \]
-  <p>LoRA 旁路参数量：</p>
-  \[ N_{\text{LoRA}} = (1536 \times 16) + (16 \times 1536) = 49,152 \]
-  <p>参数压缩比例：</p>
-  \[ \text{Ratio} = \frac{49,152}{2,359,296} = \frac{2r}{d} = \frac{32}{1536} \approx 2.08\% \]
   <p>
-    <strong>初始化数学巧思（零扰动起步定理）</strong>：
-    在代码中，矩阵 \(A\) 采用高斯分布 \(\mathcal{N}(0, \sigma^2)\) 初始化，而矩阵 \(B\) <strong>严格初始化为全 0 矩阵</strong>！
-    因此在微调刚开始的第 0 步：
+    <strong>初始化零扰动定理</strong>：在代码中，矩阵 \(A\) 采用高斯分布 \(\mathcal{N}(0, \sigma^2)\) 初始化，
+    而矩阵 \(B\) <strong>严格初始化为全 0 矩阵</strong>。因此微调第 0 步：
   </p>
-  \[ \Delta W = B \cdot A = \mathbf{0} \cdot A = \mathbf{0} \]
+  \[ \Delta W \Big|_{t=0} = \frac{\alpha}{r} (\mathbf{0} \cdot A) = \mathbf{0} \]
+  \[ h = W_0 x + \Delta W x = W_0 x + \mathbf{0} = W_0 x \]
   <p>
-    此时前向输出 \(h = W_0 x + \mathbf{0} = W_0 x\)，模型完全保留了预训练基座的所有知识与语言能力，
-    消除了随机初始化带来的性能毁灭性扰动。
+    这保证了训练初始时刻模型前向输出 100% 等价于预训练基座，彻底消除了随机初始化对预训练语言知识的灾难性扰动。
   </p>
 </section>
 
-<h3>4. 数据工程：ChatML 结构与助手掩码（Label Masking）</h3>
+<h3>3. 显存实战精算：Colab T4 与 A100 MB 级账本草稿纸</h3>
 <p>
-  微调模型不能直接塞进散乱的文章，必须使用符合工业规范的对话模板（ChatML 格式）。
-  一条标准的单轮/多轮指令样本由系统预设（system）、用户指令（user）与模型回复（assistant）构成：
+  在 Google Colab 上启动训练之前，我们以真实的 <strong>Qwen2.5-1.5B</strong>（参数量 \(N = 1,543,714,816 \approx 1.5437 \times 10^9\)）为例，
+  在草稿纸上逐项拆解静态权重、优化器、梯度与激活值的 MB 级占用。
 </p>
-<pre><code>&lt;|im_start|&gt;system
-你是一个严谨的数学与代码导师，回答简明扼要，直击本质。&lt;|im_end|&gt;
-&lt;|im_start|&gt;user
-请用一句话解释为什么 Softmax 满足平移不变性。&lt;|im_end|&gt;
-&lt;|im_start|&gt;assistant
-因为在分子分母同时乘除指数偏置 exp(c) 后该公因子被严格消去。&lt;|im_end|&gt;</code></pre>
 
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>核心机制：为什么不能对 Prompt 计算损失？（Data Collator 的秘密）</h4>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：Qwen2.5-1.5B 显存真实分配手算与双卡对比</h4>
   <p>
-    模型在前向传播时处理了整段文本，但在反向传播计算交叉熵损失时，
-    <strong>必须且只能计算 Assistant 回复部分的 Token 损失！</strong>
+    模型关键超参数：隐层维度 \(d = 1536\)，层数 \(L = 28\)，中间层维度 \(d_{\text{ffn}} = 8960\)，
+    注意力头数 \(H_q = 12\)，KV 头数 \(H_{kv} = 2\)（GQA 架构），词表大小 \(V = 151936\)。
+    微调时外挂 LoRA 目标模块为全部 7 个线性投影层（q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj），
+    设定秩 \(r = 16\)，总 LoRA 可训练参数量约 \(1.846 \times 10^7\)（约 18.5M 参数，仅占总量的 \(1.2\%\)）。
   </p>
+  <p><strong>显存构成逐项核算：</strong></p>
+  <ol>
+    <li><strong>模型静态权重</strong>：
+      全参数（FP16/BF16，2 字节/参数）：
+      \[ M_{\text{weights, full}} = \frac{1.5437 \times 10^9 \times 2}{1024^2} \approx 2944 \text{ MB} \approx 2.88 \text{ GB} \]
+      QLoRA（NF4 4-bit 搭配双重量化，平均约 4.127 bits/参数）：
+      \[ M_{\text{weights, QLoRA}} = \frac{1.5437 \times 10^9 \times 4.127}{8 \times 1024^2} \approx 760 \text{ MB} \approx 0.74 \text{ GB} \]
+    </li>
+    <li><strong>可训练参数权重与梯度</strong>：
+      全参数微调时梯度（FP16，2 字节）：\(2944 \text{ MB}\)。
+      LoRA 微调时可训练参数仅 18.5M：
+      \[ M_{\text{lora\_weights}} = \frac{18.46 \times 10^6 \times 2}{1024^2} \approx 35.2 \text{ MB} \]
+      \[ M_{\text{lora\_grads}} = \frac{18.46 \times 10^6 \times 2}{1024^2} \approx 35.2 \text{ MB} \]
+    </li>
+    <li><strong>优化器状态（Optimizer States）</strong>：
+      标准 AdamW 维护一阶动量（FP32，4 字节）、二阶动量（FP32，4 字节）以及主权重备份（FP32，4 字节），合计 12 字节/可训练参数：
+      全参数微调：
+      \[ M_{\text{opt, full}} = \frac{1.5437 \times 10^9 \times 12}{1024^2} \approx 17666 \text{ MB} \approx 17.25 \text{ GB} \]
+      LoRA 微调（标准 AdamW）：
+      \[ M_{\text{opt, lora}} = \frac{18.46 \times 10^6 \times 12}{1024^2} \approx 211.3 \text{ MB} \]
+      若开启 <code>paged_adamw_8bit</code>，优化器状态压缩至 6 字节/参数，显存进一步降至约 \(105.6 \text{ MB}\)。
+    </li>
+    <li><strong>前向激活值（Activations，取 batch size = 2, seq len = 1024）</strong>：
+      未开启梯度检查点时，28 层的中间激活全量驻留显存：约 \(3800 \sim 4500 \text{ MB}\)。
+      开启梯度检查点（Gradient Checkpointing）后，前向仅保留每层输入边界，反向时局部重算：激活显存骤降至约 \(550 \text{ MB}\)。
+    </li>
+    <li><strong>CUDA 驱动与 PyTorch 运行时底噪</strong>：
+      T4 环境约 \(650 \text{ MB}\)，A100 环境约 \(950 \text{ MB}\)。
+    </li>
+  </ol>
+
+  <p><strong>实战显存全景对比表（真实 MB / GB 级数据）：</strong></p>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>微调方案</th>
+        <th>基座静态权重</th>
+        <th>可训练权重与梯度</th>
+        <th>优化器状态</th>
+        <th>激活值 (b=2, s=1024)</th>
+        <th>显存总计</th>
+        <th>Colab T4 (16 GB) 状态</th>
+        <th>Colab A100 (40 GB) 状态</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>全参数微调</strong> (FP16 + AdamW)</td>
+        <td>2944 MB</td>
+        <td>2944 MB</td>
+        <td>17666 MB</td>
+        <td>4200 MB (无重算)</td>
+        <td><strong>28404 MB (约 27.7 GB)</strong></td>
+        <td>❌ <strong>瞬间 OOM 崩溃</strong>（超限 11.7 GB）</td>
+        <td>✅ 正常运行（占用约 69%）</td>
+      </tr>
+      <tr>
+        <td><strong>标准 LoRA</strong> (FP16 + AdamW)</td>
+        <td>2944 MB</td>
+        <td>70.4 MB</td>
+        <td>211.3 MB</td>
+        <td>550 MB (梯度检查点)</td>
+        <td><strong>4425 MB (约 4.32 GB)</strong></td>
+        <td>✅ 极度流畅（占用约 27%）</td>
+        <td>✅ 极度富余（可开更大 batch）</td>
+      </tr>
+      <tr>
+        <td><strong>QLoRA 4-bit</strong> (NF4 + Paged 8-bit)</td>
+        <td>760 MB</td>
+        <td>70.4 MB</td>
+        <td>105.6 MB</td>
+        <td>550 MB (梯度检查点)</td>
+        <td><strong>2136 MB (约 2.08 GB)</strong></td>
+        <td>✅ <strong>极致轻量</strong>（仅占 13% 显存）</td>
+        <td>✅ <strong>支持万级上下文超长文本</strong></td>
+      </tr>
+    </tbody>
+  </table>
   <p>
-    <strong>数学原因</strong>：System 和 User 部分是人类的输入提示。如果我们强迫模型去预测「用户会提什么问题」，
-    模型就会把宝贵的参数容量浪费在记忆各种千奇百怪的提问语气上。
-    在 PyTorch 中，通过将标签张量（Labels）中对应 Prompt 的位置填充为特殊数值 <code>-100</code>，
-    底层 <code>torch.nn.CrossEntropyLoss(ignore_index=-100)</code> 会自动跳过这些位置，
-    实现 100% 聚焦于「如何输出高品质回答」。
+    <strong>实战结论</strong>：在 Google Colab 免费或 Pro 标配的 16GB T4 上，全参数微调是绝对不可能运行的物理禁区；
+    而采用 QLoRA 时，整个 1.5B 模型的训练显存被压缩到了 <strong>2.1 GB 左右</strong>，剩余近 14 GB 显存允许学生从容探索更大的批大小或更长的提示词。
   </p>
 </section>
 
-<h3>5. 教科书级实操：Google Colab 端到端训练脚本</h3>
+<h3>4. 数据工程：ChatML 掩码机制草稿纸追踪</h3>
 <p>
-  以下 Python 脚本可在 Google Colab（选择 GPU T4 运行时）中直接完整执行：
+  监督微调（SFT）绝对不能把整段文本一视同仁地计算交叉熵损失。
+  若对人类提问的 Prompt 计算损失，模型就会把宝贵的参数容量浪费在记忆「千奇百怪的提问语气」上。
 </p>
 
-<pre><code><span class="cm"># [逐行剖析] 1. 安装微调核心生态三件套</span>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：10-Token 玩具序列损失计算逐位追踪</h4>
+  <p>
+    考虑一个标准的单轮问答对话：
+    用户提问 <code>Hi</code>，模型回复 <code>Hello</code>。
+    在分词器（Tokenizer）应用 ChatML 模板后，编码为如下严格包含 10 个 token 的玩具序列。
+    我们在草稿纸上追踪每一个位置的 <code>input_id</code>、<code>attention_mask</code> 与 <code>labels</code>：
+  </p>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>序列索引 \(t\)</th>
+        <th>Token 文本</th>
+        <th>语义角色</th>
+        <th>input_id</th>
+        <th>attention_mask</th>
+        <th>labels 目标值</th>
+        <th>是否计入 Loss？</th>
+        <th>底层数学与工程原理剖析</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>0</td>
+        <td><code>&lt;|im_start|&gt;</code></td>
+        <td>User 轮次起始</td>
+        <td>151644</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>系统控制符，不参与损失计算</td>
+      </tr>
+      <tr>
+        <td>1</td>
+        <td><code>user</code></td>
+        <td>角色标识符</td>
+        <td>872</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>固定结构标记，无需优化预测概率</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><code>\n</code></td>
+        <td>换行分隔符</td>
+        <td>198</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>格式控制标记，掩码屏蔽</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><code>Hi</code></td>
+        <td>用户真实提问</td>
+        <td>13324</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>人类输入内容，绝对不能惩罚模型的自发预测</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><code>&lt;|im_end|&gt;</code></td>
+        <td>User 轮次终止</td>
+        <td>151645</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>提问结束符，属于 Prompt 范畴</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td><code>\n</code></td>
+        <td>段落换行</td>
+        <td>198</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>提示词与回答的分隔换行</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td><code>&lt;|im_start|&gt;</code></td>
+        <td>Assistant 起始</td>
+        <td>151644</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>由数据流水线生成的前导引导符</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td><code>assistant\n</code></td>
+        <td>助手前缀引导</td>
+        <td>77091</td>
+        <td>1</td>
+        <td><strong>-100</strong></td>
+        <td>否（掩码忽略）</td>
+        <td>引导模型开始作答，仍属于条件上下文</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td><code>Hello</code></td>
+        <td><strong>助手回答正文</strong></td>
+        <td>9707</td>
+        <td>1</td>
+        <td><strong>9707</strong></td>
+        <td><strong>是（反向传播）</strong></td>
+        <td><strong>关键点：交叉熵损失对真实生成内容求导！</strong></td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td><code>&lt;|im_end|&gt;</code></td>
+        <td><strong>助手生成终止</strong></td>
+        <td>151645</td>
+        <td>1</td>
+        <td><strong>151645</strong></td>
+        <td><strong>是（反向传播）</strong></td>
+        <td><strong>关键点：必须计算 EOS 损失，让模型学会停下！</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>交叉熵损失函数的数学形式：</strong></p>
+  <p>
+    在 PyTorch 底层，损失函数调用 <code>torch.nn.CrossEntropyLoss(ignore_index=-100)</code>。
+    对于整条序列，总标量损失定义为：
+  </p>
+  \[ \mathcal{L} = -\frac{1}{\sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100)} \sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100) \log P(x_t \mid x_{<t}) \]
+  <p>
+    其中 \(\mathbb{I}(\cdot)\) 为示性函数，在序列 10 个 token 中，只有 \(t=8\) 与 \(t=9\) 两位满足 \(y_t \ne -100\)。
+    因此归一化分母为 2，损失严格聚焦在「助手如何输出 <code>Hello</code>」以及「何时输出终止符 <code>&lt;|im_end|&gt;</code>」。
+  </p>
+  <p>
+    <strong>为什么第 9 位的 <code>&lt;|im_end|&gt;</code> 必须参与计算损失？</strong>
+    如果将结尾的终止符也误设为 <code>-100</code>，模型在推理生成时将永远无法学会「在回答完毕后主动闭合句子」，
+    最终导致生成陷入无休止的胡言乱语、逻辑复读直到达到最大 token 强制截断。
+  </p>
+</section>
+
+<h3>5. 工业级代码实操：Google Colab 端到端训练脚本</h3>
+<p>
+  以下 Python 脚本可在 Google Colab（支持 T4 或 A100）中直接完整执行。
+  代码内建了对硬件架构的动态探测与兼容性保护：
+</p>
+
+<pre><code><span class="cm"># [步骤 1] 安装微调与量化全生态库</span>
 <span class="cm"># !pip install -q -U transformers datasets peft trl bitsandbytes accelerate</span>
 
 <span class="kw">import</span> torch
@@ -188,93 +399,147 @@ COURSE.register({
 <span class="kw">from</span> peft <span class="kw">import</span> LoraConfig, get_peft_model, prepare_model_for_kbit_training
 <span class="kw">from</span> trl <span class="kw">import</span> SFTTrainer
 
-<span class="cm"># [逐行剖析] 2. 准备指令样本数据集（示例构造 2 条精简样本）</span>
+<span class="cm"># [步骤 2] 动态硬件探测：判断当前 GPU 是否支持原生 bfloat16</span>
+<span class="cm"># A100 (Ampere) 原生支持 bf16；T4 (Turing) 不支持硬件 bf16，必须回退至 float16</span>
+has_bf16 = torch.cuda.is_available() <span class="kw">and</span> torch.cuda.is_bf16_supported()
+compute_dtype = torch.bfloat16 <span class="kw">if</span> has_bf16 <span class="kw">else</span> torch.float16
+print(f<span class="st">"GPU: {torch.cuda.get_device_name(0)}, 计算精度: {compute_dtype}"</span>)
+
+<span class="cm"># [步骤 3] 准备符合 ChatML 规范的微调样本</span>
 train_data = [
     {
         <span class="st">"messages"</span>: [
-            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"你是一个专业的数学与算法分析助手。"</span>},
+            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"你是一个严谨的数学与大模型算法导师。"</span>},
             {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"简述为什么计算图反向传播必须按拓扑逆序执行？"</span>},
-            {<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: <span class="st">"因为根据多元链式法则，父节点必须在其所有消费子节点的局部偏导回传累加完毕后，才能算出自身完整的总导数。"</span>}
+            {<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: <span class="st">"因为根据多元链式法则，任一父节点必须在其全部消费者子节点的局部梯度回传并累加完毕后，才能确定自身完整的全微分总导数。"</span>}
         ]
     },
     {
         <span class="st">"messages"</span>: [
-            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"你是一个专业的数学与算法分析助手。"</span>},
-            {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"什么是 LoRA 的秩 r？"</span>},
-            {<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: <span class="st">"秩 r 代表低秩矩阵分解的瓶颈维度，它约束了模型微调时参数更新量 Delta W 能够探索的内在特征子空间维度。"</span>}
+            {<span class="st">"role"</span>: <span class="st">"system"</span>, <span class="st">"content"</span>: <span class="st">"你是一个严谨的数学与大模型算法导师。"</span>},
+            {<span class="st">"role"</span>: <span class="st">"user"</span>, <span class="st">"content"</span>: <span class="st">"简述 LoRA 中矩阵 B 初始化为 0 的数学目的。"</span>},
+            {<span class="st">"role"</span>: <span class="st">"assistant"</span>, <span class="st">"content"</span>: <span class="st">"令 B=0 可以保证初始增量矩阵 Delta W=BA=0，使微调在第 0 步严格等价于原始基座，消除随机初始化带来的破坏性震荡。"</span>}
         ]
     }
 ]
 dataset = Dataset.from_list(train_data)
 
-<span class="cm"># [逐行剖析] 3. 配置 NF4 四位量化参数（将 1.5B 权重压入 0.8GB 显存）</span>
+<span class="cm"># [步骤 4] 配置 NF4 四位量化与双重量化参数</span>
 model_id = <span class="st">"Qwen/Qwen2.5-1.5B-Instruct"</span>
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=<span class="kw">True</span>,
-    bnb_4bit_quant_type=<span class="st">"nf4"</span>,               <span class="cm"># 采用对正态分布最优的 NormalFloat4 分位质量化</span>
-    bnb_4bit_compute_dtype=torch.bfloat16,   <span class="cm"># 矩阵乘法计算精度采用 bfloat16 避免溢出</span>
-    bnb_4bit_use_double_quant=<span class="kw">True</span>           <span class="cm"># 开启双重量化，进一步节省量化常数显存</span>
+    bnb_4bit_quant_type=<span class="st">"nf4"</span>,               <span class="cm"># 采用等分位点最优 NF4</span>
+    bnb_4bit_compute_dtype=compute_dtype,    <span class="cm"># 动态指定计算精度，规避 T4 上的 bf16 异常</span>
+    bnb_4bit_use_double_quant=<span class="kw">True</span>           <span class="cm"># 开启双重量化，每参数再省 0.373 bits</span>
 )
 
-<span class="cm"># [逐行剖析] 4. 加载基座分词器与量化模型</span>
+<span class="cm"># [步骤 5] 加载分词器与量化基座</span>
 tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=<span class="kw">True</span>)
-tokenizer.pad_token = tokenizer.eos_token     <span class="cm"># 补全 padding token 设定</span>
+tokenizer.pad_token = tokenizer.eos_token
 
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     quantization_config=bnb_config,
-    device_map=<span class="st">"auto"</span>,                        <span class="cm"># 自动映射至当前 Colab GPU</span>
+    device_map=<span class="st">"auto"</span>,
     trust_remote_code=<span class="kw">True</span>
 )
 
-<span class="cm"># [逐行剖析] 5. 为量化模型启用梯度检查点与类型转换预处理</span>
+<span class="cm"># [步骤 6] 关键预处理：关闭 use_cache 并启用梯度检查点</span>
+model.config.use_cache = <span class="kw">False</span>                <span class="cm"># 避坑必加：防止与梯度检查点发生图冲突</span>
 model = prepare_model_for_kbit_training(model)
 
-<span class="cm"># [逐行剖析] 6. 挂载 LoRA 适配器配置</span>
+<span class="cm"># [步骤 7] 挂载 LoRA 适配器</span>
 peft_config = LoraConfig(
-    r=16,                                    <span class="cm"># 内在低秩维度设定为 16</span>
-    lora_alpha=32,                           <span class="cm"># 缩放因子 alpha=32（常设为 2*r）</span>
+    r=16,
+    lora_alpha=32,
     target_modules=[<span class="st">"q_proj"</span>, <span class="st">"k_proj"</span>, <span class="st">"v_proj"</span>, <span class="st">"o_proj"</span>, <span class="st">"gate_proj"</span>, <span class="st">"up_proj"</span>, <span class="st">"down_proj"</span>],
     lora_dropout=0.05,
     bias=<span class="st">"none"</span>,
     task_type=<span class="st">"CAUSAL_LM"</span>
 )
 model = get_peft_model(model, peft_config)
-model.print_trainable_parameters()           <span class="cm"># 打印验证：可训练参数量应仅约占 0.2%</span>
+model.print_trainable_parameters()           <span class="cm"># 打印验证：可训练参数量仅约 1.2%</span>
 
-<span class="cm"># [逐行剖析] 7. 训练超参数设定</span>
+<span class="cm"># [步骤 8] 设置训练超参数</span>
 training_args = TrainingArguments(
     output_dir=<span class="st">"./qwen1.5b-lora-output"</span>,
-    per_device_train_batch_size=2,          <span class="cm"># 单卡批大小</span>
-    gradient_accumulation_steps=4,           <span class="cm"># 梯度累积 4 步，等效总 Batch Size = 8</span>
-    learning_rate=2e-4,                      <span class="cm"># LoRA 微调学习率通常显著大于全参数预训练（2e-4 vs 2e-5）</span>
-    lr_scheduler_type=<span class="st">"cosine"</span>,              <span class="cm"># 余弦衰减调度</span>
-    warmup_ratio=0.1,                        <span class="cm"># 10% 步数用于 Warmup 线性预热</span>
+    per_device_train_batch_size=2,
+    gradient_accumulation_steps=4,           <span class="cm"># 等效 Batch Size = 8</span>
+    learning_rate=2e-4,
+    lr_scheduler_type=<span class="st">"cosine"</span>,
+    warmup_ratio=0.1,
     logging_steps=1,
-    max_steps=20,                            <span class="cm"># 实战演示设定 20 步</span>
-    fp16=<span class="kw">False</span>,
-    bf16=torch.cuda.is_bf16_supported(),     <span class="cm"># GPU 支持则优先开启 bf16</span>
+    max_steps=20,
+    fp16=<span class="kw">not</span> has_bf16,                       <span class="cm"># T4 开启 fp16</span>
+    bf16=has_bf16,                           <span class="cm"># A100 开启 bf16</span>
+    optim=<span class="st">"paged_adamw_8bit"</span>,                 <span class="cm"># 8-bit 分页优化器，进一步节省优化器状态显存</span>
     save_strategy=<span class="st">"no"</span>
 )
 
-<span class="cm"># [逐行剖析] 8. 启动 SFT 训练循环</span>
+<span class="cm"># [步骤 9] 启动 SFT 训练循环</span>
+<span class="cm"># 注意：前面已显式调用 get_peft_model，此处无需再传 peft_config 避免双重包裹；</span>
+<span class="cm"># 必须显式传入 tokenizer 以便 TRL 解析 ChatML 对话模板并完成 Label Masking 掩码打包</span>
 trainer = SFTTrainer(
     model=model,
     train_dataset=dataset,
     args=training_args,
-    peft_config=peft_config
+    tokenizer=tokenizer
 )
 trainer.train()
 
-<span class="cm"># [逐行剖析] 9. 仅保存极轻量的 LoRA 权重适配器（仅几十 MB）</span>
+<span class="cm"># [步骤 10] 仅保存极轻量的 LoRA 权重</span>
 trainer.model.save_pretrained(<span class="st">"./my_lora_adapter"</span>)
 tokenizer.save_pretrained(<span class="st">"./my_lora_adapter"</span>)
-print(<span class="st">"云端微调完毕！LoRA 适配器权重已成功保存。"</span>)</code></pre>
+print(<span class="st">"微调完成！轻量级 Adapter 权重已导出。"</span>)</code></pre>
 
-<h3>6. 落地部署：权重合并与导出为 4-bit GGUF</h3>
+<h3>6. Colab 工业级避坑指南：三大核心报错与一行命令对策</h3>
 <p>
-  微调完成后，你得到的是一个只有几十兆字节的 <code>adapter_model.safetensors</code>。
-  如何在本地单机无网环境实现几十毫秒的流畅推理？
+  在 Google Colab 上跑大模型训练，初学者几乎 100% 会遭遇以下 3 种典型暗礁。请熟记成因与一行命令对策：
+</p>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>避坑指南：Colab T4 / A100 实战三大典型暗礁与对策</h4>
+  <p><strong>暗礁 1：T4 GPU 硬件不支持原生 bfloat16 导致的极慢或报错</strong></p>
+  <ul>
+    <li><strong>根因分析</strong>：Google Colab 免费或默认分配的 T4 GPU 属于英伟达 Turing 架构（算力 Compute Capability 7.5），
+        在硬件底层<strong>没有任何原生 BF16 张量核心指令</strong>！
+        若在代码中强行设置 <code>bf16=True</code> 或 <code>bnb_4bit_compute_dtype=torch.bfloat16</code>，
+        PyTorch 会被迫使用低效的软件层仿真，微调速度比正常慢 10 ~ 20 倍，且经常在反向传播时抛出 <code>CUDA error: illegal instruction</code>。
+        而在 A100（Ampere 架构，算力 8.0）上，硬件原生支持 BF16。</li>
+    <li><strong>一行代码对策（动态自适应回退）</strong>：
+      <code>compute_dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16</code>
+    </li>
+  </ul>
+
+  <p><strong>暗礁 2：bitsandbytes 驱动库动态链接缺失或 CUDA Setup 报错</strong></p>
+  <ul>
+    <li><strong>根因分析</strong>：Google Colab 环境经常静默更新宿主机底层英伟达驱动和 CUDA 工具包版本。
+        当系统预装的 <code>bitsandbytes</code> 二进制动态库（如 <code>libbitsandbytes_cuda*.so</code>）与当前的驱动版本不兼容时，
+        在执行 <code>import bitsandbytes</code> 或加载 4-bit 量化模型时会报出 <code>CUDA Setup failed: libbitsandbytes_cuda*.so: cannot open shared object file</code>。</li>
+    <li><strong>一行终端命令对策（无缓存重装与环境自检）</strong>：
+      <code>!pip install -U bitsandbytes --no-cache-dir</code><br/>
+      可附加执行自检诊断命令验证动态链接库是否就绪：
+      <code>!python -m bitsandbytes</code>
+    </li>
+  </ul>
+
+  <p><strong>暗礁 3：梯度检查点与 use_cache 冲突引发运行时崩溃</strong></p>
+  <ul>
+    <li><strong>根因分析</strong>：Hugging Face 的因果语言模型在默认配置下会开启 <code>model.config.use_cache = True</code>，
+        用于在推理自回归阶段缓存历史 Key/Value 状态。
+        但在微调训练阶段开启 <code>gradient_checkpointing_enable()</code>（梯度检查点）后，
+        前向传播会丢弃中间激活值并在反向传播时重新计算，两者在计算图追踪逻辑上互斥，
+        会直接抛出著名的致命错误：<code>RuntimeError: use_cache=True is incompatible with gradient checkpointing. Set use_cache=False...</code>。</li>
+    <li><strong>一行代码对策</strong>：
+      <code>model.config.use_cache = False</code>
+    </li>
+  </ul>
+</section>
+
+<h3>7. 落地部署：权重合并与导出为 4-bit GGUF</h3>
+<p>
+  微调完成后，保存在云端的只有数十兆字节的 <code>adapter_model.safetensors</code>。
+  如何在没有显卡的本地普通笔记本上实现毫秒级的高速离线推理？
 </p>
 
 <section class="blk blk-m">
@@ -284,11 +549,12 @@ print(<span class="st">"云端微调完毕！LoRA 适配器权重已成功保存
     根据矩阵乘法的分配律，直接将 LoRA 权重一次性加回基座权重：
   </p>
   \[ W_{\text{merged}} = W_0 + \frac{\alpha}{r} (B \cdot A) \]
-  <p>在 Python 中只需两行代码：</p>
+  <p>在 Python 中只需两行核心合并代码，并务必同时导出分词器元数据：</p>
 <pre><code><span class="kw">from</span> peft <span class="kw">import</span> PeftModel
 base_model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map=<span class="st">"cpu"</span>)
 merged_model = PeftModel.from_pretrained(base_model, <span class="st">"./my_lora_adapter"</span>).merge_and_unload()
-merged_model.save_pretrained(<span class="st">"./qwen1.5b-merged"</span>)</code></pre>
+merged_model.save_pretrained(<span class="st">"./qwen1.5b-merged"</span>)
+tokenizer.save_pretrained(<span class="st">"./qwen1.5b-merged"</span>)     <span class="cm"># 必加：保存分词器元数据，防止 llama.cpp convert 找不到词表</span></code></pre>
 </section>
 
 <section class="blk blk-lab">
@@ -315,29 +581,31 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在全参数微调一个 1.5B 模型时，如果使用 AdamW 优化器，仅优化器状态本身就需要消耗多少 GB 显存？</p>
+  <p class="q">在全参数微调一个 1.54B 参数模型时，若使用标准 AdamW 优化器，仅优化器状态本身就需要消耗多少显存？</p>
   <ul class="opts">
     <li>约 3.08 GB</li>
     <li>约 6.16 GB</li>
-    <li data-ok>约 18.48 GB</li>
+    <li data-ok>约 17.25 GB ~ 18.48 GB</li>
     <li>不到 1 GB</li>
   </ul>
   <p class="why">
-    AdamW 需要维护每个参数的 FP32 一阶动量（4 字节）、FP32 二阶动量（4 字节）以及 FP32 主权重备份（4 字节），合计每参数 12 字节。对于 1.54B 参数：\(1.54 \times 12 \approx 18.48\text{ GB}\)。
+    标准 AdamW 需要维护每个可训练参数的一阶动量（FP32，4 字节）、二阶动量（FP32，4 字节）以及主权重备份（FP32，4 字节），合计每参数 12 字节。
+    对于 1.54B 参数：\(1.5437 \times 10^9 \times 12 \text{ bytes} \approx 17.25 \text{ GB} \sim 18.48 \text{ GB}\)。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在 LoRA 微调中，若将输入投影矩阵 \(W \in \mathbb{R}^{2048 \times 2048}\) 分解为 \(B \cdot A\)，设定低秩 \(r = 16\)，参数量缩减到了原来的大约多少？</p>
+  <p class="q">在 LoRA 微调中，若隐层投影矩阵 \(W \in \mathbb{R}^{1536 \times 1536}\)，设定低秩 \(r = 16\)，该层外挂旁路的参数量压缩到了原来的大约多少？</p>
   <ul class="opts">
     <li>50%</li>
     <li>10%</li>
-    <li data-ok>约 1.56%</li>
+    <li data-ok>约 2.08%</li>
     <li>0.01%</li>
   </ul>
   <p class="why">
-    原矩阵参数量为 \(2048 \times 2048 = 4,194,304\)。LoRA 参数量为 \((2048 + 2048) \times 16 = 65,536\)。比例为 \(\frac{65536}{4194304} = \frac{2 \times 16}{2048} = \frac{32}{2048} = \frac{1}{64} \approx 1.56\%\)。
+    原矩阵参数量为 \(1536 \times 1536 = 2,359,296\)。LoRA 旁路矩阵参数量为 \((1536 \times 16) + (16 \times 1536) = 49,152\)。
+    压缩比例为 \(\frac{49152}{2359296} = \frac{2 \times 16}{1536} = \frac{32}{1536} \approx 2.08\%\)。
   </p>
 </div>
 
@@ -346,12 +614,13 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
   <p class="q">为什么 LoRA 的矩阵 \(B\) 在初始化时必须全部置为 0，而矩阵 \(A\) 采用高斯分布初始化？</p>
   <ul class="opts">
     <li>为了让矩阵乘法能够并行计算</li>
-    <li data-ok>保证初始增量 \(\Delta W = B \cdot A = 0\)，使得微调开始瞬间模型完全等价于预训练基座模型</li>
+    <li data-ok>保证初始增量 \(\Delta W = B \cdot A = 0\)，使得微调开始瞬间模型完全等价于预训练基座模型，实现平滑起步</li>
     <li>防止梯度反向传播时出现除以 0</li>
     <li>这是 PyTorch 的强制命名规则</li>
   </ul>
   <p class="why">
-    若 \(B\) 与 \(A\) 均为随机初始化，初始 \(\Delta W\) 将是非零随机噪声，微调一开始就会严重破坏基座模型已学到的权重分布。令 \(B=0\) 保证了初始步 \(\Delta W = 0\)，平滑起步。
+    若 \(B\) 与 \(A\) 均为随机初始化，初始 \(\Delta W\) 将是非零随机噪声，微调一开始就会严重破坏基座模型已学到的权重分布。
+    令 \(B=0\) 保证了初始步 \(\Delta W = 0\)，平滑起步。
   </p>
 </div>
 
@@ -365,35 +634,52 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
     <li>通知分词器截断句子</li>
   </ul>
   <p class="why">
-    在 PyTorch 交叉熵损失函数中，<code>ignore_index=-100</code> 会忽略所有标签为 -100 的位置。这样模型反向传播时只对生成的助手答案计算交叉熵，避免模型浪费参数去强行拟合用户五花八门的提问方式。
+    在 PyTorch 交叉熵损失函数中，<code>ignore_index=-100</code> 会忽略所有标签为 -100 的位置。
+    这样模型反向传播时只对生成的助手答案计算交叉熵，避免模型浪费参数去强行拟合用户五花八门的提问方式。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 5</div>
-  <p class="q">在将 LoRA 适配器（Adapter）合并进基座模型后，为什么在本地部署推理时不需要保留 PEFT 库？</p>
+  <p class="q">在 ChatML 掩码机制中，为什么 Assistant 回复末尾的 <code>&lt;|im_end|&gt;</code> 终止符必须保留原 token ID 参与交叉熵损失计算？</p>
   <ul class="opts">
-    <li>因为 PEFT 库不支持 CPU 推理</li>
-    <li data-ok>因为矩阵满足分配律，\(W_{\text{merged}} = W_0 + \frac{\alpha}{r} BA\) 已经代数合并为单个稠密权重矩阵，结构与原基座完全相同</li>
-    <li>因为 LoRA 参数在合并后被删除了</li>
-    <li>因为必须转为 Python 字典才能读取</li>
+    <li>为了通知系统释放 GPU 显存</li>
+    <li data-ok>让模型学会何时主动停止输出，防止推理时陷入无限循环生成与无意义复读</li>
+    <li>因为终止符占用 2 个字节</li>
+    <li>为了加速反向传播求导</li>
   </ul>
   <p class="why">
-    \(W_0 x + \Delta W x = (W_0 + \Delta W) x\)。合并操作直接在离线状态下把低秩增量矩阵乘积累加进了原本的权重矩阵中，前向传播只需一次标准矩阵乘法，完全摆脱了对 PEFT 动态分支代码的依赖。
+    若掩码掉终止符，模型在生成时就永远学不会「在此处停止输出」的条件概率，推理时将一直疯狂续写乱码，直到被最大 token 长度强行打断。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 6</div>
-  <p class="q">为什么 QLoRA 可以把 1.5B 模型的基座显存从 3.08GB（FP16）直接压缩至约 0.77GB？</p>
+  <p class="q">QLoRA 中的双重量化（Double Quantization）技术，其核心数学与工程收益是什么？</p>
   <ul class="opts">
-    <li>删除了 75% 的层数</li>
-    <li>把序列上下文长度截断了</li>
-    <li data-ok>采用了 NF4（NormalFloat4）4-bit 数据类型，每个参数仅占用 4 位（0.5 字节），存储空间缩减为原来的四分之一</li>
-    <li>使用了稀疏注意力剪枝</li>
+    <li>把浮点数从 16 位直接转为 2 位</li>
+    <li data-ok>对第一层量化缩放因子再次进行 8 位量化，将每个参数平摊的量化常量开销从 0.5 位降低至约 0.127 位</li>
+    <li>将模型的隐藏层数量削减一半</li>
+    <li>让优化器学习率自动翻倍</li>
   </ul>
   <p class="why">
-    FP16 每个浮点数占用 16 位（2 字节），而 NF4 针对预训练权重近似正态分布的先验特性，用 4 位二进制（0.5 字节）精准表示 16 个信息分位点。每个参数显存开销从 2 字节降至 0.5 字节，压缩比严格为 \(4:1\)。
+    常规分块量化（块大小 64）使用 FP32 存储缩放因子，占用 \(32/64 = 0.5 \text{ bits/param}\)。
+    双重量化对缩放因子按块大小 256 进行 8 位 FP8 二次量化，平摊开销降至 \(8/64 + 32/(64 \times 256) \approx 0.127 \text{ bits/param}\)，每参数节省约 0.373 位显存。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">在 Google Colab 默认分配的 T4 GPU 上微调时，如果将计算精度强行指定为 <code>bfloat16</code>，最可能会导致什么问题？</p>
+  <ul class="opts">
+    <li>显存占用暴增 10 倍</li>
+    <li data-ok>因为 T4 属于 Turing 架构无原生硬件 BF16 指令，会触发软件层模拟导致训练极度缓慢甚至报非法指令错误</li>
+    <li>自动将模型参数重置为 0</li>
+    <li>导致 Colab 账号被封禁</li>
+  </ul>
+  <p class="why">
+    英伟达 T4 的算力架构为 Compute Capability 7.5（Turing），缺乏原生硬件 BF16 算子支持；
+    只有 Ampere 及更高架构（如 A100 / H100）才原生支持 BF16。T4 上必须使用 float16。
   </p>
 </div>
 `

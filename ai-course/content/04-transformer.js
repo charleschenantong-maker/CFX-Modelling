@@ -66,17 +66,42 @@ COURSE.register({
   </p>
   \[ x_L = x_0 + \sum_{l=0}^{L-1} F_l\big(\mathrm{RMSNorm}(x_l)\big) \]
   <p>
-    根据全微分法则，计算最终损失 \(\mathcal{L}\) 对最底层输入 \(x_0\) 的梯度：
+    把 \(N_l=\mathrm{RMSNorm}(x_l)\)，把 \(J_l=\partial F_l/\partial N_l\) 记作子层对归一化输入的雅可比矩阵，再把 \(R_l=\partial N_l/\partial x_l\) 记作归一化的雅可比矩阵。对第 \(l\) 层逐点求导，乘积法则给出：
   </p>
-  \[ \frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L} \frac{\partial x_L}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L} \left( \mathbf{I} + \sum_{l=0}^{L-1} \frac{\partial F_l}{\partial x_0} \right) \]
+  \[ \frac{\partial x_{l+1}}{\partial x_l}=\mathbf{I}+J_lR_l \]
   <p>
-    <strong>数学精义剖析</strong>：
-    括号内恒定包含一个<strong>单位矩阵 \(\mathbf{I}\)</strong>！
-    这意味着无论网络堆叠到 32 层还是 128 层，损失梯度都有一条畅通无阻、不衰减也不爆炸的「绿色通道」直接直通最底层 \(x_0\)。
-    相比之下，经典的 Post-norm 形式为 \(x_{l+1} = \mathrm{LN}(x_l + F_l(x_l))\)，
-    求导时反向梯度必须连乘每一层的归一化雅可比矩阵 \(\prod_{l=0}^{L-1} J_{\mathrm{LN}}\)，
-    在深层网络中极易发生指数级梯度消失或爆炸，导致模型极度脆弱。
+    沿链式法则，深度 \(L\) 的精确输入输出雅可比是有序乘积（右侧先作用）：
   </p>
+  \[ \frac{\partial x_L}{\partial x_0}=\prod_{l=0}^{L-1}\big(\mathbf{I}+J_lR_l\big) \]
+  <p>
+    展开这个非交换矩阵乘积，前几项为
+  </p>
+  \[ \mathbf{I}+\sum_l J_lR_l+\sum_{i<j}(J_jR_j)(J_iR_i)+\cdots \]
+  <p>
+    <strong>数学精义剖析</strong>：单位矩阵项确实提供一条不经过子层的直接梯度通道，但它不保证其余项必然有界；初始化、归一化尺度与学习率仍决定总乘积的谱范数。若损失梯度写成行向量，则
+  </p>
+  \[ \frac{\partial \mathcal{L}}{\partial x_0}=\frac{\partial \mathcal{L}}{\partial x_L}\prod_{l=0}^{L-1}\big(\mathbf{I}+J_lR_l\big) \]
+  <p>
+    经典 Post-norm 则为 \(x_{l+1}=\mathrm{LN}(x_l+F_l(x_l))\)，其单层雅可比为 \(J_{\mathrm{LN},l}(\mathbf{I}+J_{F,l})\)，所以总梯度还要连乘每层的归一化雅可比。Pre-norm 的恒等项改善了深层优化条件；“不会衰减或爆炸”只有在额外的范数界与步长条件下才可推出，不能从结构式单独断言。
+  </p>
+</section>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算：残差流、RMSNorm 与 SwiGLU</h4>
+  <p><strong>前置定义。</strong>欧氏空间 \(\mathbb{R}^d\) 中的向量用方括号列出坐标；仿射变换写成 \(y=Ax+b\)；残差流在每个子层后做向量相加；RMSNorm 只按坐标平方的平均值缩放向量：</p>
+  \[ \mathrm{RMS}(x)=\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\varepsilon},\qquad \mathrm{RMSNorm}(x)=\frac{x}{\mathrm{RMS}(x)}\odot\gamma \]
+  <p><strong>1. 残差流与 RMSNorm 的手算。</strong>取 \(x=[2.0,-1.0,3.0]\)，先平方并求平均：</p>
+  \[ x_1^2+x_2^2+x_3^2=4+1+9=14,\qquad \frac{14}{3}=4.6667 \]
+  \[ \mathrm{RMS}(x)=\sqrt{14/3}\approx2.1602 \]
+  <p>先令可学习缩放 \(\gamma=[1,1,1]\)，忽略很小的 \(\varepsilon\)，逐坐标相除：</p>
+  \[ \mathrm{RMSNorm}(x)\approx[2/2.1602,-1/2.1602,3/2.1602]=[0.9258,-0.4629,1.3887] \]
+  <p>若子层输出为 \(F=[0.1,-0.2,0.3]\)，残差相加就是 \(x+F=[2.1,-1.2,3.3]\)。RMSNorm 不计算均值，也不做减均值的平移；LayerNorm 还要先求 \(\mu\)，再计算方差并做 \(x-\mu\)，所以 RMSNorm 少了一次均值归约和一次逐坐标平移。</p>
+  <p><strong>2. SwiGLU 门控前馈的手算。</strong>取 \(x=[1,2]\)，令 \(W_{\text{gate}}=I\)、\(W_{\text{up}}=\begin{bmatrix}0&1\\1&0\end{bmatrix}\)、\(W_{\text{down}}=I\)。于是</p>
+  \[ g=W_{\text{gate}}x=[1,2],\qquad u=W_{\text{up}}x=[2,1] \]
+  \[ \mathrm{SiLU}(z)=\frac{z}{1+e^{-z}},\qquad \mathrm{SiLU}(g)\approx[0.7311,1.7616] \]
+  \[ \mathrm{SiLU}(g)\odot u\approx[0.7311\times2,1.7616\times1]=[1.4622,1.7616] \]
+  \[ \mathrm{SwiGLU}(x)=W_{\text{down}}\big(\mathrm{SiLU}(g)\odot u\big)\approx[1.4622,1.7616] \]
+  <p>门控支路决定每个通道放大或压低多少，上升支路提供待筛选的特征，最后由下降矩阵投回残差流维度。</p>
 </section>
 
 <h3>2. 核心参数量法则：\(12 L d^2 + |\mathcal{V}| d\)</h3>
@@ -247,19 +272,21 @@ COURSE.register({
 
 <span class="kw">class</span> <span class="hi">TransformerBlock</span>(nn.Module):
     <span class="st">"""Pre-norm 残差流 Transformer 核心单层块"""</span>
-    <span class="kw">def</span> __init__(self, dim, n_head, hidden_dim):
+    <span class="kw">def</span> __init__(self, dim, n_head, hidden_dim, block_size=2048):
         <span class="kw">super</span>().__init__()
         self.norm1 = RMSNorm(dim)
         <span class="cm"># 多头注意力模块（使用 PyTorch 内置高效算子）</span>
         self.attn = nn.MultiheadAttention(dim, n_head, batch_first=True)
         self.norm2 = RMSNorm(dim)
         self.mlp = SwiGLU(dim, hidden_dim)
+        self.register_buffer("causal_mask", torch.triu(torch.ones(block_size, block_size, dtype=torch.bool), diagonal=1), persistent=False)
 
     <span class="kw">def</span> forward(self, x):
         <span class="cm"># 动态形状: 输入残差流 x -> (B, T, C)</span>
         <span class="cm"># [逐行剖析] 1. Pre-norm 注意力分支：归一化在分支内进行，保留主干残差流纯净直通</span>
         norm_x = self.norm1(x)                                          <span class="cm"># (B, T, C)</span>
-        attn_out, _ = self.attn(norm_x, norm_x, norm_x, need_weights=False)  <span class="cm"># (B, T, C)</span>
+        causal = self.causal_mask[:x.size(1), :x.size(1)] <span class="cm"># [逐行剖析] 上三角为 True，表示禁止 query 读取未来 key。</span>
+        attn_out, _ = self.attn(norm_x, norm_x, norm_x, attn_mask=causal, need_weights=False)  <span class="cm"># [逐行剖析] (B,T,C) → (B,T,C)，mask 保证自回归因果性。</span>
         x = x + attn_out                                                <span class="cm"># 残差相加: (B, T, C)</span>
         
         <span class="cm"># [逐行剖析] 2. Pre-norm 前馈分支：第二重残差直通，梯度无衰减穿透深层网络</span>
@@ -268,12 +295,13 @@ COURSE.register({
 
 <span class="kw">class</span> <span class="hi">MinimalGPT</span>(nn.Module):
     <span class="st">"""纯正因果自回归语言模型完整骨干架构"""</span>
-    <span class="kw">def</span> __init__(self, vocab_size, dim, n_layer, n_head):
+    <span class="kw">def</span> __init__(self, vocab_size, dim, n_layer, n_head, block_size=2048):
         <span class="kw">super</span>().__init__()
         self.tok_emb = nn.Embedding(vocab_size, dim)
+        self.pos_emb = nn.Embedding(block_size, dim)  <span class="cm"># 动态形状: (block_size, dim)</span>
         hidden_dim = int(8 * dim / 3)  <span class="cm"># LLaMA 标准 SwiGLU 隐藏层宽度准则 (2/3 * 4d)</span>
         self.layers = nn.ModuleList([
-            TransformerBlock(dim, n_head, hidden_dim) for _ in range(n_layer)
+            TransformerBlock(dim, n_head, hidden_dim, block_size) for _ in range(n_layer)
         ])
         self.final_norm = RMSNorm(dim)
         self.lm_head = nn.Linear(dim, vocab_size, bias=False)
@@ -284,7 +312,9 @@ COURSE.register({
     <span class="kw">def</span> forward(self, idx):
         <span class="cm"># 动态形状: 输入 idx -> (B, T) [int64]</span>
         <span class="cm"># 查表获得初始词嵌入: x -> (B, T, C) [float32]</span>
-        x = self.tok_emb(idx)
+        T = idx.size(1)
+        pos = torch.arange(0, T, dtype=torch.long, device=idx.device)
+        x = self.tok_emb(idx) + self.pos_emb(pos)  <span class="cm"># 残差流注入空间位置信息</span>
         for layer in self.layers:
             x = layer(x)                                                <span class="cm"># 逐层演化: (B, T, C)</span>
         x = self.final_norm(x)                                          <span class="cm"># 终层归一化: (B, T, C)</span>

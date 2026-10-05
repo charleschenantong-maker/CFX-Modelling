@@ -76,6 +76,28 @@ COURSE.register({
   实践中 \(T = 2\text{–}10\)，需要在小验证集上试。
 </p>
 
+<section class="blk blk-m">
+  <h4><span class="ic">✎</span>草稿纸演算：高温极限为什么变成 Logits MSE</h4>
+  <p><strong>先定符号：</strong>知识蒸馏是让学生模型 (S) 学习教师模型 (T) 的输出分布；教师与学生 logits 为 (z^T,z^S)，类别数为 (K)。温度 Softmax 为</p>
+  \[ p_i(z;\tau)=\frac{\exp(z_i/\tau)}{\sum_{j=1}^{K}\exp(z_j/\tau)} \]
+  <p>令 \(\bar z=K^{-1}\sum_j z_j\)，并写 \(\epsilon=1/\tau\)。泰勒草稿：</p>
+  \[ \exp(\epsilon z_i)=1+\epsilon z_i+O(\epsilon^2),\qquad \sum_j\exp(\epsilon z_j)=K+\epsilon K\bar z+O(\epsilon^2) \]
+  \[ p_i(z;\tau)=\frac{1}{K}+\frac{\epsilon}{K}(z_i-\bar z)+O(\epsilon^2) \]
+  <p>把两组概率代入 KL，并用 \(\log(1+x)=x-x^2/2+O(x^3)\)，一阶项相消：</p>
+  \[ D_{\mathrm{KL}}(p^T\|p^S)\approx\frac{1}{2K\tau^2}\sum_{i=1}^{K}\left[(z_i^T-\bar z^T)-(z_i^S-\bar z^S)\right]^2 \]
+  \[ D_{\mathrm{KL}}(p^T\|p^S)\approx\frac{1}{2\tau^2}\operatorname{MSE}(z^T-\bar z^T,z^S-\bar z^S) \]
+  <p>所以 \(\tau\to\infty\) 时，软目标损失主项是中心化 logits 的 MSE 乘 \(1/(2\tau^2)\)，其学生侧梯度为</p>
+  \[ \nabla_{z^S}D_{\mathrm{KL}}\approx\frac{z^S-\bar z^S-z^T+\bar z^T}{K\tau^2} \]
+  <p>这就是损失中乘 \(\tau^2\) 的尺度补偿理由。</p>
+  <h5>三类小数字：温度如何平滑概率</h5>
+  <p>取 logits \(z=[2,1,0]\)：</p>
+  <ol>
+    <li>\(\tau=1\)：\(e^z=[7.389,2.718,1]\)，和为 \(11.107\)，故 \(p\approx[0.665,0.245,0.090]\)。</li>
+    <li>\(\tau=2\)：\(z/2=[1,0.5,0]\)，\(e^{z/2}=[2.718,1.649,1]\)，和为 \(5.367\)，故 \(p\approx[0.506,0.307,0.186]\)。</li>
+    <li>\(\tau\to\infty\)：\(e^{z_i/\tau}\to1\)，三类概率都趋近 \(1/3\)。</li>
+  </ol>
+</section>
+
 <h3>2. 语言模型上的四条路线</h3>
 <table class="tbl">
   <thead><tr><th>路线</th><th>学生看到什么</th><th>需要白盒教师？</th><th>典型场景</th></tr></thead>

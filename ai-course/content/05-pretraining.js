@@ -144,7 +144,7 @@ COURSE.register({
 <h3>3. 学习率曲线：warmup + 余弦</h3>
 \[
 \eta(t) = \begin{cases}
-\eta_{\max}\cdot \dfrac{t}{t_{\text{warm}}} & t < t_{\text{warm}} \\[6pt]
+\eta_{\max}\cdot \dfrac{t}{t_{\text{warm}}} & t < t_{\text{warm}} \\
 \eta_{\min} + \tfrac{1}{2}(\eta_{\max}-\eta_{\min})\left(1+\cos\left(\pi \dfrac{t-t_{\text{warm}}}{T-t_{\text{warm}}}\right)\right) & t \ge t_{\text{warm}}
 \end{cases}
 \]
@@ -153,6 +153,19 @@ COURSE.register({
   <li><strong>为什么用余弦</strong>：末期小步长让模型稳定收敛到更平坦的区域，下游微调更稳。</li>
   <li><strong>学习率与其他超参的关系</strong>：批量大小翻倍时，学习率通常按比例或按平方根缩放；峰值学习率随模型宽度大致按 \(1/\sqrt{d}\) 缩小。</li>
 </ul>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算：余弦退火学习率</h4>
+  <p><strong>前置定义。</strong>学习率退火是在训练后段逐步减小步长；余弦函数具有周期性，且 \(\cos 0=1\)、\(\cos(\pi/2)=0\)、\(\cos\pi=-1\)，因此可以平滑地从峰值过渡到下限。取 \(\eta_{\max}=3\times10^{-4}\)、\(\eta_{\min}=3\times10^{-5}\)、\(t_{\text{warm}}=100\)、\(T=1000\)。</p>
+  <p><strong>\(t=50\)：warmup 段。</strong></p>
+  \[ \eta(50)=3\times10^{-4}\cdot\frac{50}{100}=1.5\times10^{-4} \]
+  <p><strong>\(t=100\)：刚好进入余弦段。</strong>余弦相位为零，所以仍在峰值：</p>
+  \[ \eta(100)=3\times10^{-5}+\frac{1}{2}(2.7\times10^{-4})(1+\cos0)=3\times10^{-4} \]
+  <p><strong>\(t=550\)：余弦段中点。</strong>相位为 \(\pi(550-100)/(1000-100)=\pi/2\)：</p>
+  \[ \eta(550)=3\times10^{-5}+\frac{1}{2}(2.7\times10^{-4})(1+0)=1.65\times10^{-4} \]
+  <p><strong>\(t=1000\)：训练末点。</strong>相位为 \(\pi\)，余弦值为 \(-1\)：</p>
+  \[ \eta(1000)=3\times10^{-5}+\frac{1}{2}(2.7\times10^{-4})(1-1)=3\times10^{-5} \]
+</section>
 
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>三种典型爆炸，以及正确处理</h4>
@@ -195,6 +208,21 @@ COURSE.register({
     推理成本正比于使用量。当模型要被调用 \(10^{12}\) 次以上时，把 \(N\) 换小、把 \(D\) 换大几乎总是划算的。
     <strong>这条推理链条值得写进你的申请材料——它展示了「用微积分做工程决策」的能力。</strong>
   </p>
+</section>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">✎</span>草稿纸演算：Chinchilla 的解析极值点</h4>
+  <p><strong>前置定义。</strong>幂律表示损失随参数量 \(N\) 和数据量 \(D\) 按幂次下降；固定 FLOPs 预算 \(C=6ND\) 时，\(N\) 与 \(D\) 不能同时任意增加。用一个常数 \(K=C/6\)，约束写成 \(ND=K\)。</p>
+  <p>取经验损失模型 \(L(N,D)=L_0+A N^{-a}+B D^{-b}\)，用拉格朗日乘子 \(\lambda\)：</p>
+  \[ \mathcal{J}=L_0+A N^{-a}+B D^{-b}+\lambda(ND-K) \]
+  \[ \frac{\partial\mathcal{J}}{\partial N}=-aA N^{-a-1}+\lambda D=0,\qquad \frac{\partial\mathcal{J}}{\partial D}=-bB D^{-b-1}+\lambda N=0 \]
+  <p>两式分别乘以 \(N\) 与 \(D\)，再消去 \(\lambda ND\)：</p>
+  \[ aA N^{-a}=bB D^{-b} \]
+  <p>代入 \(D=K/N\)，得到单变量方程：</p>
+  \[ aA N^{-a}=bB K^{-b}N^b \Longrightarrow N^{a+b}=\frac{aA}{bB}K^b \]
+  \[ N_{\text{opt}}=\left(\frac{aA}{bB}K^b\right)^{\!1/(a+b)},\qquad D_{\text{opt}}=\frac{K}{N_{\text{opt}}} \]
+  <p>若经验上 \(a=b\) 且系数使最优比值为 \(D/N\approx20\)，就得到 Chinchilla 规则 \(D_{\text{opt}}\approx20N\)。再与 \(C=6ND\) 联立：</p>
+  \[ C\approx120N^2\Longrightarrow N_{\text{opt}}\approx\sqrt{C/120},\qquad D_{\text{opt}}\approx20\sqrt{C/120} \]
 </section>
 
 <h4>5.1 论文原话与「怎么用」</h4>

@@ -11,7 +11,7 @@ COURSE.register({
 <p class="lead">
   这一模块回答一个非常具体的问题：<strong>你手上这三份订阅（Codex Plus $20、Claude Pro $20、Google AI Pro）
   到底能换来多少工作？</strong>同时纠正一个常见误解——网上流传的「$200 换 $8000 推理」是<em>另一个档位</em>的数字，
-  直接用在你身上会高估一个数量级。
+  直接用在你身上会高估一个数量级。本讲还为具备数学与建模背景的同学专门开设了【草稿纸演算区】：系统推演集群 TCO（总体拥有成本）、单价模型，并手算 1.5B 模型处理 100B Token 时 8×A100 与 8×H100 的耗时与花费精确算式。
 </p>
 
 <section class="blk blk-tip">
@@ -124,7 +124,7 @@ COURSE.register({
 <p>
   <strong>额度耗尽的后果要提前知道</strong>：Colab 官方说明，付费用户的计算单元余额用完后，
   会<strong>退回免费层的策略与限制</strong>（而不是继续无限使用）。所以月底前要把关键实验跑完，
-  或者把长任务拆成能在一次会话内完成的片段（这正是模块 10 讲的实验设计纪律）。
+  或者把长任务拆成能在一 altercation 内完成的片段（这正是模块 10 讲的实验设计纪律）。
 </p>
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>关于你有 3 个 Google AI Pro 账号——一条重要的合规提醒</h4>
@@ -190,9 +190,9 @@ COURSE.register({
       <td>属于行业估算，不是官方披露；用来理解「为什么能补贴」即可，不要当成财务事实引用</td>
     </tr>
     <tr>
-      <td>零公开流量规则</td>
+      <td>零公开发流规则</td>
       <td><strong>完全成立，且是红线</strong></td>
-      <td>个人订阅用于个人编码与内部自动化；接公开流量、转售、用于蒸馏会触发封禁</td>
+      <td>个人订阅用于个人编码与内部自动化；接公开发流、转售、用于蒸馏会触发封禁</td>
     </tr>
   </tbody>
 </table>
@@ -204,7 +204,7 @@ COURSE.register({
   数字不重要，<em>结构</em>才重要——改一个参数就能看出哪一项最影响结论。
 </p>
 <div class="calc" data-calc="subvalue"></div>
-<p class="hint">
+<p class="small">
   参考量级：一次「有真实上下文的中等任务」（读几个文件、改代码、跑一轮验证）常见在 5 万–30 万 token；
   混合单价按你所用模型的输入/输出价格加权估计（例如输入 $3/M、输出 $15/M，比例 4:1 时混合约 $5.4/M）。
 </p>
@@ -242,12 +242,159 @@ COURSE.register({
   <p><em>在申请材料里，用成本结构解释技术决策，比罗列技术名词更有说服力。</em></p>
 </section>
 
+<h3>8. 【草稿纸演算】大模型训练 TCO、单价模型与每 MTok 成本推演</h3>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>前置定义与符号约定</h4>
+  <ul>
+    <li><strong>总体拥有成本（TCO, Total Cost of Ownership）</strong>：自建数据中心或机房采购（On-premise）在全生命周期内的资本支出（CapEx）与持续运营支出（OpEx）的代数总和：
+      \[ \text{TCO}_{\text{on-prem}} = \text{CapEx} \times (1 + \alpha_{\text{deprec}}) + \text{OpEx} \]
+      其中：
+      <br />- <strong>CapEx（资本支出）</strong>：高密 GPU 服务器采购（如一台 8×H100 SXM5 节点整机售价常达 $300,000+）、InfiniBand 交换机、光模块与供电基础设施。
+      <br />- \( \alpha_{\text{deprec}} \)：硬件维护与损耗系数（数据中心通用 3 年线性折旧残值模型）。
+      <br />- <strong>OpEx（运营支出）</strong>：机柜租赁、持续电费与散热能耗支出（计算式为 \( \text{Power (kW)} \times PUE \times \text{Electricity Rate (\$/kWh)} \times \text{Hours} \)，PUE 即 Power Usage Effectiveness，工业良好基线在 1.1~1.3 之间）、7×24 小时 SRE 运维薪酬、以及公网出口流量费。
+      <br />- <strong>云端租赁（Cloud Rental）对比</strong>：纯 OpEx 模式，零前置资金沉淀，按需使用与退订，消除了单代 GPU 快速贬值及技术换代淘汰的沉没成本风险。
+    </li>
+    <li><strong>GPU 租用单价体系（工业市场参考口径）</strong>：
+      <br />- <strong>On-demand（按需租赁）</strong>：随时开通与销毁，按秒或小时扣费，弹性极高，单价最高。
+      <br />- <strong>Reserved（预留合约）</strong>：签订 1 年或 3 年承诺期，单价可享受 30%~60% 的折扣。
+      <br />- <strong>Spot / Preemptible（抢占式实例）</strong>：利用数据中心空闲算力池，折扣高达 65%~80%，但云厂商保留在 30 秒内随时收回实例的打断风险。
+      <br />工业级按需公允基准单价（2024–2026 市场参考口径）：
+      <br />- NVIDIA A100-SXM4-80GB：单卡约 \( \$1.80 / \text{GPU}\cdot\text{hr} \)（8 卡节点综合单价 \( \$14.40/\text{hr} \)）。
+      <br />- NVIDIA H100-SXM5-80GB：单卡约 \( \$3.00 / \text{GPU}\cdot\text{hr} \)（8 卡节点综合单价 \( \$24.00/\text{hr} \)）。
+    </li>
+    <li><strong>每百万 Token 成本（Cost per MTok, \( C_{\text{MTok}} \)）</strong>：
+      衡量训练或微调阶段在标准化 Token 尺度下的经济学效费比：
+      \[ C_{\text{MTok}} = \frac{\text{Total Training Cost (USD)}}{\text{Total Tokens}} \times 10^6 \]
+    </li>
+  </ul>
+</section>
+
+<h3>9. 【实战手算草稿】1.5B 模型训练 100B Token：8×A100 vs 8×H100 耗时与花费精确演算</h3>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>极简小数字草稿纸演算（Scratchpad 1）</h4>
+  <p>在代入巨大真实数字前，先在草稿纸上用极简小数字把推导公式彻底走通：</p>
+  <p>设模型参数量 \( N = 10 \)，训练 Token 数量 \( D = 10 \)。</p>
+  <p>设单卡理论算力 \( P_{\text{toy}} = 10 \text{ FLOP/s} \)，利用率 \( \mu = 50\% = 0.5 \)，单卡小时租金 \( c_{\text{toy}} = \$1.00 / \text{hr} \)。</p>
+  <ol>
+    <li>理论总浮点运算量（按 6N 规则）：
+      \[ \text{FLOPs} = 6 \cdot N \cdot D = 6 \times 10 \times 10 = 600 \text{ FLOPs} \]
+    </li>
+    <li>单卡有效计算速率：
+      \[ R_{\text{eff}} = P_{\text{toy}} \times \mu = 10 \times 0.5 = 5 \text{ FLOP/s} \]
+    </li>
+    <li>训练耗时推导：
+      \[ T_{\text{sec}} = \frac{\text{FLOPs}}{R_{\text{eff}}} = \frac{600}{5} = 120 \text{ s} = \frac{120}{3600} \text{ hr} = \frac{1}{30} \text{ hr} \]
+    </li>
+    <li>租赁总花费：
+      \[ \text{Cost} = T_{\text{sec}} / 3600 \times c_{\text{toy}} = \frac{1}{30} \text{ hr} \times \$1.00/\text{hr} \approx \$0.0333 \]
+    </li>
+    <li>每百万 Token 单位成本：
+      \[ C_{\text{MTok}} = \frac{\$0.03333}{10 \text{ tokens}} \times 10^6 = \$3,333 / \text{MTok} \]
+    </li>
+  </ol>
+  <p>推演逻辑链清晰闭环。接下来将工业级真实数字代入该精确算式。</p>
+</section>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>工业级真实任务手算草稿：1.5B 模型处理 100B Token</h4>
+  <p><strong>任务基础参数设定</strong>：</p>
+  <ul>
+    <li>模型参数量：\( N = 1.5\text{B} = 1.5 \times 10^9 \)</li>
+    <li>训练数据量：\( D = 100\text{B tokens} = 100 \times 10^9 = 10^{11} \text{ tokens} \)</li>
+    <li>前向 + 反向理论总计算量（标准 6N 法则）：
+      \[ \text{Total FLOPs} = 6 \cdot N \cdot D = 6 \times (1.5 \times 10^9) \times (10^{11}) = 9 \times 10^{20} \text{ FLOPs} \]
+    </li>
+    <li>设定成熟工程调优环境下的有效算力利用率：\( \text{MFU} = \mu = 40\% = 0.40 \)</li>
+  </ul>
+
+  <p><strong>对比方案 A：云端租赁 8 张 A100-SXM4-80GB</strong></p>
+  <ol>
+    <li>硬件参数：单卡 BF16 dense 理论峰值 \( 312 \text{ TFLOPS} = 3.12 \times 10^{14} \text{ FLOP/s} \)，单卡租金 \( \$1.80/\text{hr} \)。<br />
+      8 卡节点总理论算力峰值：
+      \[ P_{\text{total, A100}} = 8 \times (312 \times 10^{12} \text{ FLOP/s}) = 2.496 \times 10^{15} \text{ FLOP/s} \]
+      8 卡节点综合小时租金：
+      \[ C_{\text{rate, A100}} = 8 \times \$1.80/\text{hr} = \$14.40/\text{hr} \]
+    </li>
+    <li>节点有效算力速率：
+      \[ R_{\text{eff, A100}} = P_{\text{total, A100}} \times \mu = 2.496 \times 10^{15} \times 0.40 = 9.984 \times 10^{14} \text{ FLOP/s} \]
+    </li>
+    <li>训练总耗时推算：
+      \[ T_{\text{seconds, A100}} = \frac{\text{Total FLOPs}}{R_{\text{eff, A100}}} = \frac{9 \times 10^{20}}{9.984 \times 10^{14}} \approx 901,442.3 \text{ seconds} \]
+      换算为小时与天数：
+      \[ T_{\text{hours, A100}} = \frac{901,442.3}{3600} \approx 250.40 \text{ hours} \approx 10.43 \text{ days} \]
+      集群处理吞吐速率：
+      \[ \text{Throughput}_{\text{A100}} = \frac{10^{11} \text{ tokens}}{901,442.3 \text{ s}} \approx 110,933 \text{ tokens/s} \quad (\approx 13,867 \text{ tokens/s per GPU}) \]
+    </li>
+    <li>总租赁账单：
+      \[ \text{Cost}_{\text{A100}} = 250.40 \text{ hours} \times \$14.40/\text{hour} = \$3,605.76 \]
+    </li>
+    <li>每百万 Token（MTok）训练成本：
+      \[ C_{\text{MTok, A100}} = \frac{\$3,605.76}{100,000 \text{ MTok}} \approx \$0.03606 / \text{MTok} \]
+    </li>
+  </ol>
+
+  <p><strong>对比方案 B：云端租赁 8 张 H100-SXM5-80GB</strong></p>
+  <ol>
+    <li>硬件参数：单卡 BF16 dense 理论峰值 \( 989 \text{ TFLOPS} = 9.89 \times 10^{14} \text{ FLOP/s} \)，单卡租金 \( \$3.00/\text{hr} \)。<br />
+      8 卡节点总理论算力峰值：
+      \[ P_{\text{total, H100}} = 8 \times (989 \times 10^{12} \text{ FLOP/s}) = 7.912 \times 10^{15} \text{ FLOP/s} \]
+      8 卡节点综合小时租金：
+      \[ C_{\text{rate, H100}} = 8 \times \$3.00/\text{hr} = \$24.00/\text{hr} \]
+    </li>
+    <li>节点有效算力速率：
+      \[ R_{\text{eff, H100}} = P_{\text{total, H100}} \times \mu = 7.912 \times 10^{15} \times 0.40 = 3.1648 \times 10^{15} \text{ FLOP/s} \]
+    </li>
+    <li>训练总耗时推算：
+      \[ T_{\text{seconds, H100}} = \frac{\text{Total FLOPs}}{R_{\text{eff, H100}}} = \frac{9 \times 10^{20}}{3.1648 \times 10^{15}} \approx 284,378.1 \text{ seconds} \]
+      换算为小时与天数：
+      \[ T_{\text{hours, H100}} = \frac{284,378.1}{3600} \approx 78.99 \text{ hours} \approx 3.29 \text{ days} \]
+      集群处理吞吐速率：
+      \[ \text{Throughput}_{\text{H100}} = \frac{10^{11} \text{ tokens}}{284,378.1 \text{ s}} \approx 351,644 \text{ tokens/s} \quad (\approx 43,956 \text{ tokens/s per GPU}) \]
+    </li>
+    <li>总租赁账单：
+      \[ \text{Cost}_{\text{H100}} = 78.99 \text{ hours} \times \$24.00/\text{hour} = \$1,895.76 \]
+    </li>
+    <li>每百万 Token（MTok）训练成本：
+      \[ C_{\text{MTok, H100}} = \frac{\$1,895.76}{100,000 \text{ MTok}} \approx \$0.01896 / \text{MTok} \]
+    </li>
+  </ol>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>综合决策对比表与数学经济学本质</h4>
+  <table class="tbl small">
+    <thead><tr><th>指标维度</th><th>8×A100-SXM4 (80GB)</th><th>8×H100-SXM5 (80GB)</th><th>对比差异与经济收益</th></tr></thead>
+    <tbody>
+      <tr><td>单卡半精度密集算力峰值</td><td>312 TFLOPS</td><td>989 TFLOPS</td><td>H100 是 A100 的 3.17 倍</td></tr>
+      <tr><td>8 卡节点每小时综合租金</td><td>$14.40 / hr</td><td>$24.00 / hr</td><td>H100 节点高 66.7%</td></tr>
+      <tr><td>训练总耗时</td><td>250.40 小时（~10.43 天）</td><td>78.99 小时（~3.29 天）</td><td><strong>节省 68.5% 的等待时间（提速 3.17×）</strong></td></tr>
+      <tr><td>总租赁花费</td><td>$3,605.76</td><td>$1,895.76</td><td><strong>节省 $1,710.00（真金白银省下 47.4%）</strong></td></tr>
+      <tr><td>每 MTok 训练成本</td><td>$0.0361 / MTok</td><td>$0.0190 / MTok</td><td>单位 Token 成本下降 47.4%</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>数学系视角的代数本质证明</strong>：</p>
+  <p>
+    设卡 1（A100）租金为 \( c_1 \)，理论峰值算力为 \( P_1 \)；卡 2（H100）租金为 \( c_2 \)，理论峰值算力为 \( P_2 \)。
+    在相同模型算力利用率 \( \mu \) 的前提下，完成总浮点运算量 \( \text{FLOPs} \) 的花费之比为：
+  </p>
+  \[ \frac{\text{Cost}_2}{\text{Cost}_1} = \frac{T_2 \cdot c_2}{T_1 \cdot c_1} = \frac{\frac{\text{FLOPs}}{\mu P_2} \cdot c_2}{\frac{\text{FLOPs}}{\mu P_1} \cdot c_1} = \frac{c_2 / P_2}{c_1 / P_1} \]
+  <p>
+    由此可知，决定总账单的唯一关键因子是<strong>单位算力价格（Price per TFLOP）</strong>：
+  </p>
+  \[ \frac{c_{\text{A100}}}{P_{\text{A100}}} = \frac{\$1.80 / \text{hr}}{312 \text{ TFLOPS} \times 3600 \text{ s/hr}} \approx \$1.603 \times 10^{-6} / \text{TFLOP} \]
+  \[ \frac{c_{\text{H100}}}{P_{\text{H100}}} = \frac{\$3.00 / \text{hr}}{989 \text{ TFLOPS} \times 3600 \text{ s/hr}} \approx \$0.843 \times 10^{-6} / \text{TFLOP} \]
+  <p>
+    <strong>反直觉的终极经济学启示</strong>：虽然 H100 表面小时费率高出 67%，但其单位有效浮点算力便宜了近 47.5%！在模型训练这种「计算总量固定」的任务中，<strong>租用单价更高的 H100 无论在资金开销还是等待时间上都具有双重碾压级优势</strong>。
+  </p>
+</section>
+
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
   <p class="q">在 Codex Plus 档里，同样一条消息用 Luna 而不是 Astra，对额度的影响是？</p>
   <ul class="opts">
     <li>没有区别，因为共享同一个池子</li>
-    <li data-ok>差别很大：官方估算 Luna 每 5 小时可用 250–2000 条，而 Astra 只有 5–45 条，说明两者消耗同一池子的速度相差一到两个数量级</li>
+    <li data-ok>差别很大：官方估算 Luna 每 5 小时可用 250–2000 条，而 Astra 只有 5–45 条，说明两者消耗同一个池子的速度相差一到两个数量级</li>
     <li>Luna 更贵，因为它更快</li>
     <li>只有 Pro 档才有区别</li>
   </ul>
@@ -284,6 +431,34 @@ COURSE.register({
   <p class="why">
     官方说明是「如果两种限额同时适用，你需要在两个时段内均有剩余配额才能继续使用」。
     这条约束直接决定了你的工作节奏：把重任务分散到不同窗口，而不是一口气连轴用。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">在预训练 1.5B 模型处理 100B Token 的算力选型中，为什么租用小时单价更高的 8×H100 节点反而比 8×A100 节点总花费节省近一半？</p>
+  <ul class="opts">
+    <li>因为云厂商对 H100 提供了巨额商业现金返还</li>
+    <li>因为 H100 不需要使用分布式通信网络</li>
+    <li data-ok>因为 H100 的半精度密集算力是 A100 的约 3.17 倍，而每小时单价仅为 A100 的约 1.67 倍，导致单位算力价格（Price per TFLOP）便宜了约 47.4%，因而在相同利用率下总账单更低</li>
+    <li>因为 H100 训练模型时可以将 6N 理论算力需求压缩到 2N</li>
+  </ul>
+  <p class="why">
+    总成本正比于 \( \frac{c}{P} \)。由于 \( \frac{c_2/c_1}{P_2/P_1} = \frac{1.67}{3.17} \approx 0.526 \)，H100 虽然单价上涨了 67%，但性能提升达到了 217%，算力性价比（FLOPs per dollar）反向大增，从而在完成固定运算量 \( 9 \times 10^{20} \) FLOPs 时总花费从 $3606 缩减到 $1896。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">关于数据中心自建集群与公有云租赁的 TCO（总体拥有成本）结构对比，下列说法正确的是？</p>
+  <ul class="opts">
+    <li>自建集群没有 OpEx 开销，只有前期的 CapEx 采购成本</li>
+    <li data-ok>自建集群不仅需承担高昂的前置硬件采购 CapEx，还需承担 PUE 能耗、制冷、机房租赁与运维人力的持续 OpEx，且面临硬件 3 年折旧贬值的风险；云端租赁将成本纯转为弹性 OpEx</li>
+    <li>云端按需租赁的单价无论何时都必然低于所有折旧后的自建硬件成本</li>
+    <li>只有在模型参数量大于 70B 时才需要考虑显存带宽与算术强度</li>
+  </ul>
+  <p class="why">
+    TCO 包含了资本性支出（CapEx）与运营性支出（OpEx）。自建节点不仅要在首日支付数十万美元硬件采购与折旧，还面临持续的电力 PUE 溢价与工程人力开销；而云端按需租用将一切简化为无沉没风险的纯 OpEx。
   </p>
 </div>
 
