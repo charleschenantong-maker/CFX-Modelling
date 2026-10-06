@@ -2,7 +2,7 @@
 COURSE.register({
   id: "m16-long-context",
   part: 3,
-  num: "16",
+  num: "13",
   title: "长上下文与外推：RoPE 旋转、频率分频与 YaRN 插值",
   en: "Long Context, Length Extrapolation & YaRN",
   minutes: 40,

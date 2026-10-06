@@ -1,8 +1,8 @@
-/* content/16b-inference-serving.js · 模块 16b：现代高性能推理 Serving 引擎 */
+/* content/15-inference-serving.js · 模块 15：现代高性能推理 Serving 引擎 */
 COURSE.register({
-  id: "m16b",
+  id: "m15",
   part: 3,
-  num: "16b",
+  num: "15",
   title: "现代高性能推理 Serving 引擎：PagedAttention、动态批处理与长文本 Chunked Prefill",
   en: "High-Throughput LLM Serving Systems",
   minutes: 45,

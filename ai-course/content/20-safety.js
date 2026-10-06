@@ -1,8 +1,8 @@
 /* content/21-safety.js — 模块 21：安全、对齐与可解释性 */
 COURSE.register({
-  id: "m21",
+  id: "m20",
   part: 4,
-  num: "21",
+  num: "20",
   title: "安全、对齐与可解释性：我们怎么知道模型在做什么",
   en: "Safety, Alignment & Interpretability",
   minutes: 40,

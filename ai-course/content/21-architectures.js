@@ -1,8 +1,8 @@
 /* content/24-architectures.js — 模块 24：前沿架构与多模态 */
 COURSE.register({
-  id: "m24",
+  id: "m21",
   part: 4,
-  num: "24",
+  num: "21",
   title: "前沿架构与多模态：注意力之外的世界",
   en: "Frontier Architectures & Multimodality",
   minutes: 42,

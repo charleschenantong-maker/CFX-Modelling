@@ -2,7 +2,7 @@
 COURSE.register({
   id: "m15-moe",
   part: 3,
-  num: "15",
+  num: "12",
   title: "混合专家架构：稀疏门控、Top-k 路由与负载均衡",
   en: "Mixture of Experts, Top-k Routing & Load Balancing",
   minutes: 40,

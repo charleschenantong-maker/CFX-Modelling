@@ -2,11 +2,11 @@
 
 COURSE.register({
 
-  id: "m11",
+  id: "m23",
 
   part: 5,
 
-  num: "11",
+  num: "23",
 
   title: "算力法则与训练规模：从 6ND FLOPs、Chinchilla 到单卡 T4 耗时物理演算",
 

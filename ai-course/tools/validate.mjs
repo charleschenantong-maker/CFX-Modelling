@@ -260,7 +260,7 @@ for (const item of active) {
   const num = parseInt(item.num, 10);
   const h3n = (body.match(/<h3>/g) || []).length;
   if (h3n < 2) warn(id, `h3 只有 ${h3n} 个（速查目录需要 ≥2）`);
-  if (num >= 17 && num <= 24) {
+  if (num >= 16 && num <= 22) {
     if (h3n < 7) warn(id, `高阶章 h3 只有 ${h3n} 个（目标 ≥7）`);
     const f = itemFile.get(item);
     const lines = fileLines.get(f) || 0;
@@ -283,7 +283,7 @@ if (!asJson) {
   console.log(`表格 ${stats.tables} · 折叠块 ${stats.accordions} · h3 ${stats.h3} · 色彩版块 ${stats.blockSections}`);
   console.log(`术语表表格行 ${stats.glossaryRows}`);
   if (statLines.length) {
-    console.log(`\n高阶章规模（17–24）：`);
+    console.log(`\n前沿拓展章规模（16–22）：`);
     statLines.forEach(l => console.log('  ' + l));
   }
   console.log(`${'='.repeat(74)}`);

@@ -1,8 +1,8 @@
 /* content/20-agents.js — 模块 20：智能体系统 */
 COURSE.register({
-  id: "m20",
+  id: "m19",
   part: 4,
-  num: "20",
+  num: "19",
   title: "智能体系统：工具、规划、记忆与多智能体",
   en: "Agent Systems — Tools, Planning, Memory",
   minutes: 50,

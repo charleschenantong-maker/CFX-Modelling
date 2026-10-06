@@ -1,8 +1,8 @@
 /* content/23-compression.js — 模块 23：压缩与合并 */
 COURSE.register({
-  id: "m23",
+  id: "m14",
   part: 3,
-  num: "23",
+  num: "14",
   title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
   en: "Compression & Model Merging",
   minutes: 42,

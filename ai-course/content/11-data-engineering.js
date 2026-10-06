@@ -1,8 +1,8 @@
-/* content/10b-data-engineering.js · 模块 10b：工业级数据工程与规模化训练体系 */
+/* content/11-data-engineering.js · 模块 11：工业级数据工程与规模化训练体系 */
 COURSE.register({
-  id: "m10b",
+  id: "m11",
   part: 3,
-  num: "10b",
+  num: "11",
   title: "工业级数据工程与规模化训练：MinHash LSH 海量清洗、退火配比与集群容灾",
   en: "Data Engineering at Scale & Resilient Cluster Training",
   minutes: 45,

@@ -1,8 +1,8 @@
 /* content/16-project.js — 模块 16：把方法映射到数学建模类题目（未来示例） */
 COURSE.register({
-  id: "m16",
+  id: "m29",
   part: 5,
-  num: "16",
+  num: "29",
   title: "收束：把这一切映射到 Crossfade 这类项目与申请材料（未来示例）",
   en: "Synthesis — Mapping the Course onto Your Project",
   minutes: 40,

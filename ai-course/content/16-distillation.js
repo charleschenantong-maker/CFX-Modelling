@@ -1,8 +1,8 @@
 /* content/17-distillation.js — 模块 17：蒸馏全谱系 */
 COURSE.register({
-  id: "m17",
+  id: "m16",
   part: 4,
-  num: "17",
+  num: "16",
   title: "蒸馏全谱系：把大模型的能力搬进小模型",
   en: "Distillation — From Logits to Reasoning",
   minutes: 55,

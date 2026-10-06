@@ -1,8 +1,8 @@
 /* content/25-colab-training.js — 模块 25：Colab 1.5B 开源大模型实战训练与部署 */
 COURSE.register({
-  id: "m25",
+  id: "m28",
   part: 5,
-  num: "25",
+  num: "28",
   title: "实战闭环：在 Kaggle 上训练 1.5B 开源大模型并量化导出（免费 T4 GPU 实战）",
   en: "Hands-on 1.5B Model Training on Kaggle & Local Deployment",
   minutes: 50,

@@ -6176,12 +6176,12 @@ COURSE.register({
 });
 
 
-/* --- content/10b-data-engineering.js --- */
-/* content/10b-data-engineering.js · 模块 10b：工业级数据工程与规模化训练体系 */
+/* --- content/11-data-engineering.js --- */
+/* content/11-data-engineering.js · 模块 11：工业级数据工程与规模化训练体系 */
 COURSE.register({
-  id: "m10b",
+  id: "m11",
   part: 3,
-  num: "10b",
+  num: "11",
   title: "工业级数据工程与规模化训练：MinHash LSH 海量清洗、退火配比与集群容灾",
   en: "Data Engineering at Scale & Resilient Cluster Training",
   minutes: 45,
@@ -6364,12 +6364,12 @@ COURSE.register({
 `
 });
 
-/* --- content/15-moe.js --- */
+/* --- content/12-moe.js --- */
 /* content/15-moe.js — 模块 15：混合专家架构 MoE */
 COURSE.register({
   id: "m15-moe",
   part: 3,
-  num: "15",
+  num: "12",
   title: "混合专家架构：稀疏门控、Top-k 路由与负载均衡",
   en: "Mixture of Experts, Top-k Routing & Load Balancing",
   minutes: 40,
@@ -6710,12 +6710,12 @@ COURSE.register({
 `
 });
 
-/* --- content/16-long-context.js --- */
+/* --- content/13-long-context.js --- */
 /* content/16-long-context.js — 模块 16：长上下文与外推 */
 COURSE.register({
   id: "m16-long-context",
   part: 3,
-  num: "16",
+  num: "13",
   title: "长上下文与外推：RoPE 旋转、频率分频与 YaRN 插值",
   en: "Long Context, Length Extrapolation & YaRN",
   minutes: 40,
@@ -6964,12 +6964,12 @@ COURSE.register({
 `
 });
 
-/* --- content/23-compression.js --- */
+/* --- content/14-compression.js --- */
 /* content/23-compression.js — 模块 23：压缩与合并 */
 COURSE.register({
-  id: "m23",
+  id: "m14",
   part: 3,
-  num: "23",
+  num: "14",
   title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
   en: "Compression & Model Merging",
   minutes: 42,
@@ -8246,12 +8246,12 @@ COURSE.register({
 `
 });
 
-/* --- content/16b-inference-serving.js --- */
-/* content/16b-inference-serving.js · 模块 16b：现代高性能推理 Serving 引擎 */
+/* --- content/15-inference-serving.js --- */
+/* content/15-inference-serving.js · 模块 15：现代高性能推理 Serving 引擎 */
 COURSE.register({
-  id: "m16b",
+  id: "m15",
   part: 3,
-  num: "16b",
+  num: "15",
   title: "现代高性能推理 Serving 引擎：PagedAttention、动态批处理与长文本 Chunked Prefill",
   en: "High-Throughput LLM Serving Systems",
   minutes: 45,
@@ -8401,12 +8401,12 @@ COURSE.register({
 `
 });
 
-/* --- content/17-distillation.js --- */
+/* --- content/16-distillation.js --- */
 /* content/17-distillation.js — 模块 17：蒸馏全谱系 */
 COURSE.register({
-  id: "m17",
+  id: "m16",
   part: 4,
-  num: "17",
+  num: "16",
   title: "蒸馏全谱系：把大模型的能力搬进小模型",
   en: "Distillation — From Logits to Reasoning",
   minutes: 55,
@@ -9099,12 +9099,12 @@ COURSE.register({
 `
 });
 
-/* --- content/18-reasoning.js --- */
+/* --- content/17-reasoning.js --- */
 /* content/18-reasoning.js — 模块 18：推理模型与测试时计算 */
 COURSE.register({
-  id: "m18",
+  id: "m17",
   part: 4,
-  num: "18",
+  num: "17",
   title: "推理模型与测试时计算：让模型「想久一点」值不值",
   en: "Reasoning Models & Test-Time Compute",
   minutes: 50,
@@ -10038,12 +10038,12 @@ COURSE.register({
 `
 });
 
-/* --- content/19-rag.js --- */
+/* --- content/18-rag.js --- */
 /* content/19-rag.js — 模块 19：检索增强与上下文工程 */
 COURSE.register({
-  id: "m19",
+  id: "m18",
   part: 4,
-  num: "19",
+  num: "18",
   title: "检索增强与上下文工程：把知识放进提示，而不是权重里",
   en: "RAG & Context Engineering",
   minutes: 45,
@@ -11033,12 +11033,12 @@ COURSE.register({
 `
 });
 
-/* --- content/20-agents.js --- */
+/* --- content/19-agents.js --- */
 /* content/20-agents.js — 模块 20：智能体系统 */
 COURSE.register({
-  id: "m20",
+  id: "m19",
   part: 4,
-  num: "20",
+  num: "19",
   title: "智能体系统：工具、规划、记忆与多智能体",
   en: "Agent Systems — Tools, Planning, Memory",
   minutes: 50,
@@ -12009,12 +12009,12 @@ COURSE.register({
 `
 });
 
-/* --- content/21-safety.js --- */
+/* --- content/20-safety.js --- */
 /* content/21-safety.js — 模块 21：安全、对齐与可解释性 */
 COURSE.register({
-  id: "m21",
+  id: "m20",
   part: 4,
-  num: "21",
+  num: "20",
   title: "安全、对齐与可解释性：我们怎么知道模型在做什么",
   en: "Safety, Alignment & Interpretability",
   minutes: 40,
@@ -12984,12 +12984,12 @@ COURSE.register({
 `
 });
 
-/* --- content/24-architectures.js --- */
+/* --- content/21-architectures.js --- */
 /* content/24-architectures.js — 模块 24：前沿架构与多模态 */
 COURSE.register({
-  id: "m24",
+  id: "m21",
   part: 4,
-  num: "24",
+  num: "21",
   title: "前沿架构与多模态：注意力之外的世界",
   en: "Frontier Architectures & Multimodality",
   minutes: 42,
@@ -15063,16 +15063,16 @@ COURSE.register({
 `
 });
 
-/* --- content/11-economics.js --- */
+/* --- content/23-economics.js --- */
 /* content/11-economics.js — 模块 11：算力法则与训练规模演算 */
 
 COURSE.register({
 
-  id: "m11",
+  id: "m23",
 
   part: 5,
 
-  num: "11",
+  num: "23",
 
   title: "算力法则与训练规模：从 6ND FLOPs、Chinchilla 到单卡 T4 耗时物理演算",
 
@@ -15513,12 +15513,12 @@ COURSE.register({
 });
 
 
-/* --- content/12-network.js --- */
+/* --- content/24-network.js --- */
 /* content/12-network.js — 模块 12：反封禁网络架构 */
 COURSE.register({
-  id: "m12",
+  id: "m24",
   part: 5,
-  num: "12",
+  num: "24",
   title: "网络架构：住宅 IP、Tailscale 与本地代理",
   en: "Networking, Residential IP & Local Proxy",
   minutes: 35,
@@ -15709,12 +15709,12 @@ COURSE.register({
 `
 });
 
-/* --- content/13-resets.js --- */
+/* --- content/25-resets.js --- */
 /* content/13-resets.js — 模块 13：实验流水线与断点调度 */
 COURSE.register({
-  id: "m13",
+  id: "m25",
   part: 5,
-  num: "13",
+  num: "25",
   title: "实验流水线与断点调度：会话超时、检查点续训与早停决策",
   en: "Experiment Pipeline: Checkpointing, Runtime Resumption & Early Stopping",
   minutes: 25,
@@ -15834,12 +15834,12 @@ COURSE.register({
 `
 });
 
-/* --- content/14-workflow.js --- */
+/* --- content/26-workflow.js --- */
 /* content/14-workflow.js — 模块 14：工作流与多线程舰队 */
 COURSE.register({
-  id: "m14",
+  id: "m26",
   part: 5,
-  num: "14",
+  num: "26",
   title: "工作流：85/15 规则与多线程智能体舰队",
   en: "Workflow & Multi-Thread Fleet Management",
   minutes: 35,
@@ -16076,12 +16076,12 @@ COURSE.register({
 `
 });
 
-/* --- content/15-hardware.js --- */
+/* --- content/27-hardware.js --- */
 /* content/15-hardware.js — 模块 15：硬件与操作系统瓶颈 */
 COURSE.register({
-  id: "m15",
+  id: "m27",
   part: 5,
-  num: "15",
+  num: "27",
   title: "硬件与系统：为什么并行智能体会拖垮 macOS",
   en: "Hardware & OS Bottlenecks",
   minutes: 25,
@@ -16283,12 +16283,12 @@ COURSE.register({
 `
 });
 
-/* --- content/25-colab-training.js --- */
+/* --- content/28-kaggle-training.js --- */
 /* content/25-colab-training.js — 模块 25：Colab 1.5B 开源大模型实战训练与部署 */
 COURSE.register({
-  id: "m25",
+  id: "m28",
   part: 5,
-  num: "25",
+  num: "28",
   title: "实战闭环：在 Kaggle 上训练 1.5B 开源大模型并量化导出（免费 T4 GPU 实战）",
   en: "Hands-on 1.5B Model Training on Kaggle & Local Deployment",
   minutes: 50,
@@ -16969,12 +16969,12 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
 `
 });
 
-/* --- content/16-project.js --- */
+/* --- content/29-project.js --- */
 /* content/16-project.js — 模块 16：把方法映射到数学建模类题目（未来示例） */
 COURSE.register({
-  id: "m16",
+  id: "m29",
   part: 5,
-  num: "16",
+  num: "29",
   title: "收束：把这一切映射到 Crossfade 这类项目与申请材料（未来示例）",
   en: "Synthesis — Mapping the Course onto Your Project",
   minutes: 40,

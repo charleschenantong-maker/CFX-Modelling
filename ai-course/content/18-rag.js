@@ -1,8 +1,8 @@
 /* content/19-rag.js — 模块 19：检索增强与上下文工程 */
 COURSE.register({
-  id: "m19",
+  id: "m18",
   part: 4,
-  num: "19",
+  num: "18",
   title: "检索增强与上下文工程：把知识放进提示，而不是权重里",
   en: "RAG & Context Engineering",
   minutes: 45,
