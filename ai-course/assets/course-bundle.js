@@ -3665,45 +3665,89 @@ COURSE.register({
   </section>
 
 <h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
-<p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen）与被拒绝的回答（rejected）。</p>
+<p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen, 赢者 \(w\)）与被拒绝的回答（rejected, 输者 \(l\)）。</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先把四个词对上号（给 DPO 搭一座直觉小桥）</h4>
+  <p>
+    在接触数学推导之前，先把偏好优化的四个核心概念用一句话对上号：
+  </p>
+  <ul>
+    <li><strong>监督微调（SFT）</strong>是「照着标准答案学」：给定提问与理想回答，模型逐词模仿概率分布；</li>
+    <li><strong>偏好对（Preference Pair）</strong>是「两个回答排个序」：同一个提问下，一个更好 \((y_w)\)、一个较差 \((y_l)\)，教模型什么是“更好”；</li>
+    <li><strong>奖励（Reward）</strong>是「回答值几分」：衡量输出质量高低的标量分数；</li>
+    <li><strong>策略更新</strong>是「微调概率」：让好回答的生成概率上升、差回答的生成概率下降。</li>
+  </ul>
+  <p>
+    <strong>一个直观例子</strong>：问「用一句话解释光合作用」。回答 A 准确简洁（被选中 \(y_w\)），回答 B 编造了细节（被拒绝 \(y_l\)）。
+    训练前基座模型给 A 的概率是 \(0.10\)、给 B 的是 \(0.40\)——它倾向于吐出错误的废话。
+    DPO 要做的物理动作，就是把 \(A\) 的生成概率推高、把 \(B\) 的生成概率狠狠压下去。
+  </p>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>数学记号平稳铺垫（Notation Bridge：这几个符号你其实全都学过）</h4>
+  <p>
+    在翻开 DPO 原始论文或公式时，很多同学会立刻被几个陌生的数学记号吓住。其实只要把它们翻译成你在前六章学过的内容，全都是初等数学：
+  </p>
+  <ul>
+    <li>
+      <strong>为什么语言模型突然变成了希腊字母 \(\pi_	heta\)？</strong><br>
+      在前六章中，我们一直用条件概率 \(p_	heta(y \mid x)\) 来表示大模型。
+      而在强化学习（RL）领域，学者习惯把大模型看作一个做决定的智能体（Agent），输入 \(x\) 是环境状态，输出词是动作。
+      在控制论和强化学习文献中，智能体的行动规则统称为<strong>策略（Policy）</strong>，按惯例一律记作希腊字母 \(\pi\)（念作 pi，不要误会成圆周率 3.14）：
+      \[ \pi_	heta(y \mid x) \equiv p_	heta(y \mid x) \]
+      <strong>它就是你手头那个完全相同的 Transformer 自回归大模型，没有任何新增结构！</strong>
+    </li>
+    <li>
+      <strong>参考模型 \(\pi_{	ext{ref}}\) 是什么？</strong><br>
+      \(	ext{ref}\) 是 Reference（参考基准）的缩写。
+      它就是你刚完成 SFT 之后、<strong>被彻底冻结参数、永远不更新</strong>的原始基座模型备份！
+      它立在原地作为一把“安全锚（Anchor）”，随时提醒正在训练的 \(\pi_	heta\)：你可以根据人类偏好微调输出倾向，但绝不能彻底把原来的语言组织能力训飞或模式崩溃。
+    </li>
+    <li>
+      <strong>记号 \(	riangleq\) 是什么意思？</strong><br>
+      \(	riangleq\) 纯粹是数学与工程中「定义为（Defined as）」的通用简写，等价于口语里的「令左边等于右边」，无需任何高深理解。
+    </li>
+    <li>
+      <strong>为什么整句概率比会变成逐词对数求和 \(\sum_{t=1}^T\)？</strong><br>
+      在第 01 章我们学过自回归的<strong>联合概率链式法则</strong>：一个由 \(T\) 个词组成的完整句子 \(y=(y_1, y_2, \dots, y_T)\)，其联合概率是每一步条件概率的连续累乘：
+      \[ \pi_	heta(y \mid x) = \prod_{t=1}^T \pi_	heta(y_t \mid x, y_{< t}) \]
+      初等代数告诉我们「对数把连乘化为累加」：\(\log(a \cdot b) = \log a + \log b\)。两边取对数后：
+      \[ \log \pi_	heta(y \mid x) = \sum_{t=1}^T \log \pi_	heta(y_t \mid x, y_{< t}) \]
+      因此，新策略与基准模型的概率除法 \(\log \frac{\pi_	heta}{\pi_{	ext{ref}}} = \log \pi_	heta - \log \pi_{	ext{ref}}\)，自然就变成了每一步词概率对数之差的求和！
+    </li>
+  </ul>
+</section>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>DPO 相对概率比与隐式奖励定义</h4>
+  <h4><span class="ic">∑</span>DPO 相对概率比与隐式奖励定义（数学形式化）</h4>
   <p>
-    设输入 prompt 为 \(x\)，生成完整回答序列 \(y = (y_1, y_2, \dots, y_T)\)。
-    当前策略模型为 \(\pi_\theta(y \mid x)\)，冻结的参考基座模型为 \(\pi_{\text{ref}}(y \mid x)\)。
-    两者的<strong>对数相对概率比</strong>定义为：
+    有了前面的记号铺垫，我们现在写出严谨的数学形式。
+    设输入提问为 \(x\)，生成回答为 \(y = (y_1, y_2, \dots, y_T)\)。
+    训练中的策略模型为 \(\pi_	heta(y \mid x)\)，冻结的基准模型为 \(\pi_{	ext{ref}}(y \mid x)\)。
+    两者之间的<strong>对数相对概率比（Log Probability Ratio）</strong>定义为：
   </p>
-  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{< t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{< t}) \Big) \]
+  \[ \Delta \log \pi(x, y) 	riangleq \log \frac{\pi_	heta(y \mid x)}{\pi_{	ext{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_	heta(y_t \mid x, y_{< t}) - \log \pi_{	ext{ref}}(y_t \mid x, y_{< t}) \Big) \]
   <p>
-    依据逆强化学习（Inverse RL）原理，该比值在乘以温度常数 \(\beta > 0\) 后，隐式定义了策略相对于基座的<strong>标量隐式奖励（Implicit Reward）</strong>：
+    <strong>为什么这个比值可以直接充当奖励？</strong><br>
+    乘以一个恒正的温度调节超参数 \(\beta > 0\)（通常取 \(0.1 \sim 0.5\)）后，定义模型在该回答上的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
-  \[ \hat{r}_\theta(x, y) \triangleq \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \]
+  \[ \hat{r}_	heta(x, y) 	riangleq \beta \log \frac{\pi_	heta(y \mid x)}{\pi_{	ext{ref}}(y \mid x)} \]
   <p>
-    当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，模型输出该回答的倾向超过基座，视作获得正向奖励；反之给予惩罚。
+    <strong>直觉物理含义一眼看穿</strong>：
   </p>
-</section>
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>先把四个词对上号（给 DPO 搭一座小桥）</h4>
+  <ul>
+    <li>当 \(\pi_	heta(y \mid x) > \pi_{	ext{ref}}(y \mid x)\) 时，比值大于 1，其对数大于 0，即 \(\hat{r}_	heta > 0\)：说明新模型比原来的冻结基座<strong>更愿意</strong>说出回答 \(y\)，系统自动视为获得了<strong>正向奖励</strong>；</li>
+    <li>当 \(\pi_	heta(y \mid x) < \pi_{	ext{ref}}(y \mid x)\) 时，比值小于 1，其对数小于 0，即 \(\hat{r}_	heta < 0\)：说明新模型在刻意压低回答 \(y\) 的出现频率，系统自动视为获得了<strong>负向惩罚</strong>；</li>
+    <li>温度系数 \(\beta\) 就像灵敏度旋钮：\(\beta\) 越大，模型偏离基准所换来的奖惩幅度越剧烈。</li>
+  </ul>
   <p>
-    读推导之前，先把四个词用一句话对上号：
-    <strong>监督微调（SFT）</strong>是「照着示范学」——给你提问和理想回答，模型逐词模仿；
-    <strong>偏好对</strong>是「两个回答排个序」——同一个提问下，一个被选中 \((y_w)\)、一个被拒绝 \((y_l)\)；
-    <strong>奖励</strong>就是「这个回答值几分」——可以是人打的分，也可以是程序验出来的对错；
-    <strong>策略更新</strong>是「调概率」——让好回答的生成概率上升、差回答的下降。
-  </p>
-  <p>
-    <strong>一个具体例子</strong>：问「用一句话解释光合作用」。回答 A 准确简洁（被选中），回答 B 编造了细节（被拒绝）。
-    训练前模型给 A 的概率是 \(0.10\)、给 B 的是 \(0.40\)——学偏了。
-    DPO 这一步要做的就是把 A 的概率推上去、把 B 的压下来；第 5 节的小数字手算会一步步算给你看。
-  </p>
-  <p>
-    <strong>为什么 DPO 不用单独训练奖励模型？</strong>一句话：
-    奖励可以改写成「新策略相对参考模型的对数概率比」，而比较两个回答时，两边相同的公共项相减正好抵消——
-    于是偏好对可以直接用一个成对比较损失来更新原来那个负责生成文本的模型，不必先单独拟合一个打分模型。
-    完整的变分推导与对消过程收在下面的可选推导里，第一遍只带走这句直觉就可以往下走。
+    <strong>这正是 DPO 最震撼业界的洞察</strong>：
+    不需要单独花成本去训练和维护一个额外的打分模型（Reward Model），当前语言模型自身相对于冻结基准的对数比，就已经在数学上等价于一个天然的打分器！
   </p>
 </section>
+
 <div class="acc" data-t="选读·第二遍：DPO 为什么能省掉奖励模型（变分闭式解与配分对消）" data-badge="可选">
   <div class="acc-body">
 <section class="blk blk-m">
