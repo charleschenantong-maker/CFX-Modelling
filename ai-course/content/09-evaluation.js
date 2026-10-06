@@ -44,6 +44,12 @@ COURSE.register({
 可能完全听不出来。所以 Checkpoint 4/6 要求把客观指标与主观听测对齐。</p>
 
 <h3>2. 泛化：为什么必须按「艺人」分组</h3>
+<p>
+  <strong>结论先行</strong>：数据很少时，模型越复杂越容易把噪声当成规律，简单模型反而更稳——
+  记住「小数据上简单模型常常赢」这一句和下面按艺人分组的例子即可，下面的偏差-方差公式与岭回归闭式解第二遍再看。
+</p>
+<div class="acc" data-t="选读·第二遍：偏差-方差分解与岭回归闭式解" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>偏差-方差分解与正则化</h4>
   <p>期望泛化误差可以分解为三部分：</p>
@@ -55,6 +61,8 @@ COURSE.register({
     当 \(N\) 很小而 \(d\) 不小的时候，方差项主导，容量越大越糟。
   </p>
 </section>
+  </div>
+</div>
 <p>
   更隐蔽的问题是<strong>分组泄漏</strong>。音乐数据里，同一艺人的作品共享录音、母带、编曲习惯。
   如果随机切分，训练集与验证集里会同时出现同一艺人的曲目，模型只要记住「这个艺人的歌过渡时长通常 8 秒」就能刷分——
@@ -138,12 +146,11 @@ COURSE.register({
 <h4>4.2 效应量与多重比较</h4>
 <p>
   p 值只回答「有没有信号」，不回答「信号有多大」。所以一定要同时报告效应量：
-  Cohen's \(d = (\mu_1 - \mu_2)/\sigma_{\text{pooled}}\)，或对非正态数据更稳健的 Cliff's delta。
-  经验刻度是 \(d \approx 0.2\) 小、\(0.5\) 中、\(0.8\) 大。
+  常用的是 Cohen's d（两组均值差除以合并标准差），或对非正态数据更稳健的 Cliff's delta。
+  经验刻度是 0.2 算小、0.5 算中、0.8 算大。
 </p>
 <p>
-  <strong>多重比较</strong>：如果你比较了 5 个模型、每个都算一个 p 值，那么「至少一个偶然显著」的概率是
-  \(1 - 0.95^5 \approx 23\%\)。三种诚实的做法：
+  <strong>多重比较</strong>：如果你比较了 5 个模型、每个都算一个 p 值，那么「至少一个偶然显著」的概率约 23%。三种诚实的做法：
 </p>
 <ul>
   <li><strong>Bonferroni</strong>：把阈值除以比较次数（5 次比较 → 用 0.01）。最保守。</li>
@@ -152,6 +159,12 @@ COURSE.register({
 </ul>
 
 <h4>4.3 岭回归的「有效自由度」：一个可写进报告的正则化度量</h4>
+<p>
+  <strong>结论先行</strong>：正则化越强，模型实际用到的自由度越小——
+  从全部特征一路压向 0。记住这一句即可，下面的奇异值求和公式第二遍再看。
+</p>
+<div class="acc" data-t="选读·第二遍：岭回归有效自由度的 SVD 求和公式" data-badge="可选">
+  <div class="acc-body">
 <p>岭回归的解 \(\hat w = (X^\top X + \lambda I)^{-1}X^\top y\) 看起来像个线性模型，但它实际用了多少「自由度」？答案是</p>
 \[ \mathrm{df}(\lambda) = \sum_{j} \frac{\sigma_j^2}{\sigma_j^2 + \lambda} \]
 <p>
@@ -159,6 +172,8 @@ COURSE.register({
   \(\lambda \to \infty\) 时它趋于 0。<strong>于是「模型复杂度」不再是一个模糊的说法，
   而是一个可以算出来的数</strong>——把它和 \(R^2\)、RMSE 一起报告，就能解释「为什么加了非线性特征却没有真正增加有效容量」。
 </p>
+  </div>
+</div>
 <p>Sturm (2014) 提出的做法极其简单，却极少被认真执行：</p>
 <ol>
   <li>用真实标签训练并评估，得到 \(E_{\text{real}}\)（例如 RMSE）。</li>
@@ -170,6 +185,13 @@ COURSE.register({
   含义：<em>如果特征与标签之间没有真实关系，模型还能做到这么好的概率有多大？</em>
   如果 \(p\) 不显著，你的模型可能只是在拟合噪声——哪怕交叉验证的 RMSE 很漂亮。
 </p>
+<p>
+  <strong>结论先行</strong>：250 条样本撑不起大模型——有一个老式理论公式算出来，
+  连最简单的模型都给不出保证。记住方向性结论即可：样本越少、模型越复杂，泛化越不可靠；
+  真正判断靠交叉验证和置换检验，公式推导第二遍再看。
+</p>
+<div class="acc" data-t="选读·第二遍：容量界为什么在 250 样本下是空的" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>容量界：为什么 250 个样本撑不起大模型</h4>
   <p>Vapnik 的泛化界（以 0-1 损失、置信度 \(1-\eta\) 为例）：</p>
@@ -184,9 +206,11 @@ COURSE.register({
   <p>
     这不是说学习不可能，而是说 <strong>VC 界在现实样本量下过于保守</strong>。
     它的价值在于给出<em>方向性</em>结论：容量 \(h\) 越大、样本 \(N\) 越少，泛化间隙越大。
-    实践中判断泛化靠的是交叉验证与置换检验，而不是这个公式——<strong>能说清这一点，正是数学成熟度的体现</strong>。
-  </p>
+     实践中判断泛化靠的是交叉验证与置换检验，而不是这个公式——<strong>能说清这一点，正是数学成熟度的体现</strong>。
+    </p>
 </section>
+  </div>
+</div>
 
 <h3>5. 一个可直接复用的评估协议</h3>
 <pre><code>import numpy as np
@@ -262,12 +286,17 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 
 <h3>7. 草稿纸演算区：把指标算到小数点后三位</h3>
 <p class="lead">
-  前六节讲的是「怎么防止自欺」。这一节是<strong>上手计算区</strong>：先钉死符号，
-  再用 3 个 token、两句话、4 场对抗赛这种极小规模，把困惑度、N-gram 精确率、ROUGE 召回率、
+  前六节讲的是「怎么防止自欺」。这一节是<strong>上手计算区</strong>：先把字母当名字记住，
+  再用 3 个小数、两句话、4 场对抗赛这种极小规模，把困惑度、词组命中率、ROUGE 召回率、
   Elo 更新全部手算一遍。每一道都能拿计算器独立复核，不需要跑代码。
+  第一遍只需看懂加粗的结论句和表格里的几个小数，公式推导都收在「选读·第二遍」里。
 </p>
 
-<h4>7.1 符号约定（先把字母钉死，后面的算式才不会串）</h4>
+<h4>7.1 符号约定（先把字母当名字记住，后面才不会串）</h4>
+<p>
+  下面这张表是本节的「人名册」：字母不多，每个都有一个极小的取值，第一遍扫一眼即可，
+  用到时再回来查。
+</p>
 <table class="tbl small">
   <thead><tr><th>符号</th><th>含义</th><th>本节取值</th><th>一句备注</th></tr></thead>
   <tbody>
@@ -285,18 +314,28 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 
 <h4>7.2 前置定义 A：困惑度</h4>
 <p>
-  <strong>定义</strong>：困惑度衡量「模型平均要在一棵多大的树里挑下一个 token」。
-  先定义单个 token 的负对数似然，再取平均得到交叉熵，最后取指数：
+  <strong>一句话先行</strong>：困惑度回答的是「模型平均要在几个选项里猜下一个词」——数字越小越好，最小是 1。
+  只需记住一条性质：<strong>错得离谱会被重罚</strong>，下面草稿纸里的三个小数就是演示这一条的。
+</p>
+<p>
+  定义只用一行：先给每个位置的预测打分再平均，最后还原成「几个选项」：
 </p>
 \[ \mathrm{NLL}_t = -\ln p_t, \qquad \mathrm{CE} = \frac{1}{N}\sum_{t=1}^{N}\mathrm{NLL}_t, \qquad \mathrm{PPL} = \exp(\mathrm{CE}) \]
+<div class="acc" data-t="选读·第二遍：困惑度的乘积写法" data-badge="可选">
+  <div class="acc-body">
 <p>把定义式改写成乘积形式，会看到一个非常好用的读法：</p>
 \[ \mathrm{PPL} = \left(\prod_{t=1}^{N} \frac{1}{p_t}\right)^{1/N} \]
 <p>
-  也就是说，<strong>困惑度等于 \(\frac{1}{p_t}\) 的几何平均</strong>。
-  几何平均的性质是「谁差谁拖后腿」：一个 \(p_t = 0.1\) 的 token 把倒数项抬到 10，
-  是另外两项（1.25 与 2）的五到八倍，于是整个几何平均被它单方面拉动；
-  而三个 \(p_t = 0.9\) 也只能把整体压到约 1.11（几何平均永远逼近下限 1）。
-  <strong>这正是我们想要的性质</strong>——语言模型偶尔犯错没关系，但「错得离谱」会被重罚。
+  也就是说，困惑度是倒数预测概率的几何平均。几何平均的性质是「谁差谁拖后腿」，
+  后面草稿纸里的推导第二遍再看也完全跟得上。
+</p>
+  </div>
+</div>
+<p>
+  直觉例子：三个位置的把握是 0.8、0.5、0.1，倒数就是 1.25、2 和 10——
+  最差的那个 10 是另两项的五到八倍，整体结果被它单方面拉动；
+  而三个 0.9 也只能把整体压到约 1.11（下限永远是 1）。
+  <strong>这正是我们想要的性质</strong>——偶尔没把握没关系，但「错得离谱」会被重罚。
 </p>
 
 <h4>7.3 草稿纸 ①：三选一测试集上算困惑度</h4>
@@ -335,7 +374,7 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 <p>
   <strong>结论：这个模型只比瞎猜好 2.5%。</strong>而单看「PPL = 2.92」这个数字，
   任何人都以为它很强——因为人们习惯把 PPL 和「几百」联系在一起，
-  而那个数字背后是几万词的词表。均匀分布下 \(\mathrm{PPL} = |\mathcal{V}|\)，
+  而那个数字背后是几万词的词表。瞎猜时困惑度恰好等于词表大小，
   <strong>所以困惑度的绝对值几乎完全由词表大小决定</strong>。
   第 3 节那句「Level 3 比 Level 1 好 2%，可能只是噪声」，在这里就变成
   「PPL 差 2.5% 可能什么都不算」。
@@ -362,20 +401,31 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 
 <h4>7.4 前置定义 B：N-gram 精确率与 BLEU</h4>
 <p>
-  <strong>定义</strong>：把候选文本切成 n-gram（连续 n 个词），数它们在<em>参考</em>里出现了多少次，
-  但每个 n-gram 最多只能计它在参考里出现的次数（这叫<strong>裁剪</strong>）；
-  精确率的分母是候选里的 n-gram 总数：
+  <strong>一句话先行</strong>：BLEU 数的是「你写的词组在参考答案里出现过几个」——
+  但把同一句话抄十遍不算本事，所以重复的部分要砍掉（这叫裁剪）；
+  最后把 1 个词到 4 个词的分数合在一起，还要罚「说得太短」。
+  记住这一句就能看懂下面两张数词表，公式第二遍再看。
+</p>
+<div class="acc" data-t="选读·第二遍：精确率与 BLEU 的公式写法" data-badge="可选">
+  <div class="acc-body">
+<p>
+  把候选文本切成 n-gram（连续 n 个词），数它们在参考里出现了多少次，
+  但每个 n-gram 最多只能计它在参考里出现的次数；精确率的分母是候选里的 n-gram 总数：
 </p>
 \[ P_n = \frac{\sum_{g} \max\bigl(0,\ c_{\text{cand}}(g) - c_{\text{ref}}(g)\bigr)}{\sum_{g} c_{\text{cand}}(g)} \]
+<p>BLEU 把前四个精确率用几何平均合成，BP 是长度惩罚：</p>
+\[ \mathrm{BLEU\text{-}n} = \mathrm{BP}\cdot\exp\left(\frac{1}{n}\sum_{i=1}^{n}\ln P_i\right), \qquad \mathrm{BP} = \min\bigl(1,\ \exp(1 - r/m)\bigr) \]
+<p>
+  BP 那一行值得单独理解：当候选比参考长时不惩罚，当候选更短时按比例压分。
+</p>
+  </div>
+</div>
 <p>
   <strong>裁剪这一步是全部要点。</strong>若不裁剪，候选里把同一个短语重复十遍会被算成十次命中，
   精确率反而上升。裁剪把「重复」和「命中」这两件完全不同的事正确地分开了。
 </p>
-<p>BLEU 把前四个 \(P_n\) 用<em>几何平均</em>合成，\(\mathrm{BP}\) 是长度惩罚：</p>
-\[ \mathrm{BLEU\text{-}n} = \mathrm{BP}\cdot\exp\left(\frac{1}{n}\sum_{i=1}^{n}\ln P_i\right), \qquad \mathrm{BP} = \min\bigl(1,\ \exp(1 - r/m)\bigr) \]
 <p>
-  BP 那一行值得单独理解：当 \(m &gt; r\)（候选比参考长）时 \(\exp(1-r/m) &gt; 1\)，取 min 后 BP 等于 1，不惩罚；
-  当 \(m \le r\) 时 BP 小于 1，按比例压制分数。<strong>它是专门用来对付「靠说得少刷精确率」的</strong>。
+  长度惩罚只做一件事：<strong>专门对付「靠说得少刷精确率」</strong>——候选比参考长时不罚，候选更短时按比例压分。
 </p>
 
 <h4>7.5 草稿纸 ②：只差一个词的输出，BLEU-4 是多少</h4>
@@ -408,40 +458,51 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
     <tr><td>(token, quickly)</td><td>0</td><td>0</td></tr>
   </tbody>
 </table>
-<p>长度惩罚：\(m = r = 7\)，于是 BP 不生效。</p>
+<p>长度惩罚：两边都是 7 个词，所以不罚分。四个精确率合在一起，BLEU-4 约等于 0.64（对数平均的写法见选读）。</p>
+<div class="acc" data-t="选读·第二遍：BLEU-4 的对数平均写法" data-badge="可选">
+  <div class="acc-body">
+<p>长度惩罚这一步代入 7 和 7 就得到 1；四个精确率先连乘再开四次方：</p>
 \[ \mathrm{BP} = \min\bigl(1,\ \exp(1 - 7/7)\bigr) = 1 \]
 \[ \mathrm{BLEU\text{-}4} = \exp\Bigl(\tfrac{1}{4}\bigl[\ln 0.8571 + \ln 0.6667 + \ln 0.6000 + \ln 0.5000\bigr]\Bigr) = \exp\bigl(\tfrac{1}{4}\ln 0.1714\bigr) = \exp(-0.4409) = 0.6435 \]
 <p>
-  复核一遍（同样不用计算器）：\(0.8571\times0.6667\times0.6000\times0.5000 = 0.1714\)，
-  而 \(0.6435^{4} = 0.1715\)，对上。
+  复核一遍（同样不用计算器）：
 </p>
+\[ 0.8571\times0.6667\times0.6000\times0.5000 = 0.1714, \qquad 0.6435^{4} = 0.1715 \]
+  </div>
+</div>
 <p>
-  <strong>为什么 BLEU 偏偏要用几何平均？</strong>把 \(P_4\) 改成 0（只在句尾错一个词）试试：
-  BLEU-4 直接变成 0，前三档多好看都没用。如果换成<em>算术平均</em>，同样情况下仍有 0.53。
-  <strong>几何平均是故意的</strong>：它要求每一档 n-gram 都不允许有短板。
+  <strong>为什么 BLEU 偏偏要用几何平均？</strong>把第 4 档改成 0（只在句尾错一个词）试试：
+  BLEU-4 直接变成 0，前三档多好看都没用。如果换成算术平均，同样情况下仍有 0.53。
+  <strong>几何平均是故意的</strong>：它要求每一档都不允许有短板。
   换成评估语言，这正是「细节错一处就整体不可信」的量化表达——你可以把这句话直接写进报告。
 </p>
 
 <h4>7.6 前置定义 C：ROUGE 召回率与 F-measure</h4>
 <p>
-  <strong>定义</strong>：ROUGE 与 BLEU 有两处关键差别——(1) 主指标用<strong>召回率</strong>，
-  因为参考里的所有 n-gram 都该被覆盖到；(2) 召回率的分母是<em>参考</em>的 n-gram 数：
+  <strong>一句话先行</strong>：BLEU 怕「说得太多」，ROUGE 怕「该说的没说到」——
+  ROUGE 看的是参考答案里被覆盖了多少，参考写得越长分数越容易往下掉。
+  下面草稿纸③就是演示这一句的，公式第二遍再看。
+</p>
+<div class="acc" data-t="选读·第二遍：召回率与 ROUGE-L 的公式写法" data-badge="可选">
+  <div class="acc-body">
+<p>
+  ROUGE 与 BLEU 有两处关键差别：主指标用召回率，因为参考里的内容都该被覆盖到；召回率的分母是参考的 n-gram 数：
 </p>
 \[ R_n = \frac{\mathrm{matched}_n}{\text{reference } n\text{-grams}}, \qquad P_n = \frac{\mathrm{matched}_n}{\text{candidate } n\text{-grams}}, \qquad F_n = \frac{2 P_n R_n}{P_n + R_n} \]
 <p>
-  一句话取舍：<strong>BLEU 用精确率惩罚「说得太多」，ROUGE 用召回率奖励「该说的都说了」</strong>。
-  抽取式摘要通常宁长勿短，所以主流实现默认报 ROUGE-1/2 的 F，同时把 R 与 P 单独列出来。
-  ROUGE-L 则用<strong>最长公共子序列</strong>代替计数：
+  ROUGE-L 用最长公共子序列代替计数：
 </p>
 \[ P_{\text{LCS}} = \frac{\mathrm{LCS}(c,r)}{m}, \qquad R_{\text{LCS}} = \frac{\mathrm{LCS}(c,r)}{r}, \qquad F_{\text{LCS}} = \frac{2 P_{\text{LCS}} R_{\text{LCS}}}{P_{\text{LCS}} + R_{\text{LCS}}} \]
+  </div>
+</div>
 <p>
-  LCS 与 n-gram 计数的差别很实在。取候选 the model <strong>predicts</strong> the next token
+  差别很实在。取候选 the model <strong>predicts</strong> the next token
   与参考 the model <strong>estimates</strong> the next word：
-  二元组只命中 (the, model) 与 (the, next) 两个，于是 \(P_2 = R_2 = 2/5 = 0.400\)、\(F_2 = 0.400\)；
-  而 LCS 能认出 the / model / the / next 这 4 个共同成分，于是
-  \(P_{\text{LCS}} = R_{\text{LCS}} = 4/6 = 0.667\)、\(F_{\text{LCS}} = 0.667\)。
-  <strong>同一对句子，ROUGE-2 判 0.40 而 ROUGE-L 判 0.67</strong>——差别全部来自
+  按两词一组数只命中 2 个，得 0.400 分；
+  按最长公共子序列能认出 4 个共同成分，得 0.667 分。
+  <strong>同一对句子，一种算法判 0.40 而另一种判 0.67</strong>——差别全部来自
   「同义词算不算部分正确」这个建模选择。
+  抽取式摘要通常宁长勿短，所以主流实现默认同时报告 F，并把召回与精确单独列出来。
 </p>
 
 <h4>7.7 草稿纸 ③：把参考句拉长 10 个词，同一份输出会掉多少分</h4>
@@ -459,7 +520,7 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
     <tr><td>B（16 词）</td><td>15</td><td>5</td><td>0.3333</td><td>1.0000</td><td>0.5000</td></tr>
   </tbody>
 </table>
-<p>换成 ROUGE-L（此时 \(\mathrm{LCS}(c, r) = 6\) 在两种参考下都成立）：</p>
+<p>换成最长公共子序列的算法（两份参考下共同子序列都是 6 个词）：</p>
 <table class="tbl small">
   <thead><tr><th>参考</th><th>LCS 长度</th><th>m</th><th>r</th><th>P_LCS</th><th>R_LCS</th><th>F_LCS</th></tr></thead>
   <tbody>
@@ -489,21 +550,28 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 
 <h4>7.8 前置定义 D：Elo 积分排名系统</h4>
 <p>
-  <strong>定义</strong>：给每个对象一个实数分 \(R\)。两两对战的期望得分完全由分差决定；
-  实战胜后按「超出了预期多少」加分：
+  <strong>一句话先行</strong>：Elo 是一套「惊喜系统」——赢了不该赢的加很多分，输了不该输的掉很多分；
+  两人分数加起来永远不变，涨的都是对方掉的。下面四场小数字就是验这条的，代数证明第二遍再看。
+</p>
+<p>
+  规则只用两行：先按分差算出「本该得几分」，再按「超出预期多少」加减（胜记 1、平记 0.5、负记 0）：
 </p>
 \[ E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}, \qquad R_A' = R_A + K\bigl(S_A - E_A\bigr), \qquad S_A \in \{0,\, 0.5,\, 1\} \]
 <p>
-  \(S_A - E_A\) 是这一场的<strong>惊喜程度</strong>：赢了弱手（\(E_A\) 小）加分多，
-  赢了强手（\(E_A\) 接近 1）几乎不加；输了弱手则要掉很多分。
-  对手同时更新，所以<strong>总分严格守恒</strong>。这是可以纯代数验证的：
+  超出预期的部分就是这一场的<strong>惊喜程度</strong>：赢弱手加分多，赢强手几乎不加；输给弱手则掉很多分。
+  对手同时反向更新，所以<strong>总分严格守恒</strong>。
 </p>
+<div class="acc" data-t="选读·第二遍：总分守恒的代数验证" data-badge="可选">
+  <div class="acc-body">
+<p>两人同时更新，总分的变化正好抵消：</p>
 \[ R_A' + R_B' = R_A + R_B + K\bigl(S_A - E_A + S_B - E_B\bigr) = R_A + R_B + K\bigl((S_A + S_B) - (E_A + E_B)\bigr) = R_A + R_B \]
 <p>
-  括号里的两项都是 1（\(S_A + S_B = 1\) 是规则，\(E_A + E_B = 1\) 是 \(\mathrm{logistic}\) 的对称性），
-  所以 <strong>\(K\) 被完全抵消掉</strong>。这正是 Elo 最优雅的性质：涨分必然等于对方掉分，
+  括号里的两项都是 1（胜负和平局的计分规则，以及期望得分的对称性），
+  所以步长 K 被完全抵消掉。这正是 Elo 最优雅的性质：涨分必然等于对方掉分，
   系统内部始终有一个固定总量在分配。后面草稿纸 ④ 会用四场数据把这条守恒律直接验一遍。
 </p>
+  </div>
+</div>
 
 <h4>7.9 草稿纸 ④：K = 32，连续四场的分值演化</h4>
 <section class="blk blk-m">
@@ -526,7 +594,7 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
     <strong>三个可以直接引用的性质</strong>，全部能从这张表读出来：
   </p>
   <ul>
-    <li><strong>总分守恒</strong>：四场都是 3000。实测时如果总分漂了，说明你把 \(S_B\) 写错了。</li>
+    <li><strong>总分守恒</strong>：四场都是 3000。实测时如果总分漂了，说明你把对方的得分写错了。</li>
     <li><strong>分差越大，胜负越不重要</strong>：第 2 场 A 赢了，但只涨 14.53 分；第 1 场分差为 0，同样是赢，涨了整整 16 分。</li>
     <li><strong>惊喜是有方向的</strong>：A 连赢两场又输一场，最后只比起点高 10.7 分。第 4 场是平局，A 反而掉 1.1 分——因为分差已经拉开，平局算「失望」。</li>
   </ul>
@@ -545,20 +613,29 @@ def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸 ⑤：那个 400 是怎么来的（代数推导）</h4>
   <p>
-    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。我们希望「一个期望胜率是 \(n{:}1\) 的选手，
-    分数上正好领先 \(\Delta\) 分」，也就是要求
+    <strong>结论先行</strong>：400 只是「胜率比」翻译成「分数差」的比例尺——
+    记住「差 400 分约等于 10 比 1，差 800 分约等于 100 比 1」这一句就能用，
+    下面的对数推导第二遍再看。
+  </p>
+<div class="acc" data-t="选读·第二遍：从胜率比反解 400" data-badge="可选">
+  <div class="acc-body">
+  <p>
+    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。我们希望胜率比为 n 比 1 的选手，
+    分数上正好领先对应分差，也就是要求
   </p>
   \[ \frac{1}{1 + 10^{-\Delta/400}} = \frac{n}{1+n} \]
-  <p>把右边代进去解 \(\Delta\)：</p>
+  <p>把右边代进去解分差：</p>
   \[ 10^{-\Delta/400} = \frac{1}{n} \;\Longrightarrow\; -\frac{\Delta}{400} = \log_{10}\frac{1}{n} \;\Longrightarrow\; \Delta = 400\log_{10} n \]
   <p>
-    代回去验一个具体值。取 \(n = 2\)（期望 2:1），得 \(\Delta = 400\times 0.30103 = 120.4\) 分：
+    代回去验一个具体值。取 n 为 2（期望 2:1），得分差为 120.4 分：
   </p>
   \[ E_A = \frac{1}{1 + 10^{-120.4/400}} = \frac{1}{1 + 10^{-0.30103}} = \frac{1}{1 + 0.5000} = 0.6667 = \frac{2}{3} \]
   <p>
-    完全对上。所以 <strong>400 只是「胜率比」翻译成「分数差」的比例尺</strong>，
-    而且换成任何正数都能得到一个自洽的系统；选 400 是为了让人类直觉上的小差距对应到温和的胜率变化：
+    完全对上。所以 400 只是比例尺，
+    而且换成任何正数都能得到一个自洽的系统；选 400 是为了让人类直觉上的小差距对应到温和的胜率变化。
   </p>
+  </div>
+</div>
   <table class="tbl small">
     <thead><tr><th>分数差 Δ</th><th>期望得分 E</th><th>等价胜率</th></tr></thead>
     <tbody>
