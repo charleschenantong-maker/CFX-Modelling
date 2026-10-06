@@ -27,8 +27,8 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>公式</th><th>含义 / 什么时候用</th><th>出处</th><th>常见误用</th></tr></thead>
   <tbody>
-    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{<t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
-    <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{<t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
+    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{< t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
+    <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{< t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
     <tr><td>\(\text{PPL} = e^{\mathcal{L}}\)</td><td>困惑度；跨数据集<strong>不可直接比较</strong></td><td>01</td><td>用不同 tokenizer 的 PPL 比模型</td></tr>
     <tr><td>\(\text{softmax}(z)_i = e^{z_i}/\sum_j e^{z_j}\)</td><td>把 logits 变概率；温度即 \(z/T\)</td><td>01 / 08</td><td>忘了先减去最大值（数值溢出）</td></tr>
     <tr><td>\(\mathrm{Attn} = \mathrm{softmax}\!\big(\tfrac{QK^\top}{\sqrt{d_k}} + M\big)V\)</td><td>注意力；\(M\) 是因果掩码</td><td>03</td><td>漏掉 \(1/\sqrt{d_k}\) 导致 softmax 饱和</td></tr>

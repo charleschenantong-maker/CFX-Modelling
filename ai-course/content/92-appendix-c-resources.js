@@ -441,7 +441,7 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener">RoFormer: Enhanced Transformer with Rotary Position Embedding</a></strong></td>
       <td>Jianlin Su et al. (RoFormer Authors)</td>
       <td>提出旋转位置编码（RoPE）：利用复数内积与二维正交旋转矩阵将相对位置信息直接编码至 Q 与 K 的内积中，满足点积只依赖相对位移 n-m。</td>
-      <td>剑桥几何与复数代数分析经典典范！公式 <R_m q, R_n k> = <q, R_{n-m} k> 必须能一气呵成手推出来；与音频复数 STFT 谱的相位调制同质同源。</td>
+      <td>剑桥几何与复数代数分析经典典范！公式 < R_m q, R_n k> = < q, R_{n-m} k> 必须能一气呵成手推出来；与音频复数 STFT 谱的相位调制同质同源。</td>
     </tr>
     <tr>
       <td><code>#058</code></td>

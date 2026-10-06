@@ -367,7 +367,7 @@ COURSE.register({
     在 PyTorch 底层，损失函数调用 <code>torch.nn.CrossEntropyLoss(ignore_index=-100)</code>。
     对于整条序列，总标量损失定义为：
   </p>
-  \[ \mathcal{L} = -\frac{1}{\sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100)} \sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100) \log P(x_t \mid x_{<t}) \]
+  \[ \mathcal{L} = -\frac{1}{\sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100)} \sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100) \log P(x_t \mid x_{< t}) \]
   <p>
     其中 \(\mathbb{I}(\cdot)\) 为示性函数，在序列 10 个 token 中，只有 \(t=8\) 与 \(t=9\) 两位满足 \(y_t \ne -100\)。
     因此归一化分母为 2，损失严格聚焦在「助手如何输出 <code>Hello</code>」以及「何时输出终止符 <code>&lt;|im_end|&gt;</code>」。

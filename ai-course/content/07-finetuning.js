@@ -47,7 +47,7 @@ COURSE.register({
 
 <h3>2. 台阶一：监督微调（SFT）</h3>
 <p>数据是「提问 → 理想回答」的示范。目标函数仍然是交叉熵，只是只在回答部分计算：</p>
-\[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{<t}) \]
+\[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{< t}) \]
 <dl class="kv">
   <dt>数据量</dt><dd>格式对齐：200–2000 条即可见效；能力注入：数万到数十万条</dd>
   <dt>学习率</dt><dd>全参数微调 \(10^{-5}\) 量级；LoRA \(10^{-4}\) 量级（比全参数高一个数量级）</dd>
@@ -169,7 +169,7 @@ COURSE.register({
     当前策略模型为 \(\pi_\theta(y \mid x)\)，冻结的参考基座模型为 \(\pi_{\text{ref}}(y \mid x)\)。
     两者的<strong>对数相对概率比</strong>定义为：
   </p>
-  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{<t}) \Big) \]
+  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{< t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{< t}) \Big) \]
   <p>
     依据逆强化学习（Inverse RL）原理，该比值在乘以温度常数 \(\beta > 0\) 后，隐式定义了策略相对于基座的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
@@ -400,7 +400,7 @@ COURSE.register({
   </p>
   \[ \mathcal{L}_{\text{DPO}} = -\log \sigma(u) = -\log\left(\frac{1}{3}\right) = \log 3 \approx 1.0986 \]
   <p>
-    <strong>一步看懂更新方向</strong>：在这个具体例子里 \(\sigma(u)=1/3<1/2\)，成对比较更偏向被拒绝的回答 \(y_l\)，当前样本损失是 \(\log 3 \approx 1.0986\)。注意：一般而言损失非零本身并不是“分类错了”的判据，这里能这样读只是因为本例数字让 \(\sigma(u)\) 落在了 \(1/2\) 以下。
+    <strong>一步看懂更新方向</strong>：在这个具体例子里 \(\sigma(u)=1/3 < 1/2\)，成对比较更偏向被拒绝的回答 \(y_l\)，当前样本损失是 \(\log 3 \approx 1.0986\)。注意：一般而言损失非零本身并不是“分类错了”的判据，这里能这样读只是因为本例数字让 \(\sigma(u)\) 落在了 \(1/2\) 以下。
     直觉上，接下来的一次更新会把 \(y_w\) 的概率推高、把 \(y_l\) 的压低；推力有多大、什么时候停，见下面的可选推导。
   </p>
 <div class="acc" data-t="选读·第二遍：单步梯度的动力学（推力大小与什么时候停）" data-badge="可选">

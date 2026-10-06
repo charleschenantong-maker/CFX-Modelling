@@ -62,7 +62,7 @@ COURSE.register({
   <p>LLM 回报：抽取类任务用 \(T = 0\)（等价于贪心，延迟最低且可复现）；创意任务从 \(T = 0.7\) 起调，一次只动温度或 top-p 其中一个。下面看代码里这三步是怎么落子的。</p>
 </section>
 <p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
-<p>\[ P(w_{t} = i \mid w_{<t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
+<p>\[ P(w_{t} = i \mid w_{< t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
 <p>
   <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
 </p>
@@ -235,9 +235,9 @@ COURSE.register({
   <strong>定义</strong>：自回归生成指模型把整段文本当作一条概率链，一次只往前吐一个 token；
   每吐一个，都必须等上一个落到硬件里、算完前向，才能继续。形式上，
 </p>
-\[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{<t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
+\[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{< t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
 <p>
-  其中 \(x_{<t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
+  其中 \(x_{< t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
   \(h_t^{(L)}\) 是最后一层在位置 \(t\) 的隐状态。这条链可以拆成两个性质完全不同的阶段：
 </p>
 <table class="tbl small">

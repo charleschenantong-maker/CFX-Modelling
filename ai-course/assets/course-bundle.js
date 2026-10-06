@@ -2288,7 +2288,7 @@ COURSE.register({
   <p>
     展开这个非交换矩阵乘积，前几项为
   </p>
-  \[ \mathbf{I}+\sum_l J_lR_l+\sum_{i<j}(J_jR_j)(J_iR_i)+\cdots \]
+  \[ \mathbf{I}+\sum_l J_lR_l+\sum_{i< j}(J_jR_j)(J_iR_i)+\cdots \]
   <p>
     <strong>数学精义剖析</strong>：单位矩阵项确实提供一条不经过子层的直接梯度通道，但它不保证其余项必然有界；初始化、归一化尺度与学习率仍决定总乘积的谱范数。若损失梯度写成行向量，则
   </p>
@@ -3552,7 +3552,7 @@ COURSE.register({
 
 <h3>2. 台阶一：监督微调（SFT）</h3>
 <p>数据是「提问 → 理想回答」的示范。目标函数仍然是交叉熵，只是只在回答部分计算：</p>
-\[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{<t}) \]
+\[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{< t}) \]
 <dl class="kv">
   <dt>数据量</dt><dd>格式对齐：200–2000 条即可见效；能力注入：数万到数十万条</dd>
   <dt>学习率</dt><dd>全参数微调 \(10^{-5}\) 量级；LoRA \(10^{-4}\) 量级（比全参数高一个数量级）</dd>
@@ -3674,7 +3674,7 @@ COURSE.register({
     当前策略模型为 \(\pi_\theta(y \mid x)\)，冻结的参考基座模型为 \(\pi_{\text{ref}}(y \mid x)\)。
     两者的<strong>对数相对概率比</strong>定义为：
   </p>
-  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{<t}) \Big) \]
+  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{< t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{< t}) \Big) \]
   <p>
     依据逆强化学习（Inverse RL）原理，该比值在乘以温度常数 \(\beta > 0\) 后，隐式定义了策略相对于基座的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
@@ -3905,7 +3905,7 @@ COURSE.register({
   </p>
   \[ \mathcal{L}_{\text{DPO}} = -\log \sigma(u) = -\log\left(\frac{1}{3}\right) = \log 3 \approx 1.0986 \]
   <p>
-    <strong>一步看懂更新方向</strong>：在这个具体例子里 \(\sigma(u)=1/3<1/2\)，成对比较更偏向被拒绝的回答 \(y_l\)，当前样本损失是 \(\log 3 \approx 1.0986\)。注意：一般而言损失非零本身并不是“分类错了”的判据，这里能这样读只是因为本例数字让 \(\sigma(u)\) 落在了 \(1/2\) 以下。
+    <strong>一步看懂更新方向</strong>：在这个具体例子里 \(\sigma(u)=1/3 < 1/2\)，成对比较更偏向被拒绝的回答 \(y_l\)，当前样本损失是 \(\log 3 \approx 1.0986\)。注意：一般而言损失非零本身并不是“分类错了”的判据，这里能这样读只是因为本例数字让 \(\sigma(u)\) 落在了 \(1/2\) 以下。
     直觉上，接下来的一次更新会把 \(y_w\) 的概率推高、把 \(y_l\) 的压低；推力有多大、什么时候停，见下面的可选推导。
   </p>
 <div class="acc" data-t="选读·第二遍：单步梯度的动力学（推力大小与什么时候停）" data-badge="可选">
@@ -4168,7 +4168,7 @@ COURSE.register({
   <p>LLM 回报：抽取类任务用 \(T = 0\)（等价于贪心，延迟最低且可复现）；创意任务从 \(T = 0.7\) 起调，一次只动温度或 top-p 其中一个。下面看代码里这三步是怎么落子的。</p>
 </section>
 <p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
-<p>\[ P(w_{t} = i \mid w_{<t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
+<p>\[ P(w_{t} = i \mid w_{< t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
 <p>
   <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
 </p>
@@ -4341,9 +4341,9 @@ COURSE.register({
   <strong>定义</strong>：自回归生成指模型把整段文本当作一条概率链，一次只往前吐一个 token；
   每吐一个，都必须等上一个落到硬件里、算完前向，才能继续。形式上，
 </p>
-\[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{<t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
+\[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{< t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
 <p>
-  其中 \(x_{<t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
+  其中 \(x_{< t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
   \(h_t^{(L)}\) 是最后一层在位置 \(t\) 的隐状态。这条链可以拆成两个性质完全不同的阶段：
 </p>
 <table class="tbl small">
@@ -4937,7 +4937,7 @@ COURSE.register({
 
 <h3>5. 一个可直接复用的评估协议</h3>
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
-<p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{<i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
+<p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{< i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
   <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；直观物理意义代表模型在预测下一个词时的“平均有效分支数”。困惑度数值越接近 1.0，说明模型对真实文本分布的预测越自信准确。
 </p>
@@ -8019,7 +8019,7 @@ COURSE.register({
     先在 20–50 道自己的题上测出 \(s\) 的量级，再决定加 \(n\) 还是换验证器。
   </p>
   <p><strong>实验二（免费 Colab，几分钟）：用真模型测你自己的 \(p\) 与 \(q\)。</strong>协议如下。</p>
-<p>\[ \text{Score}(\tau) = \sum_{t=1}^T \log P_{\text{PRM}}(\text{step}_t \text{ is correct} \mid \text{step}_{<t}) \]</p>
+<p>\[ \text{Score}(\tau) = \sum_{t=1}^T \log P_{\text{PRM}}(\text{step}_t \text{ is correct} \mid \text{step}_{< t}) \]</p>
   <p>
     规模控制：20 题 × 8 次采样在 1.5B 模型上是百次级别的短生成，免费 Colab 的 CPU 也能跑完；
     换成 0.5B 模型则更快，但 \(p\) 会更低，正好可以用来观察 \(p < 0.1\) 时采样法的失效。
@@ -16214,7 +16214,7 @@ COURSE.register({
     在 PyTorch 底层，损失函数调用 <code>torch.nn.CrossEntropyLoss(ignore_index=-100)</code>。
     对于整条序列，总标量损失定义为：
   </p>
-  \[ \mathcal{L} = -\frac{1}{\sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100)} \sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100) \log P(x_t \mid x_{<t}) \]
+  \[ \mathcal{L} = -\frac{1}{\sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100)} \sum_{t=0}^{T-1} \mathbb{I}(y_t \ne -100) \log P(x_t \mid x_{< t}) \]
   <p>
     其中 \(\mathbb{I}(\cdot)\) 为示性函数，在序列 10 个 token 中，只有 \(t=8\) 与 \(t=9\) 两位满足 \(y_t \ne -100\)。
     因此归一化分母为 2，损失严格聚焦在「助手如何输出 <code>Hello</code>」以及「何时输出终止符 <code>&lt;|im_end|&gt;</code>」。
@@ -20085,7 +20085,7 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener">RoFormer: Enhanced Transformer with Rotary Position Embedding</a></strong></td>
       <td>Jianlin Su et al. (RoFormer Authors)</td>
       <td>提出旋转位置编码（RoPE）：利用复数内积与二维正交旋转矩阵将相对位置信息直接编码至 Q 与 K 的内积中，满足点积只依赖相对位移 n-m。</td>
-      <td>剑桥几何与复数代数分析经典典范！公式 <R_m q, R_n k> = <q, R_{n-m} k> 必须能一气呵成手推出来；与音频复数 STFT 谱的相位调制同质同源。</td>
+      <td>剑桥几何与复数代数分析经典典范！公式 < R_m q, R_n k> = < q, R_{n-m} k> 必须能一气呵成手推出来；与音频复数 STFT 谱的相位调制同质同源。</td>
     </tr>
     <tr>
       <td><code>#058</code></td>
@@ -22492,8 +22492,8 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>公式</th><th>含义 / 什么时候用</th><th>出处</th><th>常见误用</th></tr></thead>
   <tbody>
-    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{<t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
-    <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{<t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
+    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{< t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
+    <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{< t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
     <tr><td>\(\text{PPL} = e^{\mathcal{L}}\)</td><td>困惑度；跨数据集<strong>不可直接比较</strong></td><td>01</td><td>用不同 tokenizer 的 PPL 比模型</td></tr>
     <tr><td>\(\text{softmax}(z)_i = e^{z_i}/\sum_j e^{z_j}\)</td><td>把 logits 变概率；温度即 \(z/T\)</td><td>01 / 08</td><td>忘了先减去最大值（数值溢出）</td></tr>
     <tr><td>\(\mathrm{Attn} = \mathrm{softmax}\!\big(\tfrac{QK^\top}{\sqrt{d_k}} + M\big)V\)</td><td>注意力；\(M\) 是因果掩码</td><td>03</td><td>漏掉 \(1/\sqrt{d_k}\) 导致 softmax 饱和</td></tr>

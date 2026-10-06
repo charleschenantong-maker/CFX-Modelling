@@ -630,7 +630,7 @@ COURSE.register({
     先在 20–50 道自己的题上测出 \(s\) 的量级，再决定加 \(n\) 还是换验证器。
   </p>
   <p><strong>实验二（免费 Colab，几分钟）：用真模型测你自己的 \(p\) 与 \(q\)。</strong>协议如下。</p>
-<p>\[ \text{Score}(\tau) = \sum_{t=1}^T \log P_{\text{PRM}}(\text{step}_t \text{ is correct} \mid \text{step}_{<t}) \]</p>
+<p>\[ \text{Score}(\tau) = \sum_{t=1}^T \log P_{\text{PRM}}(\text{step}_t \text{ is correct} \mid \text{step}_{< t}) \]</p>
   <p>
     规模控制：20 题 × 8 次采样在 1.5B 模型上是百次级别的短生成，免费 Colab 的 CPU 也能跑完；
     换成 0.5B 模型则更快，但 \(p\) 会更低，正好可以用来观察 \(p < 0.1\) 时采样法的失效。

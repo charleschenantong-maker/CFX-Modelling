@@ -104,7 +104,7 @@ COURSE.register({
   <p>
     展开这个非交换矩阵乘积，前几项为
   </p>
-  \[ \mathbf{I}+\sum_l J_lR_l+\sum_{i<j}(J_jR_j)(J_iR_i)+\cdots \]
+  \[ \mathbf{I}+\sum_l J_lR_l+\sum_{i< j}(J_jR_j)(J_iR_i)+\cdots \]
   <p>
     <strong>数学精义剖析</strong>：单位矩阵项确实提供一条不经过子层的直接梯度通道，但它不保证其余项必然有界；初始化、归一化尺度与学习率仍决定总乘积的谱范数。若损失梯度写成行向量，则
   </p>
