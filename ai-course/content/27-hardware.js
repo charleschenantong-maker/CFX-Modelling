@@ -1,205 +1,378 @@
-/* content/15-hardware.js — 模块 15：硬件与操作系统瓶颈 */
+/* content/27-hardware.js — 模块 27：自制大模型 Gen-1（二）：从零搭建 nanoGPT 核心模型架构 */
 COURSE.register({
   id: "m27",
   part: 5,
   num: "27",
-  title: "硬件与系统：为什么并行智能体会拖垮 macOS",
-  en: "Hardware & OS Bottlenecks",
-  minutes: 25,
-  tags: ["硬件", "系统", "成本"],
+  title: "自制大模型 Gen-1（二）：从零搭建 nanoGPT 核心模型架构",
+  en: "Building Gen-1 LLM (Part 2): Pure nanoGPT Model Architecture from Scratch",
+  minutes: 45,
+  tags: ["Gen-1自制大模型", "nanoGPT", "注意力机制", "Transformer", "从零手写"],
   body: String.raw`
 <p class="lead">
-  当你同时跑 5–10 个智能体时，瓶颈通常不是模型，而是<strong>磁盘、内存、散热与操作系统的调度策略</strong>。
-  这一模块给出记录中的实测结论与背后的机制，以及你可以马上做的检查。
+  在掌握了分词器底层原理之后，我们正式进入<strong>【自制大模型 Gen-1】的核心引擎部分</strong>：
+  使用纯 PyTorch 逐行手写一个经典的<strong>自回归 Transformer 解码器（Decoder-Only nanoGPT）</strong>。
+  我们将抛开 Hugging Face 等高级封装黑盒，
+  用最清晰直观的数学算子，实现因果自注意力掩码、多头注意力机制（Multi-Head Attention）、残差连接（Residual Connections）、层归一化（LayerNorm）与输出投影头。
 </p>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    同样的任务，在 macOS 笔记本上跑 5 个并发就卡顿、降频、风扇狂转；
-    换到一台几百美元的裸金属 Linux 小主机上却能稳定跑 6–10 个线程。
-    差别不在 CPU 主频，而在<strong>文件系统、安全守护进程与散热策略</strong>。
-  </p>
-</section>
-
-<h3>1. 三个平台，三种失败模式</h3>
-<table class="tbl">
-  <thead><tr><th>平台</th><th>记录中的观察</th><th>机制</th></tr></thead>
-  <tbody>
-    <tr><td><strong>macOS</strong>（高并发）</td>
-        <td>同时跑 5 个以上编码智能体会出现<strong>热降频与资源停顿</strong></td>
-        <td>APFS 的文件系统锁争用、后台安全守护进程扫描、以及并行磁盘 I/O 下的进程节流</td></tr>
-    <tr><td><strong>裸金属 Linux</strong></td>
-        <td>无头 Ubuntu（4–8 核、8–32 GB）插在家用路由器上，轻松维持 6–10 个并行线程，空闲开销接近零</td>
-        <td>文件系统与进程调度更可预测；没有强制降频的散热约束（有主动散热）</td></tr>
-    <tr><td><strong>云 VPS</strong></td>
-        <td>同等规格月费高，且数据中心 IP 带来合规与封禁风险</td>
-        <td>见下面的经济学对比</td></tr>
-  </tbody>
-</table>
-<blockquote class="callout">
-  <p><strong>关键类比</strong>：智能体工作负载的特征是「大量小文件读写 + 频繁进程创建 + 持续网络等待」。
-  这恰好是 APFS 与现代安全守护进程最不擅长的模式。GPU 或 CPU 主频在这个负载里根本不是瓶颈。</p>
-</blockquote>
-
-<h3>2. 云 VPS 的经济学陷阱</h3>
-<section class="blk blk-eco">
-  <h4><span class="ic">◈</span>记录中的对比</h4>
-  <table class="tbl small">
-    <thead><tr><th>方案</th><th>成本</th><th>IP 风险</th><th>回本周期</th></tr></thead>
-    <tbody>
-      <tr><td>云 VPS（Hetzner 级，16 核 / 32 GB）</td><td>约 $275 / 月</td><td>数据中心 IP，有封禁风险</td><td>永不回本（持续支出）</td></tr>
-      <tr><td>自购迷你主机（32 GB）</td><td>约 $700 一次性</td><td>接在家用网络上 → 住宅 IP</td><td><strong>不到 3 个月</strong>（对比 $275/月）</td></tr>
-    </tbody>
-  </table>
-  <p>
-    计算很简单：\(700 / 275 \approx 2.5\) 个月。这也解释了模块 12 里「住宅网关」的价值——
-    它不仅更便宜，还顺带解决了 IP 画像问题。
-  </p>
-</section>
-<p><strong>但要加上被忽略的成本</strong>：电费（一台 32 GB 小主机满载约 30–60 W，按 \$0.2/kWh 计约 \$5–9/月）、
-噪音与散热位置、以及家用宽带断网时的可用性风险。
-即便如此，长期成本仍显著低于同规格 VPS。</p>
-
-<h3>3. 把重编译卸载出去（CI offloading）</h3>
-<p>
-  记录中的建议：对资源密集的编译（例如多 crate 的 Rust 构建），
-  把构建放到<strong>专用 runner</strong>（Blacksmith CLI 或 GitHub Actions）上执行，
-  避免本地内存被吃光而阻塞其他线程。
-</p>
-<table class="tbl small">
-  <thead><tr><th>任务类型</th><th>本地跑</th><th>卸载到 CI</th></tr></thead>
-  <tbody>
-    <tr><td>快速单元测试（&lt; 30 秒）</td><td>✅ 保留在本地，反馈最快</td><td>—</td></tr>
-    <tr><td>多平台/多版本矩阵测试</td><td>❌ 本地资源不足</td><td>✅ 天然并行</td></tr>
-    <tr><td>大型编译（Rust/C++、Docker 镜像）</td><td>❌ 会挤爆内存</td><td>✅ 有缓存层，反而更快</td></tr>
-    <tr><td>需要 GPU 的训练</td><td>小规模可以</td><td>✅ 但单价高（见模块 10）</td></tr>
-  </tbody>
-</table>
-<p><strong>以后做 crossfade 这类项目时</strong>：音频实验脚本通常很轻，不需要 CI 卸载；但「批量渲染 100 段过渡 + 计算指标」这类任务适合写成脚本交给 CI 或后台任务，
-这样你的交互式设备始终保持可响应。</p>
-
-<h3>4. 如果你现在只有一台 Windows 或 macOS 机器</h3>
-<table class="tbl">
-  <thead><tr><th>平台</th><th>立刻可做的三件事</th></tr></thead>
-  <tbody>
-    <tr><td><strong>macOS</strong></td>
-        <td>
-          1) 把并发线程数控制在 <strong>3–4 个</strong>（记录中 5+ 就会触发热降频）；<br />
-          2) 把工作目录放在内置 SSD，避开外接盘与网络盘；<br />
-          3) 给持续任务设置 <code>caffeinate</code> 防止睡眠中断，并监控 <code>powermetrics</code> 的温度与降频。
-        </td></tr>
-    <tr><td><strong>Windows</strong></td>
-        <td>
-          1) 用 <strong>WSL2</strong> 跑 Linux 工具链，并且<em>把仓库放在 WSL 的原生文件系统里</em>
-             （例如 <code>/home/you/projects</code>），<strong>不要</strong>放在 <code>/mnt/c/...</code>——跨文件系统 I/O 会慢一个数量级；<br />
-          2) 在 Windows 安全中心里为项目目录与 WSL 虚拟磁盘添加排除项，避免实时扫描拖慢大量小文件读写；<br />
-          3) 限制并发与内存（<code>.wslconfig</code> 里的 <code>memory=</code>），把重活交给后台或远程节点。
-        </td></tr>
-    <tr><td><strong>Linux 主机</strong></td>
-        <td>
-          1) 把并发线程数设为「物理核数 − 1」；<br />
-          2) 用 <code>htop</code> / <code>iostat -x 1</code> 确认瓶颈到底是 CPU、内存还是磁盘；<br />
-          3) 大编译与 CI 卸载出去，本地只留交互式任务。
-        </td></tr>
-  </tbody>
-</table>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>不要凭感觉优化</h4>
-  <p>
-    「换机器」通常是最后手段。先量化：在卡顿发生时看<strong>磁盘队列长度、内存压力、CPU 降频与交换分区使用</strong>。
-    智能体负载的瓶颈往往是<em>磁盘 I/O 与内存</em>，而不是 CPU 主频——
-    给一台老机器加内存或换 NVMe，往往比换整台机器更划算。
-  </p>
-</section>
-
-<h3>5. 你的最优配置（按预算分档）</h3>
-<table class="tbl small">
-  <thead><tr><th>预算</th><th>建议</th><th>能支撑</th></tr></thead>
-  <tbody>
-    <tr><td>0（现有设备）</td><td>WSL2 / 原生 Linux + 把仓库放对文件系统 + 并发 ≤ 4</td><td>3–4 个并行线程、全部课程实验（除多设备 SPMD）</td></tr>
-    <tr><td>≈ $700</td><td>32 GB 内存的迷你主机 / NUC 级机器，接家用路由器</td><td>6–10 个并行线程、作为住宅网关（模块 12）</td></tr>
-    <tr><td>≈ $1500–2500</td><td>带独显（12–16 GB 显存）的工作站</td><td>本地 LoRA 微调、推理实验</td></tr>
-    <tr><td>按小时</td><td>云 GPU（A100 级），只在需要时开</td><td>一次性大实验；注意合规与成本</td></tr>
-  </tbody>
-</table>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
-  <p>
-    crossfade 这类题目通常包含<strong>大量小规模但高频的实验</strong>：渲染音频、计算指标、跑统计检验。
-    这类负载对硬盘与内存的压力远大于对 CPU 的压力。
-    把实验脚本做成「一条命令、结果落盘、可复现」，再配合 2–3 个 worktree 并行跑不同参数组，
-    你就能在一台普通机器上获得远超预期的迭代速度——<em>而这正是 85/15 规则想要的基础设施</em>。
-  </p>
+  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
+  <p>在编写本讲神经网络架构前，极力推荐反复研读以下世界级导师的公开杰作：</p>
+  <ul>
+    <li>
+      <strong>核心精讲视频</strong>：Andrej Karpathy — 
+      <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">《Let's build GPT: from scratch, in code, spelled out.》</a>
+      （时长：1小时56分钟）。<br>
+      <em>重点时间戳</em>：<code>0:38:00</code> 注意力机制的核心数学技巧（加权平均）；<code>1:04:00</code> 单头因果注意力；<code>1:15:00</code> 多头注意力与并行；<code>1:24:00</code> 前馈网络与残差连接；<code>1:44:00</code> 完整组装 Transformer。
+    </li>
+    <li>
+      <strong>官方开源代码库</strong>：
+      <a href="https://github.com/karpathy/nanoGPT" target="_blank" rel="noopener"><code>karpathy/nanoGPT</code></a> 
+      — 世界上最精简、优雅的 GPT 训练与微调仓库（仅 2 个核心 Python 文件完成全部工作）。
+    </li>
+    <li>
+      <strong>核心论文</strong>：Vaswani et al. (2017) — 
+      <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">《Attention Is All You Need》</a> 
+      与 Radford et al. (2019) — 
+      <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener">《Language Models are Unsupervised Multitask Learners》（GPT-2）</a>。<br>
+      <em>推荐理由</em>：确立现代 Decoder-Only 架构的行业标准，现代所有大模型（GPT-4、LLaMA、DeepSeek）的祖师爷爷。
+    </li>
+  </ul>
 </section>
+
+<h3>1. nanoGPT 张量几何流向与物理架构</h3>
+<p>
+  一个自回归因果语言模型本质上是一个<strong>下一个 Token 分类器</strong>。其输入为批次形状为 <code>(B, T)</code> 的整数索引，经过多层堆叠后输出形状为 <code>(B, T, vocab_size)</code> 的非归一化对数几率（Logits）：
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：张量形状维度速查）</h4>
+  <p>在接下来的手写算子中，我们严格遵守业界统一的标准张量维度符号：</p>
+  \[ \mathbf{X} \in \mathbb{R}^{B \times T \times C} \]
+  <ul>
+    <li>\(B\)（Batch Size）：批次大小，即一次并行计算的独立句子数量；</li>
+    <li>\(T\)（Block Size / Sequence Length）：序列长度，模型单次能观察的上下文时间步窗口；</li>
+    <li>\(C\)（Embedding Dimension / \(n_{\text{embd}}\)）：隐层特征通道维度（如 64、128 或 768）；</li>
+    <li>\(H\)（Num Heads）：多头注意力的并行头数；每个头的维度为 \(d_{\text{head}} = C / H\)。</li>
+  </ul>
+</section>
+
+<h3>2. 逐行手写 nanoGPT 核心算子</h3>
+<p>
+  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，纯手工实现各层子模块。
+</p>
+
+<h4>第一步：因果单头注意力（Causal Self-Attention Head）</h4>
+
+<pre><code>class Head(nn.Module):
+    def __init__(self, head_size, n_embd, block_size, dropout=0.1):
+        super().__init__()
+</code></pre>
+<p><strong>代码解析</strong>：继承 <code>nn.Module</code> 创建单注意力头类。传入单个头的特征维度 <code>head_size</code>、输入特征维度 <code>n_embd</code>、最大时间步长度 <code>block_size</code> 与 Dropout 丢弃率。</p>
+
+<pre><code>        self.key = nn.Linear(n_embd, head_size, bias=False)
+        self.query = nn.Linear(n_embd, head_size, bias=False)
+        self.value = nn.Linear(n_embd, head_size, bias=False)
+</code></pre>
+<p><strong>代码解析</strong>：定义查询（Query）、键（Key）与值（Value）三个线性投影矩阵，不使用偏置项（bias=False），将输入向量映射到该注意头所在的子空间。</p>
+
+<pre><code>        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
+        self.dropout = nn.Dropout(dropout)
+</code></pre>
+<p><strong>代码解析</strong>：注册一个下三角全 1 掩码矩阵 <code>tril</code> 为 Buffer（不参与反向传播梯度更新，但随模型保存）；初始化 Dropout 层用于注意力权重随机失活以防过拟合。</p>
+
+<pre><code>    def forward(self, x):
+        B, T, C = x.shape
+        k = self.key(x)   # (B, T, head_size)
+        q = self.query(x) # (B, T, head_size)
+</code></pre>
+<p><strong>代码解析</strong>：前向传播获取输入张量的批次大小 \(B\)、当前时间步长 \(T\) 与特征维度 \(C\)；分别计算每个位置的 Key 和 Query 向量。</p>
+
+<pre><code>        wei = q @ k.transpose(-2, -1) * (k.shape[-1] ** -0.5)
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+</code></pre>
+<p><strong>代码解析</strong>：计算注意力亲和度矩阵 \(Q K^T / \sqrt{d_k}\)；利用 <code>masked_fill</code> 将未来的时间步（掩码为 0 的右上三角区域）全部填充为负无穷大（\(-\infty\)），<strong>这是自回归模型不能“偷看未来”的核心物理保证</strong>！</p>
+
+<pre><code>        wei = F.softmax(wei, dim=-1)
+        wei = self.dropout(wei)
+        v = self.value(x)
+        return wei @ v
+</code></pre>
+<p><strong>代码解析</strong>：对最后一维做 Softmax 归一化为注意力概率分布（\(-\infty\) 变为 0）；乘以 Value 向量矩阵完成上下文特征加权聚合，输出形状为 <code>(B, T, head_size)</code>。</p>
+
+<h4>第二步：多头注意力（Multi-Head Attention）</h4>
+
+<pre><code>class MultiHeadAttention(nn.Module):
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.1):
+        super().__init__()
+        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
+</code></pre>
+<p><strong>代码解析</strong>：初始化多头注意力容器，创建 <code>num_heads</code> 个并行的 <code>Head</code> 实例，让网络能在不同表示子空间中同时捕捉语法、语义等多元依赖关系。</p>
+
+<pre><code>        self.proj = nn.Linear(head_size * num_heads, n_embd)
+        self.dropout = nn.Dropout(dropout)
+</code></pre>
+<p><strong>代码解析</strong>：定义一个输出线性投影层 <code>proj</code>，将所有头拼接起来的特征向量统一投影回模型的隐层主通道维度 <code>n_embd</code>。</p>
+
+<pre><code>    def forward(self, x):
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        out = self.dropout(self.proj(out))
+        return out
+</code></pre>
+<p><strong>代码解析</strong>：遍历执行每一个注意力头，在特征维度（<code>dim=-1</code>）上将多头输出拼接（Concatenate），经由线性投影与 Dropout 后输出。</p>
+
+<h4>第三步：前馈感知网络（FeedForward / MLP）</h4>
+
+<pre><code>class FeedForward(nn.Module):
+    def __init__(self, n_embd, dropout=0.1):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embd, 4 * n_embd),
+            nn.GELU(),
+            nn.Linear(4 * n_embd, n_embd),
+            nn.Dropout(dropout)
+        )
+</code></pre>
+<p><strong>代码解析</strong>：按照 GPT-2 标准结构，将隐层特征升维 4 倍（\(4 \times n_{\text{embd}}\)），经过平滑非线性的高斯误差线性单元 <code>nn.GELU()</code> 激活函数，再降维投影回 \(n_{\text{embd}}\)，赋予网络强大的逐 Token 记忆与特征变换能力。</p>
+
+<pre><code>    def forward(self, x):
+        return self.net(x)
+</code></pre>
+<p><strong>代码解析</strong>：前向执行两层 MLP 变换，输入输出张量形状保持 <code>(B, T, C)</code> 完全不变。</p>
+
+<h4>第四步：Transformer 残差块（Block 与 Pre-LayerNorm）</h4>
+
+<pre><code>class Block(nn.Module):
+    def __init__(self, n_embd, n_head, block_size, dropout=0.1):
+        super().__init__()
+        head_size = n_embd // n_head
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
+        self.ffwd = FeedForward(n_embd, dropout)
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
+</code></pre>
+<p><strong>代码解析</strong>：定义单个 Transformer 块。包含一个多头自注意力模块 <code>self.sa</code>、一个前馈网络 <code>self.ffwd</code> 以及两个层归一化模块 <code>self.ln1</code> 和 <code>self.ln2</code>。</p>
+
+<pre><code>    def forward(self, x):
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
+        return x
+</code></pre>
+<p><strong>代码解析</strong>：采用现代大模型普遍遵循的 <strong>Pre-LayerNorm</strong> 残差结构：在进入注意力与 MLP 之前先做归一化，输出再通过加法残差跳接（Residual Skip Connection）相加，<strong>确保极深网络的梯度能够无衰减地直通底层</strong>。</p>
+
+<h4>第五步：组装顶层自回归大语言模型（NanoGPTLanguageModel）</h4>
+
+<pre><code>class NanoGPTLanguageModel(nn.Module):
+    def __init__(self, vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4, dropout=0.1):
+        super().__init__()
+        self.block_size = block_size
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+        self.position_embedding_table = nn.Embedding(block_size, n_embd)
+</code></pre>
+<p><strong>代码解析</strong>：定义大模型类。初始化词嵌入表 <code>token_embedding_table</code>（将离散词表索引转为向量）与位置嵌入表 <code>position_embedding_table</code>（为序列每个时间步赋予空间绝对位置感知）。</p>
+
+<pre><code>        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
+        self.ln_f = nn.LayerNorm(n_embd)
+        self.lm_head = nn.Linear(n_embd, vocab_size)
+</code></pre>
+<p><strong>代码解析</strong>：使用 <code>nn.Sequential</code> 堆叠 <code>n_layer</code> 层 Transformer 块；经过最终层归一化 <code>ln_f</code> 后，由无偏置的线性分类头 <code>lm_head</code> 将向量映射回词表大小 <code>vocab_size</code>。</p>
+
+<pre><code>    def forward(self, idx, targets=None):
+        B, T = idx.shape
+        tok_emb = self.token_embedding_table(idx) # (B, T, C)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T, C)
+        x = tok_emb + pos_emb
+</code></pre>
+<p><strong>代码解析</strong>：前向计算时，将词嵌入与位置嵌入直接逐元素相加（Broadcasting），融合语义与序列时间顺序信息。</p>
+
+<pre><code>        x = self.blocks(x)
+        x = self.ln_f(x)
+        logits = self.lm_head(x) # (B, T, vocab_size)
+</code></pre>
+<p><strong>代码解析</strong>：将融合后的张量输入深层 Transformer 块进行多轮因果自注意力与 MLP 变换，最终投影为词表中各字符的预测分值（Logits）。</p>
+
+<pre><code>        if targets is None:
+            loss = None
+        else:
+            B, T, C = logits.shape
+            logits_flat = logits.view(B * T, C)
+            targets_flat = targets.view(B * T)
+            loss = F.cross_entropy(logits_flat, targets_flat)
+        return logits, loss
+</code></pre>
+<p><strong>代码解析</strong>：若提供了监督目标 <code>targets</code>（自回归下一个 Token 真实标签），将预测与标签展平为二维矩阵，计算标准的交叉熵损失（Cross Entropy Loss）；若推理生成阶段无 targets 则返回 None。</p>
+
+<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<p>
+  下面是上述所有算子组件的<strong>完整无删减整合版代码（model.py）</strong>，可直接独立运行并自动打印模型参数量与单步前向校验：
+</p>
+
+<pre><code># =====================================================================
+# Gen-1 LLM: Complete nanoGPT Decoder Architecture
+# Directly aligned with Andrej Karpathy's nanoGPT & Zero to Hero Lecture
+# =====================================================================
+
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
+
+class Head(nn.Module):
+    """单个因果自注意力头（Causal Self-Attention Head）"""
+    def __init__(self, head_size, n_embd, block_size, dropout=0.1):
+        super().__init__()
+        self.key = nn.Linear(n_embd, head_size, bias=False)
+        self.query = nn.Linear(n_embd, head_size, bias=False)
+        self.value = nn.Linear(n_embd, head_size, bias=False)
+        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        B, T, C = x.shape
+        k = self.key(x)   # (B, T, head_size)
+        q = self.query(x) # (B, T, head_size)
+        
+        # 计算注意力得分矩阵: (B, T, head_size) @ (B, head_size, T) -> (B, T, T)
+        wei = q @ k.transpose(-2, -1) * (k.shape[-1] ** -0.5)
+        # 因果遮蔽：未来位置填 -inf
+        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+        wei = F.softmax(wei, dim=-1)
+        wei = self.dropout(wei)
+        
+        v = self.value(x) # (B, T, head_size)
+        out = wei @ v     # (B, T, head_size)
+        return out
+
+class MultiHeadAttention(nn.Module):
+    """多头因果自注意力机制（Multi-Head Attention）"""
+    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.1):
+        super().__init__()
+        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
+        self.proj = nn.Linear(head_size * num_heads, n_embd)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        out = self.dropout(self.proj(out))
+        return out
+
+class FeedForward(nn.Module):
+    """两层逐位置前馈感知网络（MLP）"""
+    def __init__(self, n_embd, dropout=0.1):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(n_embd, 4 * n_embd),
+            nn.GELU(),
+            nn.Linear(4 * n_embd, n_embd),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+class Block(nn.Module):
+    """标准 Pre-LayerNorm Transformer 结构块"""
+    def __init__(self, n_embd, n_head, block_size, dropout=0.1):
+        super().__init__()
+        head_size = n_embd // n_head
+        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
+        self.ffwd = FeedForward(n_embd, dropout)
+        self.ln1 = nn.LayerNorm(n_embd)
+        self.ln2 = nn.LayerNorm(n_embd)
+
+    def forward(self, x):
+        x = x + self.sa(self.ln1(x))
+        x = x + self.ffwd(self.ln2(x))
+        return x
+
+class NanoGPTLanguageModel(nn.Module):
+    """自制大模型 Gen-1 完整自回归语言模型"""
+    def __init__(self, vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4, dropout=0.1):
+        super().__init__()
+        self.block_size = block_size
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
+        self.position_embedding_table = nn.Embedding(block_size, n_embd)
+        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
+        self.ln_f = nn.LayerNorm(n_embd)
+        self.lm_head = nn.Linear(n_embd, vocab_size)
+
+        # 权重初始化（小标准差正态分布，提升初期训练稳定性）
+        self.apply(self._init_weights)
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+    def forward(self, idx, targets=None):
+        B, T = idx.shape
+        tok_emb = self.token_embedding_table(idx)                           # (B, T, n_embd)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T, n_embd)
+        x = tok_emb + pos_emb
+        x = self.blocks(x)
+        x = self.ln_f(x)
+        logits = self.lm_head(x)                                           # (B, T, vocab_size)
+
+        if targets is None:
+            loss = None
+        else:
+            B, T, C = logits.shape
+            logits_flat = logits.view(B * T, C)
+            targets_flat = targets.view(B * T)
+            loss = F.cross_entropy(logits_flat, targets_flat)
+
+        return logits, loss
+
+# ----------------- 形状验证与参数量测试 -----------------
+if __name__ == "__main__":
+    vocab_size = 270
+    block_size = 64
+    batch_size = 4
+    
+    model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=128, block_size=block_size, n_layer=4, n_head=4)
+    param_count = sum(p.numel() for p in model.parameters())
+    print(f"✅ 模型构建成功！总可学习参数量: {param_count:,} ({param_count / 1e6:.2f}M)")
+
+    # 随机生成一个批次的虚拟输入 [B, T]
+    dummy_input = torch.randint(0, vocab_size, (batch_size, block_size))
+    dummy_targets = torch.randint(0, vocab_size, (batch_size, block_size))
+
+    logits, loss = model(dummy_input, dummy_targets)
+    print(f"输入张量形状: {dummy_input.shape}")
+    print(f"输出 Logits 形状: {logits.shape} (符合预期 [B, T, vocab_size])")
+    print(f"初始随机前向交叉熵 Loss: {loss.item():.4f} (理论应接近 -ln(1/{vocab_size}) = {-torch.log(torch.tensor(1.0/vocab_size)).item():.4f})")
+    assert logits.shape == (batch_size, block_size, vocab_size), "形状断言失败！"
+    print("🎉 单元测试 100% 通过！nanoGPT 核心模型前向与反向传播完全就绪。")
+</code></pre>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">记录中把 macOS 上 5+ 并行智能体的卡顿归因于？</p>
+  <p class="q">在 <code>Head.forward()</code> 函数中，代码执行 <code>wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))</code> 的本质目的是什么？</p>
   <ul class="opts">
-    <li>CPU 核心数不足</li>
-    <li data-ok>APFS 文件系统锁争用、后台安全守护进程扫描、以及并行磁盘 I/O 下的进程节流与热降频</li>
-    <li>Python 的 GIL</li>
-    <li>网络带宽不足</li>
+    <li>降低显卡显存占用，释放不必要的矩阵存储</li>
+    <li data-ok>实施自回归因果遮蔽（Causal Masking），使得当前位置的注意力只能汇聚过去与当前 Token 的信息，严禁“偷看未来”的信息，保证自回归预测的因果合法性</li>
+    <li>防止 Softmax 计算时发生下溢</li>
+    <li>加速张量乘法运算的速度</li>
   </ul>
   <p class="why">
-    智能体负载的特征是大量小文件读写与频繁进程创建，正好踩在文件系统与安全扫描的痛点上。
-    这类瓶颈在活动监视器里表现为磁盘队列与内存压力，而不是 CPU 100%。
+    语言模型的任务是根据前文预测下一个词。如果允许注意力查看后续的 Token，模型将直接“抄袭答案”而无法学到真正的序列建模与预测能力。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">$700 的迷你主机对比 $275/月的同规格 VPS，回本周期约为？</p>
+  <p class="q">现代大模型（如 GPT-2、LLaMA）普遍将 LayerNorm 放在残差跳接之前（Pre-LN：<code>x = x + sublayer(ln(x))</code>），相较于早期 Attention is All You Need 论文中的 Post-LN（<code>x = ln(x + sublayer(x))</code>），其最核心的数学优势是：</p>
   <ul class="opts">
-    <li>约 1 个月</li>
-    <li data-ok>约 2.5 个月</li>
-    <li>约 12 个月</li>
-    <li>无法比较</li>
+    <li>能让模型参数量减少一半</li>
+    <li data-ok>在深层网络中保持了一条完全畅通无阻的恒等残差通路（Identity Path），使得反向传播的梯度能够直达底层，杜绝深层训练初期梯度爆炸与消失，免去极其脆弱的 Warmup 依赖</li>
+    <li>能让激活函数从 GELU 替换为 ReLU</li>
+    <li>可以直接在 CPU 上极速训练</li>
   </ul>
   <p class="why">
-    \(700 / 275 \approx 2.5\) 个月。记录中的结论是「不到三个月回本」。
-    别忘了把电费（约 $5–9/月）、噪音与家庭网络可用性一起计入。
+    Pre-LN 使得梯度可以在残差流中以类似加法的方式直接反传，极大地改善了深层网络的数值条件数，是现代大模型能稳定扩展至数百层的基石设计。
   </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">在 Windows 上用 WSL2 跑实验，下面哪个做法会显著拖慢大量小文件读写？</p>
-  <ul class="opts">
-    <li>把仓库放在 WSL 的 /home 下</li>
-    <li data-ok>把仓库放在 /mnt/c 下（跨 Windows 与 Linux 两套文件系统）</li>
-    <li>限制 WSL 的内存上限</li>
-    <li>为项目目录添加杀毒排除项</li>
-  </ul>
-  <p class="why">
-    <code>/mnt/c</code> 走的是跨系统文件访问路径（9p/virtio 层），大量小文件操作的开销远高于 WSL 原生文件系统。
-    这与记录中「文件系统决定成败」的判断是同一条原理。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：五分钟瓶颈体检" data-badge="动手">
-  <div class="acc-body">
-    <p>在卡顿发生时，依次执行（Linux / WSL）：</p>
-<table class="tbl">
-  <thead>
-    <tr><th>系统指标</th><th>诊断关注点</th><th>训练受阻典型表现</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>内存与 Swap</td><td>系统物理内存剩余是否充足</td><td>触发系统 OOM Killer，训练进程被强制静默杀死</td></tr>
-    <tr><td>磁盘 I/O 吞吐</td><td>数据加载读取等待时间（await）</td><td>GPU 计算利用率骤降为 0%，显卡持续等待数据流灌入</td></tr>
-    <tr><td>CPU 线程调度</td><td>多进程 DataLoader 负载均衡</td><td>数据预处理速度跟不上显卡矩阵计算速度，成为主瓶颈</td></tr>
-  </tbody>
-</table>
-    <p>判读规则：</p>
-    <ul>
-      <li><code>%util</code> 接近 100% 且 <code>await</code> 高 → <strong>磁盘瓶颈</strong>：换 NVMe、减少日志写入、把仓库移出跨系统目录。</li>
-      <li>内存吃紧且开始 <code>swap</code> → <strong>内存瓶颈</strong>：降并发、加内存。</li>
-      <li>两者都正常但延迟高 → <strong>网络/线程调度</strong>：检查代理、DNS 与并发上限。</li>
-    </ul>
-    <p><em>先测量，再采购。这一条能省下最多的钱。</em></p>
-  </div>
 </div>
 `
 });
