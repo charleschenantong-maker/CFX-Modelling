@@ -86,6 +86,8 @@ COURSE.register({
   下面的拉格朗日乘子推导只是在证明“数个数”恰好就是最优解，请把证明当成对直觉的盖章，而不是结论本身。
 </p>
 
+<div class="acc" data-t="选读·第二遍：最优解就是数个数归一化（拉格朗日证明）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>极大似然估计 (MLE) 推导条件概率转移矩阵</h4>
   <p>
@@ -108,6 +110,8 @@ COURSE.register({
     必须借助神经网络的低秩连续嵌入来学习平滑的条件分布。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-lab">
   <h4><span class="ic">✎</span>草稿纸演算区：三词 Bigram 频数到 MLE</h4>
@@ -165,6 +169,8 @@ MLE 转移矩阵：P_ij = N_ij / sum_k N_ik
   </p>
 </section>
 
+<div class="acc" data-t="选读·第二遍：损失下界就是数据熵（吉布斯不等式证明）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密证明：吉布斯不等式（信息散度非负性）</h4>
   <p>
@@ -210,6 +216,8 @@ MLE 转移矩阵：P_ij = N_ij / sum_k N_ik
     所以比较两篇论文的熵或损失时，先看它是 nats 还是 bits——差一个 \(\ln 2\) 就会差出“模型变强近一半”的假象。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-lab">
   <h4><span class="ic">✎</span>草稿纸演算区：切线不等式如何给出 Gibbs 不等式</h4>
@@ -267,6 +275,8 @@ sum_i p_i ln(q_i/p_i) &lt;= sum_i(q_i-p_i)
   </p>
 </section>
 
+<div class="acc" data-t="选读·第二遍：梯度就是残差 p − y（Softmax 雅可比证明）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>定理二：Softmax 雅可比矩阵与交叉熵梯度联立化简</h4>
   <p>
@@ -297,6 +307,8 @@ sum_i p_i ln(q_i/p_i) &lt;= sum_i(q_i-p_i)
     如果模型对正确类别的预测概率为 0.99，回传梯度仅有 \(0.99 - 1 = -0.01\)（微调）；若预测概率仅为 0.05，回传梯度为 \(0.05 - 1 = -0.95\)（极其剧烈地往上拉升该 Logit）。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-lab">
   <h4><span class="ic">✎</span>草稿纸演算区：平移后的 Softmax 与残差梯度</h4>
