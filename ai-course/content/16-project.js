@@ -1,7 +1,7 @@
 /* content/16-project.js — 模块 16：把方法映射到数学建模类题目（未来示例） */
 COURSE.register({
   id: "m16",
-  part: 5,
+  part: 3,
   num: "16",
   title: "收束：把这一切映射到 Crossfade 这类项目与申请材料（未来示例）",
   en: "Synthesis — Mapping the Course onto Your Project",
@@ -9,9 +9,10 @@ COURSE.register({
   tags: ["项目", "申请", "必做"],
   body: String.raw`
 <p class="lead">
-  前面十八讲是<strong>能力储备</strong>；以《Mathematical Crossfade Modelling for Glass Player》这类题目为例（你以后可以试试），它可以作为<strong>产出示例</strong>。
-  两者是<strong>两条并行的轨道</strong>，不是一件事——这一讲讲清它们在哪里交汇、在哪里必须分开，
-  并给出 Checkpoint 7 的完整技术方案与一份 12 周计划。
+  前面各模块构成了<strong>大模型底座与自训的核心能力</strong>；
+  而以《Mathematical Crossfade Modelling for Glass Player》（音频交叉淡入淡出连续建模）为例，它是一个独立的工程建模课题。
+  <strong>两者的关系是：大模型底座是通用的技术内功，未来可以在合适的时候尝试把表征学习或强化搜索与之 Merge</strong>。
+  本讲仅作为一个小参考案例，带你拆解当通用 AI 方法论遇上具体连续优化问题时，如何设计清晰的基线、特征映射与严格的科学评估，绝不作为学习大模型的前置门槛。
 </p>
 
 <section class="blk blk-tip">
@@ -179,15 +180,17 @@ COURSE.register({
 </table>
 
 <h3>6. 可交付物清单</h3>
-<pre><code>crossfade-project/
-  derivations/        <span class="cm"># 手写推导的 LaTeX/Typst 源文件：功率界、LR 证明、变分问题</span>
-  engine/             <span class="cm"># 实时引擎：三种方法的可切换实现 + 无锁缓冲区</span>
-  analysis/           <span class="cm"># 指标管线：LUFS、谱通量、RMS 包络</span>
-  learning/           <span class="cm"># CP7：run.py（阶梯 + 分组 CV + 置换检验）+ results/</span>
-  listening/          <span class="cm"># 听测协议、问卷、原始数据、统计脚本</span>
-  report/             <span class="cm"># 报告与图表（一条命令重新生成）</span>
-  audio/              <span class="cm"># 若干段过渡样例（A/B 对照）</span>
-  README.md           <span class="cm"># 复现说明：环境、命令、预期输出</span></code></pre>
+<table class="tbl">
+  <thead>
+    <tr><th>模块目录</th><th>核心内容</th><th>未来与大模型 Merge 衔接点</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>derivations/</code></td><td>音频平滑过渡与连续流建模数学推导</td><td>可作为连续状态空间（SSM / Mamba）特征插值理论基础</td></tr>
+    <tr><td><code>engine/</code></td><td>实时音频重叠变换与自适应淡入淡出引擎</td><td>作为多模态大模型音频 Token 流的实时端侧渲染后端</td></tr>
+    <tr><td><code>learning/</code></td><td>小规模参数拟合与交叉验证实验流水线</td><td>与 Kaggle 评测指标与微调实验规范完全接轨</td></tr>
+    <tr><td><code>analysis/</code></td><td>感知响度（LUFS）与波形重叠能量分析</td><td>充当语音多模态大模型的声学质量客观奖励函数（Reward Model）</td></tr>
+  </tbody>
+</table>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>

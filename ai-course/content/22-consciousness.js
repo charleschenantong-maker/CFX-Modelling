@@ -1,7 +1,7 @@
 /* content/22-consciousness.js — 模块 22：机器意识 */
 COURSE.register({
   id: "m22",
-  part: 6,
+  part: 4,
   num: "22",
   title: "机器意识：如何把一个模糊问题变得可以认真讨论",
   en: "Machine Consciousness — Making the Question Tractable",

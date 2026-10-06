@@ -1,7 +1,7 @@
 /* content/15-hardware.js — 模块 15：硬件与操作系统瓶颈 */
 COURSE.register({
   id: "m15",
-  part: 4,
+  part: 3,
   num: "15",
   title: "硬件与系统：为什么并行智能体会拖垮 macOS",
   en: "Hardware & OS Bottlenecks",
@@ -182,17 +182,16 @@ COURSE.register({
 <div class="acc" data-t="深入：五分钟瓶颈体检" data-badge="动手">
   <div class="acc-body">
     <p>在卡顿发生时，依次执行（Linux / WSL）：</p>
-<pre><code><span class="cm"># 1) 整体负载与内存压力</span>
-uptime; free -h; vmstat 1 5
-
-<span class="cm"># 2) 磁盘是否成为瓶颈（看 %util 与 await）</span>
-iostat -x 1 5
-
-<span class="cm"># 3) 谁在读写（找出小文件风暴的元凶）</span>
-sudo iotop -oPa
-
-<span class="cm"># 4) 线程与进程数</span>
-ps -eLf | wc -l; htop</code></pre>
+<table class="tbl">
+  <thead>
+    <tr><th>系统指标</th><th>诊断关注点</th><th>训练受阻典型表现</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>内存与 Swap</td><td>系统物理内存剩余是否充足</td><td>触发系统 OOM Killer，训练进程被强制静默杀死</td></tr>
+    <tr><td>磁盘 I/O 吞吐</td><td>数据加载读取等待时间（await）</td><td>GPU 计算利用率骤降为 0%，显卡持续等待数据流灌入</td></tr>
+    <tr><td>CPU 线程调度</td><td>多进程 DataLoader 负载均衡</td><td>数据预处理速度跟不上显卡矩阵计算速度，成为主瓶颈</td></tr>
+  </tbody>
+</table>
     <p>判读规则：</p>
     <ul>
       <li><code>%util</code> 接近 100% 且 <code>await</code> 高 → <strong>磁盘瓶颈</strong>：换 NVMe、减少日志写入、把仓库移出跨系统目录。</li>

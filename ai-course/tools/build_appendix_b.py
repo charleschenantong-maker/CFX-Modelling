@@ -1,15 +1,23 @@
-/* content/91-appendix-b-labs.js — 附录 B：Colab 实验手册 */
+# build_appendix_b.py
+# Generates ai-course/content/91-appendix-b-labs.js
+import os
+
+OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "content", "91-appendix-b-labs.js")
+
+parts = []
+
+parts.append('''/* content/91-appendix-b-labs.js — 附录 B：Colab 实验手册 */
 COURSE.register({
   id: "appB",
   part: 9,
   num: "B",
-  title: "附录 B · Kaggle 实验手册（8 个可运行实验）",
-  en: "Appendix B: Hands-on Kaggle Labs (8 Executable Experiments)",
+  title: "附录 B · Colab 实验手册（8 个可运行实验）",
+  en: "Appendix B: Hands-on Colab Labs (8 Executable Experiments)",
   minutes: 180,
-  tags: ["动手", "实验", "Kaggle", "PyTorch", "JAX", "1.5B实战", "CUDA排错"],
+  tags: ["动手", "实验", "Colab", "PyTorch", "JAX", "1.5B实战", "CUDA排错"],
   body: String.raw`
 <p class="lead">
-  本附录提供 8 个在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）即可完整跑通的教科书级实操实验。
+  本附录提供 8 个在免费或低成本云端环境（Google Colab T4 / A100 / TPU v5e-1）即可完整跑通的教科书级实操实验。
   每个实验均配备<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>与<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>，
   使你在点下运行前即建立清晰的物理资源账本与冒烟验收基准。
   特别地，实验 E4 深度呼应<strong>模块 25（1.5B 开源大模型实战训练与部署）</strong>，
@@ -39,7 +47,7 @@ COURSE.register({
   <thead><tr><th>字段</th><th>含义</th><th>示例</th></tr></thead>
   <tbody>
     <tr><td><code>exp_id</code></td><td>实验编号</td><td>E3.2（E3 的第 2 次尝试）</td></tr>
-    <tr><td><code>date_env</code></td><td>日期 + 硬件</td><td>2026-03-28 · Kaggle T4 16GB</td></tr>
+    <tr><td><code>date_env</code></td><td>日期 + 硬件</td><td>2026-03-28 · Colab T4 16GB</td></tr>
     <tr><td><code>change</code></td><td>相对于基线的改动</td><td>lr: 3e-4 → 1e-3, warmup: 0 → 100</td></tr>
     <tr><td><code>train_loss_final</code></td><td>最终训练 loss</td><td>2.14</td></tr>
     <tr><td><code>val_loss_final</code></td><td>最终验证 loss（或困惑度）</td><td>2.31（PPL = 10.07）</td></tr>
@@ -80,11 +88,13 @@ COURSE.register({
   E4 → E5 → E8 是端到端工程落地主线（从工业级微调、偏好对齐到端侧量化部署），E6 是跨生态横向对照（PyTorch vs JAX 系统级差异）。
   如果你时间紧张，优先选择 <strong>E3、E4、E7</strong>。
 </p>
+''')
 
-
+# 3. CUDA FAULTS
+parts.append('''
 <h3>3. 工业级 GPU 训练底座：三大 CUDA 故障根因与排查清单</h3>
 <p>
-  在云端（Google Kaggle T4 / A100）或本地多卡集群上执行深度学习与大模型微调时，90% 的工程中断并非算法逻辑错误，
+  在云端（Google Colab T4 / A100）或本地多卡集群上执行深度学习与大模型微调时，90% 的工程中断并非算法逻辑错误，
   而是源自 CUDA 运行时底层的隐性故障。以下三大故障在 Python 表面往往表现为模糊的 OOM、静默卡死（Hang）或维度报错，
   必须建立系统级的硬件机制归因与工程防御体系：
 </p>
@@ -102,7 +112,7 @@ COURSE.register({
         <strong>根因剖析</strong>：PyTorch 采用 Caching Allocator 内存池管理显存。当训练中存在变长序列输入（动态 Padding）、频繁创建销毁未合并的小张量时，
         物理显存被切碎为大量不连续的小块。数学上，总预留显存满足：
       </p>
-      \[ M_{\text{reserved}} - M_{\text{allocated}} = M_{\text{fragmented}} + M_{\text{inactive}} \]
+      \\[ M_{\\text{reserved}} - M_{\\text{allocated}} = M_{\\text{fragmented}} + M_{\\text{inactive}} \\]
       <p>
         当新算子请求一段 256 MB 的<strong>连续物理内存页</strong>时，虽然所有散碎空闲块加起来远超 256 MB，但没有任何一个单块能容纳它，从而触发虚假 OOM。
       </p>
@@ -122,7 +132,7 @@ COURSE.register({
       </p>
       <p>
         <strong>根因剖析</strong>：现代 NVIDIA GPU Tensor Core（Turing、Ampere、Hopper）执行半精度（FP16/BF16）与 4-bit（NF4/INT4）矩阵乘法时，
-        硬件调度依赖 Warp 级矩阵乘加指令（MMA）。硬件要求内存起始地址与矩阵维度（序列长度 \(T\)、隐藏维度 \(d\)）严格满足 <strong>8 字节或 16 字节对齐</strong>（即能被 8 或 16 整除）。
+        硬件调度依赖 Warp 级矩阵乘加指令（MMA）。硬件要求内存起始地址与矩阵维度（序列长度 \\(T\\)、隐藏维度 \\(d\\)）严格满足 <strong>8 字节或 16 字节对齐</strong>（即能被 8 或 16 整除）。
         若序列 Padding 后的长度为奇数或不是 8 的倍数，cuBLAS 无法调度高效的 <code>LDG.E.128</code> 向量化访存指令，只能退化为慢速标量读取；
         此外，多头注意力中 <code>transpose(1, 2)</code> 操作仅修改张量的步长元数据（stride）而未改变物理内存排列，直接调用 <code>view()</code> 必然导致步长不兼容崩溃。
       </p>
@@ -130,7 +140,7 @@ COURSE.register({
         <strong>工业级排查方案</strong>：
         <br>① <strong>分词器边界填充</strong>：初始化 DataCollator 或填充张量时，务必指定 <code>tokenizer.pad_to_multiple_of = 8</code>（或 16），确保每个 Batch 的最大序列长度整除硬件对齐边界。
         <br>② <strong>步长连续化</strong>：在调用 <code>view()</code>、<code>reshape()</code> 或执行矩阵乘法 <code>@</code> 前，对转置/切片张量显式调用 <code>.contiguous()</code>，强制触发物理内存连续化拷贝。
-        <br>③ <strong>词表与投影维度校准</strong>：扩展词表或设计投影矩阵时，确保词表大小 \(V\) 向上补齐到 64 或 128 的整数倍（例如 Qwen 词表设为 151936，正是 64 的整数倍）。
+        <br>③ <strong>词表与投影维度校准</strong>：扩展词表或设计投影矩阵时，确保词表大小 \\(V\\) 向上补齐到 64 或 128 的整数倍（例如 Qwen 词表设为 151936，正是 64 的整数倍）。
       </p>
     </li>
     <li>
@@ -154,8 +164,10 @@ COURSE.register({
     </li>
   </ol>
 </section>
+''')
 
-
+# LAB E1
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E1 · 从 bigram 到神经语言模型：困惑度到底是怎么降下来的</h4>
 
@@ -173,19 +185,19 @@ COURSE.register({
       本实验纯 CPU 即可顺畅运行，也可选择 GPU 加速。各模型在内存中的物理账本手算如下：
     </p>
     <ol>
-      <li><strong>计数转移矩阵</strong>：字符词表大小 \(V \approx 97\)。频次矩阵 \(N \in \mathbb{Z}^{V \times V}\) 与概率矩阵 \(P \in \mathbb{R}^{V \times V}\)：
-        \[ M_N = V^2 \times 8 \text{ bytes} \approx 75.3 \text{ KB}, \quad M_P = V^2 \times 4 \text{ bytes} \approx 37.6 \text{ KB} \]
+      <li><strong>计数转移矩阵</strong>：字符词表大小 \\(V \\approx 97\\)。频次矩阵 \\(N \\in \\mathbb{Z}^{V \\times V}\\) 与概率矩阵 \\(P \\in \\mathbb{R}^{V \\times V}\\)：
+        \\[ M_N = V^2 \\times 8 \\text{ bytes} \\approx 75.3 \\text{ KB}, \\quad M_P = V^2 \\times 4 \\text{ bytes} \\approx 37.6 \\text{ KB} \\]
       </li>
-      <li><strong>NeuralBigram 参数与显存</strong>：由 <code>Embedding(V, d)</code> 与 <code>Linear(d, V)</code> 构成。取 \(d = 64\)：
-        \[ N_{\text{params}} = V d + d V + V = 97 \times 64 \times 2 + 97 = 12{,}513 \]
-        权重与梯度合计（FP32，\(4 + 4 = 8\) 字节/参数）：\(M_{\text{weights+grads}} \approx 100.1 \text{ KB}\)。
+      <li><strong>NeuralBigram 参数与显存</strong>：由 <code>Embedding(V, d)</code> 与 <code>Linear(d, V)</code> 构成。取 \\(d = 64\\)：
+        \\[ N_{\\text{params}} = V d + d V + V = 97 \\times 64 \\times 2 + 97 = 12{,}513 \\]
+        权重与梯度合计（FP32，\\(4 + 4 = 8\\) 字节/参数）：\\(M_{\\text{weights+grads}} \\approx 100.1 \\text{ KB}\\)。
       </li>
-      <li><strong>ContextMLP 参数与显存</strong>：输入过去 \(\text{ctx}=8\) 个字符，隐藏层 \(h=256\)，嵌入维度 \(d=128\)：
-        \[ N_{\text{params}} = V d + (\text{ctx} \cdot d) \cdot h + h + h \cdot V + V = 12{,}416 + 262{,}144 + 256 + 24{,}832 + 97 = 299{,}745 \]
-        FP32 权重与梯度占用：\(M \approx 2.40 \text{ MB}\)。AdamW 状态占用：\(299{,}745 \times 8 \text{ bytes} \approx 2.40 \text{ MB}\)。
+      <li><strong>ContextMLP 参数与显存</strong>：输入过去 \\(\\text{ctx}=8\\) 个字符，隐藏层 \\(h=256\\)，嵌入维度 \\(d=128\\)：
+        \\[ N_{\\text{params}} = V d + (\\text{ctx} \\cdot d) \\cdot h + h + h \\cdot V + V = 12{,}416 + 262{,}144 + 256 + 24{,}832 + 97 = 299{,}745 \\]
+        FP32 权重与梯度占用：\\(M \\approx 2.40 \\text{ MB}\\)。AdamW 状态占用：\\(299{,}745 \\times 8 \\text{ bytes} \\approx 2.40 \\text{ MB}\\)。
       </li>
-      <li><strong>批次前向激活值（Batch size \(B=64\)）</strong>：
-        \[ M_{\text{act}} = B \times (\text{ctx} \cdot d + h + V) \times 4 \approx 64 \times (1024 + 256 + 97) \times 4 \approx 352.5 \text{ KB} \]
+      <li><strong>批次前向激活值（Batch size \\(B=64\\)）</strong>：
+        \\[ M_{\\text{act}} = B \\times (\\text{ctx} \\cdot d + h + V) \\times 4 \\approx 64 \\times (1024 + 256 + 97) \\times 4 \\approx 352.5 \\text{ KB} \\]
       </li>
     </ol>
     <p><strong>实测结论</strong>：总物理内存（RSS）恒定在 <strong>120 MB 以内</strong>，即使在 0 显存的纯 CPU 笔记本或免费 Colab 上亦能在 15 分钟内彻底跑通。</p>
@@ -196,88 +208,27 @@ COURSE.register({
     <p>按顺序核对以下 5 个质检节点，确认每步达标后再执行全量训练：</p>
     <ol>
       <li><strong>[环境与种子锁定]</strong> 导入 <code>torch</code> 并锁定 <code>torch.manual_seed(1337)</code>，确认设备就绪（CPU 或 CUDA）。</li>
-      <li><strong>[数据边界冒烟]</strong> 加载 TinyStories 前 3000 条，字符去重并断言 \(80 \le V \le 120\)；划分 90% 训练集与 10% 验证集。</li>
-      <li><strong>[基线频次速算]</strong> 计数式 Bigram + Laplace 平滑在 3 秒内执行完毕，断言验证困惑度满足 \(11.0 \le \text{PPL} \le 16.0\)。</li>
-      <li><strong>[单步梯度冒烟]</strong> 对 ContextMLP 传入单个迷你批次（\(B=4\)），执行 <code>loss.backward()</code>，断言 <code>loss.item()</code> 有限且梯度非空非 NaN。</li>
+      <li><strong>[数据边界冒烟]</strong> 加载 TinyStories 前 3000 条，字符去重并断言 \\(80 \\le V \\le 120\\)；划分 90% 训练集与 10% 验证集。</li>
+      <li><strong>[基线频次速算]</strong> 计数式 Bigram + Laplace 平滑在 3 秒内执行完毕，断言验证困惑度满足 \\(11.0 \\le \\text{PPL} \\le 16.0\\)。</li>
+      <li><strong>[单步梯度冒烟]</strong> 对 ContextMLP 传入单个迷你批次（\\(B=4\\)），执行 <code>loss.backward()</code>，断言 <code>loss.item()</code> 有限且梯度非空非 NaN。</li>
       <li><strong>[收敛与曲线交付]</strong> 1000 步迭代内 <code>train_loss</code> 单调下降至 2.0 以下，打印 NeuralBigram vs ContextMLP 困惑度对比柱状图。</li>
     </ol>
   </section>
 
-  <p><strong>跟着做（每次只加一小段，读懂再往下加）</strong>：下面把实验拆成小步，每步先给一小段代码，紧接着用白话讲清这段代码在干什么，再给出这一步结束时你应该看到的小状态。按顺序从上往下加，加完就是文末参考脚本的全部内容。循环与类定义每次都是完整给出，不要拆开只抄一半。</p>
-  <p><strong>第 1 步 · 装好三样东西</strong></p>
-<pre><code><span class="cm"># E1 第 1 步：装依赖，只需跑一次</span>
-!pip -q install datasets torch matplotlib</code></pre>
-  <p>这两行在干什么：第一行是注释，提醒你这是 E1 的起手式。第二行装数据集工具、深度学习库和画图库。安装成功时没有报错就是正常，不需要记住版本号。</p>
-<pre><code>安装成功（无报错即继续）</code></pre>
-  <p><strong>第 2 步 · 拿来数学工具和搭模型要用的零件</strong></p>
-<pre><code>import math, random
-import torch, torch.nn as nn, torch.nn.functional as F</code></pre>
-  <p>这两行在干什么：第一行拿数学和随机数工具，第二行拿搭模型要用的零件。这两行本身就能独立运行。数据集的导入放在第 4 步第一次用到它之前，画图库的导入在完整脚本里，需要时再看。</p>
-<pre><code>无输出（能继续往下跑就是正常）</code></pre>
-  <p><strong>第 3 步 · 固定随机数并选硬件</strong></p>
-<pre><code>torch.manual_seed(1337)
-device = "cuda" if torch.cuda.is_available() else "cpu"</code></pre>
-  <p>这两行在干什么：第一行把随机数固定住，这样每次跑出来的数字都能对上，种子是教学约定的固定值不用改。第二行自动选硬件，有显卡用显卡，没有就用 CPU，纯 CPU 也能跑通本实验。</p>
-<pre><code>device 已就绪（cpu 或 cuda，以你的机器为准）</code></pre>
-  <p><strong>第 4 步 · 按流式拿到故事集的训练切分</strong></p>
-<pre><code>from datasets import load_dataset
-ds = load_dataset("roneneldan/TinyStories", split="train", streaming=True)</code></pre>
-  <p>这两行在干什么：第一行拿数据集的加载工具，必须写在第一次使用之前。第二行按流式拿故事集的训练切分，这一步只拿到迭代器，还没有把故事正文取出来。</p>
-<pre><code>无输出（拿到的是流式迭代器，还没取正文）</code></pre>
-  <p><strong>第 5 步 · 取前 3000 条拼成一大段文本</strong></p>
-<pre><code>raw = []
-for i, row in enumerate(ds):
-    if i >= 3000: break
-    raw.append(row["text"])
-text = "\n\n".join(raw)</code></pre>
-  <p>这一段在干什么：循环是完整的一段，不要拆开。逐个从迭代器里取故事，取满 3000 条就停，最后用空行把它们拼成一大段。这里记住结论：数据是前 3000 条故事，字符级建模，暂时绕开切分器。</p>
-<pre><code>故事数 3000（循环取满即停，以 len(raw) 为准）</code></pre>
-  <p><strong>第 6 步 · 建字符表并切出训练集与验证集</strong></p>
-<pre><code>chars = sorted(list(set(text)))
-V = len(chars)
-c2i = {c: i for i, c in enumerate(chars)}
-data = torch.tensor([c2i[c] for c in text], dtype=torch.long)
-n_train = int(len(data) * 0.9)
-train_data, val_data = data[:n_train], data[n_train:]</code></pre>
-  <p>这一段在干什么：先把出现过的字符去重排序，数出字符集大小 V，再把整段文本转成序号，最后按九一开切出训练集与验证集。字符集大小就是后文反复用到的 V，冒烟检查单要求它落在八十到一百二十之间，以你的实际打印为准。</p>
-<pre><code>切分完成（训练集占九成，验证集占一成，以实际长度为准）</code></pre>
-  <p><strong>第 7 步 · 数个数建基线并加 1 平滑</strong></p>
-<pre><code>counts = torch.zeros(V, V, dtype=torch.float32)
-for x, y in zip(train_data[:-1].tolist(), train_data[1:].tolist()):
-    counts[x, y] += 1
-P_bigram = (counts + 1.0) / (counts + 1.0).sum(dim=1, keepdim=True)</code></pre>
-  <p>这一段在干什么：循环是完整的一段，不要拆开。先建一张空的频次表，把训练集里每个相邻对都数进去，再把每个格子先加 1 后按行归一化。加 1 是为了让没见过的组合也有很小的可能性，避免出现零概率。换算关系就是这一个式子：</p>
-  \[ \hat P(x_t \mid x_{t-1}) = \frac{N(x_{t-1}, x_t) + 1}{\sum_{v} \big(N(x_{t-1}, v) + 1\big)} \]
-<pre><code>概率表就绪（每行和为 1，无零概率）</code></pre>
-  <p><strong>第 8 步 · 定义神经 bigram（完整给出整个类）</strong></p>
-<pre><code>class NeuralBigram(nn.Module):
-    def __init__(self, V, d):
-        super().__init__()
-        self.emb = nn.Embedding(V, d)
-        self.head = nn.Linear(d, V)
-    def forward(self, x):
-        return self.head(self.emb(x))</code></pre>
-  <p>这个类在干什么：查表把每个字符变成一个向量，打分把向量变回每个候选字符的分数。类定义是完整的一段，不要只抄其中两行。它和计数表建模的是同一个条件分布，只是参数连续可调。</p>
-<pre><code>类定义成功（无报错即继续）</code></pre>
-  <p><strong>第 9 步 · 定义上下文模型（完整给出整个类）</strong></p>
-<pre><code>class ContextMLP(nn.Module):
-    def __init__(self, V, d, ctx=8, hidden=256):
-        super().__init__()
-        self.ctx = ctx
-        self.emb = nn.Embedding(V, d)
-        self.fc1 = nn.Linear(ctx * d, hidden)
-        self.fc2 = nn.Linear(hidden, V)
-    def forward(self, x):
-        e = self.emb(x).view(x.size(0), -1)
-        h = F.relu(self.fc1(e))
-        return self.fc2(h)</code></pre>
-  <p>这个类在干什么：把前 8 个字符的向量拼起来送进隐藏层，用弯折函数处理一遍再打分。类定义是完整的一段，不要只抄其中两行。上下文变长是困惑度下降的真正原因，不是网络更聪明，而是能看到的信息变多了。</p>
-<pre><code>类定义成功（无报错即继续）</code></pre>
-  <p><strong>第 10 步 · 训练循环里的两行关键行（在完整脚本里看位置）</strong></p>
-  <p>完整脚本的训练循环里，每一步都有两行关键行：先用 <code>loss = F.cross_entropy(logits, y)</code> 算出当前这批数据的扣分，再用 <code>opt.zero_grad(set_to_none=True)</code> 清掉上次的旧账然后倒着算。旧账不清就会重复累加，这是正文强调过的坏掉的样子。这两行必须写在循环里面，单独抄出来跑不了，所以这里只指位置，不单独成段。训练与验证的完整数字见文末完整脚本跑完后的预期输出。</p>
-<pre><code>位置记熟（循环内先算扣分，再清旧账，顺序不能反）</code></pre>
+  <p><strong>步骤</strong>：</p>
+  <ol>
+    <li>把文本切成字符，90% / 10% 划分训练集与验证集，并统计字符表大小 \\(V\\)。</li>
+    <li>建基线：在训练集上数 bigram 频次，加 1 平滑（Laplace），得到条件概率表</li>
+  </ol>
+  \\[ \\hat P(x_t \\mid x_{t-1}) = \\frac{N(x_{t-1}, x_t) + 1}{\\sum_{v} \\big(N(x_{t-1}, v) + 1\\big)} \\]
+  <ol start="3">
+    <li>训练<strong>神经 bigram</strong>：<code>Embedding(V, d)</code> 接一个 <code>Linear(d, V)</code>，上下文长度 1。
+        它与计数表建模的是同一个条件分布，但参数是连续的。</li>
+    <li>训练<strong>上下文 MLP</strong>：把前 8 个字符的 embedding 拼起来送进两层 MLP。</li>
+    <li>用同一组超参跑 \\(d = 16\\) 与 \\(d = 128\\) 两个宽度，比较训练/验证困惑度曲线。</li>
+  </ol>
 
-  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，逐格粘进 Colab 即可跑。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
+  <p><strong>可运行代码</strong>（单文件，逐格粘进 Colab）：</p>
 <pre><code><span class="cm"># E1 · 从计数式 bigram 到神经语言模型（CPU 可跑，约 10–20 分钟）</span>
 !pip -q install datasets torch matplotlib
 
@@ -296,7 +247,7 @@ raw = []
 for i, row in enumerate(ds):
     if i >= 3000: break
     raw.append(row["text"])
-text = "\n\n".join(raw)
+text = "\\n\\n".join(raw)
 
 chars = sorted(list(set(text)))
 V = len(chars)
@@ -408,10 +359,10 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
   <p>
     <strong>怎么读这个结果</strong>：
     NeuralBigram 的困惑度与计数基线<strong>几乎完全一致</strong>——
-    因为它们在数学上拟合的是同一张条件概率表，神经网络的连续表示在 \(\text{ctx}=1\) 时没有任何结构优势。
+    因为它们在数学上拟合的是同一张条件概率表，神经网络的连续表示在 \\(\\text{ctx}=1\\) 时没有任何结构优势。
     而 ContextMLP 一下子把困惑度砍掉了一半以上（13.9 → 5.4），
     <strong>不是因为神经网络比计数表更聪明，而是因为上下文窗口从 1 扩大到了 8</strong>。
-    如果你想用计数表建模 8 个字符的上下文，表格大小将是 \(95^8 \approx 6.6 \times 10^{15}\)，直接内存溢出。
+    如果你想用计数表建模 8 个字符的上下文，表格大小将是 \\(95^8 \\approx 6.6 \\times 10^{15}\\)，直接内存溢出。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -441,15 +392,17 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
           先在全量文本上构造 <code>chars</code>，或者把未登录字符映射到统一的 <code>&lt;unk&gt;</code>。</li>
       <li><strong><code>RuntimeError: Expected all tensors to be on the same device</code></strong>：模型在 GPU 上而
           <code>data_source</code> 切片在 CPU 上。统一加 <code>.to(device)</code>。</li>
-      <li><strong>困惑度等于 <code>inf</code> 或 <code>NaN</code></strong>：计数表平滑没起作用，出现了 \(P = 0\)，
-          取 <code>log</code> 得到 <code>-inf</code>。严格检查分母是否加了 \(V\)。</li>
+      <li><strong>困惑度等于 <code>inf</code> 或 <code>NaN</code></strong>：计数表平滑没起作用，出现了 \\(P = 0\\)，
+          取 <code>log</code> 得到 <code>-inf</code>。严格检查分母是否加了 \\(V\\)。</li>
       <li><strong>MLP 跑得比预期慢很多</strong>：切片循环写在了 Python 里。改用 <code>torch.randint</code>
           一次性采样整批索引，向量化提取。</li>
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E2
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E2 · Tokenizer 解剖：从「生育率 fertility」看成本与上下文</h4>
 
@@ -466,15 +419,15 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
     </p>
     <ol>
       <li><strong>分词表常驻内存</strong>：
-        <br>① <code>gpt2-r50k</code>：词表 \(V = 50{,}257\)，前缀树与逆词典常驻 RAM 约 <strong>15.2 MB</strong>。
-        <br>② <code>cl100k_base</code>：词表 \(V = 100{,}277\)，常驻 RAM 约 <strong>32.8 MB</strong>。
-        <br>③ <code>o200k_base</code>：词表 \(V = 200{,}019\)，常驻 RAM 约 <strong>64.5 MB</strong>。
-        <br>④ <code>Qwen2.5-BPE</code>：词表 \(V = 151{,}643\)，常驻 RAM 约 <strong>48.0 MB</strong>。
+        <br>① <code>gpt2-r50k</code>：词表 \\(V = 50{,}257\\)，前缀树与逆词典常驻 RAM 约 <strong>15.2 MB</strong>。
+        <br>② <code>cl100k_base</code>：词表 \\(V = 100{,}277\\)，常驻 RAM 约 <strong>32.8 MB</strong>。
+        <br>③ <code>o200k_base</code>：词表 \\(V = 200{,}019\\)，常驻 RAM 约 <strong>64.5 MB</strong>。
+        <br>④ <code>Qwen2.5-BPE</code>：词表 \\(V = 151{,}643\\)，常驻 RAM 约 <strong>48.0 MB</strong>。
       </li>
       <li><strong>分词批次张量缓冲区</strong>：
-        输入测试文本 \(N_{\text{chars}} = 10{,}000\) 字符，UTF-8 字节串约 \(30 \text{ KB}\)。
-        切分后 Token 数组（32 位整型 \(\text{int32}\)）：
-        \[ M_{\text{tokens}} = N_{\text{tokens}} \times 4 \text{ bytes} \approx 4000 \times 4 = 16 \text{ KB} \]
+        输入测试文本 \\(N_{\\text{chars}} = 10{,}000\\) 字符，UTF-8 字节串约 \\(30 \\text{ KB}\\)。
+        切分后 Token 数组（32 位整型 \\(\\text{int32}\\)）：
+        \\[ M_{\\text{tokens}} = N_{\\text{tokens}} \\times 4 \\text{ bytes} \\approx 4000 \\times 4 = 16 \\text{ KB} \\]
       </li>
     </ol>
     <p><strong>实测结论</strong>：总 RAM 开销约 <strong>220 MB</strong>，GPU 显存占用严格为 <strong>0 MB</strong>。</p>
@@ -484,84 +437,29 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
     <h4><span class="ic">✓</span>30 分钟最小跑通检查单（Smoke Test Checklist）</h4>
     <ol>
       <li><strong>[依赖安装与导入]</strong> 安装 <code>tiktoken</code> 与 <code>transformers</code>，核验 <code>gpt2</code>、<code>cl100k_base</code> 与 <code>o200k_base</code> 成功实例化。</li>
-      <li><strong>[探针文本切分冒烟]</strong> 用中文探测短语 <code>"生育率 fertility"</code> 跑 <code>encode()</code>，验证返回列表长度 \(\ge 2\)。</li>
+      <li><strong>[探针文本切分冒烟]</strong> 用中文探测短语 <code>"生育率 fertility"</code> 跑 <code>encode()</code>，验证返回列表长度 \\(\\ge 2\\)。</li>
       <li><strong>[特殊 Token 屏蔽核验]</strong> 传入包含 <code>&lt;|endoftext|&gt;</code> 的文本，确认在 <code>allowed_special="all"</code> 下不会抛出语法注入异常。</li>
       <li><strong>[生育率透视表计算]</strong> 对中、英、代码三段基准语料计算 <code>tok/char</code> 与 <code>bytes/tok</code>，打印结构化表格。</li>
-      <li><strong>[上下文预算断言]</strong> 验证在 8192 窗口下，Qwen2.5 对中文长文的容纳字符数达到 GPT-2 的 <strong>2.8 倍以上</strong>（断言比率 \(\ge 2.8\)）。</li>
+      <li><strong>[上下文预算断言]</strong> 验证在 8192 窗口下，Qwen2.5 对中文长文的容纳字符数达到 GPT-2 的 <strong>2.8 倍以上</strong>（断言比率 \\(\\ge 2.8\\)）。</li>
     </ol>
   </section>
 
-  <p><strong>跟着做（每次只加一小段，读懂再往下加）</strong>：下面把实验拆成小步，每步先给一小段代码，紧接着用白话讲清这段代码在干什么，再给出这一步结束时你应该看到的小状态。按顺序从上往下加，加完就是文末参考脚本的全部内容。字典与循环每次都是完整给出，不要拆开只抄一半。</p>
-  <p><strong>第 1 步 · 装好三样东西</strong></p>
-<pre><code><span class="cm"># E2 第 1 步：装依赖，只需跑一次</span>
-!pip -q install tiktoken transformers tabulate</code></pre>
-  <p>这两行在干什么：第一行是注释，提醒你这是 E2 的起手式。第二行装三个包，分别负责商业词表、本土词表和打印表格。安装成功时没有报错就是正常。</p>
-<pre><code>安装成功（无报错即继续）</code></pre>
-  <p><strong>第 2 步 · 一次拿齐三样工具</strong></p>
-<pre><code>import tiktoken
-from transformers import AutoTokenizer
-from tabulate import tabulate</code></pre>
-  <p>这三行在干什么：第一行拿商业词表的加载工具，第二行拿开源词表的加载工具，第三行拿打印表格的工具。三行本身就能独立运行，缺了第三行后面打印对照表时会找不到名字，所以一次拿齐。</p>
-<pre><code>无输出（能继续往下跑就是正常）</code></pre>
-  <p><strong>第 3 步 · 准备四类代表性文本（完整给出整个字典）</strong></p>
-<pre><code>texts = {
-    "英文小说": "Lily saw a little bird in the garden. It was singing a sweet song and flying from tree to tree.",
-    "中文叙事": "张三走进那家开了二十年的老书店，空气里弥漫着旧纸张和灰尘混合的气味。",
-    "Python代码": "def quicksort(arr):\n    if len(arr) <= 1: return arr\n    pivot = arr[len(arr) // 2]\n    return quicksort([x for x in arr if x < pivot]) + [pivot] + quicksort([x for x in arr if x > pivot])",
-    "数学题": "设 f(x) = x^3 - 3x + 1，求 f(x) 在区间 [-2, 2] 上的最大值与最小值。"
-}</code></pre>
-  <p>这个字典在干什么：一次放齐四类文本，覆盖英文、中文、代码和公式。字典是完整的一段，不要只抄其中一行，否则就是没合上的括号，跑不了。</p>
-<pre><code>字典共 4 条（以 len(texts) 为准）</code></pre>
-  <p><strong>第 4 步 · 装好三个时代的词表（完整给出整个对照表）</strong></p>
-<pre><code>tokenizers = {
-    "GPT-2 (r50k)": lambda t: len(tiktoken.get_encoding("r50k_base").encode(t)),
-    "GPT-4 (cl100k)": lambda t: len(tiktoken.get_encoding("cl100k_base").encode(t)),
-    "GPT-4o (o200k)": lambda t: len(tiktoken.get_encoding("o200k_base").encode(t)),
-}</code></pre>
-  <p>这个字典在干什么：每一行装一个时代的词表并量它的序号数。从老到新，词表越来越大，中文切得越来越省。字典是完整的一段，不要只抄其中两行。注意这里只是登记量法，真正下载发生在第一次调用时。</p>
-<pre><code>对照表共 3 行（以 len(tokenizers) 为准）</code></pre>
-  <p><strong>第 5 步 · 再装一个本土词表做对照（完整给出整个容错段）</strong></p>
-<pre><code>try:
-    qwen_tok = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B", trust_remote_code=True)
-    tokenizers["Qwen2.5 (152k)"] = lambda t: len(qwen_tok.encode(t))
-except Exception as e:
-    print(f"Qwen 分词器加载跳过: {e}")</code></pre>
-  <p>这一段在干什么：下载本土模型的分词器并登记到同一张对照表里。容错段是完整的一段，不要拆开。如果下载跳过也不影响主结论，只是少一行对照，后文预期输出里本土那一行会缺席。</p>
-<pre><code>对照表 3 行或 4 行（Qwen 行以你的网络为准）</code></pre>
-  <p><strong>第 6 步 · 备好一张空表装测量结果</strong></p>
-<pre><code>rows = []</code></pre>
-  <p>这一行在干什么：备一张空表，后面每量完一个格子就往里记一行。空表本身没有输出。</p>
-<pre><code>空表就绪（len(rows) 为 0）</code></pre>
-  <p><strong>第 7 步 · 对每段文本量字符数、序号数并记行（完整给出整个循环）</strong></p>
-<pre><code>for domain, text in texts.items():
-    n_chars = len(text)
-    n_bytes = len(text.encode("utf-8"))
-    for name, fn in tokenizers.items():
-        n_tok = fn(text)
-        fertility = n_tok / n_chars
-        bytes_per_tok = n_bytes / n_tok
-        rows.append([domain, name, n_chars, n_tok, f"{fertility:.3f}", f"{bytes_per_tok:.2f}"])</code></pre>
-  <p>这个循环在干什么：外层逐个拿出四类文本数清字符与字节，内层逐个词表量序号数。生育率是平均每个字符花掉几个序号，字节密度是平均每个序号带几个字节，定义就是这两个式子：</p>
-  <p>生育率 \(\text{fertility} = \frac{N_{\text{tokens}}}{N_{\text{chars}}}\)，字节密度 \(\text{bytes/token} = \frac{N_{\text{bytes}}}{N_{\text{tokens}}}\)。数值越大说明切得越碎。循环是完整的一段，不要拆开，拆开就会出现没定义的半截变量。</p>
-<pre><code>表格行数等于领域数乘以分词器数（以 len(rows) 为准）</code></pre>
-  <p><strong>第 8 步 · 把对照表打印出来</strong></p>
-<pre><code>print(tabulate(rows, headers=["领域", "分词器", "字符数", "Tokens", "生育率(tok/char)", "字节/Token"], tablefmt="github"))</code></pre>
-  <p>这一行在干什么：把上一步记满的表格一次打印出来。重点看中文叙事那几行：序号数从老词表的八十多降到新词表的二十多，这就是换词表的价值，具体数字见文末预期输出。</p>
-<pre><code>对照表打印成功（具体数字见文末预期输出，Qwen 行以你的网络为准）</code></pre>
-  <p><strong>第 9 步 · 换算成十万字中文的等价开销（完整给出整个循环）</strong></p>
-<pre><code>zh_sample = texts["中文叙事"]
-for name, fn in tokenizers.items():
-    fertility = fn(zh_sample) / len(zh_sample)
-    total_tokens = int(100_000 * fertility)
-    fit_in_8k = "能" if total_tokens <= 8192 else f"超标 {total_tokens - 8192} tok"
-    print(f"{name:16s}: 需要 {total_tokens:,} tokens | 8k 上下文: {fit_in_8k}")</code></pre>
-  <p>这个循环在干什么：先拿中文样本量出当前词表的生育率，再乘上十万字得到总序号数，最后判断能否塞进 8192 窗口并打印。总序号数除以一百万再乘单价就是账单，序号数就是上下文预算。循环是完整的一段，不要只抄中间两行，具体数字见文末预期输出。</p>
-<pre><code>开销行打印成功（具体数字见文末预期输出）</code></pre>
-  <p><strong>第 10 步 · 读表结论</strong></p>
-  <p>结论只有一个：同样的窗口，本土词表能装的中文是老词表的约三倍，账单缩为约三分之一。读表时先看中文叙事的生育率列，再看十万字开销的打印行，两处说的是一回事。</p>
-<pre><code>结论记熟（生育率越低，同窗口能装的中文越多）</code></pre>
+  <p><strong>步骤</strong>：</p>
+  <ol>
+    <li>用 <code>tiktoken</code> 加载三个时代的词表：<code>r50k_base</code>（GPT-2）、
+        <code>cl100k_base</code>（GPT-4）、<code>o200k_base</code>（GPT-4o）。</li>
+    <li>用 HuggingFace 加载开源分词器（如 <code>Qwen/Qwen2.5-7B</code> 与 <code>google/gemma-2-9b</code>）。</li>
+    <li>准备四类代表性文本：英文叙事、现代汉语白话、Python 代码、带公式的数学题。</li>
+    <li>计算每类文本在每个分词器下的：
+      <ul>
+        <li><strong>生育率（fertility）</strong>：\\(\\text{fertility} = \\frac{N_{\text{tokens}}}{N_{\text{chars}}}\\)</li>
+        <li><strong>字节密度</strong>：\\(\\text{bytes/token} = \\frac{N_{\text{bytes}}}{N_{\text{tokens}}}\\)</li>
+      </ul>
+    </li>
+    <li>把生育率换算成「8192 上下文能装下多少汉字」与「处理同一篇论文的 API 账单对比」。</li>
+  </ol>
 
-  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，纯 CPU 即可跑。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
+  <p><strong>可运行代码</strong>：</p>
 <pre><code><span class="cm"># E2 · Tokenizer 解剖（CPU，约 10–15 分钟）</span>
 !pip -q install tiktoken transformers tabulate
 
@@ -572,7 +470,7 @@ from tabulate import tabulate
 texts = {
     "英文小说": "Lily saw a little bird in the garden. It was singing a sweet song and flying from tree to tree.",
     "中文叙事": "张三走进那家开了二十年的老书店，空气里弥漫着旧纸张和灰尘混合的气味。",
-    "Python代码": "def quicksort(arr):\n    if len(arr) <= 1: return arr\n    pivot = arr[len(arr) // 2]\n    return quicksort([x for x in arr if x < pivot]) + [pivot] + quicksort([x for x in arr if x > pivot])",
+    "Python代码": "def quicksort(arr):\\n    if len(arr) <= 1: return arr\\n    pivot = arr[len(arr) // 2]\\n    return quicksort([x for x in arr if x < pivot]) + [pivot] + quicksort([x for x in arr if x > pivot])",
     "数学题": "设 f(x) = x^3 - 3x + 1，求 f(x) 在区间 [-2, 2] 上的最大值与最小值。"
 }
 
@@ -604,7 +502,7 @@ print(tabulate(rows, headers=["领域", "分词器", "字符数", "Tokens", "生
 
 <span class="cm"># 3. 换算成工程代价：处理 10 万字中文白话</span>
 zh_sample = texts["中文叙事"]
-print("\n=== 处理 100,000 字现代汉语白话的等价开销 ===")
+print("\\n=== 处理 100,000 字现代汉语白话的等价开销 ===")
 for name, fn in tokenizers.items():
     fertility = fn(zh_sample) / len(zh_sample)
     total_tokens = int(100_000 * fertility)
@@ -641,14 +539,14 @@ Qwen2.5 (152k)  : 需要  59,459 tokens | 8k 上下文: 超标 51267 tok</code><
     <tbody>
       <tr><td>各分词器在四类文本上的生育率</td><td>作为你评估任务成本的基准</td><td>见上面的对照表</td></tr>
       <tr><td>特殊 token 的拆分情况</td><td>防止提示词注入（Prompt Injection）</td><td><code>&lt;|endoftext|&gt;</code> 是否被当作单个 token</td></tr>
-      <tr><td>不可见字符处理</td><td>排查隐藏的数据清洗 Bug</td><td><code>\r\n</code> vs <code>\n</code></td></tr>
+      <tr><td>不可见字符处理</td><td>排查隐藏的数据清洗 Bug</td><td><code>\\r\\n</code> vs <code>\\n</code></td></tr>
     </tbody>
   </table>
 
   <p><strong>延伸问题</strong>：</p>
   <ol>
     <li>如果词表做大到 50 万，生育率一定能持续下降吗？为什么现代大模型普遍停在 10 万到 20 万之间？
-        （提示：softmax 的最后一层 \(W \in \mathbb{R}^{d \times V}\) 占用多少显存？在低频词上的梯度稀疏性如何？）</li>
+        （提示：softmax 的最后一层 \\(W \\in \\mathbb{R}^{d \\times V}\\) 占用多少显存？在低频词上的梯度稀疏性如何？）</li>
     <li>为什么 Python 代码的生育率（0.29）远低于中文（0.95）？缩进（4 个空格）是如何被 token 化编码的？</li>
     <li>在你的真实业务数据上跑一遍这个测量，算出你们每个月付给 API 供应商的费用里，有多少比例花在了「分词器低效」上？</li>
   </ol>
@@ -666,8 +564,10 @@ Qwen2.5 (152k)  : 需要  59,459 tokens | 8k 上下文: 超标 51267 tok</code><
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E3
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E3 · 从零实现迷你 Transformer：手算参数量并与程序对照</h4>
 
@@ -680,33 +580,33 @@ Qwen2.5 (152k)  : 需要  59,459 tokens | 8k 上下文: 超标 51267 tok</code><
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>参数量与显存手算预估（Analytical VRAM Breakdown）</h4>
     <p>
-      模型超参数：词表大小 \(V = 97\)，嵌入维度 \(d = 128\)，头数 \(h = 4\)，层数 \(L = 3\)，上下文 \(T = 128\)。
+      模型超参数：词表大小 \\(V = 97\\)，嵌入维度 \\(d = 128\\)，头数 \\(h = 4\\)，层数 \\(L = 3\\)，上下文 \\(T = 128\\)。
       权重绑定（Weight Tying）：输出头 <code>head.weight</code> 共享 <code>wte.weight</code>。
     </p>
     <ol>
       <li><strong>静态参数量解析公式</strong>：
-        \[ N_{\text{total}} = \underbrace{V d}_{\text{wte}} + \underbrace{T d}_{\text{wpe}} + L \cdot \Big( \underbrace{4 d^2 + 4 d}_{\text{attn: q,k,v,proj}} + \underbrace{2 d}_{\text{ln1}} + \underbrace{8 d^2 + 5 d}_{\text{mlp: fc1,fc2}} + \underbrace{2 d}_{\text{ln2}} \Big) + \underbrace{2 d}_{\text{ln\_f}} \]
+        \\[ N_{\\text{total}} = \\underbrace{V d}_{\\text{wte}} + \\underbrace{T d}_{\\text{wpe}} + L \\cdot \\Big( \\underbrace{4 d^2 + 4 d}_{\\text{attn: q,k,v,proj}} + \\underbrace{2 d}_{\\text{ln1}} + \\underbrace{8 d^2 + 5 d}_{\\text{mlp: fc1,fc2}} + \\underbrace{2 d}_{\\text{ln2}} \\Big) + \\underbrace{2 d}_{\\text{ln\\_f}} \\]
         代入数值计算：
-        <br>嵌入层：\(97 \times 128 + 128 \times 128 = 12{,}416 + 16{,}384 = 28{,}800\)
+        <br>嵌入层：\\(97 \\times 128 + 128 \\times 128 = 12{,}416 + 16{,}384 = 28{,}800\\)
         <br>单层 Block：
-        \(4 \times 128^2 + 4 \times 128 = 65{,}536 + 512 = 66{,}048\)（Attn）
-        \(+ 256\)（LN1）
-        \(+ 8 \times 128^2 + 5 \times 128 = 131{,}072 + 640 = 131{,}712\)（MLP）
-        \(+ 256\)（LN2）
-        \(= 198{,}272\)
-        <br>3 层 Blocks 合计：\(3 \times 198{,}272 = 594{,}816\)
-        <br>最终归一化层：\(2 \times 128 = 256\)
-        \[ N_{\text{total}} = 28{,}800 + 594{,}816 + 256 = 623{,}872 \]
+        \\(4 \\times 128^2 + 4 \\times 128 = 65{,}536 + 512 = 66{,}048\\)（Attn）
+        \\(+ 256\\)（LN1）
+        \\(+ 8 \\times 128^2 + 5 \\times 128 = 131{,}072 + 640 = 131{,}712\\)（MLP）
+        \\(+ 256\\)（LN2）
+        \\(= 198{,}272\\)
+        <br>3 层 Blocks 合计：\\(3 \\times 198{,}272 = 594{,}816\\)
+        <br>最终归一化层：\\(2 \\times 128 = 256\\)
+        \\[ N_{\\text{total}} = 28{,}800 + 594{,}816 + 256 = 623{,}872 \\]
       </li>
-      <li><strong>静态显存与动态激活值（FP32，Batch size \(B=32\), \(T=128\)）</strong>：
-        <br>① 权重显存：\(M_{\text{weights}} = \frac{623{,}872 \times 4}{1024^2} \approx 2.38 \text{ MB}\)
-        <br>② 梯度显存：\(M_{\text{grads}} \approx 2.38 \text{ MB}\)
-        <br>③ AdamW 优化器（一阶+二阶动量共 8 字节/参数）：\(M_{\text{opt}} = \frac{623{,}872 \times 8}{1024^2} \approx 4.76 \text{ MB}\)
-        <br>④ 激活值（单层自注意力分数 \((B, h, T, T)\) 占 \(32 \times 4 \times 128 \times 128 \times 4 = 8.0 \text{ MB}\)，三层总激活值约 \(55 \sim 65 \text{ MB}\)）
-        <br>⑤ CUDA 上下文底噪：约 \(600 \text{ MB}\)
+      <li><strong>静态显存与动态激活值（FP32，Batch size \\(B=32\\), \\(T=128\\)）</strong>：
+        <br>① 权重显存：\\(M_{\\text{weights}} = \\frac{623{,}872 \\times 4}{1024^2} \\approx 2.38 \\text{ MB}\\)
+        <br>② 梯度显存：\\(M_{\\text{grads}} \\approx 2.38 \\text{ MB}\\)
+        <br>③ AdamW 优化器（一阶+二阶动量共 8 字节/参数）：\\(M_{\\text{opt}} = \\frac{623{,}872 \\times 8}{1024^2} \\approx 4.76 \\text{ MB}\\)
+        <br>④ 激活值（单层自注意力分数 \\((B, h, T, T)\\) 占 \\(32 \\times 4 \\times 128 \\times 128 \\times 4 = 8.0 \\text{ MB}\\)，三层总激活值约 \\(55 \\sim 65 \\text{ MB}\\)）
+        <br>⑤ CUDA 上下文底噪：约 \\(600 \\text{ MB}\\)
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总峰值显存约 <strong>680 MB</strong>，在 Kaggle T4（16GB）上显存占用率仅为 <strong>4.2%</strong>，绝无 OOM 风险。</p>
+    <p><strong>实测结论</strong>：总峰值显存约 <strong>680 MB</strong>，在 Colab T4（16GB）上显存占用率仅为 <strong>4.2%</strong>，绝无 OOM 风险。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -714,175 +614,22 @@ Qwen2.5 (152k)  : 需要  59,459 tokens | 8k 上下文: 超标 51267 tok</code><
     <ol>
       <li><strong>[硬件与种子初始化]</strong> 检查 <code>torch.cuda.is_available()</code>，输出 GPU 设备名称（如 Tesla T4），设定种子 1337。</li>
       <li><strong>[理论参数核验]</strong> 实例化 <code>MiniGPT</code>，调用手算断言 <code>assert model.get_num_params() == 623872</code>，差值必须精确为 0。</li>
-      <li><strong>[因果掩码阻断冒烟]</strong> 构造形状为 <code>(2, 16)</code> 的哑张量，前向传播打印注意力分数矩阵，验证未来位置被严格置为 \(-\infty\) 且 Softmax 后概率为 0。</li>
+      <li><strong>[因果掩码阻断冒烟]</strong> 构造形状为 <code>(2, 16)</code> 的哑张量，前向传播打印注意力分数矩阵，验证未来位置被严格置为 \\(-\\infty\\) 且 Softmax 后概率为 0。</li>
       <li><strong>[单步反向求导冒烟]</strong> 执行 1 步 <code>loss.backward()</code>，验证 <code>head.weight.grad</code> 非空，且梯度未出现 <code>NaN/Inf</code>。</li>
-      <li><strong>[500 步收敛验收]</strong> 训练 500 步，验证 <code>train_loss</code> 从 \(\approx 4.5\) 稳定降至 2.4 以下，并成功采样出具备基础词形结构的 100 字符文本。</li>
+      <li><strong>[500 步收敛验收]</strong> 训练 500 步，验证 <code>train_loss</code> 从 \\(\\approx 4.5\\) 稳定降至 2.4 以下，并成功采样出具备基础词形结构的 100 字符文本。</li>
     </ol>
   </section>
 
-  <p><strong>跟着做（每次只加一小段，读懂再往下加）</strong>：下面把实验拆成小步，每步先给一小段代码，紧接着用白话讲清这段代码在干什么，再给出这一步结束时你应该看到的小状态。按顺序从上往下加，加完就是文末参考脚本的全部内容。类与循环每次都是完整给出，不要拆开只抄一半。</p>
-  <p><strong>第 1 步 · 装好两样东西</strong></p>
-<pre><code><span class="cm"># E3 第 1 步：装依赖，只需跑一次</span>
-!pip -q install datasets torch</code></pre>
-  <p>这两行在干什么：第一行是注释，提醒你这是 E3 的起手式。第二行装数据集工具和深度学习库。E3 比 E1 少装画图库，因为重点是搭模型不是画曲线。</p>
-<pre><code>安装成功（无报错即继续）</code></pre>
-  <p><strong>第 2 步 · 一次拿齐三样工具</strong></p>
-<pre><code>import math, random
-import torch, torch.nn as nn, torch.nn.functional as F
-from datasets import load_dataset</code></pre>
-  <p>这三行在干什么：第一行拿数学和随机数工具，第二行拿搭模型要用的零件，第三行拿数据集的加载工具。三行本身就能独立运行，加载工具必须写在第一次使用之前，所以一次拿齐。</p>
-<pre><code>无输出（能继续往下跑就是正常）</code></pre>
-  <p><strong>第 3 步 · 固定随机数并选硬件</strong></p>
-<pre><code>torch.manual_seed(1337)
-device = "cuda" if torch.cuda.is_available() else "cpu"</code></pre>
-  <p>这两行在干什么：第一行把随机数固定住，这样参数量断言每次都能对上。第二行自动选硬件，有显卡用显卡，没有就用 CPU，CPU 跑时把步数改小即可。</p>
-<pre><code>device 已就绪（cpu 或 cuda，两者都能跑通）</code></pre>
-  <p><strong>第 4 步 · 定死结构超参</strong></p>
-<pre><code>V = 97
-d = 128
-n_heads = 4
-n_layers = 3
-ctx_len = 128</code></pre>
-  <p>这几行在干什么：一次定死词表大小、嵌入维度、头数、层数和上下文长度，写法完全一样。这里记住结论：3 层 4 头的小模型，参数只有六十多万，精确数字由第 7 步的打印与断言验证。</p>
-<pre><code>超参就绪（V 97，d 128，层数 3，上下文 128）</code></pre>
-  <p><strong>第 5 步 · 因果自注意力（完整给出整个类）</strong></p>
-<pre><code>class CausalSelfAttention(nn.Module):
-    def __init__(self, d, n_heads, ctx_len):
-        super().__init__()
-        assert d % n_heads == 0
-        self.d = d
-        self.n_heads = n_heads
-        self.head_dim = d // n_heads
-        self.c_attn = nn.Linear(d, 3 * d)
-        self.c_proj = nn.Linear(d, d)
-        self.register_buffer("mask", torch.tril(torch.ones(ctx_len, ctx_len)).view(1, 1, ctx_len, ctx_len))
+  <p><strong>步骤</strong>：</p>
+  <ol>
+    <li>实现 <code>CausalSelfAttention</code>：Q、K、V 合并成单次矩阵乘法（\\(3d\\)），用 <code>view</code> 拆分多头，应用下三角因果掩码。</li>
+    <li>实现 <code>MLP</code>：两层线性，中间展开 4 倍维度（\\(4d\\)），激活函数用 GELU。</li>
+    <li>实现 <code>Block</code>：Pre-LayerNorm 架构（残差在 Norm 之外）。</li>
+    <li>实现 <code>MiniGPT</code>：把词嵌入、位置嵌入、\\(L\\) 个 Block 与最终的 LayerNorm 串起来，权重与输入 Embedding 绑定。</li>
+    <li>在 TinyStories 上训练 2000 步，记录验证困惑度曲线，并在结束时采样生成一段故事。</li>
+  </ol>
 
-    def forward(self, x):
-        B, T, C = x.size()
-        q, k, v = self.c_attn(x).split(self.d, dim=2)
-        k = k.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        q = q.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-        v = v.view(B, T, self.n_heads, self.head_dim).transpose(1, 2)
-
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))
-        att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float("-inf"))
-        att = F.softmax(att, dim=-1)
-        y = att @ v
-        y = y.transpose(1, 2).contiguous().view(B, T, C)
-        return self.c_proj(y)</code></pre>
-  <p>这个类在干什么：先把查询、键、值三组投影合并成一次矩阵乘法，再用下三角掩码把未来位置填成负无穷后归一化成权重，负无穷归一化后就是严格的零，所以模型只能看到过去。类定义是完整的一段，不要只抄其中两行。</p>
-<pre><code>注意力模块定义成功（无报错即继续）</code></pre>
-  <p><strong>第 6 步 · 前馈与残差块（完整给出两个类）</strong></p>
-<pre><code>class MLP(nn.Module):
-    def __init__(self, d):
-        super().__init__()
-        self.c_fc = nn.Linear(d, 4 * d)
-        self.gelu = nn.GELU()
-        self.c_proj = nn.Linear(4 * d, d)
-    def forward(self, x):
-        return self.c_proj(self.gelu(self.c_fc(x)))
-
-class Block(nn.Module):
-    def __init__(self, d, n_heads, ctx_len):
-        super().__init__()
-        self.ln_1 = nn.LayerNorm(d)
-        self.attn = CausalSelfAttention(d, n_heads, ctx_len)
-        self.ln_2 = nn.LayerNorm(d)
-        self.mlp = MLP(d)
-    def forward(self, x):
-        x = x + self.attn(self.ln_1(x))
-        x = x + self.mlp(self.ln_2(x))
-        return x</code></pre>
-  <p>这两个类在干什么：前馈把维度展开到四倍再压回原样，逐位置加工；残差块把注意力分支与前馈分支分别加回主干，归一化放在分支入口。记住分工：注意力管搬运信息，前馈管逐位置加工，残差给梯度留直通路。</p>
-<pre><code>前馈与残差块定义成功（无报错即继续）</code></pre>
-  <p><strong>第 7 步 · 整机组装并验证参数量（完整给出类加实例化）</strong></p>
-<pre><code>class MiniGPT(nn.Module):
-    def __init__(self, V, d, n_heads, n_layers, ctx_len):
-        super().__init__()
-        self.ctx_len = ctx_len
-        self.transformer = nn.ModuleDict({
-            "wte": nn.Embedding(V, d),
-            "wpe": nn.Embedding(ctx_len, d),
-            "h": nn.ModuleList([Block(d, n_heads, ctx_len) for _ in range(n_layers)]),
-            "ln_f": nn.LayerNorm(d)
-        })
-        self.lm_head = nn.Linear(d, V, bias=False)
-        self.lm_head.weight = self.transformer.wte.weight
-
-    def forward(self, idx, targets=None):
-        B, T = idx.size()
-        pos = torch.arange(0, T, dtype=torch.long, device=idx.device).unsqueeze(0)
-        x = self.transformer.wte(idx) + self.transformer.wpe(pos)
-        for block in self.transformer.h:
-            x = block(x)
-        x = self.transformer.ln_f(x)
-        logits = self.lm_head(x)
-
-        loss = None
-        if targets is not None:
-            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
-        return logits, loss
-
-    def get_num_params(self):
-        return sum(p.numel() for p in self.parameters())
-
-model = MiniGPT(V, d, n_heads, n_layers, ctx_len).to(device)
-print(f"程序实测可训练参数量: {model.get_num_params():,}")
-assert model.get_num_params() == 623872, "参数量与手算公式不一致！"</code></pre>
-  <p>这一段在干什么：先完整定义整机类，再实例化并打印参数量，最后用断言对照手算。输出头绑到输入查表上，省下的参数正是断言里 623872 这个数字的来源。字典与循环都是完整的一段，不要拆开。</p>
-<pre><code>程序实测可训练参数量: 623,872（与手算一致）</code></pre>
-  <p><strong>第 8 步 · 准备数据与优化器（完整给出一段）</strong></p>
-<pre><code>ds = load_dataset("roneneldan/TinyStories", split="train", streaming=True)
-raw = [row["text"] for i, row in enumerate(ds) if i < 3000]
-text = "\n\n".join(raw)
-chars = sorted(list(set(text)))[:V]
-c2i = {c: i for i, c in enumerate(chars)}
-data = torch.tensor([c2i.get(c, 0) for c in text], dtype=torch.long)
-n_train = int(len(data) * 0.9)
-train_data, val_data = data[:n_train], data[n_train:]
-
-opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
-STEPS = 2000 if torch.cuda.is_available() else 500
-bs = 32</code></pre>
-  <p>这一段在干什么：取前 3000 个故事拼成文本并转成序号，按九一开切出训练集与验证集，再配好优化器与步数。CPU 跑时步数自动改小。字典推导是完整的一段，不要拆开。</p>
-<pre><code>数据与优化器就绪（训练集占九成，以实际长度为准）</code></pre>
-  <p><strong>第 9 步 · 训练循环（完整给出整个循环）</strong></p>
-<pre><code>print(f"开始训练，共 {STEPS} 步...")
-for s in range(STEPS):
-    ix = torch.randint(0, len(train_data) - ctx_len - 1, (bs,))
-    x = torch.stack([train_data[i:i + ctx_len] for i in ix]).to(device)
-    y = torch.stack([train_data[i + 1:i + ctx_len + 1] for i in ix]).to(device)
-    _, loss = model(x, y)
-    opt.zero_grad(set_to_none=True)
-    loss.backward()
-    opt.step()
-    if (s + 1) % 400 == 0:
-        print(f"Step {s + 1:4d} | Train Loss: {loss.item():.4f} (PPL: {math.exp(loss.item()):.2f})")</code></pre>
-  <p>这个循环在干什么：每步先算扣分，再清掉上次的旧账然后倒着算，最后更新参数。旧账不清就会重复累加，大步子会让损失飞出去，这两处正是冒烟检查单要盯的。循环是完整的一段，关键两行必须写在里面，单独抄出来跑不了。每 400 步的打印数字见文末预期输出。</p>
-<pre><code>训练启动（每 400 步一行打印，数字见文末预期输出）</code></pre>
-  <p><strong>第 10 步 · 温度采样生成故事（完整给出函数加调用）</strong></p>
-<pre><code>@torch.no_grad()
-def generate(model, prompt_ids, max_new_tokens=150, temperature=0.8):
-    model.eval()
-    idx = prompt_ids.to(device)
-    for _ in range(max_new_tokens):
-        idx_cond = idx[:, -ctx_len:]
-        logits, _ = model(idx_cond)
-        logits = logits[:, -1, :] / temperature
-        probs = F.softmax(logits, dim=-1)
-        next_id = torch.multinomial(probs, num_samples=1)
-        idx = torch.cat([idx, next_id], dim=1)
-    return idx
-
-i2c = {i: c for c, i in c2i.items()}
-prompt = torch.tensor([[c2i.get(c, 0) for c in "Once upon a time"]], dtype=torch.long)
-out = generate(model, prompt, max_new_tokens=150)
-print("\n=== 生成文本样例 ===")
-print("".join([i2c.get(i, "") for i in out[0].tolist()]))</code></pre>
-  <p>这一段在干什么：函数与调用是完整的一段，不要拆开。每次只取末尾一段上下文做输入，用温度采样逐个生成新字符并接回去，满 150 个字符即停。生成文本以你的实际采样为准，文末预期输出只给示意。</p>
-<pre><code>生成完成（文本具备句法与标点闭合，以实际采样为准）</code></pre>
-
-  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，T4 约二十分钟，CPU 请把步数改成 500。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
+  <p><strong>可运行代码</strong>：</p>
 <pre><code><span class="cm"># E3 · 从零实现迷你 Transformer（T4 约 20 分钟；CPU 请把 STEPS 改成 500）</span>
 !pip -q install datasets torch
 
@@ -985,7 +732,7 @@ assert model.get_num_params() == 623872, "参数量与手算公式不一致！"
 <span class="cm"># 3. 准备数据并训练</span>
 ds = load_dataset("roneneldan/TinyStories", split="train", streaming=True)
 raw = [row["text"] for i, row in enumerate(ds) if i < 3000]
-text = "\n\n".join(raw)
+text = "\\n\\n".join(raw)
 chars = sorted(list(set(text)))[:V]
 c2i = {c: i for i, c in enumerate(chars)}
 data = torch.tensor([c2i.get(c, 0) for c in text], dtype=torch.long)
@@ -1025,7 +772,7 @@ def generate(model, prompt_ids, max_new_tokens=150, temperature=0.8):
 i2c = {i: c for c, i in c2i.items()}
 prompt = torch.tensor([[c2i.get(c, 0) for c in "Once upon a time"]], dtype=torch.long)
 out = generate(model, prompt, max_new_tokens=150)
-print("\n=== 生成文本样例 ===")
+print("\\n=== 生成文本样例 ===")
 print("".join([i2c.get(i, "") for i in out[0].tolist()]))
 </code></pre>
 
@@ -1085,8 +832,10 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E4
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 25）</h4>
 
@@ -1094,43 +843,43 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     在 Google Colab（T4 16GB 或 A100）上完成<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>的端到端工程闭环。
     与模块 25 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
 
-  <p><strong>前置</strong>：E3。拥有 Hugging Face 账户及 Kaggle 实例（免费 T4 即可流畅运行，A100 可启用原生 bf16 加速）。</p>
+  <p><strong>前置</strong>：E3。拥有 Hugging Face 账户及 Colab 实例（免费 T4 即可流畅运行，A100 可启用原生 bf16 加速）。</p>
 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>显存手算预估与双卡账本对比（Analytical VRAM Breakdown）</h4>
     <p>
-      以 <strong>Qwen2.5-1.5B</strong>（参数量 \(N = 1{,}543{,}714{,}816 \approx 1.5437 \times 10^9\)）为基准：
-      隐藏层维度 \(d = 1536\)，层数 \(L = 28\)，中间层 \(d_{\text{ffn}} = 8960\)，词表大小 \(V = 151936\)。
-      LoRA 挂载于全部 7 个线性投影层（q, k, v, o, gate, up, down），设秩 \(r = 16\)，缩放因子 \(\alpha = 32\)，
-      总可训练参数量 \(N_{\text{lora}} \approx 1.846 \times 10^7\)（约 18.5M，仅占基座的 \(1.2\%\)）。
+      以 <strong>Qwen2.5-1.5B</strong>（参数量 \\(N = 1{,}543{,}714{,}816 \\approx 1.5437 \\times 10^9\\)）为基准：
+      隐藏层维度 \\(d = 1536\\)，层数 \\(L = 28\\)，中间层 \\(d_{\\text{ffn}} = 8960\\)，词表大小 \\(V = 151936\\)。
+      LoRA 挂载于全部 7 个线性投影层（q, k, v, o, gate, up, down），设秩 \\(r = 16\\)，缩放因子 \\(\\alpha = 32\\)，
+      总可训练参数量 \\(N_{\\text{lora}} \\approx 1.846 \\times 10^7\\)（约 18.5M，仅占基座的 \\(1.2\\%\\)）。
     </p>
     <ol>
       <li><strong>基座静态权重显存</strong>：
         <br>全参数（FP16/BF16，2 字节/参数）：
-        \[ M_{\text{weights, full}} = \frac{1.5437 \times 10^9 \times 2}{1024^2} \approx 2944 \text{ MB} \approx 2.88 \text{ GB} \]
+        \\[ M_{\\text{weights, full}} = \\frac{1.5437 \\times 10^9 \\times 2}{1024^2} \\approx 2944 \\text{ MB} \\approx 2.88 \\text{ GB} \\]
         QLoRA（NF4 4-bit 搭配双重量化，平均 4.127 bits/参数）：
-        \[ M_{\text{weights, QLoRA}} = \frac{1.5437 \times 10^9 \times 4.127}{8 \times 1024^2} \approx 760 \text{ MB} \approx 0.74 \text{ GB} \]
+        \\[ M_{\\text{weights, QLoRA}} = \\frac{1.5437 \\times 10^9 \\times 4.127}{8 \\times 1024^2} \\approx 760 \\text{ MB} \\approx 0.74 \\text{ GB} \\]
       </li>
       <li><strong>可训练参数、梯度与优化器状态</strong>：
         <br>全参数 AdamW（主权重 FP32 + 一阶 FP32 + 二阶 FP32 = 12 字节/参数）：
-        \[ M_{\text{opt, full}} = \frac{1.5437 \times 10^9 \times 12}{1024^2} \approx 17666 \text{ MB} \approx 17.25 \text{ GB} \]
+        \\[ M_{\\text{opt, full}} = \\frac{1.5437 \\times 10^9 \\times 12}{1024^2} \\approx 17666 \\text{ MB} \\approx 17.25 \\text{ GB} \\]
         QLoRA（仅对 18.5M LoRA 参数求导并采用 <code>paged_adamw_8bit</code>，优化器仅占 6 字节/参数）：
-        \[ M_{\text{lora\_weights+grads}} = \frac{18.46 \times 10^6 \times (2 + 2)}{1024^2} \approx 70.4 \text{ MB} \]
-        \[ M_{\text{opt, lora\_8bit}} = \frac{18.46 \times 10^6 \times 6}{1024^2} \approx 105.6 \text{ MB} \]
+        \\[ M_{\\text{lora\\_weights+grads}} = \\frac{18.46 \\times 10^6 \\times (2 + 2)}{1024^2} \\approx 70.4 \\text{ MB} \\]
+        \\[ M_{\\text{opt, lora\\_8bit}} = \\frac{18.46 \\times 10^6 \\times 6}{1024^2} \\approx 105.6 \\text{ MB} \\]
       </li>
-      <li><strong>前向激活值显存（批大小 \(B=2\)，序列长度 \(T=512\)）</strong>：
-        未开启检查点时 28 层激活值堆积超 \(3800 \text{ MB}\)。开启梯度检查点（Gradient Checkpointing）后仅保留 Block 边界，
+      <li><strong>前向激活值显存（批大小 \\(B=2\\)，序列长度 \\(T=512\\)）</strong>：
+        未开启检查点时 28 层激活值堆积超 \\(3800 \\text{ MB}\\)。开启梯度检查点（Gradient Checkpointing）后仅保留 Block 边界，
         反向重算，激活显存骤降至约 <strong>350 MB</strong>。
       </li>
       <li><strong>运行时底噪与总峰值对照</strong>：
-        CUDA 运行时上下文与 PyTorch 预分配底噪约 \(650 \text{ MB}\)。
-        \[ M_{\text{peak, QLoRA}} \approx 760 + 70.4 + 105.6 + 350 + 650 \approx 1936 \text{ MB} \approx 1.89 \text{ GB} \]
+        CUDA 运行时上下文与 PyTorch 预分配底噪约 \\(650 \\text{ MB}\\)。
+        \\[ M_{\\text{peak, QLoRA}} \\approx 760 + 70.4 + 105.6 + 350 + 650 \\approx 1936 \\text{ MB} \\approx 1.89 \\text{ GB} \\]
       </li>
     </ol>
 
     <table class="tbl small">
       <thead>
-        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
+        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存</th><th>Colab T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
       </thead>
       <tbody>
         <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>27.3 GB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
@@ -1164,9 +913,9 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     <div class="card">
       <h5>指引 2：超参调节（Hyperparameter Tuning）</h5>
       <p class="small">
-        ① <strong>LoRA 秩与缩放</strong>：固定 \(\alpha = 2r\)（如 \(r=16, \alpha=32\)），保证切换秩大小时梯度步长尺度稳定；<br>
+        ① <strong>LoRA 秩与缩放</strong>：固定 \\(\\alpha = 2r\\)（如 \\(r=16, \\alpha=32\\)），保证切换秩大小时梯度步长尺度稳定；<br>
         ② <strong>等效批大小控制</strong>：设置单卡 <code>batch_size=2</code>，搭配 <code>gradient_accumulation_steps=8</code>，等效 Batch Size 达到 16；<br>
-        ③ <strong>学习率与优化器</strong>：学习率设为 \(2 \times 10^{-4}\)，配合 Cosine 衰减与 3% 步数 Warmup；优化器选用 <code>paged_adamw_8bit</code> 预防瞬时显存尖峰。
+        ③ <strong>学习率与优化器</strong>：学习率设为 \\(2 \\times 10^{-4}\\)，配合 Cosine 衰减与 3% 步数 Warmup；优化器选用 <code>paged_adamw_8bit</code> 预防瞬时显存尖峰。
       </p>
     </div>
   </div>
@@ -1174,8 +923,8 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
   <div class="card">
     <h5>指引 3：推理验证与权重合并（Inference Verification & Export Guide）</h5>
     <p class="small">
-      微调完成后，适配器处于外挂状态 \(\Delta W = \frac{\alpha}{r} (B \cdot A)\)。在生产部署时，必须执行原地合并消除二次访存开销：
-      \[ W_{\text{merged}} = W_0 + \frac{\alpha}{r} (B \cdot A) \]
+      微调完成后，适配器处于外挂状态 \\(\\Delta W = \\frac{\\alpha}{r} (B \\cdot A)\\)。在生产部署时，必须执行原地合并消除二次访存开销：
+      \\[ W_{\\text{merged}} = W_0 + \\frac{\\alpha}{r} (B \\cdot A) \\]
       调用 <code>model = model.merge_and_unload()</code> 后，模型退化为纯净的原生单体结构，可直接一键导出为标准 HuggingFace 格式，
       或配合 <code>llama.cpp</code> 导出为 GGUF 格式实现端侧离线秒级推理。
     </p>
@@ -1309,11 +1058,11 @@ trainer = SFTTrainer(
 )
 
 <span class="cm"># 6. 执行训练闭环</span>
-print("\n=== 开始 1.5B 工业级 QLoRA 训练 ===")
+print("\\n=== 开始 1.5B 工业级 QLoRA 训练 ===")
 trainer.train()
 
 <span class="cm"># 7. [细化指引 3] 推理验证与权重合并闭环</span>
-print("\n=== [推理质量验证] 贪心搜索作答对比 ===")
+print("\\n=== [推理质量验证] 贪心搜索作答对比 ===")
 test_prompt = "简述为什么在半精度训练中，多头注意力转置后直接执行 view 会报错？"
 messages = [
     {"role": "system", "content": "你是一个严谨的数学与大模型系统底层架构导师。"},
@@ -1331,9 +1080,9 @@ with torch.no_grad():
         pad_token_id=tokenizer.eos_token_id
     )
 response = tokenizer.decode(generated_ids[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
-print(f"微调后模型作答:\n{response}")
+print(f"微调后模型作答:\\n{response}")
 
-print("\n=== [权重合并导出] 融合 LoRA 适配器 ===")
+print("\\n=== [权重合并导出] 融合 LoRA 适配器 ===")
 model = model.merge_and_unload()
 merged_save_path = "./qwen_1.5b_merged"
 model.save_pretrained(merged_save_path)
@@ -1394,35 +1143,37 @@ Step 30 | Loss: 0.1840
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E5
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E5 · 用 TRL 做偏好优化（DPO）：观察 margin 与 β 的作用</h4>
 
   <p><strong>目标</strong>：在跳过复杂强化学习（PPO）环境与奖励模型的前提下，直接用<strong>对数几率比</strong>做偏好对齐。
-    手算 DPO 隐式奖励公式，扫描不同 \(\beta\) 值（0.01、0.1、0.5），亲眼看到选优概率（margin）是如何被逐步拉开的。</p>
+    手算 DPO 隐式奖励公式，扫描不同 \\(\\beta\\) 值（0.01、0.1、0.5），亲眼看到选优概率（margin）是如何被逐步拉开的。</p>
 
-  <p><strong>前置</strong>：E4。使用微调后的轻量基座（如 Qwen2.5-0.5B 或 1.5B 4-bit），在 Kaggle T4 16GB 上约需 25–45 分钟。</p>
+  <p><strong>前置</strong>：E4。使用微调后的轻量基座（如 Qwen2.5-0.5B 或 1.5B 4-bit），在 Colab T4 16GB 上约需 25–45 分钟。</p>
 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>DPO 偏好数学内核与显存手算预估（Analytical Memory Breakdown）</h4>
     <p>
-      DPO 的闭式解将未知奖励函数 \(r(x, y)\) 精确替换为策略网络与参考网络在生成序列上的对数几率差：
+      DPO 的闭式解将未知奖励函数 \\(r(x, y)\\) 精确替换为策略网络与参考网络在生成序列上的对数几率差：
     </p>
-    \[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right] \]
+    \\[ \\mathcal{L}_{\\text{DPO}}(\\theta; \\pi_{\\text{ref}}) = -\\mathbb{E}_{(x, y_w, y_l) \\sim \\mathcal{D}} \\left[ \\log \\sigma \\left( \\beta \\log \\frac{\\pi_\\theta(y_w \\mid x)}{\\pi_{\\text{ref}}(y_w \\mid x)} - \\beta \\log \\frac{\\pi_\\theta(y_l \\mid x)}{\\pi_{\\text{ref}}(y_l \\mid x)} \\right) \\right] \\]
     <p><strong>显存账本关键：避免双倍基座开销</strong>：</p>
     <ol>
       <li><strong>基座复用架构（<code>ref_model = None</code>）</strong>：TRL 的 DPOTrainer 允许不显式传入 <code>ref_model</code>，
-          而是将同一个模型挂载 LoRA。计算 \(\pi_\theta\) 时启用 LoRA，计算 \(\pi_{\text{ref}}\) 时临时禁用 LoRA（<code>with model.disable_adapter():</code>），
+          而是将同一个模型挂载 LoRA。计算 \\(\\pi_\\theta\\) 时启用 LoRA，计算 \\(\\pi_{\\text{ref}}\\) 时临时禁用 LoRA（<code>with model.disable_adapter():</code>），
           <strong>彻底省去了一整份基座模型的物理显存（立省 1.0 ~ 3.0 GB）</strong>！
       </li>
-      <li><strong>双路前向显存（Chosen + Rejected，批大小 \(B=2\)，序列长度 \(T=512\)）</strong>：
-        每个样本需同时拼接优选回复 \(y_w\) 与劣选回复 \(y_l\) 执行前向计算，有效序列批次等效为 \(2B = 4\)。
-        前向激活值约：\(M_{\text{act, dual}} \approx 2 \times 300 \text{ MB} = 600 \text{ MB}\)。
+      <li><strong>双路前向显存（Chosen + Rejected，批大小 \\(B=2\\)，序列长度 \\(T=512\\)）</strong>：
+        每个样本需同时拼接优选回复 \\(y_w\\) 与劣选回复 \\(y_l\\) 执行前向计算，有效序列批次等效为 \\(2B = 4\\)。
+        前向激活值约：\\(M_{\\text{act, dual}} \\approx 2 \\times 300 \\text{ MB} = 600 \\text{ MB}\\)。
       </li>
-      <li><strong>隐式奖励提取开销</strong>：在 GPU 上调用 <code>torch.gather</code> 提取 completion 区域的 token 对数概率并求和，显存开销小于 \(40 \text{ MB}\)。</li>
+      <li><strong>隐式奖励提取开销</strong>：在 GPU 上调用 <code>torch.gather</code> 提取 completion 区域的 token 对数概率并求和，显存开销小于 \\(40 \\text{ MB}\\)。</li>
       <li><strong>峰值显存总和（0.5B BF16 或 1.5B 4-bit）</strong>：
-        \[ M_{\text{peak, DPO}} \approx \underbrace{980 \text{ MB}}_{\text{weights}} + \underbrace{600 \text{ MB}}_{\text{dual act}} + \underbrace{120 \text{ MB}}_{\text{lora+opt}} + \underbrace{650 \text{ MB}}_{\text{cuda}} \approx 2350 \text{ MB} \approx 2.30 \text{ GB} \]
+        \\[ M_{\\text{peak, DPO}} \\approx \\underbrace{980 \\text{ MB}}_{\\text{weights}} + \\underbrace{600 \\text{ MB}}_{\\text{dual act}} + \\underbrace{120 \\text{ MB}}_{\\text{lora+opt}} + \\underbrace{650 \\text{ MB}}_{\\text{cuda}} \\approx 2350 \\text{ MB} \\approx 2.30 \\text{ GB} \\]
         在 16GB T4 上仅占 <strong>14.5%</strong>，安全边际极高。
       </li>
     </ol>
@@ -1434,7 +1185,7 @@ Step 30 | Loss: 0.1840
       <li><strong>[偏好数据三元组校验]</strong> 检查数据集格式，断言字典必须包含且仅包含 <code>prompt</code>、<code>chosen</code>、<code>rejected</code> 三个键名。</li>
       <li><strong>[左填充断言]</strong> 显式配置 <code>tokenizer.padding_side = "left"</code>，防止自回归位置编码在 batch 计算中对齐错误。</li>
       <li><strong>[单步对数几率冒烟]</strong> 传入 1 组对偶样本，核验 <code>chosen_logps</code> 与 <code>rejected_logps</code> 为有限实数（无 <code>-inf/nan</code>）。</li>
-      <li><strong>[10 步 DPO 试跑]</strong> 运行 10 步微调，断言初始损失接近 \(-\log(0.5) \approx 0.693\)，且 <code>rewards/margins</code> 开始向正数分化。</li>
+      <li><strong>[10 步 DPO 试跑]</strong> 运行 10 步微调，断言初始损失接近 \\(-\\log(0.5) \\approx 0.693\\)，且 <code>rewards/margins</code> 开始向正数分化。</li>
       <li><strong>[准确率与边界验收]</strong> 验证 <code>rewards/accuracies</code> 逐步上升至 0.8 以上，确认隐式奖励 margin 随步数健康扩大。</li>
     </ol>
   </section>
@@ -1443,9 +1194,9 @@ Step 30 | Loss: 0.1840
   <ol>
     <li>构造或加载偏好数据集：格式为 <code>(prompt, chosen, rejected)</code> 三元组。</li>
     <li>加载微调基座，利用 <code>LoraConfig</code> 仅微调适配器。</li>
-    <li>分别设定 \(\beta = 0.01\)、\(\beta = 0.1\)、\(\beta = 0.5\) 运行相同步数。</li>
+    <li>分别设定 \\(\\beta = 0.01\\)、\\(\\beta = 0.1\\)、\\(\\beta = 0.5\\) 运行相同步数。</li>
     <li>在 TensorBoard / 打印日志中提取 <code>rewards/chosen</code>、<code>rewards/rejected</code> 与 <code>rewards/margins</code>。</li>
-    <li>对比三种 \(\beta\) 下生成文本在安全性与表达多样性上的差异。</li>
+    <li>对比三种 \\(\\beta\\) 下生成文本在安全性与表达多样性上的差异。</li>
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
@@ -1532,7 +1283,7 @@ dpo_trainer = DPOTrainer(
 print("=== 开始 DPO 偏好优化训练 ===")
 dpo_trainer.train()
 
-print("\n=== DPO 训练完成，查看隐式奖励 Margin 分布 ===")
+print("\\n=== DPO 训练完成，查看隐式奖励 Margin 分布 ===")
 for log in dpo_trainer.state.log_history:
     if "rewards/margins" in log:
         print(f"Step {log.get('step', 0):2d} | Loss: {log.get('loss', 0):.4f} | Margin: {log.get('rewards/margins', 0):.4f} | Acc: {log.get('rewards/accuracies', 0):.2f}")
@@ -1546,7 +1297,7 @@ Step 12 | Loss: 0.3120 | Margin: 1.2400 | Acc: 1.00
 Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
-    初始阶段 Loss 位于 0.69（即 \(\ln 2\)），代表模型在 chosen 与 rejected 之间难以区分（准确率 0.5）。
+    初始阶段 Loss 位于 0.69（即 \\(\\ln 2\\)），代表模型在 chosen 与 rejected 之间难以区分（准确率 0.5）。
     随着步数推进，隐式奖励差值（Margin）从 0.08 飙升至 2.18，
     优选回复的相对似然对数几率被显著抬高，劣选回复的生成概率被彻底压制。
   </p>
@@ -1555,7 +1306,7 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <table class="tbl small">
     <thead><tr><th>记录项</th><th>为什么</th><th>示例</th></tr></thead>
     <tbody>
-      <tr><td>\(\beta\) 值设定</td><td>衡量对参考模型的保留程度</td><td>\(\beta \in \{0.01, 0.1, 0.5\}\)</td></tr>
+      <tr><td>\\(\\beta\\) 值设定</td><td>衡量对参考模型的保留程度</td><td>\\(\\beta \\in \\{0.01, 0.1, 0.5\\}\\)</td></tr>
       <tr><td>最终 Margin 分布</td><td>优选与劣选的置信度差距</td><td>从 0.0 扩大至 2.18</td></tr>
       <tr><td>Acc 准确率曲线上升斜率</td><td>评估对齐收敛速度</td><td>在第 10 步突破 90%</td></tr>
       <tr><td>显存峰值（GB）</td><td>验证无独立 ref_model 时的显存节约</td><td>实测约 2.3 GB</td></tr>
@@ -1564,8 +1315,8 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
 
   <p><strong>延伸问题</strong>：</p>
   <ol>
-    <li>如果把 \(\beta\) 设得过大（如 \(\beta = 1.0\)），训练损失会发生什么？模型生成文本是否会出现重复和死板？</li>
-    <li>如果把 \(\beta\) 设得过小（如 \(\beta = 0.001\)），为什么模型容易发生模式坍塌（Mode Collapse）？</li>
+    <li>如果把 \\(\\beta\\) 设得过大（如 \\(\\beta = 1.0\\)），训练损失会发生什么？模型生成文本是否会出现重复和死板？</li>
+    <li>如果把 \\(\\beta\\) 设得过小（如 \\(\\beta = 0.001\\)），为什么模型容易发生模式坍塌（Mode Collapse）？</li>
     <li>为什么 DPO 数据集里如果混入 5% 的「反向标注错误」（把较差回复误标为 chosen），会导致模型质量剧烈退化？</li>
   </ol>
 </section>
@@ -1581,8 +1332,10 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E6
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E6 · JAX 版 miniGPT（Flax NNX + Optax + Grain）：单设备改写与逐项对照</h4>
 
@@ -1597,15 +1350,15 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>JAX 静态编译与内存/HBM 手算预估（Analytical Memory Breakdown）</h4>
     <p>
-      模型结构对齐 E3：\(V = 97\), \(d = 128\), \(h = 4\), \(L = 3\), \(T = 128\)，参数量 \(N_{\text{params}} = 623{,}872\)。
+      模型结构对齐 E3：\\(V = 97\\), \\(d = 128\\), \\(h = 4\\), \\(L = 3\\), \\(T = 128\\)，参数量 \\(N_{\\text{params}} = 623{,}872\\)。
     </p>
     <ol>
       <li><strong>静态参数与 Optax 状态</strong>：
-        <br>① 权重数组（FP32）：\(M_{\text{weights}} = \frac{623{,}872 \times 4}{1024^2} \approx 2.38 \text{ MB}\)
-        <br>② Optax AdamW 动量（mu 与 nu 两个一模一样大小的 pytree）：\(M_{\text{optax}} = 2 \times 2.38 \approx 4.76 \text{ MB}\)
+        <br>① 权重数组（FP32）：\\(M_{\\text{weights}} = \\frac{623{,}872 \\times 4}{1024^2} \\approx 2.38 \\text{ MB}\\)
+        <br>② Optax AdamW 动量（mu 与 nu 两个一模一样大小的 pytree）：\\(M_{\\text{optax}} = 2 \\times 2.38 \\approx 4.76 \\text{ MB}\\)
       </li>
       <li><strong>Grain 流水线预取缓冲区</strong>：
-        Grain 基于纯 Python 迭代器预取 \(K=16\) 个 Batch（每个 Batch \(32 \times 128 \times 4 \text{ bytes} \approx 16 \text{ KB}\)），
+        Grain 基于纯 Python 迭代器预取 \\(K=16\\) 个 Batch（每个 Batch \\(32 \\times 128 \\times 4 \\text{ bytes} \\approx 16 \\text{ KB}\\)），
         内存缓冲区总开销小于 <strong>2.0 MB</strong>。
       </li>
       <li><strong>XLA JIT 编译期显存峰值（HBM Buffer）</strong>：
@@ -1734,7 +1487,7 @@ def train_step(model: MiniGPTNNX, optimizer: nnx.Optimizer, x, y):
 x_dummy = jax.random.randint(jax.random.PRNGKey(0), (32, ctx_len), 0, V)
 y_dummy = jax.random.randint(jax.random.PRNGKey(1), (32, ctx_len), 0, V)
 
-print("\n=== 测试 JIT 编译开销与运行步频 ===")
+print("\\n=== 测试 JIT 编译开销与运行步频 ===")
 t0 = time.time()
 loss_0 = train_step(model, optimizer, x_dummy, y_dummy)
 t1 = time.time()
@@ -1797,15 +1550,17 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E7
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E7 · 模型阶梯 + 分组交叉验证 + 置换检验：学习到底有没有加价值</h4>
 
   <p><strong>目标</strong>：在真实数据上走一遍完整的统计评估管线：
     启发式基准（L0）→ 线性/Ridge（L1）→ 浅层 MLP（L2）的三级模型阶梯，
     配合<strong>分组交叉验证（GroupKFold）</strong>防数据泄漏，
-    最后用 <strong>500 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
+    最后用 <strong>500 次置换检验（Permutation Test）</strong>算出保守的 \\(p\\) 值。
     <strong>核心考核点</strong>：体会「高容量模型完全可能跑输线性模型」的严谨科研洗礼，
     学会写出令顶尖学者信服的负面消融报告。</p>
 
@@ -1814,20 +1569,20 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>分层噪声模型与内存开销手算（Analytical Memory Breakdown）</h4>
     <p>
-      数据生成模型：\(N_{\text{groups}} = 40\) 位艺术家，每位创作 25 幅作品，总样本数 \(N = 1000\)。
-      特征维度 \(D = 12\)。
+      数据生成模型：\\(N_{\\text{groups}} = 40\\) 位艺术家，每位创作 25 幅作品，总样本数 \\(N = 1000\\)。
+      特征维度 \\(D = 12\\)。
     </p>
     <ol>
       <li><strong>数据张量内存</strong>：
-        \[ M_{\text{data}} = 1000 \times 12 \times 8 \text{ bytes} \approx 96 \text{ KB} \]
+        \\[ M_{\\text{data}} = 1000 \\times 12 \\times 8 \\text{ bytes} \\approx 96 \\text{ KB} \\]
       </li>
       <li><strong>置换检验重抽样矩阵</strong>：
-        \(B = 500\) 轮置换，每轮打乱标签向量 \(y \in \mathbb{R}^{1000}\)，
+        \\(B = 500\\) 轮置换，每轮打乱标签向量 \\(y \\in \\mathbb{R}^{1000}\\)，
         重抽样缓存数组开销小于 <strong>4.0 MB</strong>。
       </li>
-      <li><strong>统计估计量保守 \(p\) 值定义公式</strong>：
-        \[ p = \frac{1 + \sum_{b=1}^B \mathbb{I}\big(\text{RMSE}_{\text{perm}}^{(b)} \le \text{RMSE}_{\text{obs}}\big)}{1 + B} \]
-        分子加 1 与分母加 1 是严格的非参数置换检验准则，彻底避免极端情况下宣称 \(p = 0\) 的统计学谬误。
+      <li><strong>统计估计量保守 \\(p\\) 值定义公式</strong>：
+        \\[ p = \\frac{1 + \\sum_{b=1}^B \\mathbb{I}\\big(\\text{RMSE}_{\\text{perm}}^{(b)} \\le \\text{RMSE}_{\\text{obs}}\\big)}{1 + B} \\]
+        分子加 1 与分母加 1 是严格的非参数置换检验准则，彻底避免极端情况下宣称 \\(p = 0\\) 的统计学谬误。
       </li>
     </ol>
     <p><strong>实测结论</strong>：总内存占用严格 <strong>&lt; 150 MB</strong>，运行耗时低于 180 秒。</p>
@@ -1836,11 +1591,11 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
   <section class="blk blk-tip">
     <h4><span class="ic">✓</span>30 分钟最小跑通检查单（Smoke Test Checklist）</h4>
     <ol>
-      <li><strong>[分组泄漏防护断言]</strong> 检查 GroupKFold 切分，断言训练集分组与测试集分组的交集严格为 \(\emptyset\)（空集）。</li>
+      <li><strong>[分组泄漏防护断言]</strong> 检查 GroupKFold 切分，断言训练集分组与测试集分组的交集严格为 \\(\\emptyset\\)（空集）。</li>
       <li><strong>[L0 常数基准冒烟]</strong> 计算 L0 均值基准，断言其 RMSE 等于目标变量的样本标准差。</li>
       <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言无数值奇异警告且 RMSE 显著低于 L0。</li>
       <li><strong>[L2 浅层拟合与过拟合观察]</strong> 运行 MLPRegressor，观察在跨艺术家泛化测试集上的 RMSE 表现。</li>
-      <li><strong>[置换分布直方图绘制]</strong> 提取 500 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
+      <li><strong>[置换分布直方图绘制]</strong> 提取 500 次置换的 RMSE 分布，断言观测值 \\(\\text{RMSE}_{\\text{obs}}\\) 位于置换零假设分布的左侧极尾。</li>
     </ol>
   </section>
 
@@ -1855,7 +1610,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       </ul>
     </li>
     <li>用 <strong>5 折 GroupKFold</strong>（按 <code>artist_id</code> 分组），确保训练集里见过的艺术家<strong>绝不出现在的测试集里</strong>。</li>
-    <li>在最好的一组模型上做 500 次置换检验（打乱标签，重新测交叉验证误差），绘制置换分布直方图，算出单侧 \(p\) 值。</li>
+    <li>在最好的一组模型上做 500 次置换检验（打乱标签，重新测交叉验证误差），绘制置换分布直方图，算出单侧 \\(p\\) 值。</li>
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
@@ -1933,7 +1688,7 @@ print(tabulate(table_data, headers=["模型阶梯", "CV RMSE (越低越好)", "�
 B = 200
 obs_rmse = results["L1 岭回归"][0]
 perm_rmses = []
-print(f"\n开始 {B} 轮置换检验...")
+print(f"\\n开始 {B} 轮置换检验...")
 for b in range(B):
     y_perm = np.random.permutation(y)
     gkf = GroupKFold(n_splits=5)
@@ -1984,7 +1739,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
     <thead><tr><th>记录项</th><th>为什么</th><th>示例</th></tr></thead>
     <tbody>
       <tr><td>普通 KFold vs GroupKFold 的误差差距</td><td>量化数据泄漏带来的「虚假繁荣」</td><td>泄漏时 1.8，严格分组时 3.4</td></tr>
-      <tr><td>各阶梯模型的置换检验 \(p\) 值</td><td>确立模型改善不是随机噪声</td><td>\(p = 0.005\)（有统计显著性）</td></tr>
+      <tr><td>各阶梯模型的置换检验 \\(p\\) 值</td><td>确立模型改善不是随机噪声</td><td>\\(p = 0.005\\)（有统计显著性）</td></tr>
       <tr><td>消融实验中负面结果的具体成因</td><td>展现批判性思维与科学诚信</td><td>容量过剩导致方差增加</td></tr>
     </tbody>
   </table>
@@ -1992,7 +1747,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <p><strong>延伸问题</strong>：</p>
   <ol>
     <li>如果把数据切分方式改成普通随机切分（普通 KFold），L0 的 RMSE 会发生什么戏剧性变化？为什么？</li>
-    <li>置换检验为什么必须要加 1（即 \(\frac{1 + \text{count}}{1 + B}\)）？如果不加 1，宣称 \(p = 0.000\) 会在统计学评审中受到什么质询？</li>
+    <li>置换检验为什么必须要加 1（即 \\(\\frac{1 + \\text{count}}{1 + B}\\)）？如果不加 1，宣称 \\(p = 0.000\\) 会在统计学评审中受到什么质询？</li>
     <li>在工业界风控或医疗诊断模型中，类似的「分组变量」通常是什么？（提示：患者 ID、设备指纹）</li>
   </ol>
 </section>
@@ -2002,15 +1757,17 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
     <ul>
       <li><strong>组变量与特征混淆</strong>：把 <code>artist_id</code> 作为数值特征直接塞进输入张量。
           这会导致模型在未登录的测试集艺术家上产生荒谬的线性外推。类别组必须被隔离。</li>
-      <li><strong>置换检验中打乱了特征而不是标签</strong>：置换检验的标准做法是打乱目标变量 \(y\)，破坏 \(X\) 与 \(y\) 之间的条件依从关系，
-          同时保留 \(X\) 自身的边际协方差结构。</li>
+      <li><strong>置换检验中打乱了特征而不是标签</strong>：置换检验的标准做法是打乱目标变量 \\(y\\)，破坏 \\(X\\) 与 \\(y\\) 之间的条件依从关系，
+          同时保留 \\(X\\) 自身的边际协方差结构。</li>
       <li><strong>过早调参引入信息穿越</strong>：在整个数据集上做特征标准化（StandardScaler）然后再切分 Fold。
           <strong>必须在每一个 Fold 内部只用训练集拟合 Scaler</strong>！</li>
     </ul>
   </div>
 </div>
+''')
 
-
+# LAB E8
+parts.append('''
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E8 · 量化与部署基准：显存、延迟、吞吐的三方权衡</h4>
 
@@ -2024,28 +1781,28 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>量化基准与吞吐权衡显存手算预估（Analytical Memory Breakdown）</h4>
     <p>
-      以 <strong>Qwen2.5-0.5B</strong>（参数量 \(N \approx 0.49 \times 10^9\)）为例，层数 \(L=24\)，KV 头数 \(H_{kv}=2\)，单头维度 \(d_k=64\)。
+      以 <strong>Qwen2.5-0.5B</strong>（参数量 \\(N \\approx 0.49 \\times 10^9\\)）为例，层数 \\(L=24\\)，KV 头数 \\(H_{kv}=2\\)，单头维度 \\(d_k=64\\)。
     </p>
     <ol>
       <li><strong>不同量化位宽下的纯权重静态显存</strong>：
         <br>BF16（16-bit，2 字节/参数）：
-        \[ M_{\text{weights, BF16}} = \frac{0.49 \times 10^9 \times 2}{1024^2} \approx 935 \text{ MB} \]
+        \\[ M_{\\text{weights, BF16}} = \\frac{0.49 \\times 10^9 \\times 2}{1024^2} \\approx 935 \\text{ MB} \\]
         INT8（8-bit，1 字节/参数）：
-        \[ M_{\text{weights, INT8}} = \frac{0.49 \times 10^9 \times 1}{1024^2} \approx 467 \text{ MB} \]
+        \\[ M_{\\text{weights, INT8}} = \\frac{0.49 \\times 10^9 \\times 1}{1024^2} \\approx 467 \\text{ MB} \\]
         INT4-NF4（4-bit，0.5 字节/参数 + 标度因子）：
-        \[ M_{\text{weights, INT4}} \approx 241 \text{ MB} \]
+        \\[ M_{\\text{weights, INT4}} \\approx 241 \\text{ MB} \\]
       </li>
       <li><strong>KV Cache 解析公式（随并发与上下文动态暴涨）</strong>：
         每个 Token、每个序列的键值对显存占用：
-        \[ M_{\text{kv\_per\_token}} = 2 \times L \times H_{kv} \times d_k \times 2 \text{ bytes} = 2 \times 24 \times 2 \times 64 \times 2 = 12{,}288 \text{ bytes} \approx 12 \text{ KB} \]
-        当并发数 \(c = 16\)，上下文与生成总长 \(T = 2048\) 时：
-        \[ M_{\text{kv, total}} = 16 \times 2048 \times 12{,}288 \text{ bytes} \approx 402{,}653{,}184 \text{ bytes} \approx 384 \text{ MB} \]
+        \\[ M_{\\text{kv\\_per\\_token}} = 2 \\times L \\times H_{kv} \\times d_k \\times 2 \\text{ bytes} = 2 \\times 24 \\times 2 \\times 64 \\times 2 = 12{,}288 \\text{ bytes} \\approx 12 \\text{ KB} \\]
+        当并发数 \\(c = 16\\)，上下文与生成总长 \\(T = 2048\\) 时：
+        \\[ M_{\\text{kv, total}} = 16 \\times 2048 \\times 12{,}288 \\text{ bytes} \\approx 402{,}653{,}184 \\text{ bytes} \\approx 384 \\text{ MB} \\]
         （若并发达到 128，仅 KV Cache 即可吞噬近 <strong>3.1 GB</strong> 显存）。
       </li>
       <li><strong>并发吞吐饱和模型</strong>：
-        平均吞吐 \(R(c)\)（tokens/s）随并发数 \(c\) 呈现两段式：
-        在 GPU 算力未满时，\(R(c) \propto c\)；当内存带宽达到瓶颈后，吞吐渐进饱和至 \(\rho_{\max}\)：
-        \[ R(c) \approx \frac{c \cdot \bar{n}}{L_{\text{prefill}} + c \cdot \bar{n} / \rho} \]
+        平均吞吐 \\(R(c)\\)（tokens/s）随并发数 \\(c\\) 呈现两段式：
+        在 GPU 算力未满时，\\(R(c) \\propto c\\)；当内存带宽达到瓶颈后，吞吐渐进饱和至 \\(\\rho_{\\max}\\)：
+        \\[ R(c) \\approx \\frac{c \\cdot \\bar{n}}{L_{\\text{prefill}} + c \\cdot \\bar{n} / \\rho} \\]
       </li>
     </ol>
   </section>
@@ -2064,7 +1821,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <p><strong>步骤</strong>：</p>
   <ol>
     <li><strong>第一部分：本地精度对比</strong>（T4 可跑）。加载 Qwen2.5-0.5B，分别在 BF16/FP16 与 4-bit（bitsandbytes NF4）下测量静态显存与单请求延迟。</li>
-    <li><strong>第二部分：并发与吞吐扫频</strong>。编写多线程并发压测脚本，以并发数 \(c \in \{1, 2, 4, 8\}\) 发送生成请求，记录总吞吐（tokens/s）与 P95 尾部延迟。</li>
+    <li><strong>第二部分：并发与吞吐扫频</strong>。编写多线程并发压测脚本，以并发数 \\(c \\in \\{1, 2, 4, 8\\}\\) 发送生成请求，记录总吞吐（tokens/s）与 P95 尾部延迟。</li>
     <li>观察并解释：为什么 4-bit 量化显存省了 70%，但在 T4 单并发下的推理延迟不仅没有变快，反而可能略微变慢？（提示：解量化反向计算的算力开销 vs 带宽节省）。</li>
   </ol>
 
@@ -2129,11 +1886,11 @@ for name, qcfg in configs.items():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-print("\n=== 单并发静态显存与推理延迟对照 ===")
+print("\\n=== 单并发静态显存与推理延迟对照 ===")
 print(tabulate(bench_results, headers=["配置", "静态显存", "峰值显存", "单 Token 耗时 (TPOT)", "吞吐 (tokens/s)"], tablefmt="github"))
 
 <span class="cm"># 3. 多并发压力扫频测试</span>
-print("\n=== 并发压力扫频测试 (FP16 模式) ===")
+print("\\n=== 并发压力扫频测试 (FP16 模式) ===")
 m = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
 
 def worker():
@@ -2208,8 +1965,10 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
     </ul>
   </div>
 </div>
+''')
 
-
+# FOOTER
+parts.append('''
 <section class="blk blk-tip">
   <h4><span class="ic">🎓</span>把 8 个实验变成申请材料：4 个可落地的呈现策略</h4>
   <p>
@@ -2223,11 +1982,11 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
     </li>
     <li>
       <strong>方法论证据（Methodological Rigor）</strong>：
-      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 500 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
+      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 500 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \\(p = 0.005\\) 的严格假设检验结论」。
     </li>
     <li>
       <strong>工业级全流程交付（Engineering Closed Loop）</strong>：
-      呼应模块 25，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
+      呼应模块 25，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \\(r=16, \\alpha=32\\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
     </li>
     <li>
       <strong>诚实的负面结果清单（Honest Negative Results）</strong>：
@@ -2239,3 +1998,9 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 </section>
 `
 });
+''')
+
+with open(OUT_PATH, "w", encoding="utf-8") as f:
+    f.write("\n".join(parts))
+
+print("Successfully written to", OUT_PATH)

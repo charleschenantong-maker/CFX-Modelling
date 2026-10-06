@@ -1,20 +1,20 @@
 /* content/25-colab-training.js — 模块 25：Colab 1.5B 开源大模型实战训练与部署 */
 COURSE.register({
   id: "m25",
-  part: 6,
+  part: 4,
   num: "25",
-  title: "实战闭环：在 Google Colab 上训练 1.5B 开源大模型并量化部署",
-  en: "Hands-on 1.5B Model Training on Google Colab & Local Deployment",
+  title: "实战闭环：在 Kaggle 上训练 1.5B 开源大模型并量化导出（免费 T4 GPU 实战）",
+  en: "Hands-on 1.5B Model Training on Kaggle & Local Deployment",
   minutes: 50,
-  tags: ["实战", "Colab Pro", "QLoRA", "1.5B模型", "GGUF导出"],
+  tags: ["实战", "Kaggle", "QLoRA", "1.5B模型", "GGUF导出"],
   body: String.raw`
 <p class="lead">
   在前面的二十四讲中，你已经推导了从标量计算图、注意力矩阵、KV Cache 到分布式并行的全部数学底座。
   但学 AI 绝不能只停留在黑板与推导上——你必须亲自经历一次「数据进、损失降、权重出、本地跑」的工业级工程闭环。
   很多初学者在本地笔记本上尝试运行 1.7B 或更大模型时，常常感叹「为什么又笨又慢、风扇狂转还经常卡死」？
-  本讲针对这一现实痛点，面向具备 Google Colab（T4 或 A100）算力环境的学生，
+  本讲针对这一现实痛点，面向利用 Kaggle 免费 GPU（支持双卡 T4 ×2 或单卡 T4，每周 30 小时算力）的学生，
   手把手带你完成一个 <strong>1.5B 级别开源大模型（以高性价比的 Qwen2.5-1.5B 为例）的指令微调（SFT）全流程</strong>。
-  从 NF4 四位量化分位点编码、双重量化数学手算、LoRA 秩矩阵乘积、ChatML 标签掩码机制，到 Colab 实战避坑与一键导出 GGUF 本地毫秒级秒回，
+  从 NF4 四位量化分位点编码、双重量化数学手算、LoRA 秩矩阵乘积、ChatML 标签掩码机制，到 Kaggle 实战避坑与一键导出 GGUF 本地毫秒级秒回，
   彻底打通算法理论到端侧生产落地的最后一公里。
 </p>
 
@@ -38,13 +38,13 @@ COURSE.register({
 <ul>
   <li><strong>算力与内存带宽壁垒</strong>：大模型自回归解码是受内存带宽限制（Memory Bandwidth Bound）的。
       本地普通 CPU 搭配 DDR4/DDR5 内存，带宽通常只有 30 ~ 60 GB/s；
-      而 Google Colab 基础级英伟达 T4 拥有 300 GB/s 显存带宽，A100 更拥有高达 1.5 ~ 2.0 TB/s 的高带宽显存（HBM2）。
+      而 Kaggle 提供的英伟达 T4（支持单卡 16GB 或双卡 T4 ×2 共 32GB） 拥有 300 GB/s 显存带宽，A100 更拥有高达 1.5 ~ 2.0 TB/s 的高带宽显存（HBM2）。
       训练涉及庞大的反向传播全微分计算，在本地普通电脑上几乎不可行。</li>
   <li><strong>基座模型 vs 对齐模型</strong>：刚下载的基座模型（Base Model）是一个单纯的「文本续写补全机」，
       它根本不知道什么叫「你问我答」。要让它具备精准遵循人类指令的问答逻辑，必须经过高质量指令监督微调（Supervised Fine-Tuning, SFT）。</li>
 </ul>
 <p>
-  <strong>最优解工程策略</strong>：<strong>云端（Google Colab）微调大模型，端侧（本地电脑）量化流式推理。</strong>
+  <strong>最优解工程策略</strong>：<strong>云端（Kaggle Notebooks）微调大模型，端侧（本地电脑）量化流式推理。</strong>
 </p>
 
 <h3>2. 显存底座：LoRA 与 QLoRA 数学内核草稿纸</h3>
@@ -513,7 +513,7 @@ print(<span class="st">"微调完成！轻量级 Adapter 权重已导出。"</sp
 
   <p><strong>暗礁 2：bitsandbytes 驱动库动态链接缺失或 CUDA Setup 报错</strong></p>
   <ul>
-    <li><strong>根因分析</strong>：Google Colab 环境经常静默更新宿主机底层英伟达驱动和 CUDA 工具包版本。
+    <li><strong>根因分析</strong>：Google Kaggle 环境经常静默更新宿主机底层英伟达驱动和 CUDA 工具包版本。
         当系统预装的 <code>bitsandbytes</code> 二进制动态库（如 <code>libbitsandbytes_cuda*.so</code>）与当前的驱动版本不兼容时，
         在执行 <code>import bitsandbytes</code> 或加载 4-bit 量化模型时会报出 <code>CUDA Setup failed: libbitsandbytes_cuda*.so: cannot open shared object file</code>。</li>
     <li><strong>一行终端命令对策（无缓存重装与环境自检）</strong>：
@@ -594,18 +594,16 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
   </p>
 </div>
 
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">在 LoRA 微调中，若隐层投影矩阵 \(W \in \mathbb{R}^{1536 \times 1536}\)，设定低秩 \(r = 16\)，该层外挂旁路的参数量压缩到了原来的大约多少？</p>
-  <ul class="opts">
-    <li>50%</li>
-    <li>10%</li>
-    <li data-ok>约 2.08%</li>
-    <li>0.01%</li>
-  </ul>
+<div class="quiz quiz-blank" data-ans="49152" data-tol="0">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">在 LoRA 微调中，若某线性层隐藏投影矩阵 \(W \in \mathbb{R}^{1536 \times 1536}\)，设定低秩 \(r = 16\)。使用低秩分解矩阵 \(A \in \mathbb{R}^{16 \times 1536}\) 与 \(B \in \mathbb{R}^{1536 \times 16}\) 替代直接更新全量权重。这两个可训练低秩适配矩阵的总参数量（\(|A| + |B|\)）精确等于多少？（填入整数）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入总参数量数值（如 49152）..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
   <p class="why">
-    原矩阵参数量为 \(1536 \times 1536 = 2,359,296\)。LoRA 旁路矩阵参数量为 \((1536 \times 16) + (16 \times 1536) = 49,152\)。
-    压缩比例为 \(\frac{49152}{2359296} = \frac{2 \times 16}{1536} = \frac{32}{1536} \approx 2.08\%\)。
+    \(|A| = 16 \times 1536 = 24,576\)，\(|B| = 1536 \times 16 = 24,576\)，总计 \(24,576 \times 2 = 49,152\)。相比原始全量矩阵的 \(1536 \times 1536 = 2,359,296\) 个参数，可训练参数量直接压缩为原先的 \(\frac{49152}{2359296} \approx 2.08\%\)（参数减少了近 98%）！
   </p>
 </div>
 
@@ -670,7 +668,7 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
 
 <div class="quiz">
   <div class="qlabel">自测 · 7</div>
-  <p class="q">在 Google Colab 默认分配的 T4 GPU 上微调时，如果将计算精度强行指定为 <code>bfloat16</code>，最可能会导致什么问题？</p>
+  <p class="q">在 Kaggle 分配的 T4 GPU 上微调时，如果将计算精度强行指定为 <code>bfloat16</code>，最可能会导致什么问题？</p>
   <ul class="opts">
     <li>显存占用暴增 10 倍</li>
     <li data-ok>因为 T4 属于 Turing 架构无原生硬件 BF16 指令，会触发软件层模拟导致训练极度缓慢甚至报非法指令错误</li>

@@ -213,42 +213,11 @@ COURSE.register({
 </div>
 
 <h3>5. 一个可直接复用的评估协议</h3>
-<pre><code>import numpy as np
-from sklearn.linear_model import Ridge
-from sklearn.model_selection import GroupKFold
-from sklearn.metrics import mean_squared_error
-
-<span class="cm"># [逐行剖析] 1. 均方根误差 (RMSE) 标量指标函数</span>
-def rmse(a, b):
-    <span class="cm"># 动态形状: a, b 均为 (N_te,) 维一维数组</span>
-    return float(np.sqrt(np.mean((np.asarray(a) - np.asarray(b)) ** 2)))
-
-<span class="cm"># [逐行剖析] 2. 严防数据泄露的分组交叉验证 (GroupKFold)</span>
-<span class="cm"># 统计准则: 同一艺人 (Group) 的所有曲目必须全在训练集或全在测试集，绝不跨集渗透</span>
-def grouped_cv_rmse(X, y, groups, alpha=1.0, n_splits=5, seed=0):
-    <span class="cm"># 动态形状: X -> (N, D), y -> (N,), groups -> (N,)</span>
-    gkf = GroupKFold(n_splits=n_splits)
-    errs = []
-    for tr, te in gkf.split(X, y, groups):
-        <span class="cm"># 训练折拟合: X[tr] -> (N_tr, D), y[tr] -> (N_tr,)</span>
-        m = Ridge(alpha=alpha).fit(X[tr], y[tr])
-        <span class="cm"># 测试折评估: X[te] -> (N_te, D) -> predict -> (N_te,)</span>
-        errs.append(rmse(y[te], m.predict(X[te])))
-    return float(np.mean(errs)), errs
-
-<span class="cm"># [逐行剖析] 3. 非参数置换检验 (Permutation Test)：构建无偏零假设分布并计算双尾 p 值</span>
-def permutation_pvalue(X, y, groups, B=500, seed=0, **kw):
-    <span class="cm"># 计算真实因变量下的泛化基准误差</span>
-    real, _ = grouped_cv_rmse(X, y, groups, **kw)
-    rng = np.random.default_rng(seed)
-    <span class="cm"># 置换 B 次打乱标签打破 X 与 y 的真实因果联系，构造零假设经验分布 null</span>
-    <span class="cm"># 动态形状: null -> (B,) [float64] 存储 B 次置换后的 RMSE 分布</span>
-    null = np.array([grouped_cv_rmse(X, rng.permutation(y), groups, **kw)[0] for _ in range(B)])
-    <span class="cm"># 统计无偏经验 p 值: (优于真实值的频次 + 1) / (总置换数 + 1)</span>
-    p = (np.sum(null &lt;= real) + 1) / (B + 1)
-    return real, p, null
-
-<span class="cm"># 剑桥面试级报告范式：RMSE(real) = 0.412, p = 0.002, 证明音频特征非虚假相关</span></code></pre>
+<p><strong>大模型评估核心指标微算子演示：</strong></p>
+<pre><code>perplexity = torch.exp(eval_loss)</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；直观物理意义代表模型在预测下一个词时的“平均有效分支数”。困惑度数值越接近 1.0，说明模型对真实文本分布的预测越自信准确。
+</p>
 <p><strong>报告规范</strong>：给出真实分数、零分布的分位数、p 值、以及效应量（例如与 Level 0 的 RMSE 差）。
 只说「我们的模型 RMSE 是 1.9」在学术上不构成结论。</p>
 

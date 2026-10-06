@@ -134,20 +134,18 @@ COURSE.register({
 ├─ 24 GB  → 推理 ≤13B(int4)；QLoRA ≤13B；全参 ≤1B(含重计算)
 └─ 80 GB  → LoRA ≤70B；全参 ≤7B(配合 FSDP 多卡)</code></pre>
 
-<h3>6. 额度窗口速查（以官方页面为准）</h3>
+<h3>6. 硬件显存与典型自训任务速查</h3>
 <table class="tbl small">
-  <thead><tr><th>订阅</th><th>窗口</th><th>计量</th><th>在哪看</th><th>关键操作</th></tr></thead>
+  <thead><tr><th>显存规格</th><th>硬件平台</th><th>从零预训练（从 Scratch）</th><th>开源基座微调（QLoRA）</th></tr></thead>
   <tbody>
-    <tr><td>Codex Plus $20</td><td>5 小时 + 每周（双重）</td><td>按模型的估算条数区间</td><td>设置 → 用量</td><td>难任务用 Astra(5–45)，杂活用 Luna(250–2000)</td></tr>
-    <tr><td>Claude Pro $20</td><td>5 小时 + 每周</td><td>「用量」而非条数</td><td><code>/usage</code></td><td>周上限自 2026-09-14 起永久 +25%</td></tr>
-    <tr><td>Google AI Pro</td><td>每月计算单元</td><td>Colab compute units</td><td>Colab 设置 → 订阅</td><td>余额耗尽会退回免费层策略</td></tr>
+    <tr><td><strong>16 GB</strong></td><td>Kaggle（单卡 T4 16GB / 双卡 32GB）</td><td>15M ~ 45M miniGPT（极速收敛，&lt;15分钟）</td><td>0.5B ~ 1.5B（4-bit QLoRA，显存占用 &lt;4GB）</td></tr>
+    <tr><td><strong>2 × 16 GB</strong></td><td>Kaggle（T4 ×2）</td><td>45M ~ 125M miniGPT（小规模语料探索）</td><td>3B ~ 7B（QLoRA，需配合梯度检查点）</td></tr>
+    <tr><td><strong>8 ~ 12 GB</strong></td><td>本地显卡（RTX 3060/4060）</td><td>5M ~ 15M miniGPT（本地单步调试与验证）</td><td>0.5B（4-bit QLoRA，本地快速训练）</td></tr>
   </tbody>
 </table>
 <p class="cm">
-  <strong>红线提醒</strong>：Colab 禁止「用多个账号规避资源限制」；个人订阅不得承载面向公众的流量。
-  详见<a href="#m11">模块 11</a>与<a href="#appD">附录 D</a>。
+  <strong>核心原则</strong>：在云端训练时，务必将 Checkpoint 外存到 Google Drive 或 Hugging Face Hub，详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
 </p>
-
 <h3>7. 命令速查</h3>
 <pre><code><span class="cm"># git（实验管理）</span>
 git switch -c exp/lora-r16          <span class="cm"># 开一次实验分支</span>
@@ -164,7 +162,7 @@ huggingface-cli upload &lt;repo&gt; ./out-sft/final .
 <span class="cm"># Colab / 环境检查</span>
 !nvidia-smi                          <span class="cm"># 拿到什么卡</span>
 import jax; print(jax.devices())     <span class="cm"># TPU/多设备是否可用</span>
-from google.colab import drive; drive.mount('/content/drive')  <span class="cm"># 检查点落盘</span>
+import os; os.makedirs('/kaggle/working/ckpts', exist_ok=True)  # Kaggle 持久输出目录  <span class="cm"># 检查点落盘</span>
 
 <span class="cm"># 最小训练骨架（PyTorch）</span>
 opt.zero_grad(); loss = model(x, labels=y).loss
@@ -282,7 +280,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
 
 <div class="quiz">
   <div class="qlabel">自测 · 用这张表回答</div>
-  <p class="q">你要在 16 GB 显存的 Colab 上微调一个 7B 模型，只想改一个文件里的配置。最该先查本页哪一区？</p>
+  <p class="q">你要在 16 GB 显存的 Kaggle T4 上微调一个 7B 模型，只想改一个文件里的配置。最该先查本页哪一区？</p>
   <ul class="opts">
     <li>公式速查</li>
     <li data-ok>超参起点 + 数字速查（确认 QLoRA 可行、批与序列要压小）</li>

@@ -320,54 +320,23 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：在 Colab 上跑一次真实的预训练步骤</h4>
   <p>免费层跑不了 7B，但可以完整跑通「从零预训练一个 10M 参数模型」的全流程（附录 B · E3 有完整代码）：</p>
-<pre><code>import torch, torch.nn.functional as F
+<p>
+  在预训练工程中，单步迭代的数学本质可以精简为两道微核心算子：
+</p>
 
-<span class="cm"># [逐行剖析] 1. 构建轻量迷你 GPT-2 骨干（约 4M 参数，适配单卡/Colab 极速收敛）</span>
-from transformers import GPT2Config, GPT2LMHeadModel
-cfg = GPT2Config(vocab_size=50257, n_positions=256, n_embd=256,
-                 n_layer=4, n_head=4)
-<span class="cm"># 显存分配: 4M float32 权重约 16 MB，载入 GPU 显存 (cuda:0)</span>
-model = GPT2LMHeadModel(cfg).cuda()
-<span class="cm"># 优化器: AdamW 维护一阶矩 m (fp32) 与二阶矩 v (fp32)，优化器显存占用 = 4M * 8 = 32 MB</span>
-opt = torch.optim.AdamW(model.parameters(), lr=3e-4, betas=(0.9, 0.95), weight_decay=0.1)
+<p><strong>1. 自回归交叉熵损失算子：</strong></p>
+<pre><code>loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1))</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：将预测张量打平为所有位置的类别分布，计算目标 Token 的负对数似然（Negative Log-Likelihood）。这也是衡量模型“惊奇程度”的基准指标。
+</p>
 
-<span class="cm"># [逐行剖析] 2. 学习率调度器：线性 warmup + 余弦衰减（工业标配最小实现）</span>
-def lr_at(step, total, peak=3e-4, warm=100, floor_ratio=0.1):
-    import math
-    if step &lt; warm: return peak * (step + 1) / warm
-    p = (step - warm) / max(1, total - warm)
-    return peak * (floor_ratio + (1 - floor_ratio) * 0.5 * (1 + math.cos(math.pi * p)))
-
-<span class="cm"># [逐行剖析] 3. 标准自回归预训练训练步循环</span>
-for step, (x, y) in enumerate(loader):
-    <span class="cm"># 动态形状: x -> (B, S) [int64], y -> (B, S) [int64] (由真实文本右移 1 位生成)</span>
-    x, y = x.cuda(), y.cuda()
-    
-    <span class="cm"># 动态更新学习率超参数</span>
-    for g in opt.param_groups: g["lr"] = lr_at(step, total_steps)
-    
-    <span class="cm"># 前向传播：记录计算图与前向激活值</span>
-    <span class="cm"># 动态形状: logits -> (B, S, V) = (B, 256, 50257) [float32]</span>
-    logits = model(x).logits
-    
-    <span class="cm"># 计算交叉熵损失：平铺批次与时序维度</span>
-    <span class="cm"># 动态形状: logits.view(-1, V) -> (B*S, V), y.view(-1) -> (B*S,)</span>
-    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1))
-    
-    <span class="cm"># 自动微分: 反向传播回溯计算图，计算所有叶子张量参数的梯度 .grad</span>
-    loss.backward()
-    
-    <span class="cm"># 梯度裁剪: 约束全模型梯度 L2 范数不超过 1.0，防止 Loss Spike</span>
-    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-    
-    <span class="cm"># 原地位运算更新参数: W.data.add_(-lr * m / (sqrt(v) + eps))</span>
-    opt.step()
-    
-    <span class="cm"># 梯度置 None 相比 zero_() 更高效：直接解除旧梯度内存引用，减少显存碎片</span>
-    opt.zero_grad(set_to_none=True)
-    
-    if step % 50 == 0:
-        print(step, round(loss.item(), 3), f"ppl={loss.exp().item():.1f}")</code></pre>
+<p><strong>2. 梯度截断与 AdamW 权重更新算子：</strong></p>
+<pre><code>loss.backward()
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+optimizer.step()</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内，从物理机制上彻底锁死梯度爆炸；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
+</p>
   <p>
     <strong>必须记录的实验日志</strong>：全局步数、学习率、loss、梯度范数、tokens/s、显存峰值。
     把 loss 画出来，你会亲眼看到 warmup 段的下降、余弦末期的变缓，以及过拟合（验证 loss 回升）。
@@ -443,6 +412,20 @@ for step, (x, y) in enumerate(loader):
     \(\hat m_1 = 0.5/0.1 = 5\) 恰好无偏。第一个选项忘了初值 0 的拖累；
     第二个把系数弄反；第四个错在 \(m\) 与 \(v\) 都要校正。
     训练初期不用校正，有效步长会被压小一个量级，warmup 段的 loss 平坦多半源于此。
+  </p>
+</div>
+
+
+<div class="quiz quiz-blank" data-ans="160" data-tol="5">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">在标准 FP16 混合精度预训练中（AdamW 优化器维护 FP32 主权重、一阶动量与二阶方差），每个可学习参数约消耗 16 字节静态显存。若在 Kaggle T4 上训练一个 \(N = 10\text{M}\)（1000 万）参数的 miniGPT 模型，仅模型参数与优化器状态所占用的静态显存约为多少 MB？（填入整数，如 160）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入静态显存 MB 数（如 160）..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
+  <p class="why">
+    根据公式 \(M_{\text{static}} \approx 16 \times N\) 字节，\(16 \times 10^7 \text{ bytes} = 1.6 \times 10^8 \text{ bytes} \approx 160\text{ MB}\)。在单张 16GB 显存的 T4 GPU 上仅占约 1% 的显存空间，极其轻量！
   </p>
 </div>
 

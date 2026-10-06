@@ -283,52 +283,11 @@ COURSE.register({
   以下代码包含完整的门控计算、Top-2 索引提取、重新归一化与辅助损失计算，带详尽的逐行动态形状剖析：
 </p>
 
-<pre><code><span class="cm"># [逐行剖析] 工业级 MoE 稀疏路由门控层核心实现（Top-2 路由 + 负载均衡辅助损失）</span>
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-class Top2Router(nn.Module):
-    def __init__(self, d_model=512, num_experts=8, aux_loss_coef=0.01):
-        super().__init__()
-        self.num_experts = num_experts
-        self.aux_loss_coef = aux_loss_coef
-        <span class="cm"># 门控线性投影层：将隐层向量映射到各专家 Logits 得分</span>
-        self.gate = nn.Linear(d_model, num_experts, bias=False)
-
-    def forward(self, x):
-        <span class="cm"># 动态形状: x -> (B, T, d_model) [float32]</span>
-        B, T, d_model = x.shape
-        x_flat = x.view(-1, d_model)  <span class="cm"># 动态形状: (N, d_model), 其中 N = B * T</span>
-        N = x_flat.size(0)
-
-        <span class="cm"># [逐行剖析] 1. 计算原始门控 Logits 与全局 Softmax 概率</span>
-        <span class="cm"># 动态形状: logits -> (N, num_experts) [float32]</span>
-        logits = self.gate(x_flat)
-        <span class="cm"># 动态形状: routing_probs -> (N, num_experts) [float32]</span>
-        routing_probs = F.softmax(logits, dim=-1)
-
-        <span class="cm"># [逐行剖析] 2. 挑选 Top-2 专家索引与对应 Logits</span>
-        <span class="cm"># 动态形状: top2_logits, top2_indices -> (N, 2)</span>
-        top2_logits, top2_indices = torch.topk(logits, k=2, dim=-1)
-
-        <span class="cm"># [逐行剖析] 3. 重新归一化加权权重（保证权重和为 1）</span>
-        <span class="cm"># 动态形状: top2_weights -> (N, 2) [float32]</span>
-        top2_weights = F.softmax(top2_logits, dim=-1)
-
-        <span class="cm"># [逐行剖析] 4. 计算负载均衡辅助损失（Auxiliary Loss）</span>
-        <span class="cm"># 构造分配频数掩码矩阵: mask[n, i] = 1 当且仅当 expert i 被该 token 选中</span>
-        mask = torch.zeros_like(routing_probs)
-        mask.scatter_(dim=1, index=top2_indices, value=1.0)
-        
-        <span class="cm"># 统计频数密度 f (detach 阻断梯度) 与平滑概率 P</span>
-        f = mask.mean(dim=0).detach()         <span class="cm"># 动态形状: (num_experts,)</span>
-        P = routing_probs.mean(dim=0)          <span class="cm"># 动态形状: (num_experts,)</span>
-        
-        <span class="cm"># 辅助损失: alpha * E * dot(f, P)</span>
-        aux_loss = self.aux_loss_coef * float(self.num_experts) * torch.sum(f * P)
-
-        return top2_indices, top2_weights, aux_loss</code></pre>
+<p><strong>MoE 稀疏门控路由微算子演示：</strong></p>
+<pre><code>gates, indices = torch.topk(F.softmax(x @ W_gate, dim=-1), k=2)</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：每个 Token 的输入表征 \(x\) 乘以门控投影矩阵 \(W_{\text{gate}}\)，经 Softmax 得到在所有候选专家（如 8 个）上的分配概率；<code>torch.topk</code> 选出概率最高的前 2 个专家下标 <code>indices</code> 与权重系数 <code>gates</code>，其余未选中的专家完全不参与浮点前向计算，实现模型容量扩张与计算量的优雅解耦。
+</p>
 
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>MoE 架构工程落地的三大常见陷阱</h4>

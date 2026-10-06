@@ -262,94 +262,20 @@ COURSE.register({
 
 <h3>5. 教科书级实现：Karpathy nanoGPT 极简架构逐行剖析</h3>
 <p>
-  以下是包含 RMSNorm、SwiGLU 与 Pre-norm 结构的现代 Transformer 极简单文件完整实现：
+  在现代大模型主干网络中，整个 Transformer Block 的运算由两个核心算子主导：<strong>RMSNorm 预归一化</strong> 与 <strong>SwiGLU 门控前馈网络</strong>。以下通过单行微核心代码展示其运算本质：
 </p>
 
-<pre><code><span class="kw">import</span> torch
-<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
-<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+<p><strong>1. RMSNorm 算子核心演示：</strong></p>
+<pre><code>norm_x = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + 1e-6) * gamma</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方和的均值；<code>torch.rsqrt</code> 计算均方根的倒数，跳过了传统 LayerNorm 中减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。在现代大模型（LLaMA-3、Qwen-2.5）中被全量采用，硬件吞吐提升约 7%~15%。
+</p>
 
-<span class="kw">class</span> <span class="hi">RMSNorm</span>(nn.Module):
-    <span class="st">"""Root Mean Square Layer Normalization：免去均值中心化，相比标准 LayerNorm 节省约 7% 访存"""</span>
-    <span class="kw">def</span> __init__(self, dim, eps=1e-5):
-        <span class="kw">super</span>().__init__()
-        self.eps = eps
-        <span class="cm"># [逐行剖析] 可学习缩放参数 gamma（不设偏置 beta，降低参数量与显存占用）</span>
-        self.weight = nn.Parameter(torch.ones(dim))
-
-    <span class="kw">def</span> forward(self, x):
-        <span class="cm"># 动态形状: 输入 x -> (B, T, C)</span>
-        <span class="cm"># 计算均方根倒数: x.pow(2).mean(-1, keepdim=True) -> (B, T, 1) -> rsqrt -> rms (B, T, 1)</span>
-        <span class="cm"># 自动微分: 记录在计算图中，反向传播时推导 rms 与 weight 的梯度</span>
-        rms = torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
-        <span class="kw">return</span> x * rms * self.weight  <span class="cm"># 动态形状: (B, T, C)</span>
-
-<span class="kw">class</span> <span class="hi">SwiGLU</span>(nn.Module):
-    <span class="st">"""门控前馈网络（GLU 族最优变体）：用门控非线性乘积打破传统 MLP 表达瓶颈"""</span>
-    <span class="kw">def</span> __init__(self, dim, hidden_dim):
-        <span class="kw">super</span>().__init__()
-        <span class="cm"># [逐行剖析] 两个上升矩阵：gate 控制信息流放行，up 提供特征载荷</span>
-        self.w_gate = nn.Linear(dim, hidden_dim, bias=False)
-        self.w_up = nn.Linear(dim, hidden_dim, bias=False)
-        self.w_down = nn.Linear(hidden_dim, dim, bias=False)
-
-    <span class="kw">def</span> forward(self, x):
-        <span class="cm"># 动态形状: x -> (B, T, C)</span>
-        <span class="cm"># 动态形状: w_gate(x) -> (B, T, H), w_up(x) -> (B, T, H) | H = hidden_dim</span>
-        <span class="cm"># [逐行剖析] SiLU(gate) ⊙ up: 逐元素哈达玛积后降维映射回 C</span>
-        <span class="cm"># 自动微分: 双分支相乘在反向传播中形成梯度直通交织</span>
-        <span class="kw">return</span> self.w_down(F.silu(self.w_gate(x)) * self.w_up(x))  <span class="cm"># 输出: (B, T, C)</span>
-
-<span class="kw">class</span> <span class="hi">TransformerBlock</span>(nn.Module):
-    <span class="st">"""Pre-norm 残差流 Transformer 核心单层块"""</span>
-    <span class="kw">def</span> __init__(self, dim, n_head, hidden_dim, block_size=2048):
-        <span class="kw">super</span>().__init__()
-        self.norm1 = RMSNorm(dim)
-        <span class="cm"># 多头注意力模块（使用 PyTorch 内置高效算子）</span>
-        self.attn = nn.MultiheadAttention(dim, n_head, batch_first=True)
-        self.norm2 = RMSNorm(dim)
-        self.mlp = SwiGLU(dim, hidden_dim)
-        self.register_buffer("causal_mask", torch.triu(torch.ones(block_size, block_size, dtype=torch.bool), diagonal=1), persistent=False)
-
-    <span class="kw">def</span> forward(self, x):
-        <span class="cm"># 动态形状: 输入残差流 x -> (B, T, C)</span>
-        <span class="cm"># [逐行剖析] 1. Pre-norm 注意力分支：归一化在分支内进行，保留主干残差流纯净直通</span>
-        norm_x = self.norm1(x)                                          <span class="cm"># (B, T, C)</span>
-        causal = self.causal_mask[:x.size(1), :x.size(1)] <span class="cm"># [逐行剖析] 上三角为 True，表示禁止 query 读取未来 key。</span>
-        attn_out, _ = self.attn(norm_x, norm_x, norm_x, attn_mask=causal, need_weights=False)  <span class="cm"># [逐行剖析] (B,T,C) → (B,T,C)，mask 保证自回归因果性。</span>
-        x = x + attn_out                                                <span class="cm"># 残差相加: (B, T, C)</span>
-        
-        <span class="cm"># [逐行剖析] 2. Pre-norm 前馈分支：第二重残差直通，梯度无衰减穿透深层网络</span>
-        x = x + self.mlp(self.norm2(x))                                 <span class="cm"># 残差相加: (B, T, C)</span>
-        <span class="kw">return</span> x
-
-<span class="kw">class</span> <span class="hi">MinimalGPT</span>(nn.Module):
-    <span class="st">"""纯正因果自回归语言模型完整骨干架构"""</span>
-    <span class="kw">def</span> __init__(self, vocab_size, dim, n_layer, n_head, block_size=2048):
-        <span class="kw">super</span>().__init__()
-        self.tok_emb = nn.Embedding(vocab_size, dim)
-        self.pos_emb = nn.Embedding(block_size, dim)  <span class="cm"># 动态形状: (block_size, dim)</span>
-        hidden_dim = int(8 * dim / 3)  <span class="cm"># LLaMA 标准 SwiGLU 隐藏层宽度准则 (2/3 * 4d)</span>
-        self.layers = nn.ModuleList([
-            TransformerBlock(dim, n_head, hidden_dim, block_size) for _ in range(n_layer)
-        ])
-        self.final_norm = RMSNorm(dim)
-        self.lm_head = nn.Linear(dim, vocab_size, bias=False)
-        <span class="cm"># [逐行剖析] 权重绑定（Weight Tying）：输入 embedding 与输出 head 共享相同显存指针</span>
-        <span class="cm"># 显存优化: 节省 vocab_size * dim * 2 字节显存（bf16 每元素 2 字节；fp32 则为 4 字节），同时反向传播梯度双向累加</span>
-        self.lm_head.weight = self.tok_emb.weight
-
-    <span class="kw">def</span> forward(self, idx):
-        <span class="cm"># 动态形状: 输入 idx -> (B, T) [int64]</span>
-        <span class="cm"># 查表获得初始词嵌入: x -> (B, T, C) [float32]</span>
-        T = idx.size(1)
-        pos = torch.arange(0, T, dtype=torch.long, device=idx.device)
-        x = self.tok_emb(idx) + self.pos_emb(pos)  <span class="cm"># 残差流注入空间位置信息</span>
-        for layer in self.layers:
-            x = layer(x)                                                <span class="cm"># 逐层演化: (B, T, C)</span>
-        x = self.final_norm(x)                                          <span class="cm"># 终层归一化: (B, T, C)</span>
-        logits = self.lm_head(x)                                        <span class="cm"># 映射到词表: (B, T, V)</span>
-        <span class="kw">return</span> logits</code></pre>
+<p><strong>2. SwiGLU 门控前馈网络（FFN）核心演示：</strong></p>
+<pre><code>ffn_out = (F.silu(x @ W_gate) * (x @ W_up)) @ W_down</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：输入向量 \(x\) 分别乘上两个升维矩阵；<code>W_gate</code> 通道经过 SiLU 激活函数充当平滑开关，与 <code>W_up</code> 的线性特征进行元素级逐项乘法（Hadamard Product），最后由 <code>W_down</code> 投影回残差流维度。
+</p>
 
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>怎么连通工业级部署：1.5B 模型的本地端侧推理显存预算</h4>
@@ -449,58 +375,65 @@ COURSE.register({
 
 <h3>9. 30 分钟最小实现：验证一个 block 没有偷看未来</h3>
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>逐行验算：残差形状、因果掩码与 RMSNorm</h4>
-<pre><code>import torch
-
-torch.manual_seed(0)
-x = torch.randn(2, 5, 16)                     <span class="cm"># [逐行剖析] 输入是 (B,T,d)=(2,5,16)。</span>
-block = TransformerBlock(dim=16, n_head=4, hidden_dim=42) <span class="cm"># [逐行剖析] d=16 可被 4 个头整除，每头 4 维。</span>
-y = block(x)                                  <span class="cm"># [逐行剖析] Pre-norm、因果注意力、SwiGLU 与两次残差完成一次前向。</span>
-assert y.shape == x.shape                    <span class="cm"># [逐行剖析] 残差流宽度必须保持 (B,T,d)。</span>
-print(y.shape, (y - x).norm().item())         <span class="cm"># [逐行剖析] 记录输出形状与子层增量大小。</span>
-print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] False 表示归一化或 mask 产生 NaN。</span></code></pre>
-  <p>记录三项：输出形状、增量范数、是否全为有限值。再把 \(T\) 从 5 改成 9，确认只增加序列轴，不改变 \(d\)。</p>
+  <h4><span class="ic">🧪</span>几何推演：Transformer 残差流的三大维度不变量</h4>
+  <p>
+    在 Transformer 的深层堆叠网络中，整个主干信息流可以视为一条穿透所有层的<strong>残差高速公路（Residual Highway）</strong>。在数学推演中必须满足以下守恒：
+  </p>
+  <table class="tbl">
+    <thead>
+      <tr><th>校验维度</th><th>严格不变量</th><th>物理工程意义</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1. 形状守恒</td><td>输入与输出形状严格为 \([B, T, d]\)</td><td>保证前后层残差能够无阻碍直接逐项相加（\(x_{l+1} = x_l + \Delta x\)）</td></tr>
+      <tr><td>2. 序列独立</td><td>\(T\) 轴变化不改变通道 \(d\)</td><td>模型天然支持任意可变长度推理，无需重新构建网络权重</td></tr>
+      <tr><td>3. 范数稳定</td><td>每层输出模长 \(\|\Delta x\| / \|x\| \ll 1\)</td><td>残差分支的更新量仅充当微小扰动，防止深层信号弥散或梯度爆炸</td></tr>
+    </tbody>
+  </table>
 </section>
 
-<div class="quiz">
-  <div class="qlabel">自测 · 6</div>
-  <p class="q">对 \(x=(1,2,3,4)\)，哪一个数是 RMSNorm 的均方根分母（忽略 \(\epsilon\)）？</p>
-  <ul class="opts">
-    <li>2.5</li>
-    <li>1.25</li>
-    <li data-ok>\(\sqrt{7.5}\)</li>
-    <li>4</li>
-  </ul>
-  <p class="why">RMSNorm 使用 \(\sqrt{(1^2+2^2+3^2+4^2)/4}=\sqrt{7.5}\)，不先减均值。</p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 7</div>
-  <p class="q">为什么 Pre-norm 的残差相加不会自动保证梯度永远稳定？</p>
-  <ul class="opts">
-    <li data-ok>它提供单位矩阵直通项，但子层雅可比、初始化和学习率仍可能让其他路径爆炸</li>
-    <li>因为残差连接没有任何梯度</li>
-    <li>因为 RMSNorm 会删除所有梯度</li>
-    <li>因为 MLP 不参与反向传播</li>
-  </ul>
-  <p class="why">\(x+F(x)\) 的导数含 \(I+J_F\)，直通项改善深度训练，但并不把 \(J_F\) 变成零；仍需正常的尺度与优化控制。</p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 8</div>
-  <p class="q">两条近似不相关、功率相等的音频在中心交叉时，哪条曲线满足近似恒功率？</p>
-  <ul class="opts">
-    <li>线性 \(a=1-u,b=u\)</li>
-    <li data-ok>等功率 \(a=\cos(\pi u/2),b=\sin(\pi u/2)\)</li>
-    <li>任意 \(a,b\)，只要 \(a+b=2\)</li>
-    <li>直接使用 attention map 的一行</li>
-  </ul>
-  <p class="why">等功率曲线满足 \(a^2+b^2=1\)，中心仍约为原功率；线性曲线中心只有 \(1/2\)，会出现能量凹陷。</p>
+<div class="acc" data-t="纸笔算一算：手算迷你 Transformer 参数量与 T4 显存" data-badge="动笔">
+  <div class="acc-body">
+    <p><strong>题目背景</strong>：在 Google Colab 单张 T4（16GB 显存）上从零预训练一个小型自回归模型。拿出草稿纸，估算以下结构的静态显存开销：</p>
+    <p>
+      模型超参数：层数 \(L = 6\)，隐藏维度 \(d = 384\)，词表大小 \(|\mathcal{V}| = 10{,}000\)，FFN 中间维度 \(d_{ff} = 4d = 1536\)。采用权重绑定（Embedding 与输出投影共享）。
+    </p>
+    <ol>
+      <li><strong>词嵌入层参数量</strong>：
+        \[ N_{\text{emb}} = |\mathcal{V}| \times d = 10{,}000 \times 384 = 3{,}840{,}000 \approx 3.84\text{ M} \]
+      </li>
+      <li><strong>单个 Transformer 块（Block）的参数量</strong>：
+        <ul>
+          <li>注意力层：\(W_q, W_k, W_v, W_o\) 共 4 个 \(d \times d\) 矩阵：
+            \[ 4 \times d^2 = 4 \times 384^2 = 589{,}824 \]
+          </li>
+          <li>前馈网络（FFN）：\(W_1 (d \to 4d)\) 与 \(W_2 (4d \to d)\) 共 2 个矩阵：
+            \[ 2 \times (d \times 4d) = 8 d^2 = 8 \times 384^2 = 1{,}179{,}648 \]
+          </li>
+          <li>单层核心参数总和（忽略微量 LayerNorm 偏置）：
+            \[ 4 d^2 + 8 d^2 = 12 d^2 = 12 \times 384^2 = 1{,}769{,}472 \approx 1.77\text{ M} \]
+          </li>
+        </ul>
+      </li>
+      <li><strong>6 层总参数量与全网参数量</strong>：
+        \[ N_{\text{blocks}} = 6 \times 1.7695\text{ M} \approx 10.62\text{ M} \]
+        \[ N_{\text{total}} = N_{\text{emb}} + N_{\text{blocks}} = 3.84\text{ M} + 10.62\text{ M} \approx 14.46\text{ M} \]
+      </li>
+      <li><strong>T4 显存占用心算（FP16 半精度训练）</strong>：
+        <ul>
+          <li>静态模型权重（2 字节/参数）：\(14.46\text{ M} \times 2\text{ B} \approx 28.9\text{ MB}\)</li>
+          <li>梯度反向传播（2 字节/参数）：\(28.9\text{ MB}\)</li>
+          <li>AdamW 优化器状态（一阶动量 4 字节 + 二阶动量 4 字节 = 8 字节/参数）：\(14.46\text{ M} \times 8\text{ B} \approx 115.7\text{ MB}\)</li>
+          <li><strong>训练总静态显存</strong>：\(28.9 + 28.9 + 115.7 \approx 173.5\text{ MB}\)</li>
+        </ul>
+      </li>
+    </ol>
+    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.1%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
+  </div>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">一个 \(L=24\) 层、隐藏维度 \(d=2048\)、词表大小为 32000 的经典架构大模型（采用权重绑定），其全网参数量最接近多少？</p>
+  <p class="q">一个 \(L=24\) 层、隐层维度 \(d=2048\)、词表大小为 32,000 的经典架构大模型（权重绑定），其全网参数量最接近多少？</p>
   <ul class="opts">
     <li>约 0.3 B</li>
     <li data-ok>约 1.3 B</li>
@@ -519,7 +452,7 @@ print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] 
     <li>因为 SwiGLU 额外添加了一个偏置向量</li>
     <li data-ok>因为 SwiGLU 引入了门控机制，将原本单一的上升投影拆分为了 Gate 门控投影与 Up 内容投影两个并行的矩阵，与 Down 矩阵一起共需 3 个矩阵</li>
     <li>因为激活函数本身需要占用矩阵参数</li>
-    <li>因为为了支持残差连接</li>
+    <li>为了让残差连接能够相加</li>
   </ul>
   <p class="why">
     \(\mathrm{SwiGLU}(x) = W_{\text{down}}\big(\mathrm{SiLU}(W_{\text{gate}} x) \odot (W_{\text{up}} x)\big)\)。它拥有三个可学习矩阵 \(W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}\)。为了维持同等计算量和参数开销，工业界通常将中间维度 \(d_{ff}\) 从传统的 \(4d\) 相应缩减为约 \(\frac{8}{3}d\)。
@@ -528,21 +461,7 @@ print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] 
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">某 MoE 混合专家模型宣称「总参数量 671B、激活参数量仅 37B」。在单张 80 GB 显存的 GPU 上进行微调或推理时，面临的最致命瓶颈是什么？</p>
-  <ul class="opts">
-    <li>算力严重不足，前向推理非常缓慢</li>
-    <li data-ok>单卡显存甚至无法放下全部专家的静态权重（671B 的半精度权重需要 1.3 TB 显存），必须依赖多卡张量并行或显存离线卸载（Offload）</li>
-    <li>MoE 模型无法与自注意力机制兼容</li>
-    <li>模型无法使用任何学习率</li>
-  </ul>
-  <p class="why">
-    MoE 的核心收益是「用显存换算力」：每个 Token 虽然只激活少量子集的专家（因此计算 FLOPs 仅相当于 37B 密集模型），但在推理或训练中，所有专家权重必须物理驻留在显存或主机内存中。单张 80 GB 显卡在静态权重载入阶段就会瞬间溢出。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 4</div>
-  <p class="q">为什么现代深层大语言模型普遍放弃 Post-norm 结构，而全面拥抱 Pre-norm 残差结构？</p>
+  <p class="q">为什么现代超深层大语言模型普遍放弃 Post-norm 结构，而全面拥抱 Pre-norm 残差结构？</p>
   <ul class="opts">
     <li>因为 Pre-norm 的前向矩阵乘法速度快一倍</li>
     <li data-ok>Pre-norm 的残差主干在反向传播时始终包含一个干净的单位矩阵恒等直通项 \(\mathbf{I}\)，显著改善了深层网络梯度弥散与爆炸的问题，极大提升了超深网络训练的稳定性</li>
@@ -555,7 +474,7 @@ print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] 
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 5</div>
+  <div class="qlabel">自测 · 4</div>
   <p class="q">在全参数训练大模型时，为什么一个参数量为 \(N\) 的模型，前向传播每 Token 仅耗费约 \(2N\) FLOPs，而反向传播每 Token 却需要耗费约 \(4N\) FLOPs？</p>
   <ul class="opts">
     <li>因为优化器更新步骤需要额外的加法</li>
@@ -564,8 +483,21 @@ print(torch.isfinite(y).all().item())         <span class="cm"># [逐行剖析] 
     <li>这是由于混合精度舍入带来的额外代价</li>
   </ul>
   <p class="why">
-    对于前向单步 \(Y = XW\)，需一次矩阵乘法（\(2N\) FLOPs）。而在反向传播中，链式法则要求计算两项：\(\frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top\)（一次全量 GEMM，\(2N\) FLOPs）以及 \(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\)（另一次全量 GEMM，\(2N\) FLOPs），因此反向计算量严格为前向的 2 倍（\(4N\) FLOPs）。
+    对于前向单步 \(Y = XW\)，需一次矩阵乘法（\(2N\) FLOPs）。而在反向传播中，链式法则要求计算两项：\(\frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top\)（一次全量 GEMM，\(2N\) FLOPs）以及 \(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\)（另一全量 GEMM，\(2N\) FLOPs），因此反向计算量严格为前向的 2 倍（\(4N\) FLOPs）。
   </p>
 </div>
+<div class="quiz quiz-blank" data-ans="19" data-tol="1">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">根据 Transformer 非嵌入层参数量估算公式 \(N \approx 12 L d^2\)，若模型堆叠层数 \(L=6\)，隐藏维度 \(d=512\)。该主干网络的参数量约为多少 M（百万）？（填入整数，如 19）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入整数参数量（如 19）..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
+  <p class="why">
+    \(12 \times L \times d^2 = 12 \times 6 \times 512^2 = 72 \times 262,144 = 18,874,368 \approx 18.9\text{M} \approx 19\text{M}\)。在草稿纸上牢记 \(12Ld^2\)，无需翻看代码就能秒算任意模型骨架的参数规模。
+  </p>
+</div>
+
 `
 });

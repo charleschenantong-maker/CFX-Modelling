@@ -187,49 +187,12 @@ COURSE.register({
   以下代码展示工业级 YaRN 频率调度算子与注意力缩放计算，带详尽的逐行动态形状剖析：
 </p>
 
-<pre><code><span class="cm"># [逐行剖析] 工业级 YaRN (Yet another RoPE extensioN) 核心算子实现</span>
-import math
-import torch
-import torch.nn as nn
-
-class YaRNScaledRotaryEmbedding(nn.Module):
-    def __init__(self, dim=64, max_position_embeddings=4096, base=10000, scale=8.0):
-        super().__init__()
-        self.dim = dim
-        self.max_position_embeddings = max_position_embeddings
-        self.base = base
-        self.scale = scale
-
-        <span class="cm"># [逐行剖析] 1. 计算原始基础角频率 theta_i = base^(-2i/d)</span>
-        <span class="cm"># 动态形状: pos_idx -> (dim/2,) [float32]</span>
-        pos_idx = torch.arange(0, dim, 2, dtype=torch.float32)
-        inv_freq = 1.0 / (base ** (pos_idx / dim))
-
-        <span class="cm"># [逐行剖析] 2. 计算各维度周期波长 wavelength = 2 * pi / theta_i</span>
-        wavelength = 2.0 * math.pi / inv_freq
-
-        <span class="cm"># [逐行剖析] 3. 计算 YaRN 分频过渡权重 gamma</span>
-        <span class="cm"># 设置高低频阈值: alpha = 1.0, beta = 32.0</span>
-        low_freq_wlen = float(max_position_embeddings) / 1.0   <span class="cm"># 低频边界: 4096</span>
-        high_freq_wlen = float(max_position_embeddings) / 32.0 <span class="cm"># 高频边界: 128</span>
-
-        <span class="cm"># 三段式平滑过渡公式</span>
-        gamma = (wavelength - high_freq_wlen) / (low_freq_wlen - high_freq_wlen)
-        gamma = torch.clamp(gamma, min=0.0, max=1.0)
-
-        <span class="cm"># [逐行剖析] 4. 分频混合修正角频率</span>
-        <span class="cm"># 高频保持原始 inv_freq，低频线性除以 scale，中频平滑过渡</span>
-        inv_freq_yarn = (1.0 - gamma) * inv_freq + gamma * (inv_freq / scale)
-        self.register_buffer("inv_freq", inv_freq_yarn)
-
-        <span class="cm"># [逐行剖析] 5. 计算方差守恒注意力温度修正因子 sqrt(t)</span>
-        <span class="cm"># 温度缩放公式: sqrt(t) = 0.1 * ln(scale) + 1.0</span>
-        self.attention_temp_factor = 0.1 * math.log(scale) + 1.0
-
-    def get_attention_scale(self):
-        <span class="cm"># 修正注意力点积除以的缩放因子: 1.0 / (sqrt(d) * sqrt(t))</span>
-        base_scale = 1.0 / math.sqrt(self.dim)
-        return base_scale / self.attention_temp_factor</code></pre>
+<p><strong>RoPE 旋转位置编码与角频率缩放微算子演示：</strong></p>
+<pre><code>freqs = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
+q_rot = (q * torch.cos(m * freqs)) + (rotate_half(q) * torch.sin(m * freqs))</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：<code>freqs</code> 计算特征维度各对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上旋转角度的余弦与正弦项，将绝对位置转化为向量内积中的相对位移 \(m - n\)；YaRN 算法在此基础上对高频与低频分量进行精细化分段插值，实现超长文本的免重训平滑外推。
+</p>
 
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>长上下文扩展工程落地的三大致命雷区</h4>

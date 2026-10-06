@@ -224,76 +224,35 @@ COURSE.register({
   经过 Softmax 算子后 \(e^{-\infty} = 0\)，未来位置的权重被精确斩断为 0，且反向传播梯度同样精确为 0。
 </p>
 
-<h3>4. 教科书级实现：多头自注意力 (MHA) 逐行解构</h3>
+<h3>4. 多头自注意力 (MHA) 的数学全景与四维张量流向</h3>
 <p>
-  以下是符合工业界最高标准的 PyTorch 多头注意力模块实现，完整包含投影、维度重排、缩放点积与因果掩码：
+  在现代大语言模型中，多头注意力（Multi-Head Attention）本质上是一个<strong>将输入序列在多个正交子空间中分别进行相似度检索与信息聚合</strong>的高阶代数算子。
+  设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。其四维张量变换流向遵循严格的代数法则：
 </p>
 
-<pre><code><span class="kw">import</span> torch
-<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
-<span class="kw">import</span> math
+<table class="tbl">
+  <thead>
+    <tr><th>运算阶段</th><th>张量符号</th><th>张量形状 (Shape)</th><th>数学与几何意义</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1. 线性投影</td><td>\(Q, K, V\)</td><td>\([B, T, d]\)</td><td>输入向量分别乘以可学习矩阵 \(W_Q, W_K, W_V \in \mathbb{R}^{d \times d}\)</td></tr>
+    <tr><td>2. 多头拆解</td><td>\(Q, K, V\)</td><td>\([B, H, T, d_h]\)</td><td>将 \(d\) 维空间正交分解为 \(H\) 个互不干扰的独立子空间并重排维度</td></tr>
+    <tr><td>3. 缩放点积</td><td>\(S = \frac{QK^\top}{\sqrt{d_h}}\)</td><td>\([B, H, T, T]\)</td><td>每个头内部，当前词与前序所有词的相似度得分矩阵</td></tr>
+    <tr><td>4. 因果掩码</td><td>\(S_{\text{masked}}\)</td><td>\([B, H, T, T]\)</td><td>将上三角区域（\(j > i\)）强制置为 \(-\infty\)，杜绝未来信息穿越</td></tr>
+    <tr><td>5. 概率归一</td><td>\(A = \mathrm{softmax}(S)\)</td><td>\([B, H, T, T]\)</td><td>每一行转化为严格和为 1 的概率分布向量（凸组合系数）</td></tr>
+    <tr><td>6. 加权聚合</td><td>\(O_{\text{head}} = AV\)</td><td>\([B, H, T, d_h]\)</td><td>根据注意力权重对 Value 向量进行加权求和，吸收前序信息</td></tr>
+    <tr><td>7. 拼接输出</td><td>\(Y = O_{\text{head}} W_O\)</td><td>\([B, T, d]\)</td><td>把 \(H\) 个子空间表征拼接恢复为 \(d\) 维，并经过输出投影 \(W_O\)</td></tr>
+  </tbody>
+</table>
 
-<span class="kw">class</span> <span class="hi">CausalSelfAttention</span>(nn.Module):
-    <span class="kw">def</span> __init__(self, d_model=768, n_head=12, block_size=1024):
-        super().__init__()
-        <span class="kw">assert</span> d_model % n_head == 0, "d_model 必须能被 n_head 整除"
-        self.d_model = d_model
-        self.n_head = n_head
-        self.head_dim = d_model // n_head  <span class="cm"># 单头子空间维度，例如 768 // 12 = 64</span>
-
-        <span class="cm"># [逐行剖析] 1. 一次性将 Q, K, V 融合为一个大线性投影层（访存合并优化）</span>
-        <span class="cm"># 显存分配: 权重矩阵形状为 (3*d_model, d_model)，float32 占用 3*C*C*4 字节</span>
-        self.c_attn = nn.Linear(d_model, 3 * d_model, bias=False)
-        
-        <span class="cm"># [逐行剖析] 2. 输出投影层：多头拼接后重组混合语义</span>
-        self.c_proj = nn.Linear(d_model, d_model, bias=False)
-
-        <span class="cm"># [逐行剖析] 3. 注册下三角因果掩码缓冲区（无需反向传播梯度）</span>
-        <span class="cm"># 自动微分: register_buffer 保证张量随模型迁移至 GPU，但不进入计算图求导</span>
-        <span class="cm"># 动态形状: bias -> (1, 1, block_size, block_size) [bool/float]</span>
-        self.register_buffer(
-            "bias",
-            torch.tril(torch.ones(block_size, block_size)).view(1, 1, block_size, block_size)
-        )
-
-    <span class="kw">def</span> forward(self, x):
-        <span class="cm"># 动态形状: 输入 x -> (B, T, C) | B=批大小, T=序列长, C=d_model</span>
-        B, T, C = x.size()
-
-        <span class="cm"># [逐行剖析] 1. 融合投影与拆分</span>
-        <span class="cm"># 动态形状: x (B, T, C) -> qkv (B, T, 3*C) -> q, k, v 各为 (B, T, C)</span>
-        <span class="cm"># 自动微分: 记录在计算图中，反向传播时将梯度向输入 x 回传</span>
-        qkv = self.c_attn(x)
-        q, k, v = qkv.split(self.d_model, dim=2)
-
-        <span class="cm"># [逐行剖析] 2. 变换多头维度并将 head 提前便于并行批矩阵乘法</span>
-        <span class="cm"># 动态形状: (B, T, C) -> view -> (B, T, nh, hs) -> transpose(1, 2) -> (B, nh, T, hs)</span>
-        <span class="cm"># 显存机制: view() 与 transpose() 只改变步长元数据 (stride)，无深拷贝内存开销</span>
-        k = k.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
-        q = q.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
-        v = v.view(B, T, self.n_head, self.head_dim).transpose(1, 2)
-
-        <span class="cm"># [逐行剖析] 3. 缩放点积注意力分数</span>
-        <span class="cm"># 动态形状: q (B, nh, T, hs) @ k.T (B, nh, hs, T) -> att (B, nh, T, T)</span>
-        <span class="cm"># 显存瓶颈: att 占用 O(B * nh * T^2) 显存，是长序列显存开销的最大根源</span>
-        att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(self.head_dim))
-
-        <span class="cm"># [逐行剖析] 4. 因果掩码阻断未来信息泄露</span>
-        <span class="cm"># 动态形状: 掩码切片 bias[:, :, :T, :T] -> (1, 1, T, T)，广播到 (B, nh, T, T)</span>
-        <span class="cm"># 原地位运算: masked_fill 将上三角未来位置填入 -inf，使 Softmax 后概率严格为 0</span>
-        att = att.masked_fill(self.bias[:, :, :T, :T] == 0, float('-inf'))
-
-        <span class="cm"># [逐行剖析] 5. Softmax 概率归一化并加权聚合 Value 隐状态</span>
-        <span class="cm"># 动态形状: att -> softmax -> (B, nh, T, T) | 每行和为 1.0 (概率单纯形)</span>
-        <span class="cm"># 动态形状: att (B, nh, T, T) @ v (B, nh, T, hs) -> y (B, nh, T, hs)</span>
-        att = torch.softmax(att, dim=-1)
-        y = att @ v
-
-        <span class="cm"># [逐行剖析] 6. 还原通道拼接并做最终输出线性投影</span>
-        <span class="cm"># 动态形状: y (B, nh, T, hs) -> transpose -> (B, T, nh, hs) -> contiguous().view -> (B, T, C)</span>
-        <span class="cm"># 显存机制: transpose 破坏了内存连续性，contiguous() 分配新内存块以支持 view()</span>
-        y = y.transpose(1, 2).contiguous().view(B, T, C)
-        <span class="kw">return</span> self.c_proj(y)  <span class="cm"># 动态形状: (B, T, C) -> (B, T, C)</span></code></pre>
+<p>
+  <strong>为什么多头机制不可或缺？</strong>
+  单个高维点积只能在全局方向上计算一个综合相似度；而拆分成 \(H\) 个独立的低维子空间后，
+  <strong>Head 0</strong> 可以专门捕捉语法依附关系（如主谓一致）；
+  <strong>Head 1</strong> 可以专门追踪代词指代（如「它」指向前文哪一名词）；
+  <strong>Head 2</strong> 可以专门关注标点与段落边界。
+  多头机制赋予了模型同时从多个正交视角审视同一段文本的非凡能力。
+</p>
 
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>几何本质：注意力矩阵的凸组合与概率单纯形解释</h4>
@@ -374,33 +333,17 @@ COURSE.register({
   </div>
 </div>
 
-<h3>7. 30 分钟验算：让代码自己暴露形状错误</h3>
+<h3>7. 几何验算：因果注意力的三大守恒自查</h3>
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>逐行剖析：最小 PyTorch 多头因果注意力</h4>
-<pre><code>import torch
-
-def shape_probe(x, n_head):
-    B, T, C = x.shape                         <span class="cm"># [逐行剖析] 入口是 (B,T,C)，C 是残差流宽度。</span>
-    assert C % n_head == 0                    <span class="cm"># [逐行剖析] 保证每头都有整数宽度 d_h。</span>
-    hs = C // n_head                           <span class="cm"># [逐行剖析] hs=d_h，点积缩放使用 sqrt(hs)。</span>
-    qkv = torch.nn.functional.linear(x, torch.eye(3 * C, C, device=x.device)) <span class="cm"># [逐行剖析] 教学投影，输出形状 (B,T,3C)。</span>
-    q, k, v = qkv.split(C, dim=-1)             <span class="cm"># [逐行剖析] 沿最后一维拆回三个 (B,T,C)。</span>
-    q = q.view(B, T, n_head, hs).transpose(1, 2) <span class="cm"># [逐行剖析] (B,T,C) → (B,h,T,hs)。</span>
-    k = k.view(B, T, n_head, hs).transpose(1, 2) <span class="cm"># [逐行剖析] K 的最后一维与 Q 对齐才能做点积。</span>
-    v = v.view(B, T, n_head, hs).transpose(1, 2) <span class="cm"># [逐行剖析] V 与权重矩阵共享 (B,h,T) 索引。</span>
-    scores = q @ k.transpose(-2, -1) / hs**0.5 <span class="cm"># [逐行剖析] (B,h,T,hs)(B,h,hs,T) → (B,h,T,T)。</span>
-    mask = torch.tril(torch.ones(T, T, dtype=torch.bool, device=x.device)) <span class="cm"># [逐行剖析] 下三角为真，位置 i 只看 j≤i。</span>
-    scores = scores.masked_fill(~mask, float("-inf")) <span class="cm"># [逐行剖析] 未来分数为负无穷，softmax 后权重为 0。</span>
-    weights = torch.softmax(scores, dim=-1)    <span class="cm"># [逐行剖析] 最后一维归一化，每行和为 1。</span>
-    out = weights @ v                          <span class="cm"># [逐行剖析] (B,h,T,T)(B,h,T,hs) → (B,h,T,hs)。</span>
-    out = out.transpose(1, 2).contiguous().view(B, T, C) <span class="cm"># [逐行剖析] 拼回 (B,T,C)，才能接残差与 MLP。</span>
-    return out, weights                        <span class="cm"># [逐行剖析] 返回输出和权重，方便做三个断言。</span>
-
-x = torch.randn(2, 5, 12)
-y, a = shape_probe(x, n_head=3)
-assert y.shape == (2, 5, 12)                  <span class="cm"># [逐行剖析] 输出宽度必须与输入一致。</span>
-assert a.shape == (2, 3, 5, 5)                <span class="cm"># [逐行剖析] 每个头各有一个 T×T 分数表。</span>
-assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm"># [逐行剖析] 上三角全零才证明因果方向正确。</span></code></pre>
+<p>
+  <strong>张量几何自查清单：因果自注意力层必须恒成立的三大守恒律</strong>
+</p>
+<ol>
+  <li><strong>行概率守恒律（Row-Sum Invariant）</strong>：注意力权重矩阵 \(A \in \mathbb{R}^{T \times T}\) 的任意一行之和严格满足 \(\sum_{j=1}^T A_{ij} = 1.0\)。若行和不为 1，必然是 Softmax 归一化轴指定错误。</li>
+  <li><strong>因果严格零泄漏（Strict Upper-Triangular Zero）</strong>：对于所有满足 \(j > i\) 的元素，必定恒有 \(A_{ij} = 0.0\)。只要上三角出现哪怕 \(10^{-6}\) 的非零值，自回归解码就会产生信息穿越偷看未来。</li>
+  <li><strong>维度闭环守恒（Dimension Invariance）</strong>：输入序列的隐藏维度为 \(d\)，经 \(H\) 个头拆解为 \(d_h = d/H\)，最终必须满足 \(H \times d_h = d\)，且拼接后输出维度必须与残差流维度严格等长（同为 \(d\)），否则残差相加（Residual Addition）将无法执行。</li>
+</ol>
   <p>记录三项：输出形状、上三角最大绝对值、每行和偏离 1 的最大值。再把 \(d_h\) 从 4 改成 6，确认 \(C\) 不变而头内宽度改变。</p>
 </section>
 

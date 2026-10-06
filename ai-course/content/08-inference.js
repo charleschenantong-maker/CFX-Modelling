@@ -61,33 +61,12 @@ COURSE.register({
   <p>\(T = 2\) 时得 \([1,\,0.5,\,0] \to [0.506,\,0.307,\,0.186]\)，三面接近均等，采样像乱猜——这就是「\(T\) 太大会胡言」。\(T = 1\) 时保持原分布 \([0.665,\,0.245,\,0.090]\)。</p>
   <p>LLM 回报：抽取类任务用 \(T = 0\)（等价于贪心，延迟最低且可复现）；创意任务从 \(T = 0.7\) 起调，一次只动温度或 top-p 其中一个。下面看代码里这三步是怎么落子的。</p>
 </section>
-<pre><code><span class="cm"># [逐行剖析] 工业级解码采样器核心算子：温度缩放 -> 降序重排 -> 核采样 (Top-p) -> 多项分布抽样</span>
-import torch, torch.nn.functional as F
-def sample_next(logits, T=1.0, top_p=0.95):
-    <span class="cm"># 动态形状: logits -> (V,) [float32] | V 为模型输出词表大小</span>
-    <span class="cm"># [逐行剖析] 1. 温度缩放：调节能量状态密度</span>
-    z = logits / max(T, 1e-6)
-    
-    <span class="cm"># [逐行剖析] 2. Softmax 概率归一化</span>
-    <span class="cm"># 动态形状: p -> (V,) [float32]</span>
-    p = F.softmax(z, dim=-1)
-    
-    <span class="cm"># [逐行剖析] 3. 降序重排：概率由高到低排序</span>
-    <span class="cm"># 动态形状: s -> (V,) [float32], idx -> (V,) [int64]</span>
-    s, idx = torch.sort(p, descending=True)
-    
-    <span class="cm"># [逐行剖析] 4. 核集合判定：累积概率严格小于 top_p 的前缀集合（至少保留 1 个元素）</span>
-    <span class="cm"># 动态形状: keep -> (V,) [bool]</span>
-    keep = torch.cumsum(s, dim=-1) - s &lt; top_p
-    keep[0] = True  <span class="cm"># 守卫：top_p=0 时首元素也被判 False，全零会导致除零；强制保留概率最高的 1 个</span>
-    
-    <span class="cm"># [逐行剖析] 5. 截断与重归一化</span>
-    <span class="cm"># 原地位运算: where 条件替换非核集合概率为 0.0</span>
-    s = torch.where(keep, s, torch.zeros_like(s))
-    s = s / s.sum()  <span class="cm"># 动态形状: s -> (V,) [float32] 重新归一化至单位和</span>
-    
-    <span class="cm"># [逐行剖析] 6. 多项式随机采样并映射回原始词表 Token ID</span>
-    return idx[torch.multinomial(s, 1)]  <span class="cm"># 动态形状: scalar [int64]</span></code></pre>
+<p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
+<pre><code>probs = torch.softmax(logits / temperature, dim=-1)
+next_token = torch.multinomial(probs, num_samples=1)</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
+</p>
 <p><strong>一个常见误解</strong>：贪心解码（\(T=0\)）不等于「最正确答案」，它只是「最高概率路径」。
 在需要多样性的任务（写诗、生成候选）上贪心会退化；在需要确定性的任务（抽取、分类）上它是最佳选择。</p>
 
@@ -269,19 +248,12 @@ def sample_next(logits, T=1.0, top_p=0.95):
     <tr><td>decode 解码</td><td>每步只算 1 个新 token，但要读一遍全部权重</td><td>显存带宽</td><td>\(s\) 步严格串行</td></tr>
   </tbody>
 </table>
-<pre><code><span class="cm"># [逐行剖析] 自回归解码循环：提示一次算完，之后每步只前进一个 token</span>
-<span class="cm"># 循环外只做一次：prefill，把整段提示的 KV 写进 cache</span>
-<span class="cm"># 动态形状: kv_cache -&gt; [num_layers][2][batch, num_kv_heads, seq_len, head_dim]</span>
-out, kv_cache = model(prompt_ids, past_key_values=None)   <span class="cm"># prompt_ids -&gt; (1, s)</span>
-next_id = out[:, -1, :].argmax(-1)                        <span class="cm"># 只取最后一个位置的分布</span>
-
-<span class="cm"># 循环体每步只做一件事：喂上一个 token，换回一个新 token</span>
-for step in range(max_new_tokens):
-    <span class="cm"># out -&gt; (1, 1, V)：V 是词表大小，所以这一步的算力与提示长度无关</span>
-    next_id = sample(out[:, -1, :] / T)                   <span class="cm"># 采样只发生在最后一行</span>
-    <span class="cm"># 关键：新 token 的 K/V 追加进 cache，历史部分一个字节都不重算</span>
-    out, kv_cache = model(next_id, past_key_values=kv_cache)   <span class="cm"># next_id -&gt; (1, 1)</span>
-    <span class="cm"># cache 长度 +1，于是每步的注意力计算量随步数线性增长</span></code></pre>
+<p><strong>KV Cache 缓存追加算子微核心演示：</strong></p>
+<pre><code>k_cache = torch.cat([k_cache, new_k], dim=-2)
+v_cache = torch.cat([v_cache, new_v], dim=-2)</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 骤降为 \(O(T)\)。
+</p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸 ①：7B 模型处理 4096 token，prefill 只占多少时间</h4>
@@ -537,39 +509,11 @@ for step in range(max_new_tokens):
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：量化与吞吐基准（完整版见附录 B · E8）</h4>
-<pre><code>!pip -q install transformers bitsandbytes accelerate
-import torch, time
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-<span class="cm"># [逐行剖析] 1. 加载分词器与测试基座</span>
-name = "Qwen/Qwen2.5-0.5B-Instruct"
-tok = AutoTokenizer.from_pretrained(name)
-
-<span class="cm"># [逐行剖析] 2. 差异化精度加载器：对比原生 float16 与 bitsandbytes NF4 量化</span>
-def load(dtype, quant=None):
-    kw = dict(torch_dtype=dtype, device_map="auto")
-    if quant: kw["quantization_config"] = quant
-    return AutoModelForCausalLM.from_pretrained(name, **kw)
-
-import bitsandbytes as bnb
-<span class="cm"># 显存机制: fp16 每个参数占用 2 字节；int4 每个参数仅占用 0.5 字节 (加上双重量化缩放系数)</span>
-m16 = load(torch.float16)
-m4  = load(torch.float16, bnb.BitsAndBytesConfig(load_in_4bit=True))
-
-<span class="cm"># [逐行剖析] 3. 解码吞吐量基准测速函数</span>
-def bench(m, n=64):
-    <span class="cm"># 动态形状: ids['input_ids'] -> (1, T_in) [int64]</span>
-    ids = tok("Explain the physics of an audio crossfade:", return_tensors="pt").to(m.device)
-    t0 = time.time()
-    <span class="cm"># 自动微分: torch.no_grad() 彻底切断反向传播追踪，生成过程纯前向缓存 KV</span>
-    with torch.no_grad():
-        m.generate(**ids, max_new_tokens=n, do_sample=False)
-    return n / (time.time() - t0)
-
-print("fp16 tok/s:", round(bench(m16), 1))
-print("int4 tok/s:", round(bench(m4), 1))
-print("显存 (GB):", {k: round(v/2**30, 2) for k, v in
-      [("fp16", m16.get_memory_footprint()), ("int4", m4.get_memory_footprint())]})</code></pre>
+<p><strong>4-bit NF4 低显存量化加载算子微核心演示：</strong></p>
+<pre><code>model = AutoModelForCausalLM.from_pretrained(model_id, load_in_4bit=True, device_map="auto")</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，使 1.5B 乃至 7B 级别大模型得以平稳驻留在消费级或免费 T4 显卡（16GB）显存内。
+</p>
   <p>记录四件事：显存、tokens/s、输出质量是否肉眼可辨、以及首次加载时间。然后回答：
   <em>如果你要部署一个每天 10 万次调用的服务，量化省下的钱和掉的质量哪个更值？</em></p>
 </section>

@@ -455,63 +455,21 @@ COURSE.register({
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：最小可用的 SFT + DPO 流水线（完整版见附录 B · E4、E5）</h4>
-<pre><code>!pip -q install "trl" "peft" "datasets" "transformers" "accelerate"
+<p>
+  在后训练（Post-Training）阶段，两大核心技术 LoRA 与 DPO 的计算内核可以通过微核心算子直接展现：
+</p>
 
-from datasets import load_dataset
-from peft import LoraConfig
-from trl import SFTTrainer, SFTConfig
+<p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
+<pre><code>h = x @ W_base + (x @ A @ B) * (lora_alpha / r)</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times d}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
+</p>
 
-<span class="cm"># [逐行剖析] 1. 加载微调数据集</span>
-ds = load_dataset("trl-lib/Capybara", split="train[:2000]")   <span class="cm"># 截取 2000 条高质量对话样本</span>
-
-<span class="cm"># [逐行剖析] 2. 配置 LoRA 低秩分解超参数</span>
-<span class="cm"># 数学机制: W = W0 + (alpha/r) * (B @ A), A in R^(r x d_in), B in R^(d_out x r)</span>
-<span class="cm"># 秩 r=16, 缩放因数 alpha=32 -> 放大倍率 alpha/r = 2.0</span>
-peft_cfg = LoraConfig(
-    r=16, lora_alpha=32, lora_dropout=0.05,
-    target_modules=["q_proj","k_proj","v_proj","o_proj"],  <span class="cm"># 针对注意力所有投影层注入低秩旁路</span>
-    task_type="CAUSAL_LM"
-)
-
-<span class="cm"># [逐行剖析] 3. 构建 TRL SFTTrainer 监督微调执行引擎</span>
-<span class="cm"># 显存机制: 基座权重冻结 (requires_grad=False)，仅 LoRA 旁路参数保留梯度并分配优化器动量</span>
-trainer = SFTTrainer(
-    model="Qwen/Qwen2.5-0.5B",
-    train_dataset=ds,
-    peft_config=peft_cfg,
-    args=SFTConfig(
-        output_dir="out-sft", num_train_epochs=1,
-        learning_rate=2e-4, per_device_train_batch_size=2,
-        gradient_accumulation_steps=8,  <span class="cm"># 等效大批次: 2 * 8 = 16 样本 / 步</span>
-        max_length=1024, logging_steps=10, save_strategy="epoch",
-        bf16=True, report_to="none"     <span class="cm"># 开启 bf16 混合精度大幅削减显存</span>
-    ),
-)
-trainer.train()
-trainer.save_model("out-sft/final")
-
-<span class="cm"># [逐行剖析] 4. 统计可训练参数占比（通常在 0.5% ~ 2.0% 之间，显存开销不到全参微调的 1/4）</span>
-print(trainer.model.print_trainable_parameters())</code></pre>
-<pre><code><span class="cm"># [逐行剖析] DPO 直接偏好优化阶段：彻底摆脱独立奖励模型与在线强化学习采样循环</span>
-from trl import DPOTrainer, DPOConfig
-from datasets import load_dataset
-prefs = load_dataset("trl-lib/ultrafeedback_binarized", split="train[:2000]")
-
-<span class="cm"># 数学机制: 隐式奖励标量 r(x, y) = beta * log(pi_theta(y|x) / pi_ref(y|x))</span>
-<span class="cm"># 显存机制: 内部同时持有当前策略模型 pi_theta 与冻结的参考模型 pi_ref</span>
-dpo = DPOTrainer(
-    model="out-sft/final",
-    args=DPOConfig(
-        output_dir="out-dpo",
-        beta=0.1,                          <span class="cm"># KL 散度惩罚因子：控制策略偏离基座的容忍阈值</span>
-        learning_rate=5e-6, num_train_epochs=1,
-        per_device_train_batch_size=1, gradient_accumulation_steps=8,
-        max_length=1024, max_prompt_length=512,
-        bf16=True, report_to="none"
-    ),
-    train_dataset=prefs,
-)
-dpo.train()</code></pre>
+<p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>
+<pre><code>loss = -F.logsigmoid(beta * (logits_w - logits_l)).mean()</code></pre>
+<p>
+  <strong>逐行代数解析</strong>：计算人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）之间的隐式奖励对数几率差；经由超参数 \(\beta\) 调节后输入 Sigmoid 函数并求负对数似然，无需显式训练独立的奖励模型。
+</p>
   <p><strong>要观察的指标</strong>：DPO 日志里的 <code>rewards/chosen</code> 与 <code>rewards/rejected</code> 的差（margin）应逐步拉开；
   若两者同时下降，说明你在把模型推离参考分布太远，需要减小学习率或增大 \(\beta\)。</p>
 </section>

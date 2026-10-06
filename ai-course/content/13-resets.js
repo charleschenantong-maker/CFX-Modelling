@@ -1,170 +1,124 @@
-/* content/13-resets.js — 模块 13：重置动力学与配额哲学 */
+/* content/13-resets.js — 模块 13：实验流水线与断点调度 */
 COURSE.register({
   id: "m13",
-  part: 4,
+  part: 3,
   num: "13",
-  title: "重置动力学：把「会过期的额度」用到 0%",
-  en: "Reset Dynamics & The Sunk-Token Principle",
+  title: "实验流水线与断点调度：会话超时、检查点续训与早停决策",
+  en: "Experiment Pipeline: Checkpointing, Runtime Resumption & Early Stopping",
   minutes: 25,
-  tags: ["经济", "调度", "策略"],
+  tags: ["流水线", "检查点", "早停", "断点续训"],
   body: String.raw`
 <p class="lead">
-  额度不是余额，而是<strong>会腐坏的库存</strong>。理解重置的机制，
-  你就能把「什么时候用哪个模型、什么时候冲刺」变成一个可计算的调度问题。
+  在 Kaggle Notebooks（提供双卡 T4 ×2 / 单卡 T4，每周 30 小时免费 GPU）开展深度学习实验时，<strong>会话随时可能因网络抖动或超时机制而被迫重置</strong>。
+  真正的工程素养不在于祈祷环境永不断线，而在于设计<strong>坚不可摧的检查点持久化（Checkpointing）与优雅恢复流水线</strong>，
+  同时建立<strong>严格的早停（Early Stopping）决策准则</strong>，不在注定发散的实验上白白耗费宝贵的探索时间。
 </p>
 
 <section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
+  <h4><span class="ic">◆</span>核心痛点：辛辛苦苦跑了 2 小时，浏览器一刷新全没了？</h4>
   <p>
-    周五晚上你还有 60% 的额度，重置在周日凌晨。你应该休息，还是通宵把额度烧掉？
-    答案取决于两件事：<strong>这个平台的额度是否会累积</strong>，以及<strong>你是否有值得烧的任务</strong>。
-    这两件事分别由「重置机制」和「任务储备」决定。
+    几乎所有在云端训练模型的初学者都经历过这种绝望：训练跑了 8000 个 step，眼看就要收敛，临时容器突然断开连接，保存在本地 <code>/tmp</code> 或当前目录的权重全部化为乌有。
+    本模块教你如何将状态存储与训练循环彻底解耦，做到随时断线、随时一键原地满血复活。
   </p>
 </section>
 
-<h3>1. 两种非对称的重置机制</h3>
-<table class="tbl">
-  <thead><tr><th>平台</th><th>重置做什么</th><th>后果</th></tr></thead>
-  <tbody>
-    <tr><td><strong>OpenAI Codex</strong>（按记录）</td><td><strong>清空计时器</strong>：7 天时钟回到第 0 天</td>
-        <td>多个账号同时被重置时，它们的续期日程会<strong>同步</strong>——所有账号在同一天到期，削峰的作用消失</td></tr>
-    <tr><td><strong>Anthropic Claude</strong>（按记录）</td><td><strong>补满容量</strong>：把可用额度恢复 100%，但<em>不改变到期时间戳</em></td>
-        <td>调度更可预测：到点即失效，因此「先烧快到期的账号」策略更有效</td></tr>
-  </tbody>
-</table>
+<h3>1. 完整的训练检查点（Checkpoint）到底包含什么？</h3>
 <p>
-  <strong>可迁移的洞察</strong>：同样叫「重置」，一个是「重置周期」，另一个是「补充库存」。
-  前者会改变你的调度周期，后者只改变你的库存量。任何资源系统（缓存、CI 分钟数、云额度）都要先问清是哪一种。
+  许多人误以为断点续训只要保存模型的权重矩阵 <code>model.state_dict()</code> 就够了。
+  <strong>大错特错！</strong>只恢复权重会导致优化器丢失所有的历史动量与学习率状态，直接造成接续训练时的损失剧烈震荡跳变。
+  一个生产级严密的 Checkpoint 必须打包以下四项：
 </p>
 
-<h3>2. 即时重置 vs 银行重置</h3>
-<section class="blk blk-eco">
-  <h4><span class="ic">◈</span>平台为什么发重置</h4>
-  <ul>
-    <li><strong>自动（即时）重置</strong>：多安排在<strong>非高峰的周末时段</strong>，目的是把闲置算力消化掉——
-        对平台来说，闲置的 GPU 是纯亏损，让你多用一点没有边际成本。</li>
-    <li><strong>银行重置（user-triggered）</strong>：由用户按需触发。记录中的观察是：
-        银行重置对提供方的<strong>机会成本更高</strong>，因为用户倾向于在企业计费的<strong>高峰时段</strong>使用它，
-        挤占的是本可以高价出售的产能。</li>
-    <li><strong>设计含义</strong>：如果平台给你银行重置，那它是在给你一份「期权」——你应当把它用在高峰且不可替代的任务上，
-        而不是随手消耗。</li>
-  </ul>
-</section>
+<table class="tbl">
+  <thead><tr><th>组件</th><th>包含内容</th><th>若遗漏的致命后果</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>模型参数（Model Weights）</strong></td>
+      <td>各层可学习权重与偏置（\(\mathbf{W}, \mathbf{b}\)）</td>
+      <td>模型回到初始随机状态，前功尽弃</td>
+    </tr>
+    <tr>
+      <td><strong>优化器状态（Optimizer State）</strong></td>
+      <td>AdamW 的一阶动量 \(\mathbf{m}_t\) 与二阶动量 \(\mathbf{v}_t\)</td>
+      <td>动量归零，接续训练时步长突变，导致 Loss 曲线瞬间剧烈尖刺（Spike）甚至发散</td>
+    </tr>
+    <tr>
+      <td><strong>学习率调度器（LR Scheduler）</strong></td>
+      <td>当前已经执行的 <code>step</code> 与所处的 Warmup/Decay 衰减阶段</td>
+      <td>学习率可能被重置为初始峰值，使接近收敛的模型被超大学习率瞬间“震毁”</td>
+    </tr>
+    <tr>
+      <td><strong>混合精度缩放器（GradScaler）</strong></td>
+      <td>FP16 训练时的动态损失放大系数 <code>scaler.state_dict()</code></td>
+      <td>出现数值溢出（Overflow）或下溢，导致梯度变为 NaN</td>
+    </tr>
+  </tbody>
+</table>
 
-<h3>3. 沉没 token 原则</h3>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>把它写成一个优化问题</h4>
-  <p>设周期长度 \(T\)、额度上限 \(Q\)、你在窗口内的使用量 \(u(t)\)。当期未用额度 \(Q-\int u\) <strong>不会结转</strong>，则：</p>
-  \[ \text{useful output} = \int_0^T v\big(u(t)\big)\,dt, \qquad v' > 0,\ v'' < 0 \]
-  <p>
-    因为 \(v\) 边际递减，把额度平均分配到全周期并不最优——
-    <strong>应当把额度投给边际价值最高的任务</strong>；而在周期末尾仍有剩余时，
-    任何正价值的任务都比浪费更好（<em>沉没 token 原则</em>）。
-  </p>
-  <p>
-    记录中的说法很形象：不要用「API 用户」的稀缺心态看待订阅额度。
-    每个周期都是一份<strong>会腐坏的礼物</strong>；不用到 0%，差额就永久损失。
-  </p>
-</section>
+<h3>2. 工业标准断点续训代码范式</h3>
+<p>
+  在 Kaggle Notebooks 环境中，标准持久化输出路径为 <code>/kaggle/working/</code>。自动轮转 Checkpoint 代码应当如下组织：
+</p>
 
-<h3>4. 建立「任务储备池」</h3>
-<p>既然额度会过期，就必须提前准备「值得烧额度」的任务。按价值密度排序的清单：</p>
+<p><strong>断点原子化保存微算子演示：</strong></p>
+<pre><code>ckpt = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'step': step}
+torch.save(ckpt, f'/kaggle/working/ckpt_step_{step}.pt')</code></pre>
+<p>
+  <strong>逐行解析</strong>：保存断点必须将模型权重与优化器内部一阶/二阶动量状态一同打包序列化至 <code>/kaggle/working/</code>；如果遗漏优化器状态，恢复训练时由于历史动量归零，极易导致单步梯度方向突变、损失剧烈跳跃甚至梯度爆炸。
+</p>
+
+<h3>3. 早停法（Early Stopping）：避开沉没成本谬误</h3>
+<p>
+  在探索自训模型时，最浪费精力的事情不是断线，而是<strong>明知道模型已经发散或严重过拟合，却依然让它继续空转跑完全程</strong>。
+  科学的训练流水线必须设定清晰的早停准则（Early Stopping Rule）：
+</p>
 <table class="tbl small">
-  <thead><tr><th>类别</th><th>具体任务（来自记录）</th><th>为什么适合烧额度</th></tr></thead>
+  <thead><tr><th>诊断信号</th><th>底层物理原因</th><th>果断决策行动</th></tr></thead>
   <tbody>
-    <tr><td><strong>审计</strong></td><td>把大型 PR / 编排器重写丢给智能体生成架构简报</td><td>上下文大、价值高、结果可保存复用</td></tr>
-    <tr><td><strong>发现</strong></td><td>多智能体扫描本地目录与 GitHub 组织，找出被搁置的侧项目、未完成的分支</td><td>没有明确产出压力，适合批量跑</td></tr>
-    <tr><td><strong>整理</strong></td><td>抓取本地收件箱、个人记录、健康看板并结构化归档</td><td>机械但耗时，非常适合自动化</td></tr>
-    <tr><td><strong>验证</strong></td><td>对已有结论做对抗性复核：让另一个线程尝试推翻它</td><td>直接提升你研究的可信度（模块 09）</td></tr>
-    <tr><td><strong>学习</strong></td><td>把论文转成讲义、把代码转成推导笔记</td><td>把额度转化成你自己的理解</td></tr>
+    <tr>
+      <td><strong>初始 Loss 为 NaN 或 Inf</strong></td>
+      <td>学习率过高引发梯度爆炸，或数值除零/Log 越界</td>
+      <td><strong>立即终止</strong>：检查是否遗漏 Softmax 数值稳定性减 Max 处理，或将学习率缩小 3~5 倍</td>
+    </tr>
+    <tr>
+      <td><strong>Warmup 结束后验证集 Loss 连续 3 次不降反升</strong></td>
+      <td>模型容量不足以记忆语料，或严重过拟合于噪声数据</td>
+      <td><strong>果断停机</strong>：启用 Weight Decay 权重衰减，或缩减模型层数、增加数据清洗</td>
+    </tr>
+    <tr>
+      <td><strong>Loss 曲线长时间水平停滞（Plateau）</strong></td>
+      <td>学习率衰减过早、梯度消失或进入极浅鞍点</td>
+      <td><strong>检查梯度范数</strong>：若 \(\|\mathbf{g}\| \approx 0\)，调整学习率调度器或检查残差连接</td>
+    </tr>
   </tbody>
 </table>
-<p>
-  <strong>操作建议</strong>：维护一个 <code>backlog.md</code>，每当额度将到期（或收到银行重置）时，
-  就从池子里挑任务批量派发。这样「闲置额度」永远有去处，也避免为了烧额度而做无意义的事。
-</p>
-
-<h3>5. 两种心态的对比</h3>
-<table class="tbl">
-  <thead><tr><th></th><th>API 用户心态</th><th>订阅调度者心态</th></tr></thead>
-  <tbody>
-    <tr><td>额度是</td><td>要花钱买的稀缺资源</td><td>会过期、边际递减的库存</td></tr>
-    <tr><td>决策问题</td><td>「这条请求值不值」</td><td>「这笔额度该投给哪个任务」</td></tr>
-    <tr><td>对浪费的反应</td><td>无所谓，本来就在花钱</td><td>强烈，因为差额永久损失</td></tr>
-    <tr><td>典型错误</td><td>为了省钱而不用</td><td>为了烧额度而做无用功</td></tr>
-  </tbody>
-</table>
-<p><em>两种心态都错在同一个地方：没有把「额度」与「产出」分开看。真正的目标是最小化<strong>每单位研究进展的成本</strong>，而不是最大化 token 消耗。</em></p>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
-  <p>
-    以后做 crossfade 这类项目时，会有天然的「额度消耗任务」：文献精读、推导复核、实验报告润色、听测数据整理、
-    以及最重要的——<strong>对自己结论的对抗性检验</strong>。
-    最后一项尤其值得用订阅额度：让一个独立的会话尝试用更简单的模型解释手头的数据（模块 09 的置换检验就是它的统计版本）。
-    这比「多训一个模型」更能提升申请材料的质量。
-  </p>
-</section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">「Codex 的重置会清空 7 天计时器」这一机制的主要副作用是？</p>
+  <p class="q">在自回归模型断点续训时，为什么不能只加载模型权重，而必须同时恢复 AdamW 优化器的状态？</p>
   <ul class="opts">
-    <li>额度上限变小</li>
-    <li data-ok>多个账号同时被重置时续期日程会同步，原本错开的到期时间被拉到同一周期</li>
-    <li>缓存会失效</li>
-    <li>模型质量下降</li>
+    <li>因为不恢复优化器代码会报错崩溃</li>
+    <li data-ok>AdamW 依赖历史的一阶动量与二阶方差来平滑梯度；若重置为零，更新步长会发生突变，容易引发损失跳变甚至梯度爆炸</li>
+    <li>为了让模型能自动识别词表大小</li>
+    <li>因为优化器状态里存储了上下文序列长度</li>
   </ul>
   <p class="why">
-    重置周期而非补充库存，会改变调度结构的形状。原本「A 账号周一到期、B 账号周四到期」的错峰，
-    在一次集体重置后会变成同一天到期——削峰失效，调度难度上升。
+    AdamW 更新量取决于 \(\frac{\mathbf{m}_t}{\sqrt{\mathbf{v}_t} + \epsilon}\)。如果不恢复 \(\mathbf{m}_t\) 与 \(\mathbf{v}_t\)，相当于从冷启动重新估计方差，会导致短时间内更新步长剧烈抖动。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">为什么「银行重置」对平台的机会成本更高？</p>
+  <p class="q">在 Kaggle Notebooks 云端环境上运行长时间模型训练，防范会话意外断开最有效、最关键的措施是？</p>
   <ul class="opts">
-    <li>因为需要额外的存储</li>
-    <li data-ok>用户倾向在企业计费的高峰时段触发它，挤占本可高价出售的产能</li>
-    <li>因为它需要人工审核</li>
-    <li>因为它会减少月度总额度</li>
+    <li>始终开着网页不关电脑</li>
+    <li data-ok>在训练循环中定期将模型与优化器打包保存至外部挂载的持久存储（如 Kaggle 的 <code>/kaggle/working</code> 或 Hugging Face Hub 私有仓库）</li>
+    <li>多开几个不同的浏览器窗口</li>
+    <li>只在晚上无人使用时运行</li>
   </ul>
   <p class="why">
-    自动重置多安排在非高峰周末，用的是本来闲置的算力；
-    而用户按需触发时，往往正是产能最紧张、可以卖给企业客户的时段。
+    临时云端实例的本地磁盘是易失性的，唯有将权重外存到持久化网络存储中，才能保证断开重连后无损恢复。
   </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">「沉没 token 原则」最准确的表述是？</p>
-  <ul class="opts">
-    <li>额度花不完会累积到下个月</li>
-    <li data-ok>当期未使用的额度会永久损失，因此在周期末尾，任何有正价值的任务都比浪费额度好</li>
-    <li>应该平均分配额度到每一天</li>
-    <li>订阅额度比 API 便宜，所以应当尽量多用</li>
-  </ul>
-  <p class="why">
-    关键是「会过期」+「边际价值递减」。
-    但要注意平衡：目标不是最大化消耗，而是最大化产出——<em>为了烧额度而做无用功是另一种浪费</em>。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：把配额管理做成一张表" data-badge="模板">
-  <div class="acc-body">
-    <p>建议在笔记里维护一张每周更新的配额表：</p>
-    <table class="tbl small">
-      <thead><tr><th>资源</th><th>窗口类型</th><th>下次重置</th><th>当前余量</th><th>本轮计划任务</th></tr></thead>
-      <tbody>
-        <tr><td>Codex Plus</td><td>7 天 + 月中重置</td><td>—</td><td>—</td><td>架构审计 / PR 审查</td></tr>
-        <tr><td>Claude Pro</td><td>5 小时滚动 + 7 天上限</td><td>—</td><td>—</td><td>论文精读 / 推导复核</td></tr>
-        <tr><td>Google AI Pro ×3</td><td>Colab 会话与配额</td><td>—</td><td>—</td><td>E3 / E4 实验</td></tr>
-        <tr><td>OpenRouter 免费</td><td>按日/按额度</td><td>—</td><td>—</td><td>模型对比</td></tr>
-      </tbody>
-    </table>
-    <p>填表本身就是一种纪律：<strong>当你能写下「下次重置时间」与「本轮计划任务」时，你已经在做调度而不是在碰运气。</strong></p>
-  </div>
 </div>
 `
 });

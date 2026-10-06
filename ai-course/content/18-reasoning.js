@@ -1,7 +1,7 @@
 /* content/18-reasoning.js — 模块 18：推理模型与测试时计算 */
 COURSE.register({
   id: "m18",
-  part: 6,
+  part: 4,
   num: "18",
   title: "推理模型与测试时计算：让模型「想久一点」值不值",
   en: "Reasoning Models & Test-Time Compute",

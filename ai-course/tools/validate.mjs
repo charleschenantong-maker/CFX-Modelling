@@ -50,7 +50,7 @@ const VOID = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input'
 const ALLOWED_CLASSES = new Set([
   'blk', 'blk-tip', 'blk-q', 'blk-m', 'blk-lab', 'blk-warn', 'blk-eco',
   'tbl', 'small', 'flow', 'nd', 'hi', 'ar', 'col', 'grid2', 'card', 'kv',
-  'acc', 'acc-body', 'quiz', 'qlabel', 'q', 'opts', 'why',
+  'acc', 'acc-body', 'quiz', 'qlabel', 'q', 'opts', 'why', 'quiz-blank', 'blank-wrap', 'blank-input', 'blank-btn', 'blank-feedback',
   't', 'cm', 'kw', 'st', 'calc', 'lead', 'callout', 'pill', 'ic'
 ]);
 // classes that exist in index.html CSS but are not part of the content DSL:
@@ -199,17 +199,21 @@ for (const item of active) {
   if (unmatched.strayClose) err(id, `有 ${unmatched.strayClose} 个多余的 \\) 或 \\]`);
 
   // quizzes
-  const quizzes = body.match(/<div class="quiz">[\s\S]*?<\/div>\s*(?=<div class="quiz">|<div class="acc"|$)/g) || [];
-  const quizBlocks = body.split('<div class="quiz">').slice(1);
+  const quizBlocks = body.split(/<div class="quiz(?:\s+[^"]*)?"[^>]*>/).slice(1);
   quizBlocks.forEach((qb, qi) => {
-    const okCount = (qb.match(/data-ok/g) || []).length;
-    const optCount = (qb.split('<ul class="opts">')[1] || '').split('</ul>')[0].split('<li').length - 1;
-    if (okCount !== 1) err(id, `自测 ${qi + 1}: data-ok 数量 = ${okCount}（应为 1）`);
-    if (optCount < 3) err(id, `自测 ${qi + 1}: 选项只有 ${optCount} 个`);
-    if (!/class="why"/.test(qb)) err(id, `自测 ${qi + 1}: 缺少 .why 解析`);
+    const isBlank = /class="blank-wrap"|data-ans=/.test(qb);
+    if (isBlank) {
+      if (!/data-ans=/.test(qb) && !/class="blank-input"/.test(qb)) err(id, `填空自测 ${qi + 1}: 缺少 data-ans 或 .blank-input`);
+      if (!/class="why"/.test(qb)) err(id, `填空自测 ${qi + 1}: 缺少 .why 解析`);
+    } else {
+      const okCount = (qb.match(/data-ok/g) || []).length;
+      const optCount = (qb.split('<ul class="opts">')[1] || '').split('</ul>')[0].split('<li').length - 1;
+      if (okCount !== 1) err(id, `自测 ${qi + 1}: data-ok 数量 = ${okCount}（应为 1）`);
+      if (optCount < 3) err(id, `自测 ${qi + 1}: 选项只有 ${optCount} 个`);
+      if (!/class="why"/.test(qb)) err(id, `自测 ${qi + 1}: 缺少 .why 解析`);
+    }
     if (!/class="qlabel"/.test(qb)) warn(id, `自测 ${qi + 1}: 缺少 .qlabel`);
   });
-  void quizzes;
 
   // tables: header/body column parity
   const tableRe = /<table class="tbl[^"]*">([\s\S]*?)<\/table>/g;

@@ -714,16 +714,18 @@ window.COURSE = (function () {
 
   /* ---------- math ---------- */
   function renderMath(root) {
-    if (typeof renderMathInElement !== 'function') return;
+    if (typeof renderMathInElement !== 'function' || !root) return;
     try {
-      renderMathInElement(root || $('#content'), {
+      renderMathInElement(root, {
         delimiters: [
-          { left: '\\[', right: '\\]', display: true },
-          { left: '\\(', right: '\\)', display: false }
+          { left: '\[', right: '\]', display: true },
+          { left: '\(', right: '\)', display: false }
         ],
-        throwOnError: false, ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+        throwOnError: false,
+        strict: false,
+        ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
       });
-    } catch (e) { console.warn('katex', e); }
+    } catch (e) { /* ignore */ }
   }
 
   /* ---------- accordions ---------- */
@@ -1080,18 +1082,20 @@ window.COURSE = (function () {
   /* ---------- search ---------- */
   let INDEX = [];
   function buildIndex() {
+    if (INDEX && INDEX.length) return;
     INDEX = COURSE.items.map(m => {
-      const tmp = document.createElement('div'); tmp.innerHTML = m.body || '';
-      const text = (tmp.textContent || '').replace(/\s+/g, ' ');
+      const text = (m.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
       return { id: m.id, num: m.num, title: m.title, en: m.en || '', text, lower: (m.title + ' ' + (m.en || '') + ' ' + text).toLowerCase() };
     });
   }
+
   function snippet(entry, q) {
     const p = entry.text.toLowerCase().indexOf(q);
     if (p < 0) return entry.en;
     return (p > 22 ? '…' : '') + entry.text.slice(Math.max(0, p - 22), p + 78) + '…';
   }
   function wireSearch() {
+    $('#q').addEventListener('focus', () => { if (!INDEX || !INDEX.length) buildIndex(); }, { once: true });
     const input = $('#q'), box = $('#results'), wrap = $('#searchWrap'), clr = $('#clr');
     let sel = -1, hits = [];
     function close() { box.classList.remove('open'); sel = -1; }
@@ -1252,28 +1256,17 @@ window.COURSE = (function () {
   let lazyObs = null;
   function lazyUnobserve(sec) { if (lazyObs && sec) { try { lazyObs.unobserve(sec); } catch (e) {} } }
   function wireLazy() {
-    // 接近视口的占位节自动渲染
     if ('IntersectionObserver' in window) {
       lazyObs = new IntersectionObserver(entries => {
         entries.forEach(en => {
-          if (en.isIntersecting && !en.target.dataset.rendered) ensureRendered(en.target.id);
+          if (en.isIntersecting && !en.target.dataset.rendered) {
+            ensureRendered(en.target.id);
+            lazyObs.unobserve(en.target);
+          }
         });
-      }, { rootMargin: '1200px 0px', threshold: 0 });
+      }, { rootMargin: '300px 0px', threshold: 0.01 });
       $$('.mod').forEach(sec => { if (!sec.dataset.rendered) lazyObs.observe(sec); });
     }
-    // 空闲时逐个预渲染相邻模块（低优先级，不挡首屏与交互）
-    const step = () => {
-      const un = COURSE.items.filter(m => !isRendered(m.id));
-      if (!un.length) return;
-      const next = un.find(m => {
-        const i = COURSE.items.indexOf(m);
-        return (COURSE.items[i - 1] && isRendered(COURSE.items[i - 1].id)) ||
-               (COURSE.items[i + 1] && isRendered(COURSE.items[i + 1].id));
-      }) || un[0];
-      ensureRendered(next.id);
-      deferIdle(step);
-    };
-    deferIdle(step);
   }
 
   /* ---------- boot ---------- */
@@ -1285,7 +1278,7 @@ window.COURSE = (function () {
     const t0 = targetFromHash();
     ensureRendered((t0 && t0.mod) || (COURSE.items[0] && COURSE.items[0].id));
     wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireLazy();
-    deferIdle(buildIndex);
+    // buildIndex lazy-loaded on search focus
     paintRead(); stats(); syncUI('browser');
     requestAnimationFrame(() => {
       $('#heroReveal').classList.add('in'); $('#heroCards').classList.add('in');
@@ -1332,42 +1325,7 @@ window.COURSE = (function () {
 })();
 </script>
 
-<!-- ===================== content modules (order matters) ==================== -->
-<script src="content/00-orientation.js"></script>
-<script src="content/00b-primer.js"></script>
-<script src="content/01-language-models.js"></script>
-<script src="content/02-tokenization.js"></script>
-<script src="content/03-attention.js"></script>
-<script src="content/04-transformer.js"></script>
-<script src="content/05-pretraining.js"></script>
-<script src="content/06-parallelism.js"></script>
-<script src="content/07-finetuning.js"></script>
-<script src="content/08-inference.js"></script>
-<script src="content/09-evaluation.js"></script>
-<script src="content/10-compute.js"></script>
-<script src="content/11-economics.js"></script>
-<script src="content/12-network.js"></script>
-<script src="content/13-resets.js"></script>
-<script src="content/14-workflow.js"></script>
-<script src="content/15-moe.js"></script>
-<script src="content/16-long-context.js"></script>
-<script src="content/15-hardware.js"></script>
-<script src="content/16-project.js"></script>
-<script src="content/17-distillation.js"></script>
-<script src="content/18-reasoning.js"></script>
-<script src="content/19-rag.js"></script>
-<script src="content/20-agents.js"></script>
-<script src="content/21-safety.js"></script>
-<script src="content/22-consciousness.js"></script>
-<script src="content/23-compression.js"></script>
-<script src="content/24-architectures.js"></script>
-<script src="content/25-colab-training.js"></script>
-<script src="content/90-appendix-a-glossary.js"></script>
-<script src="content/91-appendix-b-labs.js"></script>
-<script src="content/92-appendix-c-resources.js"></script>
-<script src="content/93-appendix-d-compliance.js"></script>
-<script src="content/94-appendix-e-exam.js"></script>
-<script src="content/95-appendix-f-cheatsheet.js"></script>
-<script src="content/96-appendix-g-ai-fluency.js"></script>
+<!-- ===================== content modules bundled ==================== -->
+<script src="assets/course-bundle.js"></script>
 </body>
 </html>
