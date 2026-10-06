@@ -765,7 +765,7 @@ COURSE.register({
       <td><code>#102</code></td>
       <td><strong><a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noopener">DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models</a></strong></td>
       <td>Zhihong Shao et al. (DeepSeek-AI, GRPO)</td>
-      <td>提出群相对策略优化（GRPO）：省去了传统 PPO 中巨大的评价网络（Critic Network），改由对同一输入采样的输出群计算相对优势（Normalized Advantage），节约 50% 显存并提升稳定性。</td>
+      <td>提出群相对策略优化（GRPO）：省去了传统 PPO 中巨大的评价网络（Critic Network），改由对同一输入采样的输出群计算相对优势（Normalized Advantage），省下一整套价值网络的权重与优化器状态并提升稳定性。</td>
       <td>当前数学与可验证推理强化学习（如 DeepSeek-R1）的最核心驱动引擎！群均值和方差归一化直接消除了基线估计误差。</td>
     </tr>
     <tr>
