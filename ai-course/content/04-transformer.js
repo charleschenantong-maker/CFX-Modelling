@@ -76,6 +76,12 @@ COURSE.register({
   <p>LLM 回报：这就是百层 Transformer 能训下去的原因——梯度范数不随深度指数坍缩，省下的是调参和炸掉重训的 GPU 小时数。下面把同样的账算到矩阵上。</p>
 </section>
 
+<p>
+  结论先行：Pre-norm 每层是 \(x_{l+1}=x_l+F_l(\mathrm{RMSNorm}(x_l))\)，求导后自带单位矩阵项 \(\mathbf{I}\)，梯度沿残差主干有一条直通路，所以比每层都要再乘一次归一化雅可比的 Post-norm 好训；但直通不等于永不爆炸，子层尺度、初始化与学习率仍决定总梯度。记住这个结论和上面的标量例子即可；下面的完整雅可比乘积证明第二遍再看。
+</p>
+
+<div class="acc" data-t="选读·第二遍：Pre-norm 恒等残差流的雅可比乘积证明" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密分析：Pre-norm 恒等残差流的梯度直通定理</h4>
   <p>
@@ -107,6 +113,8 @@ COURSE.register({
     经典 Post-norm 则为 \(x_{l+1}=\mathrm{LN}(x_l+F_l(x_l))\)，其单层雅可比为 \(J_{\mathrm{LN},l}(\mathbf{I}+J_{F,l})\)，所以总梯度还要连乘每层的归一化雅可比。Pre-norm 的恒等项改善了深层优化条件；“不会衰减或爆炸”只有在额外的范数界与步长条件下才可推出，不能从结构式单独断言。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-lab">
   <h4><span class="ic">✎</span>草稿纸演算：残差流、RMSNorm 与 SwiGLU</h4>
