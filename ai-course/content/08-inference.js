@@ -368,14 +368,14 @@ COURSE.register({
 <h4>6.5 前置定义 C：投机解码的接受-拒绝规则</h4>
 <p>
   <strong>定义</strong>：草稿模型 \(q\) 先猜 \(k\) 个 token，目标模型 \(p\) 用一次前向把它们全部验证。
-  对第 \(j\) 个候选（假设 \(q(x_j) &gt; 0\)），以概率
+  对第 \(j\) 个候选（假设 \(q(x_j) > 0\)），以概率
 </p>
 \[ \alpha_j = \min\left(1,\ \frac{p(x_j)}{q(x_j)}\right) \]
 <p>接受它。一旦被拒，就在<em>残差分布</em>上重新采一个 token 顶上，本轮随即结束：</p>
 \[ r(x) = \max\bigl(0,\ p(x) - q(x)\bigr), \qquad Z = \sum_{x'} r(x'), \qquad x_{\text{new}} \sim \frac{r(x)}{Z} \]
 <p>
   这个 \(\alpha_j\) 只看<strong>比值</strong>：草稿模型与大模型同样自信（\(p = q\)）时必然接受；
-  只有草稿模型<em>比目标模型更自信</em>（\(q &gt; p\)）时才会被拒。
+  只有草稿模型<em>比目标模型更自信</em>（\(q > p\)）时才会被拒。
   所以草稿模型的任务<strong>不是「猜对」，而是「猜得和大模型一样自信」</strong>——
   一个正确但过度自信的小模型，会被频繁拒绝。
 </p>
@@ -434,7 +434,7 @@ COURSE.register({
   </p>
   \[ S = \frac{\mathbb{E}[n_{\text{tok}}]}{\gamma k + 1} = \frac{2.7000}{1.30} = 2.08 \]
   <p>
-    <strong>保本判据就一句话</strong>：\(\mathbb{E}[n_{\text{tok}}] &gt; \gamma k + 1\) 才赚。
+    <strong>保本判据就一句话</strong>：\(\mathbb{E}[n_{\text{tok}}] > \gamma k + 1\) 才赚。
     本例 2.7000 &gt; 1.30，赚 2.08 倍。
     <strong>反过来看这题的容错空间有多大</strong>：只要 \(\alpha_1 = 1\)（第一句草稿必被接受），
     即使 \(\alpha_2 = \alpha_3 = 0\)，期望产出也有 \(1 + 1 = 2.0000\)，仍然大于 1.30——

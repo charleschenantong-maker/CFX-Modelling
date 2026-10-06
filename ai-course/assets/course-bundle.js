@@ -4462,14 +4462,14 @@ COURSE.register({
 <h4>6.5 前置定义 C：投机解码的接受-拒绝规则</h4>
 <p>
   <strong>定义</strong>：草稿模型 \(q\) 先猜 \(k\) 个 token，目标模型 \(p\) 用一次前向把它们全部验证。
-  对第 \(j\) 个候选（假设 \(q(x_j) &gt; 0\)），以概率
+  对第 \(j\) 个候选（假设 \(q(x_j) > 0\)），以概率
 </p>
 \[ \alpha_j = \min\left(1,\ \frac{p(x_j)}{q(x_j)}\right) \]
 <p>接受它。一旦被拒，就在<em>残差分布</em>上重新采一个 token 顶上，本轮随即结束：</p>
 \[ r(x) = \max\bigl(0,\ p(x) - q(x)\bigr), \qquad Z = \sum_{x'} r(x'), \qquad x_{\text{new}} \sim \frac{r(x)}{Z} \]
 <p>
   这个 \(\alpha_j\) 只看<strong>比值</strong>：草稿模型与大模型同样自信（\(p = q\)）时必然接受；
-  只有草稿模型<em>比目标模型更自信</em>（\(q &gt; p\)）时才会被拒。
+  只有草稿模型<em>比目标模型更自信</em>（\(q > p\)）时才会被拒。
   所以草稿模型的任务<strong>不是「猜对」，而是「猜得和大模型一样自信」</strong>——
   一个正确但过度自信的小模型，会被频繁拒绝。
 </p>
@@ -4528,7 +4528,7 @@ COURSE.register({
   </p>
   \[ S = \frac{\mathbb{E}[n_{\text{tok}}]}{\gamma k + 1} = \frac{2.7000}{1.30} = 2.08 \]
   <p>
-    <strong>保本判据就一句话</strong>：\(\mathbb{E}[n_{\text{tok}}] &gt; \gamma k + 1\) 才赚。
+    <strong>保本判据就一句话</strong>：\(\mathbb{E}[n_{\text{tok}}] > \gamma k + 1\) 才赚。
     本例 2.7000 &gt; 1.30，赚 2.08 倍。
     <strong>反过来看这题的容错空间有多大</strong>：只要 \(\alpha_1 = 1\)（第一句草稿必被接受），
     即使 \(\alpha_2 = \alpha_3 = 0\)，期望产出也有 \(1 + 1 = 2.0000\)，仍然大于 1.30——
@@ -5037,7 +5037,7 @@ COURSE.register({
   <p>
     <strong>自查方式：不用计算器的夹逼法。</strong>只需验两个整数立方，就能把答案夹在两位小数之内：
   </p>
-  \[ 2.92^{3} = 24.897 &lt; 25, \qquad 2.93^{3} = 25.154 &gt; 25 \]
+  \[ 2.92^{3} = 24.897 < 25, \qquad 2.93^{3} = 25.154 > 25 \]
   <p>
     所以答案落在 2.92 与 2.93 之间；取 2.924 回代，\(2.924^{3} = 25.00\)，成立。
     <strong>第 6 步是必须做的交叉验证</strong>——几何平均与指数还原是同一个式子的两种写法，
@@ -6438,31 +6438,31 @@ COURSE.register({
 
       <li><strong>参数与数据符号化</strong>：
 
-        \\[ N = 15 \\times 10^6, \\qquad D = 10 \\times 10^6 \\]
+        \[ N = 15 \times 10^6, \qquad D = 10 \times 10^6 \]
 
       </li>
 
       <li><strong>套用 6ND 预训练总计算量公理</strong>：
 
-        \\[ C = 6 N D = 6 \\times (1.5 \\times 10^7) \\times (1.0 \\times 10^7) = 9.0 \\times 10^{14} \\text{ FLOPs} \\]
+        \[ C = 6 N D = 6 \times (1.5 \times 10^7) \times (1.0 \times 10^7) = 9.0 \times 10^{14} \text{ FLOPs} \]
 
       </li>
 
       <li><strong>代入单卡 T4 实测有效计算速率</strong>（按 MFU = 30% 保守估计）：
 
-        \\[ R_{\\text{eff}} = 2.0 \\times 10^{13} \\text{ FLOPs/s} \\]
+        \[ R_{\text{eff}} = 2.0 \times 10^{13} \text{ FLOPs/s} \]
 
       </li>
 
       <li><strong>计算物理训练时长 \(t\)</strong>：
 
-        \\[ t = \\frac{C}{R_{\\text{eff}}} = \\frac{9.0 \\times 10^{14}}{2.0 \\times 10^{13}} = 45 \\text{ 秒}！ \\]
+        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \] （极速完成！）
 
       </li>
 
-      <li><strong>若语料扩展到 1 亿 Token（\(100\\text{M}\)）</strong>：
+      <li><strong>若语料扩展到 1 亿 Token（\(100\text{M}\)）</strong>：
 
-        \\[ t_{100M} = 45 \\times 10 = 450 \\text{ 秒} = 7.5 \\text{ 分钟}！ \\]
+        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \] （仅几分钟！）
 
       </li>
 
@@ -9447,7 +9447,7 @@ COURSE.register({
       采样法在线性成本上没有任何折扣。</li>
   <li>换算成钱：把 14.4 M 乘上你的「每百万输出 token 单价」。本课不给价格快照（价格变动快、各家差异大，
       见 <a href="#m11">模块 11</a>），但方案里必须写出这个乘法，而不是「大概会贵一点」。</li>
-  <li>前提修正：如果裁判精度 \(q &lt; 1\)，交付准确率还要乘 \(q\)。此时把预算投到验证器上，
+  <li>前提修正：如果裁判精度 \(q < 1\)，交付准确率还要乘 \(q\)。此时把预算投到验证器上，
       比把 \(n\) 从 6 加到 12 更划算——后者的边际收益已经很小。</li>
 </ol>
 
@@ -9461,9 +9461,9 @@ COURSE.register({
   <thead><tr><th>难度档</th><th>单次成功率 p</th><th>采样 n（目标 95%）</th><th>思考长度上限</th><th>单题输出 token 量级</th></tr></thead>
   <tbody>
     <tr><td>简单</td><td>\(p \ge 0.8\)</td><td>2</td><td>256</td><td>约 0.5k</td></tr>
-    <tr><td>中等</td><td>\(0.4 \le p &lt; 0.8\)</td><td>6</td><td>1,200</td><td>约 7k</td></tr>
-    <tr><td>困难</td><td>\(0.1 \le p &lt; 0.4\)</td><td>9</td><td>4,000</td><td>约 36k</td></tr>
-    <tr><td>极难</td><td>\(p &lt; 0.1\)</td><td>不建议（需 59 次以上）</td><td>8,000</td><td>数百 k，先换模型或拆题</td></tr>
+    <tr><td>中等</td><td>\(0.4 \le p < 0.8\)</td><td>6</td><td>1,200</td><td>约 7k</td></tr>
+    <tr><td>困难</td><td>\(0.1 \le p < 0.4\)</td><td>9</td><td>4,000</td><td>约 36k</td></tr>
+    <tr><td>极难</td><td>\(p < 0.1\)</td><td>不建议（需 59 次以上）</td><td>8,000</td><td>数百 k，先换模型或拆题</td></tr>
   </tbody>
 </table>
 
@@ -9575,7 +9575,7 @@ COURSE.register({
       <td>DSP 规则、阈值算法，或小模型一次前向</td>
     </tr>
     <tr>
-      <td>单次成功率 \(p &lt; 0.05\)</td>
+      <td>单次成功率 \(p < 0.05\)</td>
       <td>采样 64 次仍然全错</td>
       <td>分布里几乎没有正确解，搜索无解可找</td>
       <td>换更大模型、加检索、把题拆小（<a href="#m9">模块 09</a>）</td>
@@ -9751,7 +9751,7 @@ COURSE.register({
   <ol>
     <li>挑 20–30 道你真实会问的音频问题，写进 <code>tasks.jsonl</code>，每题给一个可程序判定的答案。</li>
     <li>跑上面的预算控制器脚本：先测 \(p\)，再抽查反推 \(q\)，最后记下每条正确回答的 token 数。</li>
-    <li>按 7.2 的档位表设长度上限与 \(n\)；如果 \(p &lt; 0.1\)，直接跳到「换模型或拆题」，不要加采样。</li>
+    <li>按 7.2 的档位表设长度上限与 \(n\)；如果 \(p < 0.1\)，直接跳到「换模型或拆题」，不要加采样。</li>
   </ol>
   <p>
     <strong>什么时候绝对不该用：</strong>（1）问题没有可程序验证的答案；（2）产品对延迟敏感；
@@ -13394,9 +13394,9 @@ COURSE.register({
   </p>
   <p><strong>判读规则</strong>（写进报告时照抄）：</p>
   <ul>
-    <li>极差 \(&lt; 0.10\)：对措辞稳健，但这只说明训练数据在这些措辞上一致，不等于它反映了内部状态。</li>
+    <li>极差 (< 0.10)：对措辞稳健，但这只说明训练数据在这些措辞上一致，不等于它反映了内部状态。</li>
     <li>\(0.10 \le\) 极差 \(\le 0.50\)：中度敏感，任何单次回答都不能作为证据。</li>
-    <li>极差 \(&gt; 0.50\)：主要由措辞驱动，可直接作为「自我报告不是内部状态读数」的实证。</li>
+    <li>极差 (> 0.50)：主要由措辞驱动，可直接作为「自我报告不是内部状态读数」的实证。</li>
     <li>符合率接近 100%：顺从倾向（sycophancy）的直接证据（与模块 09 的偏差讨论同源）。</li>
   </ul>
   <p>
@@ -13572,7 +13572,7 @@ COURSE.register({
   <ul class="opts">
     <li>模型有 0.2% 的概率有意识</li>
     <li data-ok>在给定成本假设下，只有当「确有道德地位」的概率低于约 0.2% 时，粗暴策略才更省；阈值对成本取值极敏感，所以它给的是决策结构而不是结论</li>
-    <li>只要 \(P(w{=}1) &gt; 0\)，谨慎策略就一定正确</li>
+    <li>只要 \(P(w{=}1) > 0\)，谨慎策略就一定正确</li>
     <li>因为 \(c_B\) 无法估计，这个计算完全没有价值</li>
   </ul>
   <p class="why">
@@ -22621,8 +22621,8 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>公式</th><th>含义 / 什么时候用</th><th>出处</th><th>常见误用</th></tr></thead>
   <tbody>
-    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{&lt;t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
-    <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{&lt;t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
+    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{<t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
+    <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{<t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
     <tr><td>\(\text{PPL} = e^{\mathcal{L}}\)</td><td>困惑度；跨数据集<strong>不可直接比较</strong></td><td>01</td><td>用不同 tokenizer 的 PPL 比模型</td></tr>
     <tr><td>\(\text{softmax}(z)_i = e^{z_i}/\sum_j e^{z_j}\)</td><td>把 logits 变概率；温度即 \(z/T\)</td><td>01 / 08</td><td>忘了先减去最大值（数值溢出）</td></tr>
     <tr><td>\(\mathrm{Attn} = \mathrm{softmax}\!\big(\tfrac{QK^\top}{\sqrt{d_k}} + M\big)V\)</td><td>注意力；\(M\) 是因果掩码</td><td>03</td><td>漏掉 \(1/\sqrt{d_k}\) 导致 softmax 饱和</td></tr>

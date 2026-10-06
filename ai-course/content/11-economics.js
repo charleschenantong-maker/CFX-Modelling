@@ -218,31 +218,31 @@ COURSE.register({
 
       <li><strong>参数与数据符号化</strong>：
 
-        \\[ N = 15 \\times 10^6, \\qquad D = 10 \\times 10^6 \\]
+        \[ N = 15 \times 10^6, \qquad D = 10 \times 10^6 \]
 
       </li>
 
       <li><strong>套用 6ND 预训练总计算量公理</strong>：
 
-        \\[ C = 6 N D = 6 \\times (1.5 \\times 10^7) \\times (1.0 \\times 10^7) = 9.0 \\times 10^{14} \\text{ FLOPs} \\]
+        \[ C = 6 N D = 6 \times (1.5 \times 10^7) \times (1.0 \times 10^7) = 9.0 \times 10^{14} \text{ FLOPs} \]
 
       </li>
 
       <li><strong>代入单卡 T4 实测有效计算速率</strong>（按 MFU = 30% 保守估计）：
 
-        \\[ R_{\\text{eff}} = 2.0 \\times 10^{13} \\text{ FLOPs/s} \\]
+        \[ R_{\text{eff}} = 2.0 \times 10^{13} \text{ FLOPs/s} \]
 
       </li>
 
       <li><strong>计算物理训练时长 \(t\)</strong>：
 
-        \\[ t = \\frac{C}{R_{\\text{eff}}} = \\frac{9.0 \\times 10^{14}}{2.0 \\times 10^{13}} = 45 \\text{ 秒}！ \\]
+        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \] （极速完成！）
 
       </li>
 
-      <li><strong>若语料扩展到 1 亿 Token（\(100\\text{M}\)）</strong>：
+      <li><strong>若语料扩展到 1 亿 Token（\(100\text{M}\)）</strong>：
 
-        \\[ t_{100M} = 45 \\times 10 = 450 \\text{ 秒} = 7.5 \\text{ 分钟}！ \\]
+        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \] （仅几分钟！）
 
       </li>
 
