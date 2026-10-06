@@ -175,6 +175,29 @@ COURSE.register({
 
 <h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
 <p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答与被拒绝的回答。</p>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>先把四个词对上号（给 DPO 搭一座小桥）</h4>
+  <p>
+    读推导之前，先把四个词用一句话对上号：
+    <strong>监督微调（SFT）</strong>是「照着示范学」——给你提问和理想回答，模型逐词模仿；
+    <strong>偏好对</strong>是「两个回答排个序」——同一个提问下，一个被选中 \((y_w)\)、一个被拒绝 \((y_l)\)；
+    <strong>奖励</strong>就是「这个回答值几分」——可以是人打的分，也可以是程序验出来的对错；
+    <strong>策略更新</strong>是「调概率」——让好回答的生成概率上升、差回答的下降。
+  </p>
+  <p>
+    <strong>一个具体例子</strong>：问「用一句话解释光合作用」。回答 A 准确简洁（被选中），回答 B 编造了细节（被拒绝）。
+    训练前模型给 A 的概率是 \(0.10\)、给 B 的是 \(0.40\)——学偏了。
+    DPO 这一步要做的就是把 A 的概率推上去、把 B 的压下来；第 5 节的小数字手算会一步步算给你看。
+  </p>
+  <p>
+    <strong>为什么 DPO 不用单独训练奖励模型？</strong>一句话：
+    奖励可以改写成「新策略相对参考模型的对数概率比」，而比较两个回答时，两边相同的公共项相减正好抵消——
+    于是偏好对可以直接用一个成对比较损失来更新原来那个负责生成文本的模型，不必先单独拟合一个打分模型。
+    完整的变分推导与对消过程收在下面的可选推导里，第一遍只带走这句直觉就可以往下走。
+  </p>
+</section>
+<div class="acc" data-t="选读·第二遍：DPO 为什么能省掉奖励模型（变分闭式解与配分对消）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>DPO 为什么可以跳过奖励模型</h4>
   <p>RLHF 的目标是最大化奖励同时约束偏离参考模型：</p>
@@ -214,6 +237,8 @@ COURSE.register({
   \(\hat r(x,y) = \beta\log\frac{p_\theta(y|x)}{p_{\text{ref}}(y|x)} + \text{const}\)。
   训练日志里看到的 <code>rewards/chosen</code> 与 <code>rewards/rejected</code> 就是这两个量。
 </p>
+  </div>
+</div>
 
 <h4>4.2 \(\beta\) 在控制什么，以及 DPO 的固有限制</h4>
 <ul>
@@ -246,6 +271,8 @@ COURSE.register({
 
 <h3>5. 草稿纸演算区：DPO 损失函数代数推导与单步手算</h3>
 
+<div class="acc" data-t="选读·第二遍：DPO 损失的严格代数推导（消去配分函数 Z(x)）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 B：DPO 损失函数的严格代数推导（消去配分函数 Z(x)）</h4>
   <p>
@@ -317,6 +344,8 @@ COURSE.register({
     至此，我们用纯粹的代数变换，<strong>彻底消除了独立的奖励模型 \(r(x, y)\) 和 PPO 的在线环境采样循环</strong>！
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 C：极简小数字单步样本手算草稿</h4>
@@ -358,6 +387,12 @@ COURSE.register({
     由此计算当前样本的 DPO 标量损失值：
   </p>
   \[ \mathcal{L}_{\text{DPO}} = -\log \sigma(u) = -\log\left(\frac{1}{3}\right) = \log 3 \approx 1.0986 \]
+  <p>
+    <strong>一步看懂更新方向</strong>：在这个具体例子里 \(\sigma(u)=1/3<1/2\)，成对比较更偏向被拒绝的回答 \(y_l\)，当前样本损失是 \(\log 3 \approx 1.0986\)。注意：一般而言损失非零本身并不是“分类错了”的判据，这里能这样读只是因为本例数字让 \(\sigma(u)\) 落在了 \(1/2\) 以下。
+    直觉上，接下来的一次更新会把 \(y_w\) 的概率推高、把 \(y_l\) 的压低；推力有多大、什么时候停，见下面的可选推导。
+  </p>
+<div class="acc" data-t="选读·第二遍：单步梯度的动力学（推力大小与什么时候停）" data-badge="可选">
+  <div class="acc-body">
   <p><strong>草稿第 4 步：梯度动力学推导（模型如何被推向正确方向）</strong></p>
   <p>
     利用复合求导法则 \(\frac{d}{du}[-\log \sigma(u)] = -(1 - \sigma(u))\)，DPO 损失对策略参数 \(\theta\) 的梯度展开为：
@@ -375,6 +410,8 @@ COURSE.register({
     <strong>动力学直觉：</strong>参数更新以 \(+\frac{1}{3}\) 的梯度动力<strong>强力推高</strong>获胜回答 \(y_w\) 的生成对数概率，同时以 \(-\frac{1}{3}\) 的反向动力<strong>压低</strong>落败回答 \(y_l\) 的生成概率！
     一旦模型学好使得 \(u \gg 0\) 时，\(\sigma(u) \to 1\)，动态权重 \(1 - \sigma(u) \to 0\)，梯度推力平滑归零，杜绝过调。
   </p>
+  </div>
+</div>
 </section>
 
 <h3>6. 台阶四：GRPO 与「可验证奖励」</h3>
@@ -382,12 +419,29 @@ COURSE.register({
   当答案可以被程序检验时（数学题、代码、结构化输出），你不需要人类偏好，只需要一个<strong>验证器</strong>。
   GRPO 的做法是：对同一道题采样一组回答 \(\{y_1,\dots,y_G\}\)，用奖励 \(r_i\) 做组内标准化，得到优势估计
 </p>
-\[ \hat A_i = \frac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)}, \qquad
-\mathcal{L}_{\text{GRPO}} = -\mathbb{E}\Big[\min\big(\rho_i \hat A_i,\ \mathrm{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\hat A_i\big)\Big] + \beta D_{\mathrm{KL}} \]
+\[ \hat A_i = \frac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)} \]
 <p>
-  其中 \(\rho_i = p_\theta(y_i)/p_{\theta_{\text{old}}}(y_i)\) 是重要性比。
+  <strong>操作上就四步</strong>：(1) 对同一道题采样一组回答（比如 \(G = 4\) 个）；
+  (2) 用验证器给每个回答打分（比如答对记 \(1\) 分、答错记 \(0\) 分）；
+  (3) 在组内做标准化得到优势 \(\hat A_i\)——高于平均的为正、低于平均的为负；
+  (4) 把为正的回答的概率推高、为负的压低，同时用裁剪与 KL 约束别让模型一步走太远（完整形式见下面的可选推导）。
+</p>
+<p>
+  <strong>一组小数字</strong>：设 \(4\) 个回答的奖励是 \(r = [1, 1, 0, 0]\)，均值 \(0.5\)；此处教学约定取总体标准差（平方偏差除以 \(G=4\) 再开方），得 \(0.5\)，
+  于是 \(\hat A = [+1, +1, -1, -1]\)——前两个回答会被推高，后两个被压低（这只是本讲的教学约定，不同程序库的默认标准差口径可能不同）。
+  顺带一提：若一组回答得分全相等，方差为零，组内就没有偏好信号，实现上可直接把这组优势记为零或给分母加一个很小的稳定项。
   <strong>组内标准化取代了 critic</strong>——这就是它比 PPO 省一半显存的原因，也是「推理模型」训练的主力算法。
 </p>
+<div class="acc" data-t="选读·第二遍：GRPO 裁剪目标与 KL 项的完整形式" data-badge="可选">
+  <div class="acc-body">
+\[ \mathcal{L}_{\text{GRPO}} = -\mathbb{E}\Big[\min\big(\rho_i \hat A_i,\ \mathrm{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\hat A_i\big)\Big] + \beta D_{\mathrm{KL}} \]
+<p>
+  其中 \(\rho_i = p_\theta(y_i)/p_{\theta_{\text{old}}}(y_i)\) 是重要性比。
+  裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。它并不是给概率本身设硬上限，也不保证参数更新会在阈值处停住；
+  \(\beta D_{\mathrm{KL}}\) 把新策略拴在参考模型附近。
+</p>
+  </div>
+</div>
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>奖励设计才是真正的难点</h4>
   <p>只要奖励可被优化，模型就会优化它——包括你没打算奖励的部分。常见的奖励黑客（reward hacking）：</p>
