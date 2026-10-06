@@ -9,14 +9,14 @@ COURSE.register({
   tags: ["附录", "术语"],
   body: String.raw`
 <p class="lead">
-  这是一张速查表，不是教程：每个词只给「一句话解释」，但解释都指向可检验的事实（形状、公式、默认值、失败模式）。
-  建议用法是「双向查阅」——读正文模块时遇到不熟的词，回到这里定位它属于哪一类；做题或调参时先在这里确认两个词不是同一件事。
+  这是一张速查表，不是教程：每个词只给「一句话解释」，但每条都落在可检验的事实上（形状、公式、默认值、失败模式）。
+  用法是双向查阅：读正文时遇到不熟的词，回这里定位它属于哪一类；做题或调参时先在这里确认两个词不是同一件事。
   最容易被含糊过去的四组是
   <span class="t" data-tterm="Perplexity" data-d="交叉熵取指数，衡量平均候选数，依赖 tokenizer，不能跨模型直接比。">困惑度</span> 与准确率、
   <span class="t" data-tterm="Prefill" data-d="把整段提示一次性并行前向、填充 KV cache 的阶段，算力受限。">预填充</span> 与解码、
   <span class="t" data-tterm="LoRA rank" data-d="低秩更新的秩 r，决定可训练参数量，与学习率是两个独立旋钮。">LoRA 的 rank</span> 与学习率、
   <span class="t" data-tterm="Banked reset" data-d="把未用满的额度存起来、之后继续用；与「到点清零」相对。">即时重置</span> 与银行重置。
-  第 16 节把其中三组逐对列出（预填充与解码的区别见第 3 章注意力与第 8 章推理）。术语按 16 节组织，共 <strong>366 行</strong>（358 条术语 + 8 组易混辨析，其中 72 条是为 14、16–22 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
+  第 16 节把其中三组逐对列出（预填充与解码的区别见第 3 章注意力与第 8 章推理）。术语按 16 节组织，共 <strong>365 行</strong>（357 条术语 + 8 组易混辨析，其中 72 条是为 14、16–22 章与附录 G 补的），可以直接拿去写论文、读文档、和同事对齐口径。
 </p>
 
 <h3>1. 概率与目标函数（Probability and objectives）</h3>
@@ -28,7 +28,7 @@ COURSE.register({
     <tr><td>最大似然</td><td>Maximum likelihood</td><td>选出让训练语料出现概率最大的参数；在样本独立同分布假设下，它与最小化交叉熵是同一个优化问题。</td></tr>
     <tr><td>KL 散度</td><td>Kullback-Leibler divergence</td><td>衡量两个分布差异的非对称量，恒大于等于 0，且对调两个分布后数值不同；交叉熵 = 数据熵 + KL(真实分布 与 模型分布)。</td></tr>
     <tr><td>logits</td><td>Logits</td><td>softmax 之前的未归一化实向量，长度等于词表大小；温度、top-k、top-p 等采样参数都只作用在它上面，不改模型权重。</td></tr>
-    <tr><td>softmax</td><td>Softmax</td><td>逐项取指数再除以总和，把 logits 变成概率分布；它保序，但会放大较大 logit 的差距，因此同一组 logits 加常数不改变输出。</td></tr>
+    <tr><td>softmax</td><td>Softmax</td><td>逐项取指数再除以总和，把 logits 变成概率分布；它保序，但会放大较大 logit 的差距；同一组 logits 整体加一个常数不改变输出。</td></tr>
     <tr><td>温度</td><td>Temperature</td><td>把 logits 除以 T 再做 softmax：T 小于 1 更确定（趋近 argmax），T 大于 1 更随机，T 趋于 0 等价贪心解码。</td></tr>
     <tr><td>熵</td><td>Entropy</td><td>真实数据分布下 -log p 的期望，是交叉熵不可再降的下界；代码与专业术语的熵低于日常闲聊，所以 loss 数值不能跨数据集比较。</td></tr>
     <tr><td>bits/byte</td><td>Bits per byte</td><td>把交叉熵除以 ln 2 换成 bit，再除以每 token 的平均字节数；由于按字节归一，它可以跨 tokenizer 比较，是评测集报告损失的更稳妥刻度。</td></tr>
@@ -74,7 +74,7 @@ COURSE.register({
     <tr><td>ALiBi</td><td>Attention with linear biases</td><td>不加入位置向量，直接在注意力分数上加与距离成正比的负偏置（每个头斜率不同）；外推简单，但长上下文检索通常弱于 RoPE。</td></tr>
     <tr><td>注意力</td><td>Attention</td><td>用查询与键的相似度当权重，对所有 value 做加权平均；它按内容检索而非按位置递推，是 Transformer 可并行的根本原因。</td></tr>
     <tr><td>Q/K/V</td><td>Query, key, value</td><td>同一输入经三个线性投影得到的三组向量；分数矩阵（Q 乘 K 的转置）形状为 T 乘 T，是算力与显存随长度平方增长的来源。</td></tr>
-    <tr><td>缩放点积</td><td>Scaled dot-product attention</td><td>点积注意力除以 sqrt(每个头的维度) 再 softmax；这个缩放让分数方差在维度增大时保持在一附近，避免 softmax 饱和成 one-hot。</td></tr>
+    <tr><td>缩放点积</td><td>Scaled dot-product attention</td><td>点积注意力除以 sqrt(每个头的维度) 再 softmax；这个缩放让分数方差在维度增大时保持在 1 附近，避免 softmax 饱和成 one-hot。</td></tr>
     <tr><td>多头注意力</td><td>Multi-head attention</td><td>把 d 维切成 h 份并行做注意力再拼接；不同头可分工（局部、句法、复制），总参数量与单头大维度版本同量级。</td></tr>
     <tr><td>因果掩码</td><td>Causal mask</td><td>把分数矩阵对角线以上置为负无穷，使位置 t 只能看见不超过 t 的 token；漏掉它会让训练损失异常低而生成完全崩坏。</td></tr>
     <tr><td>KV cache</td><td>KV cache</td><td>推理时缓存历史 key 与 value，避免每生成一个 token 重算整个前缀；显存随长度线性增长，是长上下文部署的首要瓶颈。</td></tr>
@@ -128,7 +128,7 @@ COURSE.register({
     <tr><td>流水线并行</td><td>Pipeline parallelism (PP)</td><td>按层把模型切成若干段放到不同卡，micro-batch 依次流过形成流水线；通信量小，但存在气泡，需要足够多的 micro-batch 填满。</td></tr>
     <tr><td>序列并行</td><td>Sequence parallelism</td><td>再切一个序列维度，用来分摊 LayerNorm、dropout 这类不参与张量并行的激活；长序列训练几乎必需。</td></tr>
     <tr><td>all-reduce</td><td>All-reduce</td><td>每张卡各出一份张量，归约后所有卡得到相同结果（典型用途是求梯度和）；它是数据并行的主要通信，带宽决定扩展效率。</td></tr>
-    <tr><td>重计算</td><td>Activation checkpointing (gradient checkpointing)</td><td>前向只保存少量中间激活，反向时重新算一遍；用约三成额外算力把激活显存从随层数线性降到平方根量级。</td></tr>
+    <tr><td>重计算</td><td>Activation checkpointing (gradient checkpointing)</td><td>前向只保存少量中间激活，反向时重新算一遍；用约三成额外算力把激活显存从随层数线性增长压到平方根量级。</td></tr>
     <tr><td>显存碎片</td><td>Memory fragmentation</td><td>反复申请释放不同尺寸张量，导致空闲显存不连续、总空闲够却申请失败；用预分配缓存池或统一尺寸对齐缓解。</td></tr>
     <tr><td>MFU</td><td>Model FLOPs utilization</td><td>实际吞吐对应的 FLOPs 除以硬件峰值；大模型训练典型值 35% 到 48%，50% 以上属极限调优，是判断是否卡在算力上的第一指标。</td></tr>
     <tr><td>吞吐</td><td>Throughput (tokens/s)</td><td>单位时间处理或生成的 token 数，训练时常按单卡计；它与单请求延迟是两个独立目标，可用批大小互相交换。</td></tr>
@@ -282,7 +282,7 @@ COURSE.register({
     <tr><td>Wilcoxon 符号秩检验</td><td>Wilcoxon signed-rank test</td><td>对配对差值按绝对值排秩再检验的非参数方法；比配对 t 检验更抗离群值，适合小样本或明显偏斜的分布。</td></tr>
     <tr><td>Clever Hans 效应</td><td>Clever Hans effect</td><td>模型利用了与标签相关但无因果的捷径（背景、水印、长度、措辞），换分布即失效；靠分布外测试与反事实扰动检测。</td></tr>
     <tr><td>进步的错觉</td><td>Illusion of progress</td><td>Hand 的论点：复杂模型带来的提升，常能被「更简单的模型 + 更好的特征或更多数据」复现；因此进步必须对照强基线而非只看绝对分数。</td></tr>
-    <tr><td>可复现性</td><td>Reproducibility</td><td>给定相同代码、数据、随机种子与环境能得到相同结果；报告里缺少其中任何一项，读者就无法验证你的结论。</td></tr>
+    <tr><td>可复现性</td><td>Reproducibility</td><td>给定相同代码、数据、随机种子与环境能得到相同结果；报告里缺少其中任何一项，别人就无法验证你的结论。</td></tr>
     <tr><td>预注册</td><td>Preregistration</td><td>在看到数据之前固定假设、主要指标与分析方案；用来区分验证性分析与探索性分析，压缩事后挑结果的空间。</td></tr>
   </tbody>
 </table>
@@ -452,7 +452,6 @@ COURSE.register({
     <tr><td>测试时计算</td><td>Test-time compute</td><td>推理阶段投入更多算力（更长思考、多次采样、搜索）来换正确率。</td></tr>
     <tr><td>pass@k</td><td>Pass at k</td><td>采样 \(k\) 个回答里至少一个正确的概率；单次正确率 \(p\) 时为 \(1-(1-p)^k\)，边际收益递减。</td></tr>
     <tr><td>过程 / 结果奖励</td><td>PRM / ORM</td><td>前者对推理每一步打分，后者只看最终答案；PRM 信号更密但标注成本高。</td></tr>
-    <tr><td>验证器</td><td>Verifier</td><td>自动判定答案对错的程序或模型，是可验证奖励（RLVR）的基础。</td></tr>
     <tr><td>检索增强生成</td><td>RAG</td><td>先从外部资料检索相关内容再生成；解决「缺知识」，不解决「缺行为」。</td></tr>
     <tr><td>切分</td><td>Chunking</td><td>把长文档切成可检索的小块；粒度直接决定召回率与上下文成本。</td></tr>
     <tr><td>稠密 / 稀疏检索</td><td>Dense / sparse retrieval</td><td>前者用向量相似度（语义），后者用词频（如 BM25，精确匹配强）；混合检索常优于单一方法。</td></tr>
@@ -497,7 +496,7 @@ COURSE.register({
     <tr><td>对比学习 / InfoNCE</td><td>Contrastive learning / InfoNCE</td><td>拉近正样本、推远负样本（CLIP 式训练目标），是多模态对齐的基础损失。</td></tr>
   </tbody>
 
-  <!-- 高级章（17–24）与附录 G 新增术语 -->
+  <!-- 高级章（16–22，另有 23–29）与附录 G 新增术语 -->
   <tbody>
     <tr><td>暗知识</td><td>Dark knowledge</td><td>教师分布里「第 2 类比第 3 类更接近」这类类间结构；硬标签 \([1,0,0]\) 完全丢失，只在软标签中保留，温度 \(T>1\) 时更明显。</td></tr>
     <tr><td>特征蒸馏</td><td>Feature distillation</td><td>让学生模仿教师的隐藏状态或注意力矩阵，而不只是输出；要求同架构并配投影层，跨家族时基本不可用。</td></tr>
@@ -562,7 +561,7 @@ COURSE.register({
     <tr><td>损失权重</td><td>Loss weight</td><td>联合损失中回归项的调节系数 \(\lambda\)，初始推荐 0.5；验证集困惑度上升超 5% 时须回调至 0.3 并增补对话数据。</td></tr>
     <tr><td>混合比例</td><td>Instruction mixing ratio</td><td>通用对话样本占总训练样本的比例，1.5B 跨界模型常用 0.2 到 0.4，低于 0.1 则引发灾难性遗忘与泛化退化。</td></tr>
     <tr><td>适配合并</td><td>Adapter merging</td><td>把 LoRA 低秩矩阵按 \(W = W_{0} + \frac{\alpha}{r} B A\) 加回原始基座全精度权重，推理消除额外旁路分支开销。</td></tr>
-    <tr><td>模型导出</td><td>Model export</td><td>将合并后的 PyTorch 模型转换为 GGUF 或 ONNX 格式，Q4 量化后体积约 1 GB，在普通 CPU 上延迟低至百毫秒级。</td></tr>
+    <tr><td>模型导出</td><td>Model export</td><td>将合并后的 PyTorch 模型转换为 GGUF 或 ONNX 格式，Q4 量化后体积约 1 GB，在普通 CPU 上延迟约百毫秒。</td></tr>
     <tr><td>4D 框架</td><td>AI Fluency 4D framework</td><td>把一次人机协作拆成委派、描述、辨识、尽责四个关口；缺任一维的典型症状是流程很顺但没人对结果负责。</td></tr>
     <tr><td>委派</td><td>Delegation</td><td>动手前先划边界：判据、抽样、最终签字不交给模型；委派过度的失败模式是把「决定」也一起交出去。</td></tr>
     <tr><td>描述</td><td>Description</td><td>把需求写到可验收：给输入、输出格式、判据与反例；描述不足的症状是答案看起来对却无法判定对不对。</td></tr>
@@ -593,8 +592,8 @@ COURSE.register({
   <h4><span class="ic">✓</span>与其它附录的分工</h4>
   <p>
     本表负责「这个词是什么意思」；实验步骤与可运行代码在附录 B，论文、课程与工具的清单在附录 C，
-    条款、许可与学术规范的边界在附录 D，模拟试题与答案在附录 E。遇到解释里出现但本表未收录的术语，
-    先按它属于哪一类（概率、架构、系统、对齐、推理、评估、算力、经济、网络、工作流、硬件、合规）定位，再回到对应正文模块。
+    条款、许可与学术规范的边界在附录 D，模拟试题与答案在附录 E。某条解释里如果出现了本表没收录的术语，
+    先按它属于哪一类（概率、架构、系统、对齐、推理、评估、算力、经济、网络、工作流、硬件、合规）定位，再回对应正文模块查。
   </p>
 </section>
 

@@ -9,9 +9,9 @@ COURSE.register({
   tags: ["Kaggle起步", "免费GPU", "Jupyter", "保姆级教程", "云端环境"],
   body: String.raw`
 <p class="lead">
-  要开始真正改造与微调现代大模型，你不需要购买昂贵的数万元专业显卡。
-  <strong>Kaggle</strong>（Google 旗下全球最大的数据科学平台）为全球注册开发者提供<strong>每周 30 小时完全免费的 NVIDIA T4 GPU 算力</strong>（具备 16GB 显存，足以为 15 亿到 70 亿参数模型进行高效微调）。
-  本讲将以<strong>保姆级（Babysitting）的细致度</strong>，手把手带你完成从账号激活、申请免费 GPU、新建第一个云端 Notebook 到敲下第一行交互代码的全流程。
+  要微调现代大模型，不必先买一块几万块的专业显卡。
+  <strong>Kaggle</strong>（Google 旗下的数据科学平台）给注册开发者提供<strong>每周 30 小时免费的 NVIDIA T4 GPU</strong>（16GB 显存，微调 15 亿到 70 亿参数的模型够用）。
+  这一讲按<strong>保姆级（Babysitting）的细致度</strong>，从注册账号、验证手机号、申请免费 GPU，讲到新建 Notebook、敲下第一行代码。
 </p>
 
 <section class="blk blk-tip">
@@ -25,7 +25,7 @@ COURSE.register({
 
 <h3>1. Kaggle 账号注册与免费 GPU 权限解锁</h3>
 <p>
-  许多新手直接注册账号后发现无法开启 GPU 加速器，原因在于<strong>未完成手机号验证</strong>。请严格按照以下步骤操作：
+  很多人注册完账号发现开不了 GPU 加速器，原因是<strong>没做手机号验证</strong>。按下面的步骤走：
 </p>
 
 <div class="flow">
@@ -40,17 +40,17 @@ COURSE.register({
 
 <dl class="kv">
   <dt>第一步：创建账号</dt>
-  <dd>在浏览器打开 <a href="https://www.kaggle.com" target="_blank" rel="noopener">https://www.kaggle.com</a>，点击右上角 <strong>"Register"</strong>。推荐选择 "Register with Google"（一键登录）或使用常用邮箱完成注册。</dd>
+  <dd>在浏览器打开 <a href="https://www.kaggle.com" target="_blank" rel="noopener">https://www.kaggle.com</a>，点右上角 <strong>"Register"</strong>。可以直接选 "Register with Google" 一键登录，也可以拿常用邮箱注册。</dd>
   <dt>第二步：手机号实名短信验证（核心关键步）</dt>
-  <dd>登录后，点击右上角个人头像 → 选择 <strong>"Settings"</strong>（设置）→ 页面向下拉到 <strong>"Phone Verification"</strong>（手机验证）区域 → 点击 "Verify Account" → 选择你所在的国家区号并输入手机号码 → 输入收到的 6 位短信验证码。<strong>一旦验证成功，你的账号将永久解锁每周 30 小时免费 GPU 配额</strong>！</dd>
+  <dd>登录后，点右上角个人头像 → 选 <strong>"Settings"</strong>（设置）→ 页面向下拉到 <strong>"Phone Verification"</strong>（手机验证）区域 → 点 "Verify Account" → 选你所在的国家区号并输入手机号码 → 输入收到的 6 位短信验证码。<strong>验证成功后，账号就永久解锁每周 30 小时免费 GPU 配额</strong>。</dd>
 </dl>
 
 <h3>2. 新建首个云端 Notebook 与必开设置</h3>
 <p>
-  进入 Kaggle 首页，点击左侧导航栏的 <strong>"+ Create"</strong> 按钮，在下拉菜单中点击 <strong>"New Notebook"</strong>。一个崭新的 Jupyter 云端交互式界面将在浏览器中呈现。
+  回到 Kaggle 首页，点左侧导航栏的 <strong>"+ Create"</strong>，在下拉菜单里选 <strong>"New Notebook"</strong>。浏览器里会出现一个 Jupyter 云端界面。
 </p>
 <p>
-  在敲写任何代码之前，<strong>必须首先检查并开启右侧侧边栏（Settings 面板）的三个关键开关</strong>：
+  写代码之前，先把右侧 Settings 面板里的<strong>三个开关</strong>检查一遍：
 </p>
 <table class="tbl">
   <thead><tr><th>设置项（Settings）</th><th>默认值</th><th>必须调整的目标值</th><th>为什么至关重要？</th></tr></thead>
@@ -59,26 +59,26 @@ COURSE.register({
       <td><strong>Accelerator（加速器）</strong></td>
       <td>None（纯 CPU）</td>
       <td><strong>GPU T4 x2 或 GPU T4</strong></td>
-      <td>将计算引擎从孱弱的双核 CPU 切换至专业级 NVIDIA T4 GPU（16GB 独立显存），这是运行与微调大模型的算力源泉。</td>
+      <td>把计算引擎从双核 CPU 换成 NVIDIA T4 GPU（16GB 独立显存），这是后面跑模型、做微调的前提。</td>
     </tr>
     <tr>
       <td><strong>Internet（外网访问权限）</strong></td>
       <td>OFF（关闭）</td>
       <td><strong>ON（开启）</strong></td>
-      <td><strong>初学者最常踩的坑！</strong>若不开启此项，Notebook 将无法从 Hugging Face、GitHub 或 Pip 下载任何模型权重与依赖包。</td>
+      <td><strong>最常踩的坑。</strong>不开这一项，Notebook 就没法从 Hugging Face、GitHub 或 Pip 下载模型权重和依赖包。</td>
     </tr>
     <tr>
       <td><strong>Environment（环境镜像）</strong></td>
       <td>Pin to original</td>
       <td><strong>Always use latest environment</strong></td>
-      <td>确保系统自动预装最新版本的 PyTorch、CUDA 驱动与常用数据科学依赖库。</td>
+      <td>让环境自动带上最新版的 PyTorch、CUDA 驱动和常用的数据科学库。</td>
     </tr>
   </tbody>
 </table>
 
 <h3>3. Kaggle 云端文件系统物理拓扑</h3>
 <p>
-  在编写代码前，必须建立清晰的磁盘物理空间认知：
+  动手写代码前，先把这几个目录的区别搞清楚：
 </p>
 <table class="tbl small">
   <thead><tr><th>目录路径</th><th>访问权限</th><th>生命周期与用途</th></tr></thead>
@@ -86,77 +86,81 @@ COURSE.register({
     <tr>
       <td><code>/kaggle/input/</code></td>
       <td><strong>只读（Read-Only）</strong></td>
-      <td>挂载的数据集或外部模型权重所在路径，严禁尝试在此目录下写入或保存任何文件（会抛出 PermissionError）。</td>
+      <td>挂载的数据集和外部模型权重都在这里，不要往这个目录写文件（会抛 PermissionError）。</td>
     </tr>
     <tr>
       <td><code>/kaggle/working/</code></td>
       <td><strong>可读可写（Read-Write）</strong></td>
-      <td>当前 Notebook 的主工作区。所有微调后的模型权重、生成的日志与图表<strong>必须保存到该目录下</strong>；在右侧面板点击 "Save Version" 后可将该目录打包持久化。</td>
+      <td>当前 Notebook 的主工作区。微调后的权重、日志和图表<strong>都要存到这个目录下</strong>；点右侧面板的 "Save Version" 就会把它打包持久化。</td>
     </tr>
     <tr>
       <td><code>/tmp/</code></td>
       <td>临时可读写</td>
-      <td>系统高速临时盘，容器重启或会话断开后内容立即蒸发，仅用于存储瞬时中间缓存。</td>
+      <td>系统临时盘，容器一重启或会话一断，里面的东西立刻清空，只适合放临时的中间缓存。</td>
     </tr>
   </tbody>
 </table>
 
 <h3>4. 逐行敲下你的第一行交互式测试代码</h3>
 <p>
-  在 Notebook 中新建一个代码单元格（Cell），我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，验证 GPU 的健康状态。
+  在 Notebook 里新建一个代码单元格（Cell）。下面按“<strong>1~2 行代码 + 一段解析</strong>”的节奏，一步步确认 GPU 状态正常。
 </p>
 
 <h4>第一步：通过系统终端命令探测物理显卡</h4>
 
 <pre><code>!nvidia-smi
 </code></pre>
-<p><strong>代码解析</strong>：在 Jupyter 中以感叹号 <code>!</code> 开头表示执行底层的 Linux Shell 终端命令；<code>nvidia-smi</code> 是 NVIDIA 驱动自带的系统管理接口，用于输出当前显卡型号、驱动版本、CUDA 版本以及 16GB 显存的当前空闲状态。</p>
+<p><strong>代码解析</strong>：在 Jupyter 里，以感叹号 <code>!</code> 开头表示执行 Linux Shell 命令；<code>nvidia-smi</code> 是 NVIDIA 驱动自带的工具，会打印显卡型号、驱动版本、CUDA 版本和 16GB 显存当前的占用情况。</p>
 
 <h4>第二步：在 PyTorch 中验证 CUDA 运算环境</h4>
 
 <pre><code>import torch
 print("CUDA 是否可用:", torch.cuda.is_available())
 </code></pre>
-<p><strong>代码解析</strong>：导入核心深度学习框架 <code>torch</code>；调用 <code>torch.cuda.is_available()</code> 检测底层 CUDA 运行时是否已成功与当前 Python 环境握手（正常应输出 <code>True</code>）。</p>
+<p><strong>代码解析</strong>：导入 <code>torch</code>；用 <code>torch.cuda.is_available()</code> 看当前 Python 环境能不能连上 CUDA 运行时（正常输出 <code>True</code>）。</p>
 
 <pre><code>device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("当前默认计算设备:", torch.cuda.get_device_name(0))
+print("当前默认计算设备:", device)
+if device.type == "cuda":
+    print("0 号 GPU 型号:", torch.cuda.get_device_name(0))
+else:
+    print("没有可用的 GPU，本次只在 CPU 上跑通流程")
 </code></pre>
-<p><strong>代码解析</strong>：构建动态设备对象 <code>device</code>（优先使用 <code>cuda</code>）；调用 <code>get_device_name(0)</code> 打印 0 号 GPU 的物理名称（正常输出类似 <code>Tesla T4</code>）。</p>
+<p><strong>代码解析</strong>：第一行构建设备对象 <code>device</code>：能上 CUDA 就用 <code>cuda</code>，否则退回 <code>cpu</code>。后面几行按设备类型分别打印：有 GPU 就报出 0 号卡的型号（T4 上会看到 <code>Tesla T4</code>），没有就直说这次在 CPU 上跑。这样写两种环境下都不会报错——如果把 <code>get_device_name(0)</code> 直接写在外面，在没有 GPU 的机器上会当场抛异常。</p>
 
 <h4>第三步：执行张量矩阵运算基准测试（GPU Warmup）</h4>
 
 <pre><code>x = torch.randn(4096, 4096, device=device)
 y = torch.randn(4096, 4096, device=device)
 </code></pre>
-<p><strong>代码解析</strong>：直接在 GPU 显存上生成两个 \(4096 \times 4096\) 的单精度（FP32）随机矩阵，每个张量占用约 64MB 显存。</p>
+<p><strong>代码解析</strong>：在 GPU 显存上直接生成两个 \(4096 \times 4096\) 的单精度（FP32）随机矩阵，每个占约 64MB 显存。</p>
 
 <pre><code>start_event = torch.cuda.Event(enable_timing=True)
 end_event = torch.cuda.Event(enable_timing=True)
 </code></pre>
-<p><strong>代码解析</strong>：创建两个带时间记录功能的 CUDA 硬件事件对象，用于精确测量 GPU 内核执行的物理耗时（毫秒级）。</p>
+<p><strong>代码解析</strong>：创建两个带计时功能的 CUDA 事件对象，用来测 GPU 内核的真实耗时（毫秒级）。</p>
 
 <pre><code>start_event.record()
 z = torch.matmul(x, y)
 end_event.record()
 </code></pre>
-<p><strong>代码解析</strong>：记录起点时间，调用底层高度优化的 cuBLAS 矩阵乘法算子执行 \(O(N^3)\) 级运算，并在计算图末尾记录终点时间。</p>
+<p><strong>代码解析</strong>：记录起点，调用 cuBLAS 的矩阵乘法算子做 \(O(N^3)\) 量级的运算，再记录终点。</p>
 
 <pre><code>torch.cuda.synchronize()
 print(f"4096阶稠密矩阵乘法物理耗时: {start_event.elapsed_time(end_event):.2f} ms")
 </code></pre>
-<p><strong>代码解析</strong>：调用 <code>synchronize()</code> 阻塞等待异步流运算执行完毕；打印两点之间的精确物理用时（在 T4 上通常只需几毫秒，比 CPU 快 50 倍以上）。</p>
+<p><strong>代码解析</strong>：用 <code>synchronize()</code> 等异步流里的运算全部结束，再打印两个事件之间的真实耗时（T4 上通常只要几毫秒，比 CPU 快 50 倍以上）。</p>
 
 <h4>第四步：检查显存占用与释放</h4>
 
 <pre><code>allocated_mb = torch.cuda.memory_allocated() / (1024 ** 2)
 print(f"当前已占用显存: {allocated_mb:.1f} MB / 16384 MB")
 </code></pre>
-<p><strong>代码解析</strong>：调用 <code>memory_allocated()</code> 查看当前 Python 进程真实持有的活动张量显存，验证显存监控机制运行正常。</p>
+<p><strong>代码解析</strong>：用 <code>memory_allocated()</code> 看当前进程实际占用的显存，确认显存监控能正常工作。</p>
 
 <h3>5. 🧪 模块完整整合代码清单（Complete Notebook Cell）</h3>
 <p>
-  你可以将下面整段代码直接复制到 Kaggle Notebook 的第一个单元格中，按下 <strong>Shift + Enter</strong> 组合键一键运行验证：
+  把下面整段代码复制到 Kaggle Notebook 的第一个单元格里，按 <strong>Shift + Enter</strong> 运行：
 </p>
 
 <pre><code># =====================================================================

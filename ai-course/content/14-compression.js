@@ -9,7 +9,7 @@ COURSE.register({
   tags: ["高阶", "部署", "实用"],
   body: String.raw`
 <p class="lead">
-  一个 8B 模型，fp16 权重就要 16 GB；换成 4-bit，同样的模型只要 4 GB。中间这 12 GB 是怎么省出来的？
+  一个 8B 模型，fp16 权重就要 16 GB；换成 4-bit，纸面上只要 4 GB（真实格式到不了这个数，见 7.1）。中间这 12 GB 是怎么省出来的？
   把权重扔掉一半（剪枝）、把每个数写短一点（量化）、把两个矩阵合一个矮的（低秩）、
   把多个微调模型揉成一个（合并）——这四条路压的<strong>根本不是同一个东西</strong>。
   这一模块要做的，是把「参数账 / 显存账 / 算力账 / 延迟账」四本账彻底分开算清楚。
@@ -88,7 +88,7 @@ COURSE.register({
       <td>训练时就约束稀疏模式，让模型在约束下收敛</td>
     </tr>
     <tr>
-      <td>蒸馏<br />（模块 17）</td>
+      <td>蒸馏<br />（模块 16）</td>
       <td>模型本身的规模</td>
       <td>显存 ↓、算力 ↓、延迟 ↓</td>
       <td>是（要训学生）</td>
@@ -226,7 +226,7 @@ COURSE.register({
 <h3>4. 数学内核：手算一次剪枝的四本账</h3>
 <p>
   设一个 \(L = 32\)、\(d = 4096\)、\(d_{ff} = 14336\) 的模型（量级对应 Llama-3-8B，见模块 04）。
-  我们只对 FFN 做剪枝，保留率 \(r = 0.5\)。
+  这里只对 FFN 做剪枝，保留率 \(r = 0.5\)。
 </p>
 <p><strong>第一本账：参数量。</strong>单层 FFN 的参数（SwiGLU 的三个矩阵）是</p>
 \[ N_{\text{ffn}} = 3\,d\,d_{ff} = 3 \times 4096 \times 14336 \approx 1.762 \times 10^{8} \]
@@ -350,7 +350,7 @@ COURSE.register({
   以 gemma3-12b-it 为例：bf16 基线的 wikitext 困惑度是 9.1477，
   直接 int4 之后升到 9.7745，加上 int4 QAT 回到 9.5631——
   也就是把差距<strong>恢复了约 34%</strong>；同一个模型在 bbh 上恢复约 45%。
-  数字不大，但方向非常一致：<em>QAT 是「把 PTQ 掉的分捡回来一部分」，不是免费的午餐。</em>
+  数字不大，但方向很一致：<em>QAT 是「把 PTQ 掉的分捡回来一部分」，不是免费的午餐。</em>
 </p>
 <p>
   <strong>一个必须记住的术语陷阱</strong>：QLoRA 不是 QAT。
@@ -366,8 +366,8 @@ COURSE.register({
 
 <h3>5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护</h3>
 <p>
-  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（四舍五入最近取整）往往导致显著的累积精度崩塌。
-  为了在 4-bit 甚至更低位宽下保留模型的推理能力，我们需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>两个截然不同的几何视角进行代数推演。
+  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（就近取整）会让量化误差逐步累积，精度掉得很快。
+  为了在 4-bit 甚至更低位宽下保住模型的推理能力，需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>这两个几何视角做代数推演。
 </p>
 
 <section class="blk blk-m">
@@ -381,7 +381,7 @@ COURSE.register({
       <strong>对称量化（Symmetric Quantization）：</strong>
       强行令零点对齐 \(z = 0\)，取绝对值极值截断 \(w_{\text{abs}} = \max(|w|)\)。缩放因子与整数量化公式为：
       \[ s = \frac{w_{\text{abs}}}{2^{b-1} - 1}, \qquad q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil, -(2^{b-1} - 1), 2^{b-1} - 1\right) \]
-      反量化重构值为 \(\hat{w} = s \cdot q\)。其优势在于硬件无需处理非零零点偏移（Zero-point shift），矩阵乘计算极快。
+      反量化重构值为 \(\hat{w} = s \cdot q\)。好处是硬件不用处理非零的零点偏移（Zero-point shift），矩阵乘也更快。
     </li>
     <li>
       <strong>非对称量化（Asymmetric Quantization）：</strong>
@@ -399,7 +399,7 @@ COURSE.register({
   <p>
     其中 \(H = \nabla^2 \mathcal{L}(w^*) \in \mathbb{R}^{d \times d}\) 为实对称半正定 Hessian 矩阵。
     在现代大语言模型的层级重构目标中，损失定义为校准数据集上该层输出特征的均方重构误差 \(\mathcal{L} = \|X w - X \hat{w}\|_2^2\)。
-    展开此二次型可知，Hessian 矩阵具有极其干净的代数形式：
+    展开这个二次型，Hessian 矩阵的形式很干净：
   </p>
   \[ H = 2 X^{\top} X \]
   <p>
@@ -463,7 +463,7 @@ COURSE.register({
     <strong>极简小数字手算草稿：2×2 矩阵下的量化误差动态补偿</strong>
   </p>
   <p>
-    现在带 Charles 在草稿纸上代入一组精简至极的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
+    现在带 Charles 在草稿纸上代入一组很小的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
   </p>
   <p>
     设层有两个输入通道，权重向量为 \(w = [w_1, w_2]^{\top} = [1.6, 1.0]^{\top}\)。
@@ -496,13 +496,13 @@ COURSE.register({
   </p>
   \[ w_{\text{new}} = w + \Delta w = \begin{bmatrix} 1.6 \\ 1.0 \end{bmatrix} + \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 0.8 \end{bmatrix} \]
   <ul>
-    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，精确达到了量化整数点！</li>
-    <li>对未量化分量 \(w_2\)：由于相关性 \([H^{-1}]_{21} = -1/3 < 0\)，\(w_2\) 自动从 \(1.0\) 调小至 \(0.8\)，补偿了 \(w_1\) 向上取整带来的输出过高！</li>
+    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，正好落在量化整数点上；</li>
+    <li>对未量化分量 \(w_2\)：相关性 \([H^{-1}]_{21} = -1/3 < 0\)，于是 \(w_2\) 自动从 \(1.0\) 调到 \(0.8\)，补掉了 \(w_1\) 向上取整带来的输出过高。</li>
   </ul>
   <p>
     <strong>反思草稿：若 \(H\) 为纯对角矩阵（无特征交叉项）？</strong>
     若 \(H = \mathrm{diag}(2, 2)\)，则 \(H^{-1} = \mathrm{diag}(1/2, 1/2)\)，此时 \([H^{-1}]_{:, 1} = [1/2, 0]^{\top}\)，未量化列的补偿量恒为 0。
-    这证明了 GPTQ 的灵魂本质：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>！
+    这就是 GPTQ 的关键：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>。
   </p>
 </section>
   </div>
@@ -512,8 +512,8 @@ COURSE.register({
   <h4><span class="ic">∑</span>草稿纸演算区 C：AWQ 激活感知保护敏感通道手算实例</h4>
   <p>
     GPTQ 依赖高精度的二阶逆矩阵逐步补偿，但逐层求逆与更新在大模型数十亿参数下计算开销大，且容易受数值舍入误差累积影响。
-    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）给出了另一个极其轻量而深邃的洞察：
-    <strong>权重的重要性并不取决于权重自身的大小，而是取决于它所作用的输入激活特征（Activation）的强度！</strong>
+    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）换了个角度，得到一个很轻但很关键的结论：
+    <strong>权重的重要性不取决于权重自身的大小，而取决于它作用的输入激活特征（Activation）有多强。</strong>
   </p>
   <p>
     <strong>前置推导（通道等价等比变换技巧）：</strong>
@@ -522,7 +522,7 @@ COURSE.register({
   </p>
   \[ Y = X W = (X S^{-1}) (S W) = \tilde{X} \tilde{W} \]
   <p>
-    在保持数学恒等变换的前提下，我们将权重放大为 \(\tilde{W} = S W\)，而将输入激活缩放为 \(\tilde{X} = X S^{-1}\)。
+    这是一个恒等变换：权重放大成 \(\tilde{W} = S W\)，输入激活缩放成 \(\tilde{X} = X S^{-1}\)。
     当把量化算子作用在放大后的权重上时：
   </p>
   \[ \hat{W} = S^{-1} \cdot \mathrm{quant}(S W) \]
@@ -532,10 +532,10 @@ COURSE.register({
   </p>
   \[ |\hat{W}_{ij} - W_{ij}| \le \frac{\Delta_{\text{grid}}}{2 s_i} \]
   <p>
-    <strong>极简小数字草稿纸手算：离群通道的保护魔力</strong>
+    <strong>小数字手算：离群通道为什么值得保护</strong>
   </p>
   <p>
-    我们在草稿纸上模拟一个典型的 LLM 特征通道场景：模型存在一个极端离群（Outlier）激活通道。
+    在草稿纸上模拟一个典型的 LLM 特征通道场景：模型里有一个极端离群（Outlier）激活通道。
   </p>
   <p>
     设单样本两通道输入向量为 \(x = [x_1, x_2] = [100.0, 1.0]\)（通道 1 激活绝对值高达 100，通道 2 仅为 1）。
@@ -544,11 +544,11 @@ COURSE.register({
   </p>
   \[ y = x_1 w_1 + x_2 w_2 = 100.0 \times 1.24 + 1.0 \times 1.24 = 124.0 + 1.24 = 125.24 \]
   <p>
-    <strong>情况一：朴素直接逐权重整数四舍五入量化（无 AWQ 保护）</strong>
+    <strong>情况一：朴素地逐权重取整（无 AWQ 保护）</strong>
   </p>
   <p>
     网格步长取 1，两通道权重均四舍五入到整数：\(\mathrm{quant}(w_1) = 1.0\)，\(\mathrm{quant}(w_2) = 1.0\)。
-    两通道的权重截断误差均为相同的小数点后截断：\(\delta = 1.24 - 1.0 = 0.24\)。
+    两个通道的截断误差相同：\(\delta = 1.24 - 1.0 = 0.24\)。
     此时输出端计算值变为：
   </p>
   \[ \hat{y}_{\text{naive}} = 100.0 \times 1.0 + 1.0 \times 1.0 = 100.0 + 1.0 = 101.0 \]
@@ -557,7 +557,7 @@ COURSE.register({
   </p>
   \[ |\hat{y}_{\text{naive}} - y| = |101.0 - 125.24| = 24.24 \]
   <p>
-    观察发现：<strong>99.6% 的输出灾难性漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起！</strong>
+    注意：<strong>99.0% 的输出漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起</strong>。
   </p>
   <p>
     <strong>情况二：采用 AWQ 通道自适应保护缩放</strong>
@@ -582,9 +582,9 @@ COURSE.register({
   </p>
   \[ |\hat{y}_{\text{awq}} - y| = |126.0 - 125.24| = 0.76 \]
   <p>
-    误差从 <strong>24.24 骤降至 0.76</strong>，精度损失被遏制了整整 97%！
-    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接与前一层的归一化算子（如 LayerNorm / RMSNorm）权重常数折叠融合（Weight folding），
-    在推理运行时<strong>完全不引入任何额外的浮点运算延迟</strong>！
+    误差从 <strong>24.24 降到 0.76</strong>，损失压掉了 97%。
+    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接折进前一层的归一化算子（如 LayerNorm / RMSNorm）权重里（Weight folding），
+    推理时<strong>不引入任何额外的浮点运算延迟</strong>。
   </p>
 </section>
 
@@ -601,7 +601,7 @@ COURSE.register({
 <h4>6.1 权重平均与「模型汤」</h4>
 \[ \theta_{\text{soup}} = \frac{1}{K}\sum_{k=1}^{K}\theta_k \]
 <p>
-  前提非常强：所有 \(\theta_k\) 必须从<strong>同一个预训练权重</strong>出发，
+  前提很强：所有 \(\theta_k\) 必须从<strong>同一个预训练权重</strong>出发，
   用不同的超参（学习率、数据顺序、增强方式）微调得到。
   Wortsman 等（ICML 2022）证明这种平均经常能超过超参搜索里最好的单个模型，
   而推理时只有一个模型、零额外开销——所以作者叫它
@@ -747,7 +747,7 @@ COURSE.register({
 <h3>7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）</h3>
 <p>
   第 4 节只算了 FFN 那一块。这一节换成一个完整模型，把<strong>权重账、KV 账、延迟账</strong>分成三本分别算，
-  每一步都留中间结果，读者可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
+  每一步都留了中间结果，你可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
 </p>
 <table class="tbl small">
   <thead><tr><th>符号</th><th>取值</th><th>它出现在哪本账里</th></tr></thead>
@@ -1143,7 +1143,7 @@ COURSE.register({
   <p class="why">
     PTQ 用校准数据估计缩放与零点，成本低；QAT 在前向插入伪量化、用直通估计器回传梯度，
     需要完整训练流程，收益是「捡回一部分」而不是「全部」
-    （torchao 实测约 33%–67%）。QLoRA 量化的是<em>冻结</em>的基座，
+    （本讲引用的 torchao 实测：wikitext 约 34%、bbh 约 45%）。QLoRA 量化的是<em>冻结</em>的基座，
     训练的是浮点 LoRA，与 QAT 不是一回事。
   </p>
 </div>
@@ -1243,7 +1243,7 @@ COURSE.register({
     \[ L(\theta_{\text{pre}} + \bar{\delta}) \approx L(\theta_{\text{pre}}) + \nabla L^{\top}\bar{\delta} \]
     <p>
       因为每个 \(\theta_k\) 都大致在极小点附近，\(\nabla L(\theta_k) \approx 0\)，
-      所以平均后的梯度项很小，损失不会显著上升。
+      所以平均后的梯度项很小，损失不会明显上升。
       <em>这就是「权重平均 ≈ logit 集成」的成立条件</em>，
       而它依赖两件事：损失面的平坦度，以及预测的置信度。
       Wortsman 等给出了这个关系的解析分析并做了实验验证。

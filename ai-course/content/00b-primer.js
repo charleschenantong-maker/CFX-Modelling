@@ -25,8 +25,8 @@ COURSE.register({
     <tr><td>输入一句话</td><td>文本被切成序号</td><td>02 · Tokenization</td><td>上下文长度和费用由序号个数决定</td></tr>
     <tr><td>模型读上下文</td><td>序号变成向量，经过层层计算</td><td>03–04 · Attention / Transformer</td><td>哪些信息能互相读取，显存花在哪里</td></tr>
     <tr><td>模型给出候选</td><td>打分变成下一个词的可能性大小</td><td>01 / 08 · Probability / Inference</td><td>温度、取样方式为什么改变回答风格</td></tr>
-    <tr><td>模型继续写</td><td>把新词接回上下文，循环直到停止</td><td>08 / 20 · Serving / Agents</td><td>延迟、缓存、工具调用和失败重试</td></tr>
-    <tr><td>判断是否真的变好</td><td>用固定任务集和指标比较输出</td><td>09 / 21 · Evaluation / Safety</td><td>不能只看模型自己说完成了</td></tr>
+    <tr><td>模型继续写</td><td>把新词接回上下文，循环直到停止</td><td>08 / 19 · Serving / Agents</td><td>延迟、缓存、工具调用和失败重试</td></tr>
+    <tr><td>判断是否真的变好</td><td>用固定任务集和指标比较输出</td><td>09 / 20 · Evaluation / Safety</td><td>不能只看模型自己说完成了</td></tr>
   </tbody>
 </table>
 <section class="blk blk-tip">

@@ -20,13 +20,13 @@ COURSE.register({
 
 <p class="lead">
 
-  严肃的深度学习科研与底座自训<strong>从不依赖商业账单或各种付费订阅作为衡量尺度</strong>，
+  判断一次预训练的开销，不看商业账单，也不看付费订阅，
 
   而是严格以<strong>浮点计算量（FLOPs）、有效利用率（MFU）与计算规模法则（Scaling Laws）</strong>作为第一性原理。
 
-  本模块带你手算著名的 \(6ND\) 预训练计算量公理与 Chinchilla 最优数据-参数配比，
+  这一节先手算 \(6ND\) 这条预训练计算量公式，再看 Chinchilla 的最优数据-参数配比，
 
-  并在草稿纸上精确推演：<strong>单张免费云端 T4 GPU 训通一个 miniGPT 处理千万级 Token 究竟只需要几十秒。</strong>
+  再在草稿纸上推一遍：<strong>单张免费云端 T4 训一个 miniGPT 处理千万级 Token，只要几十秒。</strong>
 
 </p>
 
@@ -34,13 +34,13 @@ COURSE.register({
 
 <section class="blk blk-q">
 
-  <h4><span class="ic">◆</span>核心问题：为什么模型绝不是「越大越好」？</h4>
+  <h4><span class="ic">◆</span>核心问题：为什么参数不是越大越好？</h4>
 
   <p>
 
-    许多初学者常有一个误区，以为自训模型必须追求几百亿参数，结果因为算力不足，模型还没跑几个 step 就被迫停机，损失甚至没来得及下降。
+    一个常见的误区是：以为自训模型必须堆到几百亿参数。算力不够，模型没跑几个 step 就被迫停机，损失还没开始下降。
 
-    现代大模型理论早已证明：<strong>在有限的算力预算下，盲目把参数做大只会导致灾难性的欠拟合；训练一个参数适中、但被充分训练的小模型，效果远胜于空有骨架的大模型。</strong>
+    规模法则给出的结论正好相反：<strong>算力预算固定时，把参数做大只会欠拟合；参数适中、数据喂饱的小模型，效果通常好过参数很大但没训够的模型。</strong>
 
   </p>
 
@@ -52,7 +52,7 @@ COURSE.register({
 
 <p>
 
-  为了在不同显卡架构与不同模型之间公平比较算力开销，学术界统一使用 <strong>FLOPs（Floating Point Operations，浮点运算次数）</strong>：
+  要在不同显卡、不同模型之间比算力开销，得先把单位统一，用的是 <strong>FLOPs（Floating Point Operations，浮点运算次数）</strong>：
 
 </p>
 
@@ -60,17 +60,17 @@ COURSE.register({
 
   <li><strong>1 次浮点乘加（MAC, Multiply-Accumulate）</strong>：计算机执行一次形如 \(a \times b + c\) 的运算，计为 <strong>2 个 FLOPs</strong>（一次乘法 + 一次加法）。</li>
 
-  <li><strong>硬件标称峰值算力</strong>：显卡厂商在极端理想条件下测得的理论最大计算速率。例如 Nvidia T4 单卡在半精度（FP16）张量核心下的理论峰值约为 <strong>65 TFLOPs</strong>（即 \(65 \times 10^{12}\) FLOPs/s）。</li>
+  <li><strong>硬件标称峰值算力</strong>：显卡厂商在理想条件下测得的理论最大计算速率。Nvidia T4 单卡跑半精度（FP16）张量核心时，理论峰值约 <strong>65 TFLOPs</strong>（即 \(65 \times 10^{12}\) FLOPs/s）。</li>
 
   <li><strong>模型算力利用率（MFU, Model FLOPs Utilization）</strong>：
 
-    在实际模型训练中，GPU 不可能 100% 满负荷打满矩阵乘法，它还需要从显存搬运张量、执行非线性激活函数与通信同步。
+    实际训练时，GPU 不可能一直 100% 满负荷做矩阵乘法，它还要从显存搬运张量、算激活函数、做通信同步。
 
-    实测训练有效算力与硬件理论峰值的比值即为 MFU：
+    实测的有效算力与硬件理论峰值的比值，就是 MFU：
 
     \[ \mathrm{MFU} = \frac{\text{FLOPs}_{\text{observed}}}{\text{FLOPs}_{\text{peak}}} \]
 
-    在未深度优化的 PyTorch 训练脚本中，单卡 T4 的 MFU 通常约为 <strong>\(25\% \sim 35\%\)</strong>。按 \(30\%\) 折算，T4 的真实持续有效计算吞吐约为：
+    没做过深度优化的 PyTorch 脚本里，单卡 T4 的 MFU 一般在 <strong>\(25\% \sim 35\%\)</strong>。按 \(30\%\) 折算，T4 能持续跑出来的有效吞吐约为：
 
     \[ R_{\text{eff}} \approx 65 \times 10^{12} \times 0.30 \approx 2.0 \times 10^{13} \text{ FLOPs/s} \quad (20\text{ TFLOPs}) \]
 
@@ -84,11 +84,11 @@ COURSE.register({
 
 <p>
 
-  设模型的可学习非嵌入参数量为 \(N\)，训练语料的总 Token 数量为 \(D\)。整个预训练过程的总浮点运算量恒满足：
+  设模型的可学习非嵌入参数量为 \(N\)，训练语料的总 Token 数量为 \(D\)。整个预训练过程的总浮点运算量满足：
 
   \[ C \approx 6 N D \]
 
-  这个经典公式背后的微积分与线性代数机制非常优美，严格对齐 A-Level Further Maths 的导数与矩阵乘法：
+  推导只用到链式法则和矩阵乘法，拆开就是下面三步：
 
 </p>
 
@@ -136,7 +136,7 @@ COURSE.register({
 
       </ul>
 
-      因此，反向传播必须执行两次与前向规模完全相等的 GEMM 矩阵乘法，其计算量严格为前向的 <strong>2 倍</strong>：
+      所以反向传播要做两次与前向同等规模的 GEMM 矩阵乘法，计算量正好是前向的 <strong>2 倍</strong>：
 
       \[ C_{\text{backward}} = 4 N D \]
 
@@ -176,7 +176,7 @@ COURSE.register({
 
       <td>\(N \propto C^{0.73}, \quad D \propto C^{0.27}\)</td>
 
-      <td>催生了 GPT-3 等一大批模型，但后来被证实严重缺乏数据、处于欠拟合状态</td>
+      <td>催生了 GPT-3 等一批模型；后来发现这些模型数据量明显不够，处于欠拟合状态</td>
 
     </tr>
 
@@ -184,11 +184,11 @@ COURSE.register({
 
       <td><strong>Chinchilla 法则（DeepMind 2022）</strong></td>
 
-      <td>基于变分优化严格推导，两者的幂律系数基本相等</td>
+      <td>按变分优化推导，两个幂律指数基本相等</td>
 
       <td><strong>\(N \propto C^{0.5}, \quad D \propto C^{0.5}\)（即 \(D \approx 20 N\)）</strong></td>
 
-      <td><strong>现代大模型的黄金公理</strong>：LLaMA、Qwen 等开源基座均大幅增加训练 Token 数量</td>
+      <td><strong>现在的主流做法</strong>：LLaMA、Qwen 等开源基座都把训练 Token 数量加了很多</td>
 
     </tr>
 
@@ -198,11 +198,11 @@ COURSE.register({
 
 <p>
 
-  <strong>对高中自学与单卡实验的巨大价值</strong>：<br/>
+  <strong>这条法则对单卡实验意味着什么</strong>：<br/>
 
-  根据 \(D \approx 20N\)，如果你想要训练一个 <strong>15M 参数</strong> 的迷你 GPT 模型，最优的数据规模仅需约 \(15\text{M} \times 20 = 300\text{M}\) Token；
+  按 \(D \approx 20N\)，训一个 <strong>15M 参数</strong> 的迷你 GPT，最优数据量约 \(15\text{M} \times 20 = 300\text{M}\) Token；
 
-  即使是进行验证性训练，使用 <strong>10M ~ 30M Token</strong>（约几本纯文本开源小书或精选中文维基百科子集），模型就能以极快速度收敛并展现出连贯的语言组织能力。
+  就算只做验证性训练，喂 <strong>10M ~ 30M Token</strong>（几本纯文本开源小书，或一份精选中文维基子集），模型也能很快收敛，写出连贯的句子。
 
 </p>
 
@@ -212,7 +212,7 @@ COURSE.register({
 
   <div class="acc-body">
 
-    <p><strong>题目背景</strong>：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。现在拿出草稿纸，动手计算训练一个 15M 参数的 miniGPT 模型处理 1000 万 Token（\(10\text{M}\)）所需的物理秒数：</p>
+    <p><strong>题目背景</strong>：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。下面拿草稿纸算一下：训练一个 15M 参数的 miniGPT、处理 1000 万 Token（\(10\text{M}\)），物理上要花多少秒。</p>
 
     <ol>
 
@@ -228,7 +228,7 @@ COURSE.register({
 
       </li>
 
-      <li><strong>代入单卡 T4 实测有效计算速率</strong>（按 MFU = 30% 保守估计）：
+      <li><strong>代入单卡 T4 的实测有效算力</strong>（按 MFU = 30% 保守估计）：
 
         \[ R_{\text{eff}} = 2.0 \times 10^{13} \text{ FLOPs/s} \]
 
@@ -236,19 +236,19 @@ COURSE.register({
 
       <li><strong>计算物理训练时长 \(t\)</strong>：
 
-        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \] （极速完成！）
+        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \]
 
       </li>
 
       <li><strong>若语料扩展到 1 亿 Token（\(100\text{M}\)）</strong>：
 
-        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \] （仅几分钟！）
+        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \]
 
       </li>
 
     </ol>
 
-    <p><em>复盘收获</em>：不到 8 分钟，就能在完全免费的云端 T4 上完整跑完 1 亿 Token 的训练流程，亲眼看到 Cross-Entropy Loss 从初始无序的 \(\\ln |\\mathcal{V}| \\approx 9.21\) 平稳下降到 3.0 以下！自训小模型不需要花费任何费用，底层的物理定律完全由你掌控。</p>
+    <p><em>复盘收获</em>：不到 8 分钟，1 亿 Token 的训练就能在免费的云端 T4 上跑完一轮。Cross-Entropy Loss 会从随机猜测时的水平 \( \ln |\mathcal{V}| \approx 9.21 \) 一路降到 3.0 以下，整个过程不花一分钱，耗时也能自己先算出来。</p>
 
   </div>
 
@@ -324,7 +324,7 @@ COURSE.register({
 
       <td>约 5.5 GB</td>
 
-      <td>工业级端到端微调并导出为本地免显卡极速 GGUF</td>
+      <td>端到端微调一次，导出成本地可离线运行的 GGUF</td>
 
     </tr>
 
@@ -344,7 +344,7 @@ COURSE.register({
 
     <li>因为反向传播必须执行两次前向传播验证</li>
 
-    <li data-ok>根据链式法则，反向求导对于每个矩阵乘法必须分别计算对激活值的偏导（向上传递）和对权重的偏导（更新参数），各需一次等规模的 GEMM 操作</li>
+    <li data-ok>根据链式法则，反向求导对每个矩阵乘法都要分别算对激活值的偏导（继续往上回传）和对权重的偏导（拿去更新参数），各是一次等规模的 GEMM</li>
 
     <li>因为优化器维护一阶与二阶动量</li>
 
@@ -382,7 +382,7 @@ COURSE.register({
 
   <p class="why">
 
-    Chinchilla 定律指明最优训练配比为 \(D \approx 20N\)。对于 \(N = 10\text{M}\) 的模型，最佳语料量为 \(10\text{M} \times 20 = 200\text{M}\) Token。盲目加大参数量只会导致模型欠拟合。
+    Chinchilla 定律指明最优训练配比为 \(D \approx 20N\)。对于 \(N = 10\text{M}\) 的模型，最佳语料量为 \(10\text{M} \times 20 = 200\text{M}\) Token。参数量加上去而数据没跟上，只会欠拟合。
 
   </p>
 
@@ -410,7 +410,7 @@ COURSE.register({
 
   <p class="why">
 
-    \(\mathrm{MFU} = \frac{30\text{ TFLOPs}}{100\text{ TFLOPs}} = 30\%\)。这是衡量分布式与单卡训练系统工程优化效率的核心指标。
+    \(\mathrm{MFU} = \frac{30\text{ TFLOPs}}{100\text{ TFLOPs}} = 30\%\)。它直接反映训练脚本把硬件榨到了几成。
 
   </p>
 
@@ -436,7 +436,7 @@ COURSE.register({
 
   <p class="why">
 
-    根据 \(C = 6ND = 6 \times (1.5 \times 10^7) \times (10^7) = 9 \times 10^{14}\) FLOPs，训练时间 \(t = \frac{9 \times 10^{14}}{2 \times 10^{13}} = 45\) 秒。单张 T4 完全足以在不到一分钟内完成基础预训练闭环。
+    根据 \(C = 6ND = 6 \times (1.5 \times 10^7) \times (10^7) = 9 \times 10^{14}\) FLOPs，训练时间 \(t = \frac{9 \times 10^{14}}{2 \times 10^{13}} = 45\) 秒。单张 T4 就能在不到一分钟里跑完一轮基础预训练。
 
   </p>
 

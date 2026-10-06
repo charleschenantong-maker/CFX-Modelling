@@ -85,7 +85,7 @@ COURSE.register({
 <p>
   128 KiB/token。放到 128K 上下文：\(128\ \text{KiB} \times 131072 = 16\ \text{GiB}\)——
   <strong>一条序列就把一张 24 GB 卡的三分之二吃掉了</strong>，而且这还没算权重。
-  这也解释了为什么「长上下文」在工程上首先是一个显存问题，而不是一个算法问题。
+  这也解释了为什么「长上下文」在工程上主要是一个显存问题，而不是一个算法问题。
 </p>
 <p>
   关键区分：<em>prefill 是算力瓶颈（账单 A），decode 是带宽与容量瓶颈（账单 B）。</em>
@@ -211,7 +211,7 @@ COURSE.register({
   </p>
   \[ B_t = W_B x_t, \qquad C_t = W_C x_t, \qquad \Delta_t = \mathrm{softplus}(W_{\Delta} x_t + b_{\Delta}) \]
   <p>
-    记住形状：\(\Delta_t > 0\) 是标量门控——它趋近 0 时状态直通（记住），显著增大时状态清零（遗忘）。
+    记住形状：\(\Delta_t > 0\) 是标量门控——它趋近 0 时状态直通（记住），明显变大时状态清零（遗忘）。
     背后的极值推演见折叠块。
   </p>
 </section>
@@ -330,7 +330,7 @@ COURSE.register({
   </p>
   \[ h_2 = \bar{A} h_1 = \begin{bmatrix} 0.6065 \times 0.3935 \\ 0.3679 \times 0.6321 \end{bmatrix} \approx \begin{bmatrix} 0.2387 \\ 0.2325 \end{bmatrix} \]
   <p>
-    物理图像跃然纸上：\(\bar{A}\) 的各对角元 \(e^{\Delta A_i} \in (0, 1)\) 严格充当了<strong>历史信息的指数衰减遗忘系数</strong>，而 \(\bar{B}\) 则控制了<strong>当前输入信号被注入隐状态的接纳增益</strong>！
+    物理图像就清楚了：\(\bar{A}\) 的各对角元 \(e^{\Delta A_i} \in (0, 1)\) 严格充当了<strong>历史信息的指数衰减遗忘系数</strong>，而 \(\bar{B}\) 则控制了<strong>当前输入信号被注入隐状态的接纳增益</strong>。
   </p>
 </section>
 
@@ -338,7 +338,7 @@ COURSE.register({
   <h4><span class="ic">∑</span>草稿纸演算区 C：Mamba 选择性机制（Selective SSM）与输入自适应步长 \(\Delta_t\)</h4>
   <p>
     在经典的 S4 架构中，参数 \(A, B, C, \Delta\) 全都是<strong>全局静态固定常数</strong>，与输入内容 \(x_t\) 毫无关系（时不变系统 LTI）。
-    这造成了本质缺陷：无论当前的 token 是无关紧要的停顿虚词（如 “the”, “of”），还是决定上下文命题的核心实体，系统都只能按固定的衰减率一视同仁地遗忘！
+    这造成了本质缺陷：无论当前的 token 是无关紧要的停顿虚词（如 “the”, “of”），还是决定上下文命题的核心实体，系统都只能按固定的衰减率一视同仁地遗忘。
   </p>
   <p>
     <strong>Mamba 的代数革新：参数向输入投影</strong>
@@ -351,7 +351,7 @@ COURSE.register({
     其中 \(\mathrm{softplus}(z) = \log(1 + e^z) > 0\)，保证离散步长恒为严格正数。
   </p>
   <p>
-    <strong>极值草稿纸推演：\(\Delta_t\) 如何充当智能动力学门控</strong>
+    <strong>极值草稿纸推演：\(\Delta_t\) 如何充当动力学门控</strong>
   </p>
   <p>
     将随输入变化的动态步长 \(\Delta_t\) 代回离散递推公式 \(h_t = \exp(\Delta_t A) h_{t-1} + \bar{B}_t x_t\)，在草稿纸上考察两个极端数学边界：
@@ -366,25 +366,25 @@ COURSE.register({
       \[ \bar{B}_t = A^{-1}(\exp(\Delta_t A) - I) B_t \approx \Delta_t B_t \to 0 \]
       代入状态更新方程：
       \[ h_t \approx I \cdot h_{t-1} + 0 \cdot x_t = h_{t-1} \]
-      <strong>状态完全不衰减、新输入完全被阻断！</strong>系统相当于执行了完美的高速直通（Pass-through），将上一时刻的有效记忆 100% 完整原样保留。
+      <strong>状态完全不衰减、新输入完全被阻断。</strong>系统相当于做了一次高速直通（Pass-through），把上一时刻的有效记忆 100% 原样保留。
     </li>
     <li>
-      <strong>边界二：遇到重大语义转折、新段落或核心概念重置（模型令 \(\Delta_t \to +\infty\) 显著增大）</strong>
+      <strong>边界二：遇到重大语义转折、新段落或核心概念重置（模型让 \(\Delta_t\) 明显变大，即 \(\Delta_t \to +\infty\)）</strong>
       <br />
       因为连续矩阵 \(A\) 的特征值皆为负数（\(A_{ii} < 0\)），当 \(\Delta_t\) 变大时：
       \[ \bar{A}_t = \exp(\Delta_t A) \to 0 \]
       \[ \bar{B}_t = A^{-1}(0 - I) B_t = -A^{-1} B_t \]
       代入状态更新方程：
       \[ h_t \approx 0 \cdot h_{t-1} + \bar{B}_t x_t = \bar{B}_t x_t \]
-      <strong>历史记忆被瞬间彻底清零擦除（Reset/Forget）！</strong>隐状态全力聚焦并写入当下这一个全新的关键 token。
+      <strong>历史记忆瞬间清零（Reset/Forget）。</strong>隐状态转而全力写入当下这个关键 token。
     </li>
   </ul>
   <p>
     <strong>与经典 RNN 门控机制的代数对照：</strong>
     对比 LSTM 的遗忘门 \(f_t \in (0, 1)\) 与 GRU 的更新门 \(z_t\)。
-    Mamba 的 \(\bar{A}_t = \exp(\Delta_t A)\) 在连续控制论体系下实现了纯数学推导出的连续自适应遗忘门！
+    Mamba 的 \(\bar{A}_t = \exp(\Delta_t A)\) 相当于一个从连续控制论里直接推导出来的连续自适应遗忘门。
     更关键的是：传统 RNN 的非线性激活使状态递推无法并行；而 Mamba 内部是<strong>纯线性的时变动力系统</strong>。
-    利用算子的结合律，在现代 GPU 上可通过<strong>硬件感知前缀扫描（Parallel Associative Scan）</strong>在 SRAM 内部实现 \(O(\log T)\) 时间跨度的并行极速训练！
+    利用算子的结合律，在现代 GPU 上可以用<strong>硬件感知前缀扫描（Parallel Associative Scan）</strong>在 SRAM 内部完成 \(O(\log T)\) 时间跨度的并行训练。
   </p>
 </section>
   </div>
@@ -393,7 +393,7 @@ COURSE.register({
 <h3>3. 线性注意力、滑窗与混合架构</h3>
 <p>
   <span class="t" data-tterm="Linear attention" data-d="线性注意力：用核函数替换 softmax 中的指数相似度，使注意力可以利用矩阵乘法结合律改写为先算 K 转置乘 V，从而把复杂度降到序列长度的线性。">线性注意力</span>
-  的思路比 SSM 更直接：softmax 之所以禁止我们交换乘法顺序，
+  的思路比 SSM 更直接：softmax 之所以不允许交换乘法顺序，
   是因为那个归一化项把每个位置耦合在一起。如果把相似度换成核函数
   \(\mathrm{sim}(q,k) = \phi(q)^{\top}\phi(k)\)（\(\phi\) 取正值，例如 \(\mathrm{elu}(\cdot) + 1\)），
   归一化就可以提到外面：
@@ -409,7 +409,7 @@ COURSE.register({
 </p>
 <p>
   代价同样清楚：核函数是 softmax 的<strong>有损近似</strong>，模型的「检索精度」会下降。
-  这正是 2024 年之后真正被大规模采用的不是「纯线性」，而是「混合」的原因。
+  这正是 2024 年之后真正大规模落地的不是「纯线性」，而是「混合」的原因。
 </p>
 <p>
   <span class="t" data-tterm="Sliding-window attention" data-d="滑窗注意力：每个位置只attend到前 W 个位置，把注意力的计算与缓存都限制在窗口内，使成本随序列长度近似线性增长。">滑窗注意力</span>
@@ -446,7 +446,7 @@ COURSE.register({
   <p>
     先把三个词翻译成人话：RoPE 给每个维度配了一个旋转频率，高频分量转得快（看清邻居），
     低频分量转得慢（感知远距离）；直接把位置编号拉长，等于让所有频率都转出训练时见过的圈数——
-    高频的精细刻度首先被破坏。YaRN（Peng et al.,
+    高频的精细刻度会先被破坏。YaRN（Peng et al.,
     <a href="https://arxiv.org/abs/2309.00071" target="_blank" rel="noopener">arXiv:2309.00071</a>）的办法是
     <strong>按频率分档</strong>：高频维度几乎不缩放（保局部精度），低频维度按比例拉伸（撑长距离），中间平滑过渡。
     经验数字：配合短微调，Llama-2 的 4K 上下文可撑到 64K–128K，而困惑度只涨零点几个点——
@@ -500,8 +500,7 @@ COURSE.register({
   这就是 MLA「省显存却不太掉速」的原因——它不是把计算推迟，而是把计算重写进了已有的投影里。
 </p>
 <p>
-  crossfade 这类短序列任务视角：这段形状推导现在不需要手算——但它解释了 MLA 省显存却几乎不掉速的原因。
-  把形状写出来，吸收就不再像魔法。设隐状态维度 \(d\)，头数 \(h\)，每头维度 \(d_h\)，潜维度 \(d_c\)：
+  crossfade 这类短序列任务视角：这段形状推导现在不需要你手算；但把形状写出来，吸收就不再像魔法。设隐状态维度 \(d\)，头数 \(h\)，每头维度 \(d_h\)，潜维度 \(d_c\)：
   查询 \(q = W^{Q}h\)，其中 \(W^{Q}\) 是 \((h d_h) \times d\)；
   压缩键 \(k^{C} = W^{UK}c\)，其中 \(W^{UK}\) 是 \((h d_h) \times d_c\)，而缓存的 \(c\) 只有 \(d_c\) 维。
   注意力分数 \(q^{\top}k^{C} = h^{\top}(W^{Q\top}W^{UK})c\)——
@@ -594,7 +593,7 @@ COURSE.register({
 </p>
 <p>
   一个容易忽略的工程点：MTP 的增益<strong>随模型增大而增大</strong>，在小模型上可能测不出来。
-  如果你在 1B 规模上做实验发现「没什么用」，那不一定是否定这个方法。
+  如果你在 1B 规模上做实验发现「没什么用」，那不足以否定这个方法。
 </p>
 
 <h4>5.2 扩散语言模型</h4>
@@ -716,7 +715,7 @@ COURSE.register({
   </p>
   <p><strong>三个立刻能用的观察：</strong></p>
   <p>
-    <strong>① 损失对错配的相似度极其敏感。</strong>
+    <strong>① 损失对错配的相似度很敏感。</strong>
     把右上角的 \(1.0\) 抬到 \(3.0\)，第 1 行的分母变成 \(20.09 + 20.09 = 40.18\)，
     对角概率掉到 \(0.5\)，损失从 0.127 跳到 0.693。这就是「负样本有多难」直接决定梯度强度。
   </p>
@@ -1074,7 +1073,7 @@ COURSE.register({
 </section>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">!</span>常见误区</h4>
+  <h4><span class="ic">⚠</span>常见误区</h4>
   <p>
     <strong>① 以为线性注意力全面优于软注意力。</strong>
     线性注意力把「按内容精确检索」换成了「固定容量状态」。
@@ -1337,7 +1336,7 @@ COURSE.register({
       长文摘要偏 (a)，代码仓库问答偏 (b)。
     </p>
     <p>
-      最后一条经验之谈：<strong>「让 KV cache 变小但不改变注意力本身」这条路风险最低。</strong>
+      还有一条经验之谈：<strong>「让 KV cache 变小但不改变注意力本身」这条路风险最低。</strong>
       GQA、MLA、KV 量化都不动模型的表达能力，只动存储，
       因此最容易被现有服务栈吸收。这也是为什么 2024 年之后几乎所有开源模型
       都在用 GQA 或 MLA，而不是把注意力整个换掉——

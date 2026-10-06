@@ -10,8 +10,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   模块 04 已经算出：7B 模型做全参数 AdamW 训练需要约 112 GB 显存。单卡放不下，
-  于是必须把「参数、梯度、优化器状态、激活值」切到多张卡上——这就是并行。
-  这一模块给出四种切分的分工、代价，以及 JAX 里怎么写。
+  只能把「参数、梯度、优化器状态、激活值」切到多张卡上——这就是并行。
+  这一模块给出四种切分的分工与代价，以及 JAX 里怎么写。
 </p>
 
 <section class="blk blk-tip">
@@ -96,8 +96,8 @@ COURSE.register({
     在神经网络线性层 \(Y = XW\) 中（输入 \(X \in \mathbb{R}^{b \times d_{\text{in}}}\)，权重 \(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)）：
   </p>
   <ul>
-    <li><strong>列分块（Column Parallel）：</strong>权重按输出通道列切 \(W = [W_1 \mid W_2]\)。各卡持有 \(W_i \in \mathbb{R}^{d_{\text{in}} \times (d_{\text{out}}/2)}\)。输入 \(X\) 完整广播到各卡，卡内各自计算 \(Y_i = X W_i\)。输出自然横向拼接为 \(Y = [Y_1 \mid Y_2]\)，<strong>前向计算完全无需跨卡通信</strong>！</li>
-    <li><strong>行分块（Row Parallel）：</strong>权重按输入通道行切 \(W = \begin{bmatrix} W_1 \\ W_2 \end{bmatrix}\)。输入也相应切分为列分块 \(X = [X_1 \mid X_2]\)。各卡持有局部输入与局部权重，独立计算部分和 \(Y_i = X_i W_i\)。全局真实输出必须求和：\(Y = Y_1 + Y_2\)。<strong>此时必须调用一次跨卡规约（Sum Reduction）通信</strong>！</li>
+    <li><strong>列分块（Column Parallel）：</strong>权重按输出通道列切 \(W = [W_1 \mid W_2]\)。各卡持有 \(W_i \in \mathbb{R}^{d_{\text{in}} \times (d_{\text{out}}/2)}\)。输入 \(X\) 完整广播到各卡，卡内各自计算 \(Y_i = X W_i\)。输出自然横向拼接为 \(Y = [Y_1 \mid Y_2]\)，<strong>前向计算完全无需跨卡通信</strong>。</li>
+    <li><strong>行分块（Row Parallel）：</strong>权重按输入通道行切 \(W = \begin{bmatrix} W_1 \\ W_2 \end{bmatrix}\)。输入也相应切分为列分块 \(X = [X_1 \mid X_2]\)。各卡持有局部输入与局部权重，独立计算部分和 \(Y_i = X_i W_i\)。全局真实输出必须求和：\(Y = Y_1 + Y_2\)。<strong>此时必须调用一次跨卡规约（Sum Reduction）通信</strong>。</li>
   </ul>
   <p>
     <strong>前置定义 3（集合通信算子 Collective Primitives）：</strong>
@@ -146,7 +146,7 @@ COURSE.register({
   </p>
   \[ \sigma([Z_1 \mid Z_2]) = [\sigma(Z_1) \mid \sigma(Z_2)] = [H_1 \mid H_2] \]
   <p>
-    这意味着：<strong>两张卡根本不需要把 \(Z_1\) 与 \(Z_2\) 汇总拼接</strong>，直接在各自显存内对局部中间张量执行激活计算！
+    这意味着：<strong>两张卡根本不需要把 \(Z_1\) 与 \(Z_2\) 汇总拼接</strong>，可以直接在各自显存里对局部中间张量做激活计算。
   </p>
   <p><strong>草稿第 3 步：第二层行切分局部矩阵乘法（零通信）</strong></p>
   <p>
@@ -166,7 +166,7 @@ COURSE.register({
   <p>
     <strong>代数证明结论：为什么必须是「列切 + 行切」？</strong>
     若颠倒顺序为「行切 + 列切」：第一层行切输出为 \(X_1 W_{1,1} + X_2 W_{1,2}\)，由于非线性激活函数对加法不满足分配律（\(\sigma(u + v) \neq \sigma(u) + \sigma(v)\)），必须在进入激活函数前强制做一次 All-Reduce 通信；第二层列切结束又需做通信收集，两层 MLP 前向将需要 2 次通信。
-    而<strong>「列切 \(W_1\) \(\to\) 逐元素激活 \(\to\) 行切 \(W_2\)」的优雅设计，利用了非线性算子对列拼接的可交换性，将通信完全延后到了第二层末尾，使整个 MLP 块仅需 1 次 All-Reduce</strong>！
+    而<strong>「列切 \(W_1\) \(\to\) 逐元素激活 \(\to\) 行切 \(W_2\)」的设计，利用了非线性算子对列拼接的可交换性，把通信全部推迟到第二层末尾，使整个 MLP 块只需 1 次 All-Reduce</strong>。
   </p>
 </section>
 
@@ -228,11 +228,11 @@ COURSE.register({
   而 JAX 把 <strong>sharding 声明为数组类型的一部分</strong>，由 XLA 编译器自动插入通信（GSPMD）。
 </p>
 <p>
-  在现代并行计算框架（如 JAX / PyTorch DTensor）中，多卡切分的本质可以通过两行微声明展示：
+  在 JAX、PyTorch DTensor 这类框架里，多卡切分的本质用两行声明就能说清：
 </p>
 <p>\[ \text{Mesh}(\mathcal{D}_{\text{data}}, \mathcal{D}_{\text{model}}): \quad X \in \mathbb{R}^{B \times T \times d} \xrightarrow{\text{Sharding}} \{X^{(k)} \in \mathbb{R}^{\frac{B}{N_d} \times T \times d}\}_{k=1}^{N_d} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：<code>PartitionSpec('data', None)</code> 声明张量的物理切分规格——批量样本轴沿着设备网格的 <code>data</code> 轴切开分发至各张卡，特征隐藏轴保持完整不切分；<code>jax.device_put</code> 指挥硬件通过高速总线完成内存映射与设备广播，无需开发者手工写网络套接字传输。
+  <strong>逐行代数解析</strong>：<code>PartitionSpec('data', None, None)</code> 声明张量的物理切分规格——三个元素与这个三维张量的三个维度一一对应，批量样本轴沿设备网格的 <code>data</code> 轴切开分发到各张卡，序列轴与特征隐藏轴都保持完整不切分；<code>jax.device_put</code> 负责通过高速总线完成内存映射与设备广播，不用开发者手工写网络套接字传输。
 </p>
 <p>
   同样的模型，改成「8 路纯数据并行」只需要把 <code>mesh</code> 换成 <code>(8, 1)</code>，
@@ -284,7 +284,7 @@ COURSE.register({
   </ul>
   <p class="why">
     数据并行每步只有一次梯度 all-reduce（通信量约 \(2N\)，与卡数无关）；
-    张量并行每步有 \(2L = 64\) 次激活小包通信：总量随 \(B\cdot S\) 增长（\(10^{4}\) 时约 \(2.6\times 10^{9}\) 个元素，与 \(2N\) 相当），
+    张量并行每步有 \(2L = 64\) 次激活小包通信：总量随 \(B\cdot S\) 增长（\(10^{4}\) 时约 \(2.6\times 10^{9}\) 个元素，只有 \(2N\) 的约五分之一），
     但高频小包无法与计算重叠，所以它需要 NVLink 这类高带宽低延迟互联。
   </p>
 </div>

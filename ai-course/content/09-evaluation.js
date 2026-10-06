@@ -35,7 +35,7 @@ COURSE.register({
 <table class="tbl">
   <thead><tr><th>层次</th><th>指标</th><th>能回答什么</th><th>不能回答什么</th></tr></thead>
   <tbody>
-    <tr><td>训练指标</td><td>loss、perplexity、梯度范数</td><td>优化是否正常进行</td><td>任务表现好不好</td></tr>
+    <tr><td>训练指标</td><td>loss、perplexity、梯度范数</td><td>优化有没有正常推进</td><td>任务表现好不好</td></tr>
     <tr><td>任务指标</td><td>准确率、F1、RMSE、BLEU、MUSHRA</td><td>在固定测试集上的表现</td><td>是否泛化到真实分布</td></tr>
     <tr><td>人类/领域评估</td><td>双盲听测、专家评审</td><td>是否真的有价值</td><td>成本高、方差大</td></tr>
   </tbody>
@@ -112,7 +112,7 @@ COURSE.register({
   这正是下一节要做置换检验的原因。
 </p>
 <p><em>可执行的结论：在 crossfade 这类任务常见的规模下，能可靠检测的是「0.3 秒以上」的差别。所以不要为了让 Level 3 赢而调参——
-先在报告里声明这个可检测下限，会让你的结论显得非常专业。</em></p>
+先在报告里声明这个可检测下限，会让你的结论站得住。</em></p>
 
 <h4>3.2 分组交叉验证的正确做法</h4>
 <ol>
@@ -140,7 +140,7 @@ COURSE.register({
 </ol>
 <p>
   还有一个常被忽略的细节：置换检验的零分布<strong>本身就是噪声的度量</strong>。
-  把真实分数与零分布一起画出来，读者一眼就能看出「改进」相对噪声有多大——这张图比任何 p 值都有说服力。
+  把真实分数与零分布一起画出来，一眼就能看出「改进」相对噪声有多大——这张图比任何 p 值都有说服力。
 </p>
 
 <h4>4.2 效应量与多重比较</h4>
@@ -174,7 +174,7 @@ COURSE.register({
 </p>
   </div>
 </div>
-<p>Sturm (2014) 提出的做法极其简单，却极少被认真执行：</p>
+<p>Sturm (2014) 提出的做法只有三步，却极少有人认真执行：</p>
 <ol>
   <li>用真实标签训练并评估，得到 \(E_{\text{real}}\)（例如 RMSE）。</li>
   <li>把标签 <em>随机打乱</em>，重新训练与评估，得到 \(E_{\text{perm}}\)。重复几百次。</li>
@@ -186,7 +186,7 @@ COURSE.register({
   如果 \(p\) 不显著，你的模型可能只是在拟合噪声——哪怕交叉验证的 RMSE 很漂亮。
 </p>
 <p>
-  <strong>结论先行</strong>：250 条样本撑不起大模型——有一个老式理论公式算出来，
+  <strong>结论先行</strong>：250 条样本撑不起大模型——用那个老式理论公式算一遍，
   连最简单的模型都给不出保证。记住方向性结论即可：样本越少、模型越复杂，泛化越不可靠；
   真正判断靠交叉验证和置换检验，公式推导第二遍再看。
 </p>
@@ -216,10 +216,10 @@ COURSE.register({
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
 <p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{< i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
-  <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；直观物理意义代表模型在预测下一个词时的“平均有效分支数”。困惑度数值越接近 1.0，说明模型对真实文本分布的预测越自信准确。
+  <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；它的直观含义是：模型预测下一个词时，平均要在几个候选里犹豫。困惑度越接近 1.0，说明模型对真实文本的预测越准。
 </p>
 <p><strong>报告规范</strong>：给出真实分数、零分布的分位数、p 值、以及效应量（例如与 Level 0 的 RMSE 差）。
-只说「我们的模型 RMSE 是 1.9」在学术上不构成结论。</p>
+只说「模型 RMSE 是 1.9」在学术上不构成结论。</p>
 
 <h3>6. 三条方法论红线</h3>
 <section class="blk blk-warn">
@@ -243,7 +243,7 @@ COURSE.register({
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：把 Checkpoint 7 完整做一遍（附录 B · E7）</h4>
-  <p>用合成数据（或你的真实测量）实现下面三件事，并写成一页报告：</p>
+  <p>用合成数据（或你的真实测量）完成下面三件事，写成一页报告：</p>
   <ol>
     <li><strong>模型阶梯</strong>：Level 0 规则、Ridge、核岭回归/随机森林、小 MLP。</li>
     <li><strong>分组交叉验证</strong>：按「艺人」分组，5 折，报告每折 RMSE 与均值±标准差。</li>
@@ -292,7 +292,7 @@ COURSE.register({
 \[ \mathrm{NLL}_t = -\ln p_t, \qquad \mathrm{CE} = \frac{1}{N}\sum_{t=1}^{N}\mathrm{NLL}_t, \qquad \mathrm{PPL} = \exp(\mathrm{CE}) \]
 <div class="acc" data-t="选读·第二遍：困惑度的乘积写法" data-badge="可选">
   <div class="acc-body">
-<p>把定义式改写成乘积形式，会看到一个非常好用的读法：</p>
+<p>把定义式改写成乘积形式，会得到一个很好用的读法：</p>
 \[ \mathrm{PPL} = \left(\prod_{t=1}^{N} \frac{1}{p_t}\right)^{1/N} \]
 <p>
   也就是说，困惑度是倒数预测概率的几何平均。几何平均的性质是「谁差谁拖后腿」，
@@ -304,7 +304,7 @@ COURSE.register({
   直觉例子：三个位置的把握是 0.8、0.5、0.1，倒数就是 1.25、2 和 10——
   最差的那个 10 是另两项的五到八倍，整体结果被它单方面拉动；
   而三个 0.9 也只能把整体压到约 1.11（下限永远是 1）。
-  <strong>这正是我们想要的性质</strong>——偶尔没把握没关系，但「错得离谱」会被重罚。
+  <strong>这正是你想要的性质</strong>——偶尔没把握没关系，但「错得离谱」会被重罚。
 </p>
 
 <h4>7.3 草稿纸 ①：三选一测试集上算困惑度</h4>
@@ -414,7 +414,7 @@ COURSE.register({
   </tbody>
 </table>
 <p>
-  把二元的六步手工走一遍，这是唯一真正需要动笔的部分：
+  把这六个二元组手工数一遍，这是唯一真正需要动笔的部分：
 </p>
 <table class="tbl small">
   <thead><tr><th>候选 bigram</th><th>参考里出现几次</th><th>裁剪后计入</th></tr></thead>
@@ -589,7 +589,7 @@ COURSE.register({
 <div class="acc" data-t="选读·第二遍：从胜率比反解 400" data-badge="可选">
   <div class="acc-body">
   <p>
-    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。我们希望胜率比为 n 比 1 的选手，
+    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。你希望胜率比为 n 比 1 的两位选手，
     分数上正好领先对应分差，也就是要求
   </p>
   \[ \frac{1}{1 + 10^{-\Delta/400}} = \frac{n}{1+n} \]
@@ -646,7 +646,7 @@ COURSE.register({
 </table>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 4</div>
+  <div class="qlabel">自测 · 1</div>
   <p class="q">
     候选 7 个词、参考 7 个词，只有第 6 个词不同，四个 n-gram 精确率是 \(P_1=0.857\)、\(P_2=0.667\)、\(P_3=0.600\)、\(P_4=0.500\)。BLEU-4 最接近？
   </p>
@@ -665,7 +665,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 5</div>
+  <div class="qlabel">自测 · 2</div>
   <p class="q">
     同一份 6 词的候选输出，命中 5 个 bigram，分别对 6 词参考与 16 词参考算 ROUGE-2 的 F 值，F 从 1.000 变成了？
   </p>
@@ -685,7 +685,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 6</div>
+  <div class="qlabel">自测 · 3</div>
   <p class="q">
     Elo 里 \(R_A = 1700\)、\(R_B = 1400\)、\(K = 32\)。这一场 A 赢了，分数变化是？
   </p>
@@ -704,7 +704,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 1</div>
+  <div class="qlabel">自测 · 4</div>
   <p class="q">你的模型 CV RMSE 比基线低 15%，但置换检验 p = 0.42。合理的结论是？</p>
   <ul class="opts">
     <li>模型有效，只是数据太少</li>
@@ -719,7 +719,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 2</div>
+  <div class="qlabel">自测 · 5</div>
   <p class="q">为什么音乐/音频任务的交叉验证要按艺人（或专辑）分组？</p>
   <ul class="opts">
     <li>为了减少计算量</li>
@@ -734,7 +734,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 3</div>
+  <div class="qlabel">自测 · 6</div>
   <p class="q">关于 VC 界在 N = 250 时的表现，正确的说法是？</p>
   <ul class="opts">
     <li>它能给出精确的泛化误差估计</li>

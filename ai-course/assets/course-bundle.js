@@ -22,11 +22,11 @@ COURSE.register({
 
 <p class="lead">
 
-  这是一门专为<strong>从早期就接触 AI、如今重度使用，且渴望搞清大模型底层原理的高中生与探索者</strong>量身打造的底座课程。
+  这是一门为<strong>早早接触 AI、如今天天在用、又想搞清大模型底层原理的高中生与探索者</strong>写的底座课程。
 
-  你可能天天在用 ChatGPT / Claude 写作业、改代码或探讨题目，但我们这次不再只做 prompt 调优，
+  你可能天天用 ChatGPT / Claude 写作业、改代码、讨论题目，但这次不停在 prompt 调优上，
 
-  而是要彻底拆开黑盒：<strong>理解注意力机制与自回归生成的数学第一性原理，掌握真实显存心算法，并在云端单张免费 T4 芯片上跑通属于你自己的模型训练。</strong>
+  而要把黑盒拆开：<strong>理解注意力机制与自回归生成的数学第一性原理，掌握真实的显存心算法，并在云端单张免费 T4 上跑通你自己的模型训练。</strong>
 
 </p>
 
@@ -34,21 +34,21 @@ COURSE.register({
 
 <section class="blk blk-q">
 
-  <h4><span class="ic">◆</span>核心学习目标：追求真实理解与动手能力，拒绝浮躁炫耀</h4>
+  <h4><span class="ic">◆</span>核心学习目标：真懂原理，也真能动手</h4>
 
-  <p>把目标界定清晰，后面的学习路径才扎实有效：</p>
+  <p>把目标写清楚，后面的路径才走得踏实：</p>
 
   <ol>
 
-    <li><strong>搞透底座机制</strong>：从条件概率的链式法则到自注意力矩阵乘法，搞懂因果掩码、位置编码与交叉熵损失，真正看懂模型在每一步计算什么。</li>
+    <li><strong>搞透底座机制</strong>：从条件概率的链式法则到自注意力矩阵乘法，弄清因果掩码、位置编码与交叉熵损失，看懂模型每一步在算什么。</li>
 
-    <li><strong>落地 T4 模型训练</strong>：掌握准确的显存与计算量估算（参数量、精度、优化器状态与激活值），在 Google Colab / Kaggle 免费分配的 16GB T4 GPU 上完成小模型（10M~45M）的从零预训练以及开源小底座（如 Qwen2.5-0.5B）的 LoRA 微调。</li>
+    <li><strong>落地 T4 模型训练</strong>：学会估准显存与计算量（参数量、精度、优化器状态与激活值），在 Google Colab / Kaggle 免费分配的 16GB T4 GPU 上跑完小模型（10M~45M）的从零预训练，以及开源小底座（如 Qwen2.5-0.5B）的 LoRA 微调。</li>
 
-    <li><strong>数学工具严格锚定 A-Level Further Maths</strong>：运用线性代数（矩阵乘法、向量内积）、微积分（导数与多元链式法则）、复数欧拉旋转（理解 RoPE 本质）和离散概率。复杂公式由浅入深铺垫，杜绝大学高阶测度论等不必要的抽象堆砌。</li>
+    <li><strong>数学工具严格锚定 A-Level Further Maths</strong>：线性代数（矩阵乘法、向量内积）、微积分（导数与多元链式法则）、复数欧拉旋转（用来理解 RoPE 的本质）和离散概率。公式由浅入深，不堆测度论这类大学高阶抽象。</li>
 
-    <li><strong>关于跨界数学建模项目（作为小参考而非前提）</strong>：本仓库虽附带了 <em>Mathematical Crossfade Modelling</em>（音频连续交叉淡入淡出建模）项目文档，但这仅作为未来探索如何将深度学习技术与传统工程问题进行 <strong>Merge</strong> 的一个小参考案例，绝非本课程的前置依赖，主线始终是通用的 LLM 底座与训练。</li>
+    <li><strong>关于跨界数学建模项目（作为小参考而非前提）</strong>：本仓库里附了一份 <em>Mathematical Crossfade Modelling</em>（音频连续交叉淡入淡出建模）项目文档，它只是「把深度学习技术与传统工程问题 <strong>Merge</strong> 起来」的一个小参考案例，不是本课程的前置依赖，主线始终是通用的 LLM 底座与训练。</li>
 
-    <li><strong>题型与学习方式</strong>：精简死记硬背的选择题，多进行<strong>纸笔手算推演（草稿纸走一遍数值）</strong>，培养对张量维度与数值流动的第一手直觉。</li>
+    <li><strong>题型与学习方式</strong>：少出死记硬背的选择题，多动手——<strong>纸笔手算推演（在草稿纸上走一遍数值）</strong>，养出对张量维度与数值流动的第一手直觉。</li>
 
   </ol>
 
@@ -90,9 +90,9 @@ COURSE.register({
 
 <p>
 
-  主线是<strong>通用大模型的第一性原理与单卡 T4 训练实践</strong>：每个模块聚焦原理机制与数值验证，带你一步步建立模型训练的直觉。
+  主线是<strong>通用大模型的第一性原理与单卡 T4 训练实践</strong>：每个模块都盯着原理机制与数值验证，帮你一步步建立模型训练的直觉。
 
-  涉及未来工程建模（如 crossfade 项目）的内容仅作为跨界拓展参考；轨道 C 则教你如何最大化利用手头的免费算力（如 Colab T4）与开发工具，把时间真正用在刀刃上。
+  涉及未来工程建模（比如 crossfade 项目）的内容只当跨界拓展；轨道 C 讲怎么用足手头的免费算力（Colab T4 之类）与开发工具，把时间花在真正出结果的地方。
 
 </p>
 
@@ -106,7 +106,7 @@ COURSE.register({
     <tr><td><strong>Kaggle Notebooks（核心主训平台）</strong></td><td>每周 30 小时免费 GPU，提供双卡 T4 ×2 与单卡 T4，支持持久化输出</td><td><strong>从零预训练 miniGPT、0.5B/1.5B 开源基座 QLoRA 4-bit 微调</strong></td><td>使用「Save Version → Save & Run All」后台静默运行，产出直接写入 <code>/kaggle/working</code>，无需担心断线丢失</td></tr>
     <tr><td><strong>Hugging Face Hub</strong></td><td>全球开源模型权重与开源语料库</td><td>下载开源基座（如 Qwen2.5-0.5B）、Tokenizer 与清洗后的微调数据集</td><td>通过标准 <code>transformers</code> 与 <code>peft</code> 库加载，安全可靠</td></tr>
     <tr><td><strong>PyTorch & Transformers 生态</strong></td><td>工业标准深度学习底层</td><td>编写 Tensor 运算、前向传播、因果掩码与自定义训练循环</td><td>配合本课程手写极简训练脚本，拒绝不透明的黑盒封装</td></tr>
-    <tr><td><strong>草稿纸与纸笔手算</strong></td><td>第一性原理直觉工具</td><td><strong>手算点积注意力、Softmax 概率换算、参数量与显存预算</strong></td><td>凡是看不懂的代码，在草稿纸上走一遍标量或 2D 玩具数值即可彻底看透</td></tr>
+    <tr><td><strong>草稿纸与纸笔手算</strong></td><td>第一性原理直觉工具</td><td><strong>手算点积注意力、Softmax 概率换算、参数量与显存预算</strong></td><td>凡是看不懂的代码，在草稿纸上走一遍标量或 2D 玩具数值，基本就能看透</td></tr>
   </tbody>
 </table>
 
@@ -120,17 +120,19 @@ COURSE.register({
 
   <tbody>
 
-    <tr><td><strong>I 底座</strong></td><td>01–05</td><td>语言模型的概率本质、tokenizer、注意力、Transformer 结构、预训练全流程与显存/算力公式</td></tr>
+    <tr><td><strong>0 导读与心法</strong></td><td>00、P</td><td>课程为谁写、怎么用、三条轨道与 12 周节奏；零基础先读 <strong>P 预备课</strong>，用大白话把「打分 → 概率 → 扣分 → 倒着算」串成一条线</td></tr>
 
-    <tr><td><strong>II 训练与推理</strong></td><td>06–09</td><td>数据并行/FSDP/张量并行（含 JAX 版）、SFT→DPO→GRPO 全谱系、量化与 vLLM、评估的科研方法</td></tr>
+    <tr><td><strong>I 底座原理</strong></td><td>01–05</td><td>语言模型的概率本质（条件概率、交叉熵、困惑度）、tokenizer 与数据、注意力机制、Transformer 结构与参数量/显存算法、预训练全流程</td></tr>
 
-    <tr><td><strong>III 算力</strong></td><td>10</td><td>Colab / Kaggle / HF Jobs 上能跑什么、怎么不浪费额度</td></tr>
+    <tr><td><strong>II 训练与推理原理</strong></td><td>06–09</td><td>数据并行/FSDP/张量并行（含 JAX 版）、SFT→DPO→GRPO 全谱系、采样参数与部署成本、评估的科研方法</td></tr>
 
-    <tr><td><strong>IV 算力与系统</strong></td><td>11–15</td><td>计算规模法则（Scaling Laws & Chinchilla 定律）、MoE 专家架构、长上下文 RoPE 外推与任务调度</td></tr>
+    <tr><td><strong>III 真实大模型架构与系统工程</strong></td><td>10–15</td><td>Roofline 与 6N FLOPs 算力法则、工业级数据工程与集群容灾、MoE 稀疏门控、长上下文 RoPE 外推、压缩与量化、PagedAttention 与动态批处理</td></tr>
 
-    <tr><td><strong>V 收束</strong></td><td>16</td><td>把上面全部映射回 8 个检查点，给出可执行的 12 周计划</td></tr>
+    <tr><td><strong>IV 能力拓展、前沿方向与研讨</strong></td><td>16–22</td><td>蒸馏全谱系、推理模型与测试时计算、RAG 与上下文工程、智能体系统、安全对齐与可解释性、注意力之外的前沿架构、机器意识研讨</td></tr>
 
-    <tr><td><strong>附录</strong></td><td>A–G</td><td>术语表、Colab 实验手册、资源地图、合规提示、综合自测、速查手册、<strong>AI 素养课地图</strong></td></tr>
+    <tr><td><strong>V 个人算力、工程实战与项目收束</strong></td><td>23–29</td><td>单卡算力预算与耗时演算、网络代理与断点续训、工程流水线与多线程舰队、Kaggle 免费 T4 起步、LoRA 微调实战，最后把前面全部映射回 8 个检查点并给出可执行的 12 周计划</td></tr>
+
+    <tr><td><strong>附录</strong></td><td>A–G</td><td>术语表、实验手册、资源地图、合规提示、综合自测、速查手册、<strong>AI 素养课地图</strong></td></tr>
 
   </tbody>
 
@@ -156,11 +158,11 @@ COURSE.register({
 
       <td><strong>第一次：通读</strong><br />（约 6–10 小时）</td>
 
-      <td>按顺序读 00 → P → 01 → … → 16，每讲结束做自测；折叠的「深入」可以先跳过，
+      <td>按顺序读 00 → P → 01 → … → 29，每讲结束做自测；折叠的「深入」可以先跳过，
 
           等真正用到时再回来</td>
 
-      <td>正文 24 讲；每讲 20–60 分钟。零基础务必先读 <strong>P 预备课</strong></td>
+      <td>正文 31 讲；每讲 20–60 分钟。零基础务必先读 <strong>P 预备课</strong></td>
 
     </tr>
 
@@ -172,7 +174,7 @@ COURSE.register({
 
           公式、数字、超参、命令、排错决策都在 <a href="#appF">附录 F 速查手册</a>，
 
-          术语在 <a href="#appA">附录 A 术语表</a>（355 条，按 14 类分好）</td>
+          术语在 <a href="#appA">附录 A 术语表</a>（366 条，分 16 节）</td>
 
       <td>附录 A（术语）、附录 F（七张速查表）、附录 G（22 门 AI 素养官方课怎么用）、每讲顶部的「本讲速查」</td>
 
@@ -202,11 +204,11 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>高阶章（17–24）怎么读：三层读法</h4>
+  <h4><span class="ic">✓</span>高阶章（16–22）怎么读：三层读法</h4>
 
   <p>
 
-    v1.2 把这八章按「能算、能跑、能验证」加厚了一遍。它们比前面几章长，但<strong>不需要一次读完</strong>——
+    v1.2 把这七章按「能算、能跑、能验证」加厚了一遍。它们比前面几章长，但<strong>不需要一次读完</strong>——
 
     每章都是同样的五段结构，按你的目的挑着读：
 
@@ -214,9 +216,9 @@ COURSE.register({
 
   <ol>
 
-    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章与 crossfade 这类未来题目有没有关系。没关系就跳过，这不丢人——
+    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章跟 crossfade 这类未来题目有没有关系。没关系就跳过，这不丢人——
 
-        八章里有四章对 crossfade 这类任务只需「知道就好」。</li>
+        七章里有四章对这类任务只需「知道就好」。</li>
 
     <li><strong>再读手算例子与查表</strong>：每章都有带具体数字的算例和「症状 → 原因 → 一行验证 → 对策」的失败模式表。
 
@@ -461,8 +463,8 @@ COURSE.register({
     <tr><td>输入一句话</td><td>文本被切成序号</td><td>02 · Tokenization</td><td>上下文长度和费用由序号个数决定</td></tr>
     <tr><td>模型读上下文</td><td>序号变成向量，经过层层计算</td><td>03–04 · Attention / Transformer</td><td>哪些信息能互相读取，显存花在哪里</td></tr>
     <tr><td>模型给出候选</td><td>打分变成下一个词的可能性大小</td><td>01 / 08 · Probability / Inference</td><td>温度、取样方式为什么改变回答风格</td></tr>
-    <tr><td>模型继续写</td><td>把新词接回上下文，循环直到停止</td><td>08 / 20 · Serving / Agents</td><td>延迟、缓存、工具调用和失败重试</td></tr>
-    <tr><td>判断是否真的变好</td><td>用固定任务集和指标比较输出</td><td>09 / 21 · Evaluation / Safety</td><td>不能只看模型自己说完成了</td></tr>
+    <tr><td>模型继续写</td><td>把新词接回上下文，循环直到停止</td><td>08 / 19 · Serving / Agents</td><td>延迟、缓存、工具调用和失败重试</td></tr>
+    <tr><td>判断是否真的变好</td><td>用固定任务集和指标比较输出</td><td>09 / 20 · Evaluation / Safety</td><td>不能只看模型自己说完成了</td></tr>
   </tbody>
 </table>
 <section class="blk blk-tip">
@@ -712,7 +714,7 @@ COURSE.register({
     <span class="blank-feedback"></span>
   </div>
   <p class="why">
-    首先计算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失！
+    先算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失。
   </p>
 </div>
 
@@ -742,9 +744,9 @@ COURSE.register({
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>核心问题</h4>
   <p>
-    给模型输入法国首都是，它说出巴黎。模型从来没有直接吐出一个词，
+    给模型输入「法国首都是」，它接出「巴黎」。模型从来没有直接吐出一个词，
     而是先给每个候选词打分，再把打分变成可能性大小，巴黎只是其中可能性最大的那个。
-    我们凭什么用一个扣分数，就能让那么多旋钮慢慢调准？
+    凭什么靠一个扣分数，就能把那么多旋钮慢慢调准？
     这一讲就回答这一件事。
   </p>
 </section>
@@ -765,9 +767,9 @@ COURSE.register({
 
 <h3>2. 数个数：最笨但最诚实的模型</h3>
 <p>
-  在没有神经网络之前，最笨的办法是数个数：看看上一个词是某词时，下一个词各出现过几次，再除以总数。
-  这就是最优解，不需要证明也能用。拿最小的玩具语料验证：语料只有阿爸阿这种交替，
-  相邻两对各出现一次，所以看见阿必出爸，看见爸必出阿，完全确定，没有不确定性。
+  在没有神经网络之前，最笨的办法是数个数：看上一个词是某词时，下一个词各出现过几次，再除以总数。
+  这个笨办法就是最优解，不用证明也能用。拿最小的玩具语料验证：整段语料只有「阿」「爸」交替，
+  相邻两对各出现一次，所以看见阿必出爸、看见爸必出阿，完全确定，没有不确定性。
 </p>
 <p>
   输入是什么：上一个词。输出是什么：下一个词的可能性表。
@@ -791,7 +793,7 @@ COURSE.register({
 <h3>3. 四个日常词：惊讶、平均惊讶、猜偏的代价</h3>
 <p>
   扣分制来自一个很直觉的想法，换成四个日常词就够了。
-  越罕见的事发生时越让人惊讶。平均惊讶就是不确定性本身，是任何猜测都绕不过去的底。
+  越罕见的事发生，越让人惊讶。平均惊讶就是不确定性本身，是任何猜测都绕不过去的底。
   用猜偏的分布去编码真实样本时，多付的代价就是训练真正能压下去的那部分。
 </p>
 <section class="blk blk-tip">
@@ -1012,7 +1014,7 @@ COURSE.register({
       <tr><td>抄不对长串随机串</td><td>随机串里没有高频组合，只能退回逐字节</td><td>不能</td></tr>
     </tbody>
   </table>
-  <p><strong>模型的基本单位是序号，不是字符，也不是词。理解这一点，能解释大量模型为什么这样的现象。</strong></p>
+  <p><strong>模型的基本单位是序号，不是字符，也不是词。理解这一点，就能解释一大批看起来莫名其妙的失败。</strong></p>
 </section>
 
 <h3>1. 从编号到字节：模型的字母表是怎么定下来的</h3>
@@ -1244,7 +1246,7 @@ COURSE.register({
   <li><strong>算法层</strong>：即使表示完美，模型仍需学会逐位循环，而一次前向是全体位置并行的，它天然擅长并行，不擅长串行依赖。</li>
 </ol>
 <p>
-  实践结论很实际：不要让模型做长数字串的精确算术，改用工具。也不要指望模型精确数出自己输出了多少序号，那是同一类问题。
+  结论很实际：不要让模型做长数字串的精确算术，改用工具。也不要指望模型精确数出自己输出了多少序号，那是同一类问题。
 </p>
 
 <h4>6.4 什么时候这些蠢问题反而问得动</h4>
@@ -1260,7 +1262,7 @@ COURSE.register({
   <thead><tr><th>选择</th><th>好处</th><th>代价</th></tr></thead>
   <tbody>
     <tr><td>词表更大</td><td>序列更短，上下文里塞更多内容、训练更快</td><td>两端参数变大，稀有序号训练不充分</td></tr>
-    <tr><td>词表更小</td><td>参数省、每个序号出现更频繁</td><td>序列变长， pairwise 计算成本上升</td></tr>
+    <tr><td>词表更小</td><td>参数省、每个序号出现更频繁</td><td>序列变长，两两计算成本上升</td></tr>
     <tr><td>纯字节</td><td>无生僻字、跨语言公平</td><td>序列极长，训练与推理都变慢</td></tr>
   </tbody>
 </table>
@@ -1289,7 +1291,7 @@ COURSE.register({
     <tbody>
       <tr><td>英文</td><td>约四分之一</td><td>约五十万</td><td>基准</td></tr>
       <tr><td>中文友好词表</td><td>约零点七</td><td>约十八万</td><td>约英文的一小半</td></tr>
-      <tr><td>中文英文为主词表</td><td>约二</td><td>约六万</td><td>不到八分之一</td></tr>
+      <tr><td>英文为主词表</td><td>约二</td><td>约六万</td><td>不到八分之一</td></tr>
     </tbody>
   </table>
   <p>
@@ -1304,11 +1306,11 @@ COURSE.register({
     </tbody>
   </table>
   <p>
-    长上下文的第一性价比优化常常是换词表，而不是换模型。把平均段数从高降到低，等于在同样预算下有效上下文变成几倍。
+    长上下文里性价比最高的一步，往往是换词表，而不是换模型。把平均段数从高降到低，等于在同样预算下有效上下文变成几倍。
   </p>
 </section>
 <p>
-  <strong>经验值速查</strong>：英文约四分之一个，中文友好词表约零点六，代码约零点三，纯数字约零点四。
+  <strong>经验值速查</strong>：英文约四分之一个，中文友好词表约零点七，代码约零点三，纯数字约零点四。
   不要背这些数，在附录 B 的 E2 里在你自己的语料上量一次。
 </p>
 <div class="flow">
@@ -1380,7 +1382,7 @@ COURSE.register({
 </div>
 <p>
   文本侧完全对应：原文变字节，字节经合并变序号。中间的量化这一步是音频独有的，因为文本天生离散。
-  而合并对应最近邻查找，两者都是在已学到的码本里找一个最像的。
+  合并这一步对应最近邻查找，两者都是在已学到的码本里找最像的那个。
 </p>
 <p>
   <strong>先算裸码率，再看压缩比</strong>：电话级单声道一秒钟约四十八千字节。
@@ -1446,7 +1448,7 @@ COURSE.register({
       <strong>把连续特征离散成文本序号</strong>，然后用现成文本模型做条件生成。
       每一维先分箱成若干档，每档一个序号，于是渲染一张谱变成预测一串序号。
       好处是可以直接复用成熟模型的整条流水线，不必自己训编码器。代价是分辨率被分箱数限制，
-      所以只有先给出大致目标的任务适合。
+      所以只适合那些先给出大致目标就够用的任务。
     </dd>
     <dt>路线 2 · 大概不需要</dt>
     <dd>
@@ -1507,12 +1509,12 @@ COURSE.register({
       <li><strong>计算单词序列压缩率（以 "newest" 为例）</strong>：
         <ul>
           <li>合并前：<code>[n, e, w, e, s, t]</code> 共 6 个 Token。</li>
-          <li>两轮合并后：<code>[n, e, w, est]</code> 缩减为 4 个 Token！</li>
+          <li>两轮合并后：<code>[n, e, w, est]</code> 缩减为 4 个 Token。</li>
           <li>序列长度缩短比例：\[ \frac{6 - 4}{6} = \frac{2}{6} \approx 33.3\% \]</li>
         </ul>
       </li>
     </ol>
-    <p><em>复盘收获</em>：BPE 的本质是贪心编码压缩。每执行一次合并，最常共现的连续子序列就被压缩成单一整数编号。这不仅直接降低了输入 Transformer 的序列长度 \(T\)，还让平方级计算量 \(\mathcal{O}(T^2)\) 呈现平方倍的缩减！</p>
+    <p><em>复盘收获</em>：BPE 的本质是贪心编码压缩。每执行一次合并，最常共现的连续子序列就被压缩成单一整数编号。这不仅直接降低了输入 Transformer 的序列长度 \(T\)，还让平方级的计算量 \(\mathcal{O}(T^2)\) 按平方倍缩减。</p>
   </div>
 </div>
 
@@ -1619,29 +1621,30 @@ COURSE.register({
   tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
-  如果把 Transformer 比作一台精密发动机，<strong>注意力机制（Attention）</strong>就是它的核心燃烧室。
-  这一讲我们抛开所有浮夸概念，从最接地气的「图书馆查资料」生活比喻出发，
-  层层拆解单头注意力、多头注意力（MHA）、因果掩码（Causal Mask）与现代大模型标配的旋转位置编码（RoPE）。
-  配合 STEP 级别的方差守恒定理证明与逐行解构的纯 PyTorch 代码，让你彻底看透点积注意力为什么能统治深度学习。
+  <strong>注意力机制（Attention）</strong>是 Transformer 里真正干活的那一层。
+  这一讲从「去图书馆查资料」讲起，
+  依次拆开单头注意力、多头注意力（MHA）、因果掩码（Causal Mask），以及现在几乎所有大模型都在用的旋转位置编码（RoPE）。
+  缩放因子为什么要开平方根，这里给了逐步证明；代码部分逐行拆解纯 PyTorch 实现。
+  读完你能自己写出一层因果多头注意力，并说清每一维在干什么。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>生活比喻：图书馆查书卡（Q, K, V 的本质）</h4>
   <p>
-    初学者最容易被 \(Q, K, V\) 三个矩阵绕晕。其实它们的现实原型极其平易近人：
-    <strong>想象你走进一个巨大的大学图书馆查资料：</strong>
+    初学者常被 \(Q, K, V\) 三个矩阵绕晕。其实它们各自对应一件很具体的东西：
+    <strong>想象你走进一间图书馆查资料：</strong>
   </p>
   <ul>
-    <li><strong>Query（查询向量 \(q\)）</strong>：是你脑子里的<strong>搜索关键词</strong>（比如“微积分链式法则”）；</li>
-    <li><strong>Key（键向量 \(k\)）</strong>：是书架上每一本书的书脊<strong>索书条目与标签</strong>；</li>
-    <li><strong>Value（值向量 \(v\)）</strong>：是每一本书里面<strong>真正承载的正文知识</strong>。</li>
+    <li><strong>Query（查询向量 \(q\)）</strong>：你脑子里的<strong>搜索关键词</strong>（比如“微积分链式法则”）；</li>
+    <li><strong>Key（键向量 \(k\)）</strong>：书架上每一本书的书脊<strong>索书条目与标签</strong>；</li>
+    <li><strong>Value（值向量 \(v\)）</strong>：每本书里面<strong>真正承载的正文知识</strong>。</li>
   </ul>
   <p>
-    <strong>你做的事情分为三步：</strong>
+    <strong>整个过程分三步：</strong>
     第一步，拿你的问题 \(q\) 和书脊标签 \(k\) 挨个比对相似度（点积 \(q \cdot k\)）；
     第二步，按匹配程度算出该在每本书上分配多少注意力权重（Softmax 归一化）；
-    第三步，按照权重把各本书里的知识 \(v\) 汇总带走（加权求和 \(\sum a_i v_i\)）。
-    这三步在数学上，就凝聚成了大名鼎鼎的注意力公式！
+    第三步，按权重把各本书里的知识 \(v\) 汇总带走（加权求和 \(\sum a_i v_i\)）。
+    这三步写成数学式，就是注意力公式。
   </p>
 </section>
 
@@ -1650,7 +1653,7 @@ COURSE.register({
   <p>
     <strong>一句话直觉</strong>：注意力输出是各 value 的加权平均，权重非负且和为 1——
     就像按配方调漆：8 勺红漆加 4 勺黄漆，你只能调出两者之间的颜色，调不出配方之外的第三种颜色。
-    取最小数字例子：两个标量值 \(v_1 = 8\)、\(v_2 = 4\)，权重 \([0.75, 0.25]\)，
+    取一个最小的数字例子：两个标量值 \(v_1 = 8\)、\(v_2 = 4\)，权重 \([0.75, 0.25]\)，
     输出为 \(0.75 \times 8 + 0.25 \times 4 = 6 + 1 = 7\)——结果永远落在 4 与 8 之间。
   </p>
   <p>
@@ -1661,7 +1664,7 @@ COURSE.register({
   </p>
 </section>
 
-<h3>1. 核心数学基石：缩放点积注意力 (Scaled Dot-Product Attention)</h3>
+<h3>1. 缩放点积注意力 (Scaled Dot-Product Attention)</h3>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：Q、K、V 的生活直觉）</h4>
@@ -1672,13 +1675,13 @@ COURSE.register({
     <li><strong>\(Q\)（Query，查询向量）</strong>：「我想找什么」——当前 Token 发出的提问关键词；</li>
     <li><strong>\(K\)（Key，键向量）</strong>：「每本书的索引标签」——库中每个 Token 具备的身份标签，用来与 \(Q\) 做点积匹配相似度；</li>
     <li><strong>\(V\)（Value，值向量）</strong>：「每本书的真实正文」——匹配成功后，真正被提取并加权融合成新表征的实际内容；</li>
-    <li><strong>矩阵乘法 \(QK^T\)</strong>：\(K^T\) 是高中学过的矩阵转置（行变列，使得 \((T 	imes d_k) 	imes (d_k 	imes T) = T 	imes T\) 维度对齐）。相乘的物理意义，是一次性算出整个序列中所有 Token 之间的<strong>两两相关性打分表</strong>；</li>
+    <li><strong>矩阵乘法 \(QK^T\)</strong>：\(K^T\) 是高中学过的矩阵转置（行变列，使得 \((T \times d_k) \times (d_k \times T) = T \times T\) 维度对齐）。相乘的物理意义，是一次性算出整个序列中所有 Token 之间的<strong>两两相关性打分表</strong>；</li>
     <li><strong>\(\mathrm{softmax}(\cdot)\)</strong>：将每一行任意大小的打分转化为相加严格等于 \(100\%\) 的概率分布；最后乘上 \(V\)，就是在按相似度高低对正文内容做<strong>加权平均融合</strong>。</li>
   </ul>
 </section>
 
 <p>
-  有了上述直觉，Vaswani 等人在 2017 年写下的划时代公式就一清二楚了：
+  有了上面的直觉，Vaswani 等人在 2017 年写下的那个公式就好读了：
 </p>
 \[ \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\left( \frac{QK^T}{\sqrt{d_k}} \right) V \]
 <p>
@@ -1708,9 +1711,9 @@ COURSE.register({
   <p><strong>第三步：独立随机变量求和的方差线性可加性</strong></p>
   \[ \mathrm{Var}(S) = \mathrm{Var}\left( \sum_{i=1}^{d_k} q_i k_i \right) = \sum_{i=1}^{d_k} \mathrm{Var}(q_i k_i) = \sum_{i=1}^{d_k} 1 = d_k \]
   <p>
-    <strong>结论与灾难揭示</strong>：点积 \(q \cdot k\) 的标准差为 \(\sqrt{d_k}\)！
+    <strong>结论</strong>：点积 \(q \cdot k\) 的标准差为 \(\sqrt{d_k}\)。
     在现代大模型中，维度 \(d_k\) 常为 64 或 128。如果不做缩放，点积数值的绝对值会轻易冲到 20 到 30 以上。
-    当这些巨大的数值喂给 Softmax 函数时：
+    这些数值喂给 Softmax 函数时：
   </p>
   \[ \mathrm{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}} \implies p_{\max} \to 1.0, \quad p_{j \ne \max} \to 0.0 \]
   <p>
@@ -1720,8 +1723,8 @@ COURSE.register({
     不要把它和最后词表输出层的 Softmax 加交叉熵搞混（那里的梯度 \(\mathbf{p} - \mathbf{y}\) 形式上永远有信号）。
     注意力权重的导数矩阵为 \(A_i(\delta_{ij} - A_j)\)（记 \(A = \mathrm{softmax}(S)\) 为归一化后的注意力权重）。一旦进入极端极化状态，所有偏导数几乎完全等于零，
     查询与键的梯度（\(\partial \mathcal{L} / \partial Q\)、\(\partial \mathcal{L} / \partial K\)）瞬间在注意力层
-    <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习！
-    因此，必须严格除以缩放因子 \(\sqrt{d_k}\)，使输入 Softmax 前的方差精确锚定回 \(1.0\)。
+    <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习。
+    因此必须除以缩放因子 \(\sqrt{d_k}\)，把输入 Softmax 前的方差锚回 \(1.0\)。
   </p>
 </section>
   </div>
@@ -1795,8 +1798,8 @@ COURSE.register({
   <p><strong>第 4 步：加权汇总 Value 矩阵</strong></p>
   \[ \mathrm{Out} = AV = \begin{bmatrix} 0.67 & 0.33 \\ 0.50 & 0.50 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 20 \end{bmatrix} = \begin{bmatrix} 6.7 & 6.6 \\ 5.0 & 10.0 \end{bmatrix} \]
   <p>
-    第一行 Token 明显更关注第一个 Value（权重 0.67）；第二行 Token 则平权吸收了两个 Value 的信息。
-    没有黑盒，全是最直白的线性代数。
+    第一行 Token 明显更关注第一个 Value（权重 0.67）；第二行 Token 则平权吸收两个 Value。
+    整个过程没有黑盒，就是最直白的线性代数。
   </p>
   <p>
     术语对齐（防坑）：\(QK^{T}\) 是 <strong>Gram 矩阵</strong>——“query 与 key 的两两内积表”，
@@ -1840,8 +1843,8 @@ COURSE.register({
 
 <h3>3. 自回归语言模型的铁律：因果掩码 (Causal Mask)</h3>
 <p>
-  在文本生成任务中，模型必须遵守<strong>时间因果箭头</strong>：第 \(t\) 个词在预测时，绝对不能偷看第 \(t+1\) 个词及之后的信息。
-  为了在 GPU 批量矩阵乘法中优雅地切断未来信息，引入了<strong>下三角因果掩码（Lower-triangular Causal Mask）</strong>：
+  文本生成时，模型必须守一条<strong>时间因果箭头</strong>：预测第 \(t\) 个词时，不能看到第 \(t+1\) 个词及之后的信息。
+  要在 GPU 的批量矩阵乘法里一次性切断未来信息，就用<strong>下三角因果掩码（Lower-triangular Causal Mask）</strong>：
 </p>
 \[ M_{ij} = \begin{cases} 0, & i \ge j \\ -\infty, & i < j \end{cases} \]
 <p>
@@ -1851,8 +1854,8 @@ COURSE.register({
 
 <h3>4. 多头自注意力 (MHA) 的数学全景与四维张量流向</h3>
 <p>
-  在现代大语言模型中，多头注意力（Multi-Head Attention）本质上是一个<strong>将输入序列在多个正交子空间中分别进行相似度检索与信息聚合</strong>的高阶代数算子。
-  设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。其四维张量变换流向遵循严格的代数法则：
+  多头注意力（Multi-Head Attention）本质上是在做一件事：<strong>把输入序列在多个正交子空间中分别做相似度检索与信息聚合</strong>。
+  设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。四维张量的变换流向如下：
 </p>
 
 <table class="tbl">
@@ -1876,7 +1879,7 @@ COURSE.register({
   <strong>Head 0</strong> 可以专门捕捉语法依附关系（如主谓一致）；
   <strong>Head 1</strong> 可以专门追踪代词指代（如「它」指向前文哪一名词）；
   <strong>Head 2</strong> 可以专门关注标点与段落边界。
-  多头机制赋予了模型同时从多个正交视角审视同一段文本的非凡能力。
+  这样模型就能同时从几个不同角度看同一段文本。
 </p>
 
 <section class="blk blk-eco">
@@ -1888,7 +1891,7 @@ COURSE.register({
   <p>
     在凸分析中，这对应于高维欧氏空间中的<strong>标准概率单纯形（Probability Simplex \(\Delta^{T-1}\)）</strong>。
     输出向量 \(y_t = \sum_{\tau=1}^t A_{t,\tau} v_\tau\) 是先前所有 Value 向量的<strong>严格凸组合（Convex Combination）</strong>。
-    自注意力并不创造超越值向量张成子空间的新外推方向，它所做的，是在语义子空间中根据查询条件进行精密的内插寻址与聚焦。
+    自注意力不会造出值向量张成子空间之外的新方向，它只是在语义子空间里按查询条件做内插与聚焦。
   </p>
 </section>
 
@@ -2025,7 +2028,7 @@ COURSE.register({
 <p class="cm">Hint：矩阵乘法看最后两维；softmax 看最后一维；RoPE 看 \(R_m^\top R_n\)。</p>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 4</div>
+  <div class="qlabel">自测 · 1</div>
   <p class="q">当 \(B=2,T=5,C=12,h=3\) 时，分数矩阵的形状是什么？</p>
   <ul class="opts">
     <li>\((2,5,12,3)\)</li>
@@ -2037,7 +2040,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 5</div>
+  <div class="qlabel">自测 · 2</div>
   <p class="q">哪一个条件额外成立时，行随机的 \(A\) 才能称为正交投影？</p>
   <ul class="opts">
     <li>只要每行和为 1</li>
@@ -2049,7 +2052,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 6</div>
+  <div class="qlabel">自测 · 3</div>
   <p class="q">为什么 \(d_k=128\) 时缩放因子是 \(1/\sqrt{128}\)，而不是 \(1/128\)？</p>
   <ul class="opts">
     <li>因为 softmax 只接受整数</li>
@@ -2061,7 +2064,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 7</div>
+  <div class="qlabel">自测 · 4</div>
   <p class="q">以 Crossfade 这类任务为例，注意力最稳妥的落点是什么？</p>
   <ul class="opts">
     <li>直接把每行 attention 权重当左右声道增益</li>
@@ -2072,11 +2075,11 @@ COURSE.register({
   <p class="why">注意力适合内容检索，音频增益还需要单调、连续和能量约束；两者分层能保留可解释性并减少过拟合自由度。</p>
 </div>
 
-<h3>9. 现代前沿：旋转位置编码 (RoPE) 的复数几何</h3>
+<h3>9. 旋转位置编码 (RoPE) 的复数几何</h3>
 <p>
-  早期的 Transformer 使用绝对位置正余弦编码直接加在 Token 嵌入上。
-  现代最强开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍采用 <strong>RoPE（Rotary Position Embedding）</strong>。
-  它的核心灵感极其优雅：<strong>用复数平面上的旋转矩阵对向量进行相乘，从而使内积天然携带相对位置距离</strong>。
+  早期的 Transformer 把绝对位置的正余弦编码直接加在 Token 嵌入上。
+  现在的开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍改用 <strong>RoPE（Rotary Position Embedding）</strong>。
+  它的做法很干净：<strong>用复数平面上的旋转矩阵去乘向量，内积就天然带上相对位置</strong>。
 </p>
 <p>
   结论先行：给 \(q\)、\(k\) 按位置各转一个角度后，内积只剩相对距离 \(n - m\)，绝对位置被消掉；
@@ -2101,7 +2104,7 @@ COURSE.register({
   </p>
   \[ \langle R_m q, \; R_n k \rangle = q^T R_{n-m} k \]
   <p>
-    内积只依赖于相对距离 \(n - m\)，与绝对位置无关！高维向量只需两两配对切成二维平面，分别乘以不同频率的旋转矩阵即可。
+    内积只依赖相对距离 \(n - m\)，与绝对位置无关。高维向量只要两两配对切成二维平面，各自乘以不同频率的旋转矩阵即可。
   </p>
   <p>
     若把相对位移记作 \(\Delta=m-n\)，则可定义 \(g(q,k,\Delta)=q^\top R_{-\Delta}k\)，于是 \(\langle R_mq,R_nk\rangle=g(q,k,m-n)\)。负号只来自旋转方向的约定，不改变“只依赖相对位置”的结论。
@@ -2139,7 +2142,7 @@ COURSE.register({
 </section>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 1</div>
+  <div class="qlabel">自测 · 5</div>
   <p class="q">序列长度从 2k 增加到 8k，朴素自注意力的核心点积计算量变为原来的几倍？</p>
   <ul class="opts">
     <li>2 倍</li>
@@ -2154,7 +2157,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 2</div>
+  <div class="qlabel">自测 · 6</div>
   <p class="q">在缩放点积注意力中，若取消除以 \(\sqrt{d_k}\) 的操作，随着特征维度 \(d_k\) 的增大，最可能导致什么训练问题？</p>
   <ul class="opts">
     <li>模型发生严重的内存泄漏</li>
@@ -2168,7 +2171,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 3</div>
+  <div class="qlabel">自测 · 7</div>
   <p class="q">旋转位置编码 (RoPE) 相比于在词嵌入上直接加上绝对位置编码的最大数学优势是什么？</p>
   <ul class="opts">
     <li>计算量为零</li>
@@ -2211,10 +2214,10 @@ COURSE.register({
   tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
-  当工程师谈论「7B、14B 或 70B 模型」时，这些数字究竟指的是哪些张量？
-  为什么同样是 7B 参数的模型，有的能塞进单张 16 GB 消费级显卡，有的微调时却连 80 GB A100 都会瞬间报 OOM（Out Of Memory）？
-  本讲追随 Andrej Karpathy 的 <code>nanoGPT</code> 极简哲学，彻底拆解现代自回归 Transformer 的每一个矩阵与张量算子，
-  给出参数量、计算 FLOPs、显存四大件（权重、梯度、优化器、激活值）以及 Pre-norm 恒等残差流的 STEP 级代数推导与工程账本。
+  当工程师说「7B、14B 或 70B 模型」时，这些数字到底指哪些张量？
+  同样标称 7B，为什么有的能塞进单张 16 GB 消费级显卡，有的微调时连 80 GB A100 都会立刻报 OOM（Out Of Memory）？
+  这一讲沿用 Andrej Karpathy 的 <code>nanoGPT</code> 风格，把现代自回归 Transformer 的每个矩阵与算子逐个拆开，
+  算清参数量、训练 FLOPs 和显存四大件（权重、梯度、优化器、激活值），顺带给出 Pre-norm 恒等残差流的代数推导。
 </p>
 
 <section class="blk blk-tip">
@@ -2235,11 +2238,11 @@ COURSE.register({
 </table>
   <h4><span class="ic">✓</span>学习目标：建立硬件算力与模型架构的解析直觉</h4>
   <p>
-    阅读完本讲后，你将能够做到：
-    <strong>①</strong> 仅凭纸笔在 5 分钟内准确推算出任意未知 Transformer 模型的参数总量（精确度达 95% 以上）；
-    <strong>②</strong> 严密推导为什么单 Token 矩阵乘法前向需要 \(2N\) FLOPs、反向需要 \(4N\) FLOPs；
-    <strong>③</strong> 从全微分角度证明 Pre-norm 为何比经典 Post-norm 具有更卓越的深度可训练性（恒等梯度直通项）；
-    <strong>④</strong> 逐行解构包含 RMSNorm、SwiGLU 与 Pre-norm 残差流的 Karpathy 风格极简 nanoGPT 代码。
+    读完这一讲，你应该能做到：
+    <strong>①</strong> 只拿纸笔，在 5 分钟内估算出任意 Transformer 模型的参数总量（精确度达 95% 以上）；
+    <strong>②</strong> 推导为什么单 Token 前向需要 \(2N\) FLOPs、反向需要 \(4N\) FLOPs；
+    <strong>③</strong> 从全微分角度看清 Pre-norm 的恒等梯度直通项，理解它为什么比 Post-norm 好训；
+    <strong>④</strong> 逐行读懂 Karpathy 风格 nanoGPT 里的 RMSNorm、SwiGLU 与 Pre-norm 残差流。
   </p>
 </section>
 
@@ -2248,10 +2251,10 @@ COURSE.register({
   <p>
     你打算在本地或云端训练一个轻量级的专属 Transformer 模块（如 1.5B 级别），
     或者在云端微调一个 8B 的多任务模型。
-    在启动训练前，你必须向自己清晰交代：
+    开训之前，先向自己交代清楚：
     <strong>这个模型每前向一个 Token 消耗多少次浮点运算？训练需要多少 GB 显存？
     权重占多少？AdamW 动量占多少？反向传播的中间激活值占多少？</strong>
-    如果答案是模糊的估算，你将陷入无休止的爆显存试错中。
+    如果只能给出模糊的估算，接下来就是反复爆显存试错。
   </p>
 </section>
 
@@ -2342,7 +2345,7 @@ COURSE.register({
   <p>门控支路决定每个通道放大或压低多少，上升支路提供待筛选的特征，最后由下降矩阵投回残差流维度。</p>
 </section>
 
-<h3>2. 核心参数量法则：\(12 L d^2 + |\mathcal{V}| d\)</h3>
+<h3>2. 参数量公式：\(12 L d^2 + |\mathcal{V}| d\)</h3>
 <p>
   记模型隐藏层维度为 \(d\)、层数为 \(L\)、词表大小为 \(|\mathcal{V}|\)、前馈层（FFN）中间隐藏维度为 \(d_{ff}\)。
   我们逐个矩阵核算单个 Block 内的参数量：
@@ -2373,12 +2376,12 @@ COURSE.register({
     </li>
   </ol>
   <p>
-    叠加全网 \(L\) 个层级，并加上词表嵌入矩阵（Embedding 矩阵 \(|\mathcal{V}| \times d\)），便得到了著名的估算公理：
+    把 \(L\) 层加起来，再加上词表嵌入矩阵（Embedding 矩阵 \(|\mathcal{V}| \times d\)），就得到常用的估算公式：
   </p>
   \[ N \approx 12 L d^2 + |\mathcal{V}| d \]
   <p>
-    <strong>几何与缩放洞见</strong>：参数量关于模型宽度 \(d\) 呈二次方增长（\(d^2\)），而关于深度 \(L\) 仅呈一次方线性增长。
-    这意味着增加模型宽度比增加深度更为昂贵，但更宽的模型具备更高的矩阵并行度。
+    <strong>缩放洞见</strong>：参数量随模型宽度 \(d\) 平方增长（\(d^2\)），随深度 \(L\) 只线性增长。
+    所以加宽度比加深度更贵，但更宽的模型矩阵并行度更高。
   </p>
 </section>
 
@@ -2408,7 +2411,7 @@ COURSE.register({
     <li>对权重矩阵的偏导：\(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\)，同样等价于一次相同尺度的 GEMM（\(2N\) FLOPs）。</li>
   </ol>
   <p>
-    两者相加，反向传播恰好需要 \(4N\) FLOPs！加上前向的 \(2N\)，完成一个 Token 的完整梯度迭代所需算力为：
+    两者相加，反向传播需要 \(4N\) FLOPs；加上前向的 \(2N\)，一个 Token 走完一次完整梯度迭代的算力是：
   </p>
   \[ C_{\text{train}} \approx 6 N D \qquad (\text{FLOPs}) \]
   <p>其中 \(D\) 是训练消耗的总 Token 数。这就是大模型 Scaling Law（如 Chinchilla）的核心计算基底。</p>
@@ -2450,7 +2453,7 @@ COURSE.register({
       <td><strong>静态显存小计</strong></td>
       <td><strong>16 字节 / 参数</strong></td>
       <td><strong>112 GB</strong></td>
-      <td><strong>尚未包含任何批次前向激活值显存！</strong></td>
+      <td><strong>尚未包含任何批次前向激活值显存</strong></td>
     </tr>
     <tr>
       <td>前向激活值 (Activations)</td>
@@ -2462,21 +2465,21 @@ COURSE.register({
 </table>
 <p>
   <strong>残酷的现实结论</strong>：
-  单张 24 GB 显存的显卡（如 RTX 4090 或 3090），连 7B 模型的静态权重和梯度都无法完整载入，更不用说高达 84 GB 的 AdamW 优化器状态！
-  这也是为什么 <span class="t" data-tterm="LoRA" data-d="Low-Rank Adaptation：冻结基座权重，仅微调低秩分解增量矩阵，将可训练参数压缩 1000 倍。">LoRA</span>
+  单张 24 GB 显卡（如 RTX 4090 或 3090）连 7B 模型的静态权重加梯度都装不下，更不用说高达 84 GB 的 AdamW 优化器状态。
+  这也是 <span class="t" data-tterm="LoRA" data-d="Low-Rank Adaptation：冻结基座权重，仅微调低秩分解增量矩阵，将可训练参数压缩 1000 倍。">LoRA</span>
   与 <span class="t" data-tterm="QLoRA" data-d="将基座权重 4-bit 量化，使得消费级显卡可微调 7B 级别大模型。">QLoRA</span>
-  能够彻底重塑开源社区生态的根本原因——它们将可训练参数量压缩了上千倍，从而移除了庞大的优化器显存山峦。
+  能改变开源社区玩法的根本原因——可训练参数量压缩了上千倍，那座优化器显存的大山就没了。
 </p>
 
-<h3>5. 教科书级实现：Karpathy nanoGPT 极简架构逐行剖析</h3>
+<h3>5. 逐行读一遍 nanoGPT 的架构</h3>
 <p>
-  在现代大模型主干网络中，整个 Transformer Block 的运算由两个核心算子主导：<strong>RMSNorm 预归一化</strong> 与 <strong>SwiGLU 门控前馈网络</strong>。以下通过单行微核心代码展示其运算本质：
+  现代大模型的一个 Transformer Block 里，主导运算的是两个算子：<strong>RMSNorm 预归一化</strong> 与 <strong>SwiGLU 门控前馈网络</strong>。下面用最少的代码把它们的运算本质写出来：
 </p>
 
 <p><strong>1. RMSNorm 算子核心演示：</strong></p>
 <p>\[ \text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon}} \odot \gamma \]</p>
 <p>
-  <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方和的均值；<code>torch.rsqrt</code> 计算均方根的倒数，跳过了传统 LayerNorm 中减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。在现代大模型（LLaMA-3、Qwen-2.5）中被全量采用，硬件吞吐提升约 7%~15%。
+  <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方的均值；<code>torch.rsqrt</code> 算均方根的倒数，省掉了传统 LayerNorm 里减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。LLaMA-3、Qwen-2.5 这些模型全都用它，硬件吞吐提升约 7%~15%。
 </p>
 
 <p><strong>2. SwiGLU 门控前馈网络（FFN）核心演示：</strong></p>
@@ -2488,13 +2491,13 @@ COURSE.register({
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>怎么连通工业级部署：1.5B 模型的本地端侧推理显存预算</h4>
   <p>
-    当你训练完一个约 1.5B 的轻量大模型后，如何在消费级硬件或普通笔记本上实现流畅推理？
+    训练完一个约 1.5B 的模型后，怎么在消费级硬件或普通笔记本上把它跑流畅？
   </p>
   <p>
     <strong>量化与显存账本</strong>：
     全精度 FP16 / BF16 下，1.5B 权重占用约 \(1.5 \times 10^9 \times 2 \approx 3.0\) GB 显存。
-    通过现代成熟的 4-bit 权重量化（如 AWQ、GPTQ 或 GGUF Q4_K_M），权重体积可直接压缩至 <strong>1.0 GB 左右</strong>！
-    配合 llama.cpp 或 ONNX Runtime，在无独立显卡的普通笔记本 CPU 上也能以数十 Token/s 的速度毫秒级流式输出。
+    换成 4-bit 权重量化（如 AWQ、GPTQ 或 GGUF Q4_K_M），权重体积能压到 <strong>1.0 GB 左右</strong>。
+    配合 llama.cpp 或 ONNX Runtime，没有独立显卡的普通笔记本 CPU 也能以数十 Token/s 的速度流式输出。
   </p>
 </section>
 
@@ -2585,7 +2588,7 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>几何推演：Transformer 残差流的三大维度不变量</h4>
   <p>
-    在 Transformer 的深层堆叠网络中，整个主干信息流可以视为一条穿透所有层的<strong>残差高速公路（Residual Highway）</strong>。在数学推演中必须满足以下守恒：
+    Transformer 堆叠很深，主干信息流可以看成一条穿过所有层的<strong>残差高速公路（Residual Highway）</strong>。它必须满足下面几条守恒：
   </p>
   <table class="tbl">
     <thead>
@@ -2635,7 +2638,7 @@ COURSE.register({
         </ul>
       </li>
     </ol>
-    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.4%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
+    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用只有 <strong>1.4%</strong>。剩下 15GB 以上的空间可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
   </div>
 </div>
 
@@ -2723,8 +2726,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   预训练是整条流水线里最贵、最不神秘、也最容易失败的一步。
-  它的全部内容是：<strong>一个损失函数、一个优化器、一份数据、一条学习率曲线，跑很久</strong>。
-  这一模块讲清楚每一步的选择与失败模式。
+  它做的事就四样：<strong>一个损失函数、一个优化器、一份数据、一条学习率曲线，然后跑很久</strong>。
+  这一模块把每一步该怎么选、会在哪里炸讲清楚。
 </p>
 
 <section class="blk blk-tip">
@@ -2771,7 +2774,7 @@ COURSE.register({
 </div>
 <dl class="kv">
   <dt>质量过滤</dt><dd>启发式规则（长度、符号比例、重复率）+ 分类器打分；这一步通常决定模型上限</dd>
-  <dt>去重</dt><dd>近似去重能显著减少背诵现象，并让有限算力见到更多不同内容</dd>
+  <dt>去重</dt><dd>近似去重能明显减少模型背诵原文的现象，也让有限算力见到更多不同内容</dd>
   <dt>打包</dt><dd>把多条文档拼成固定长度序列；必须用注意力掩码隔离不同文档，否则会学到跨文档的虚假关联</dd>
   <dt>退火</dt><dd>训练末期用高质量数据（代码、数学、精选网页）并压低学习率，这是提升下游表现最划算的一招</dd>
 </dl>
@@ -2853,7 +2856,7 @@ COURSE.register({
 </p>
 
 <h4>2.3 梯度累积：用小显存模拟大批量</h4>
-<p>显存不够时，我们不做一次大批量的前向，而是分几次做、把梯度攒起来再更新：</p>
+<p>显存不够时，不做一次大批量的前向，而是分几次做，把梯度攒起来再更新：</p>
 \[ B_{\text{global}} = B_{\text{micro}} \times N_{\text{accum}} \times N_{\text{DP}} \]
 <p>
   例如「微批 4 × 累积 8 × 数据并行 8 卡 = 全局批 256」。
@@ -2899,7 +2902,7 @@ COURSE.register({
     <li><strong>\(t\) 与 \(T\)</strong>：\(t\) 为当前训练步数，\(T\) 为全流程计划的总训练步数（如 100,000 步）；</li>
     <li><strong>\(t_{\text{warm}}\)</strong>：预热步数，通常设定为总步数的 1% ~ 2%（如前 2,000 步）；</li>
     <li><strong>\(\eta_{\max}\) 与 \(\eta_{\min}\)</strong>：峰值最大学习率（如 \(3 \times 10^{-4}\)）与退火下限最小学习率（通常为峰值的 10%，如 \(3 \times 10^{-5}\)）；</li>
-    <li><strong>为什么是 \(\frac{1}{2}(1 + \cos(\dots))\)</strong>：余弦函数在 \(\theta = 0\) 时值为 1，\(\frac{1}{2}(1+1) = 1\) 刚好从峰值平滑启程；在 \(\theta = \pi\) 时值为 \(-1\)，\(\frac{1}{2}(1-1) = 0\) 刚好平滑降至最低点，形成完美的 S 型缓降。</li>
+    <li><strong>为什么是 \(\frac{1}{2}(1 + \cos(\dots))\)</strong>：余弦函数在 \(\theta = 0\) 时值为 1，\(\frac{1}{2}(1+1) = 1\) 刚好从峰值平滑起步；在 \(\theta = \pi\) 时值为 \(-1\)，\(\frac{1}{2}(1-1) = 0\) 平滑降到最低点，整段是一条平滑的 S 型缓降。</li>
   </ul>
 </section>
 
@@ -2956,7 +2959,7 @@ COURSE.register({
   <h4><span class="ic">∑</span>参数量最优配比与 6ND 物理来源</h4>
   <p>
     <strong>为什么训练总算力是 \(C \approx 6ND\)？</strong><br />
-    每个 Token 在模型前向传播时，每个参数发生 1 次乘法和 1 次加法，耗费 <strong>\(2ND\) FLOPs</strong>；而在反向传播计算梯度时，既要求对权重的梯度、又要求对上一层激活的梯度，计算量是前向的 2 倍，即 <strong>\(4ND\) FLOPs</strong>。前向与反向相加，单步完整迭代恰好是 \(2ND + 4ND = \mathbf{6ND}\) FLOPs！
+    每个 Token 在模型前向传播时，每个参数发生 1 次乘法和 1 次加法，耗费 <strong>\(2ND\) FLOPs</strong>；反向传播算梯度时，既要对权重求梯度，又要求对上一层激活的梯度，计算量是前向的 2 倍，即 <strong>\(4ND\) FLOPs</strong>。前向与反向相加，一步完整迭代恰好是 \(2ND + 4ND = \mathbf{6ND}\) FLOPs。
   </p>
   <p>Chinchilla 的核心结论：在固定算力预算下，最优的参数量与数据量满足</p>
   \[ N_{\text{opt}} \approx \frac{D}{20} \qquad\Longleftrightarrow\qquad D_{\text{opt}} \approx 20\,N \]
@@ -3061,7 +3064,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 <section class="blk blk-lab">
   <h4><span class="ic">∑</span>预训练单步迭代核心算子：交叉熵损失与梯度截断</h4>
   <p>
-    在预训练工程底层中，单步迭代的计算本质可以提炼为两道极简的核心代数算子（注：Kaggle 平台的端到端完整显存实战位于第 V 板块模块 28）：
+    在预训练工程里，单步迭代的底层就是两道算子（Kaggle 平台的端到端显存实战见第 V 板块模块 28）：
   </p>
 
 <p><strong>1. 自回归交叉熵损失算子：</strong></p>
@@ -3077,7 +3080,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   <ul>
     <li><strong>\(\nabla_\theta \mathcal{L}\)</strong>：倒三角记号 \(\nabla\)（读作 nabla）是多变量微积分中的<strong>梯度算子</strong>，代表对所有模型参数求偏导数拼成的大向量；</li>
     <li><strong>\(\|g\|_2\)</strong>：双竖线表示 <strong>\(L_2\) 范数（模长）</strong>，就是高一空间向量的几何长度公式 \(\|g\|_2 = \sqrt{\sum g_i^2}\)；</li>
-    <li><strong>\(\min\left(1, \frac{M}{\|g\|_2}\right)\)</strong>：这是一座天然的<strong>限速器</strong>——若总梯度长度 \(\|g\|_2 \le M\)（未超速），比值 \(\ge 1\)，\(\min\) 返回 1，梯度原封不动；一旦梯度由于异常数据爆炸使 \(\|g\|_2 > M\)（超速），比值 \(< 1\)，乘以该比例恰好把总长度等比例压缩回上限 \(M\)，彻底消除了梯度爆炸导致模型参数变 NaN 的风险！</li>
+    <li><strong>\(\min\left(1, \frac{M}{\|g\|_2}\right)\)</strong>：这是一座天然的<strong>限速器</strong>——若总梯度长度 \(\|g\|_2 \le M\)（未超速），比值 \(\ge 1\)，\(\min\) 返回 1，梯度原封不动；一旦梯度因为异常数据爆炸使 \(\|g\|_2 > M\)（超速），比值 \(< 1\)，乘以该比例就把总长度等比例压回上限 \(M\)，梯度爆炸导致参数变 NaN 的风险就没了。</li>
   </ul>
 </section>
 <p>
@@ -3170,7 +3173,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
     <span class="blank-feedback"></span>
   </div>
   <p class="why">
-    根据公式 \(M_{\text{static}} \approx 16 \times N\) 字节，\(16 \times 10^7 \text{ bytes} = 1.6 \times 10^8 \text{ bytes} \approx 160\text{ MB}\)。在单张 16GB 显存的 T4 GPU 上仅占约 1% 的显存空间，极其轻量！
+    根据公式 \(M_{\text{static}} \approx 16 \times N\) 字节，\(16 \times 10^7 \text{ bytes} = 1.6 \times 10^8 \text{ bytes} \approx 160\text{ MB}\)。在单张 16GB 显存的 T4 上只占约 1% 的显存。
   </p>
 </div>
 
@@ -3202,8 +3205,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   模块 04 已经算出：7B 模型做全参数 AdamW 训练需要约 112 GB 显存。单卡放不下，
-  于是必须把「参数、梯度、优化器状态、激活值」切到多张卡上——这就是并行。
-  这一模块给出四种切分的分工、代价，以及 JAX 里怎么写。
+  只能把「参数、梯度、优化器状态、激活值」切到多张卡上——这就是并行。
+  这一模块给出四种切分的分工与代价，以及 JAX 里怎么写。
 </p>
 
 <section class="blk blk-tip">
@@ -3288,8 +3291,8 @@ COURSE.register({
     在神经网络线性层 \(Y = XW\) 中（输入 \(X \in \mathbb{R}^{b \times d_{\text{in}}}\)，权重 \(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)）：
   </p>
   <ul>
-    <li><strong>列分块（Column Parallel）：</strong>权重按输出通道列切 \(W = [W_1 \mid W_2]\)。各卡持有 \(W_i \in \mathbb{R}^{d_{\text{in}} \times (d_{\text{out}}/2)}\)。输入 \(X\) 完整广播到各卡，卡内各自计算 \(Y_i = X W_i\)。输出自然横向拼接为 \(Y = [Y_1 \mid Y_2]\)，<strong>前向计算完全无需跨卡通信</strong>！</li>
-    <li><strong>行分块（Row Parallel）：</strong>权重按输入通道行切 \(W = \begin{bmatrix} W_1 \\ W_2 \end{bmatrix}\)。输入也相应切分为列分块 \(X = [X_1 \mid X_2]\)。各卡持有局部输入与局部权重，独立计算部分和 \(Y_i = X_i W_i\)。全局真实输出必须求和：\(Y = Y_1 + Y_2\)。<strong>此时必须调用一次跨卡规约（Sum Reduction）通信</strong>！</li>
+    <li><strong>列分块（Column Parallel）：</strong>权重按输出通道列切 \(W = [W_1 \mid W_2]\)。各卡持有 \(W_i \in \mathbb{R}^{d_{\text{in}} \times (d_{\text{out}}/2)}\)。输入 \(X\) 完整广播到各卡，卡内各自计算 \(Y_i = X W_i\)。输出自然横向拼接为 \(Y = [Y_1 \mid Y_2]\)，<strong>前向计算完全无需跨卡通信</strong>。</li>
+    <li><strong>行分块（Row Parallel）：</strong>权重按输入通道行切 \(W = \begin{bmatrix} W_1 \\ W_2 \end{bmatrix}\)。输入也相应切分为列分块 \(X = [X_1 \mid X_2]\)。各卡持有局部输入与局部权重，独立计算部分和 \(Y_i = X_i W_i\)。全局真实输出必须求和：\(Y = Y_1 + Y_2\)。<strong>此时必须调用一次跨卡规约（Sum Reduction）通信</strong>。</li>
   </ul>
   <p>
     <strong>前置定义 3（集合通信算子 Collective Primitives）：</strong>
@@ -3338,7 +3341,7 @@ COURSE.register({
   </p>
   \[ \sigma([Z_1 \mid Z_2]) = [\sigma(Z_1) \mid \sigma(Z_2)] = [H_1 \mid H_2] \]
   <p>
-    这意味着：<strong>两张卡根本不需要把 \(Z_1\) 与 \(Z_2\) 汇总拼接</strong>，直接在各自显存内对局部中间张量执行激活计算！
+    这意味着：<strong>两张卡根本不需要把 \(Z_1\) 与 \(Z_2\) 汇总拼接</strong>，可以直接在各自显存里对局部中间张量做激活计算。
   </p>
   <p><strong>草稿第 3 步：第二层行切分局部矩阵乘法（零通信）</strong></p>
   <p>
@@ -3358,7 +3361,7 @@ COURSE.register({
   <p>
     <strong>代数证明结论：为什么必须是「列切 + 行切」？</strong>
     若颠倒顺序为「行切 + 列切」：第一层行切输出为 \(X_1 W_{1,1} + X_2 W_{1,2}\)，由于非线性激活函数对加法不满足分配律（\(\sigma(u + v) \neq \sigma(u) + \sigma(v)\)），必须在进入激活函数前强制做一次 All-Reduce 通信；第二层列切结束又需做通信收集，两层 MLP 前向将需要 2 次通信。
-    而<strong>「列切 \(W_1\) \(\to\) 逐元素激活 \(\to\) 行切 \(W_2\)」的优雅设计，利用了非线性算子对列拼接的可交换性，将通信完全延后到了第二层末尾，使整个 MLP 块仅需 1 次 All-Reduce</strong>！
+    而<strong>「列切 \(W_1\) \(\to\) 逐元素激活 \(\to\) 行切 \(W_2\)」的设计，利用了非线性算子对列拼接的可交换性，把通信全部推迟到第二层末尾，使整个 MLP 块只需 1 次 All-Reduce</strong>。
   </p>
 </section>
 
@@ -3420,11 +3423,11 @@ COURSE.register({
   而 JAX 把 <strong>sharding 声明为数组类型的一部分</strong>，由 XLA 编译器自动插入通信（GSPMD）。
 </p>
 <p>
-  在现代并行计算框架（如 JAX / PyTorch DTensor）中，多卡切分的本质可以通过两行微声明展示：
+  在 JAX、PyTorch DTensor 这类框架里，多卡切分的本质用两行声明就能说清：
 </p>
 <p>\[ \text{Mesh}(\mathcal{D}_{\text{data}}, \mathcal{D}_{\text{model}}): \quad X \in \mathbb{R}^{B \times T \times d} \xrightarrow{\text{Sharding}} \{X^{(k)} \in \mathbb{R}^{\frac{B}{N_d} \times T \times d}\}_{k=1}^{N_d} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：<code>PartitionSpec('data', None)</code> 声明张量的物理切分规格——批量样本轴沿着设备网格的 <code>data</code> 轴切开分发至各张卡，特征隐藏轴保持完整不切分；<code>jax.device_put</code> 指挥硬件通过高速总线完成内存映射与设备广播，无需开发者手工写网络套接字传输。
+  <strong>逐行代数解析</strong>：<code>PartitionSpec('data', None, None)</code> 声明张量的物理切分规格——三个元素与这个三维张量的三个维度一一对应，批量样本轴沿设备网格的 <code>data</code> 轴切开分发到各张卡，序列轴与特征隐藏轴都保持完整不切分；<code>jax.device_put</code> 负责通过高速总线完成内存映射与设备广播，不用开发者手工写网络套接字传输。
 </p>
 <p>
   同样的模型，改成「8 路纯数据并行」只需要把 <code>mesh</code> 换成 <code>(8, 1)</code>，
@@ -3476,7 +3479,7 @@ COURSE.register({
   </ul>
   <p class="why">
     数据并行每步只有一次梯度 all-reduce（通信量约 \(2N\)，与卡数无关）；
-    张量并行每步有 \(2L = 64\) 次激活小包通信：总量随 \(B\cdot S\) 增长（\(10^{4}\) 时约 \(2.6\times 10^{9}\) 个元素，与 \(2N\) 相当），
+    张量并行每步有 \(2L = 64\) 次激活小包通信：总量随 \(B\cdot S\) 增长（\(10^{4}\) 时约 \(2.6\times 10^{9}\) 个元素，只有 \(2N\) 的约五分之一），
     但高频小包无法与计算重叠，所以它需要 NVLink 这类高带宽低延迟互联。
   </p>
 </div>
@@ -3573,8 +3576,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   预训练给你一个「会续写」的模型，微调与对齐把它变成一个「听话」的模型。
-  这条路线原则上有四个台阶：监督微调、参数高效微调、偏好优化、可验证奖励的强化学习。
-  这一模块把每个台阶的<strong>数据形态、目标函数、适用条件</strong>列清楚，并对应到 TRL 的具体 trainer。
+  整条路线按顺序有四个台阶：监督微调、参数高效微调、偏好优化、可验证奖励的强化学习。
+  这一模块把每个台阶的<strong>数据形态、目标函数、适用条件</strong>讲清楚，再对应到 TRL 的具体 trainer。
 </p>
 
 <section class="blk blk-tip">
@@ -3601,7 +3604,7 @@ COURSE.register({
   <tbody>
     <tr><td>模型不知道某些事实</td><td>检索（RAG）</td><td>知识更新快、可溯源，微调记事实既贵又易错</td></tr>
     <tr><td>输出格式/风格不对</td><td>提示词 + few-shot</td><td>零成本，先试 20 个提示模板</td></tr>
-    <tr><td>需要稳定遵循复杂指令</td><td>SFT（可配 LoRA）</td><td>用几百条到几万条示范即可显著改善</td></tr>
+    <tr><td>需要稳定遵循复杂指令</td><td>SFT（可配 LoRA）</td><td>用几百条到几万条示范就能改过来</td></tr>
     <tr><td>有「更好/更差」的偏好但对不齐</td><td>DPO / KTO</td><td>不需要训练奖励模型，直接用偏好对</td></tr>
     <tr><td>答案可以被自动验证（数学、代码）</td><td>GRPO / RLVR</td><td>用规则型奖励替代人类偏好，信号干净且可扩展</td></tr>
     <tr><td>要复现人类反馈的细粒度偏好</td><td>RLHF（奖励模型 + PPO）</td><td>最贵、最不稳，通常只在有大量标注时值得</td></tr>
@@ -3609,7 +3612,7 @@ COURSE.register({
 </table>
 
 <h3>2. 台阶一：监督微调（SFT）</h3>
-<p>数据是「提问 → 理想回答」的示范。目标函数仍然是交叉熵，只是只在回答部分计算：</p>
+<p>数据是「提问 → 理想回答」的示范。目标函数仍是交叉熵，但只在回答片段上计算：</p>
 \[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{< t}) \]
 <dl class="kv">
   <dt>数据量</dt><dd>格式对齐：200–2000 条即可见效；能力注入：数万到数十万条</dd>
@@ -3654,7 +3657,7 @@ COURSE.register({
   看前 8 个奇异值占了多少能量。<em>这是一个很好的「小成本、真结论」实验。</em>
 </p>
 
-<h4>3.2 一个 7B 模型的 LoRA 参数量实算</h4>
+<h4>3.2 一个 8B 模型的 LoRA 参数量实算</h4>
 <p>以 Llama-3-8B 的维度（\(d = 4096\)、\(d_{ff} = 14336\)、\(h_{kv} = 8\)、\(d_{\text{head}} = 128\)、32 层）为例，取 \(r = 16\)：</p>
 <table class="tbl small">
   <thead><tr><th>目标模块</th><th>原矩阵形状</th><th>LoRA 参数量 \(r(d+k)\)</th><th>× 32 层</th></tr></thead>
@@ -3683,7 +3686,7 @@ COURSE.register({
 </p>
 <p>
   另外两个常被忽略的细节：<strong>(1) \(B\) 初始化为 0</strong>，所以训练开始时 \(\Delta W = 0\)，
-  模型精确等于原模型——这让 LoRA 的起步非常安全；
+  模型精确等于原模型——这让 LoRA 的起步很安全；
   <strong>(2) \(\alpha/r\) 只是缩放</strong>，它不改变参数量，但会改变有效学习率，
   所以调 \(r\) 时通常同时按比例调 \(\alpha\)（常见做法是固定 \(\alpha = 2r\)）。
 </p>
@@ -3717,7 +3720,7 @@ COURSE.register({
     <li>参数量压缩比：原矩阵参数量为 \(dk\)，分解后参数量为 \(r(d+k)\)。当 \(d=k=4096, r=16\) 时，参数量由 \(16{,}777{,}216\) 骤降至 \(16 \times 8192 = 131{,}072\)，占比仅为：
       \[ \frac{r(d+k)}{dk} = \frac{131{,}072}{16{,}777{,}216} = \frac{1}{128} \approx 0.78\% \]
     </li>
-    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (AB) = (xA) B\)：先算 \(xA \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xA)B \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
+    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (AB) = (xA) B\)：先算 \(xA \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xA)B \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降到原来的 \(0.78\%\)。</li>
     <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (A \cdot 0) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
   </ul>
   </section>
@@ -3739,41 +3742,41 @@ COURSE.register({
   <p>
     <strong>一个直观例子</strong>：问「用一句话解释光合作用」。回答 A 准确简洁（被选中 \(y_w\)），回答 B 编造了细节（被拒绝 \(y_l\)）。
     训练前基座模型给 A 的概率是 \(0.10\)、给 B 的是 \(0.40\)——它倾向于吐出错误的废话。
-    DPO 要做的物理动作，就是把 \(A\) 的生成概率推高、把 \(B\) 的生成概率狠狠压下去。
+    DPO 要做的事，就是把 \(A\) 的生成概率推高、把 \(B\) 的生成概率压下去。
   </p>
 </section>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>数学记号平稳铺垫（Notation Bridge：这几个符号你其实全都学过）</h4>
   <p>
-    在翻开 DPO 原始论文或公式时，很多同学会立刻被几个陌生的数学记号吓住。其实只要把它们翻译成你在前六章学过的内容，全都是初等数学：
+    翻开 DPO 原始论文时，几个陌生的数学记号很容易让人卡住。其实把它们翻译成前六章学过的内容，全都是初等数学：
   </p>
   <ul>
     <li>
-      <strong>为什么语言模型突然变成了希腊字母 \(\pi_	heta\)？</strong><br>
-      在前六章中，我们一直用条件概率 \(p_	heta(y \mid x)\) 来表示大模型。
+      <strong>为什么语言模型突然变成了希腊字母 \(\pi_\theta\)？</strong><br>
+      前六章里你一直用条件概率 \(p_\theta(y \mid x)\) 表示大模型。
       而在强化学习（RL）领域，学者习惯把大模型看作一个做决定的智能体（Agent），输入 \(x\) 是环境状态，输出词是动作。
       在控制论和强化学习文献中，智能体的行动规则统称为<strong>策略（Policy）</strong>，按惯例一律记作希腊字母 \(\pi\)（念作 pi，不要误会成圆周率 3.14）：
-      \[ \pi_	heta(y \mid x) \equiv p_	heta(y \mid x) \]
-      <strong>它就是你手头那个完全相同的 Transformer 自回归大模型，没有任何新增结构！</strong>
+      \[ \pi_\theta(y \mid x) \equiv p_\theta(y \mid x) \]
+      <strong>它就是你手头那个完全相同的 Transformer 自回归大模型，没有任何新增结构。</strong>
     </li>
     <li>
-      <strong>参考模型 \(\pi_{	ext{ref}}\) 是什么？</strong><br>
-      \(	ext{ref}\) 是 Reference（参考基准）的缩写。
-      它就是你刚完成 SFT 之后、<strong>被彻底冻结参数、永远不更新</strong>的原始基座模型备份！
-      它立在原地作为一把“安全锚（Anchor）”，随时提醒正在训练的 \(\pi_	heta\)：你可以根据人类偏好微调输出倾向，但绝不能彻底把原来的语言组织能力训飞或模式崩溃。
+      <strong>参考模型 \(\pi_{\text{ref}}\) 是什么？</strong><br>
+      \(\text{ref}\) 是 Reference（参考基准）的缩写。
+      它就是你刚完成 SFT 之后、<strong>被彻底冻结参数、永远不更新</strong>的原始基座模型备份。
+      它立在原地作为一把“安全锚（Anchor）”，随时提醒正在训练的 \(\pi_\theta\)：你可以根据人类偏好微调输出倾向，但绝不能彻底把原来的语言组织能力训飞或模式崩溃。
     </li>
     <li>
-      <strong>记号 \(	riangleq\) 是什么意思？</strong><br>
-      \(	riangleq\) 纯粹是数学与工程中「定义为（Defined as）」的通用简写，等价于口语里的「令左边等于右边」，无需任何高深理解。
+      <strong>记号 \(\triangleq\) 是什么意思？</strong><br>
+      \(\triangleq\) 纯粹是数学与工程中「定义为（Defined as）」的通用简写，等价于口语里的「令左边等于右边」，无需任何高深理解。
     </li>
     <li>
       <strong>为什么整句概率比会变成逐词对数求和 \(\sum_{t=1}^T\)？</strong><br>
-      在第 01 章我们学过自回归的<strong>联合概率链式法则</strong>：一个由 \(T\) 个词组成的完整句子 \(y=(y_1, y_2, \dots, y_T)\)，其联合概率是每一步条件概率的连续累乘：
-      \[ \pi_	heta(y \mid x) = \prod_{t=1}^T \pi_	heta(y_t \mid x, y_{< t}) \]
-      初等代数告诉我们「对数把连乘化为累加」：\(\log(a \cdot b) = \log a + \log b\)。两边取对数后：
-      \[ \log \pi_	heta(y \mid x) = \sum_{t=1}^T \log \pi_	heta(y_t \mid x, y_{< t}) \]
-      因此，新策略与基准模型的概率除法 \(\log \frac{\pi_	heta}{\pi_{	ext{ref}}} = \log \pi_	heta - \log \pi_{	ext{ref}}\)，自然就变成了每一步词概率对数之差的求和！
+      第 01 章讲过自回归的<strong>联合概率链式法则</strong>：一个由 \(T\) 个词组成的完整句子 \(y=(y_1, y_2, \dots, y_T)\)，其联合概率是每一步条件概率的连续累乘：
+      \[ \pi_\theta(y \mid x) = \prod_{t=1}^T \pi_\theta(y_t \mid x, y_{< t}) \]
+      初等代数里就有「对数把连乘化为累加」：\(\log(a \cdot b) = \log a + \log b\)。两边取对数后：
+      \[ \log \pi_\theta(y \mid x) = \sum_{t=1}^T \log \pi_\theta(y_t \mid x, y_{< t}) \]
+      因此，新策略与基准模型的概率除法 \(\log \frac{\pi_\theta}{\pi_{\text{ref}}} = \log \pi_\theta - \log \pi_{\text{ref}}\)，自然就变成了每一步词概率对数之差的求和。
     </li>
   </ul>
 </section>
@@ -3781,28 +3784,28 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>DPO 相对概率比与隐式奖励定义（数学形式化）</h4>
   <p>
-    有了前面的记号铺垫，我们现在写出严谨的数学形式。
+    记号铺垫完了，下面写出严谨的数学形式。
     设输入提问为 \(x\)，生成回答为 \(y = (y_1, y_2, \dots, y_T)\)。
-    训练中的策略模型为 \(\pi_	heta(y \mid x)\)，冻结的基准模型为 \(\pi_{	ext{ref}}(y \mid x)\)。
+    训练中的策略模型为 \(\pi_\theta(y \mid x)\)，冻结的基准模型为 \(\pi_{\text{ref}}(y \mid x)\)。
     两者之间的<strong>对数相对概率比（Log Probability Ratio）</strong>定义为：
   </p>
-  \[ \Delta \log \pi(x, y) 	riangleq \log \frac{\pi_	heta(y \mid x)}{\pi_{	ext{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_	heta(y_t \mid x, y_{< t}) - \log \pi_{	ext{ref}}(y_t \mid x, y_{< t}) \Big) \]
+  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{< t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{< t}) \Big) \]
   <p>
     <strong>为什么这个比值可以直接充当奖励？</strong><br>
     乘以一个恒正的温度调节超参数 \(\beta > 0\)（通常取 \(0.1 \sim 0.5\)）后，定义模型在该回答上的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
-  \[ \hat{r}_	heta(x, y) 	riangleq \beta \log \frac{\pi_	heta(y \mid x)}{\pi_{	ext{ref}}(y \mid x)} \]
+  \[ \hat{r}_\theta(x, y) \triangleq \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \]
   <p>
-    <strong>直觉物理含义一眼看穿</strong>：
+    <strong>直觉上怎么读这个奖励</strong>：
   </p>
   <ul>
-    <li>当 \(\pi_	heta(y \mid x) > \pi_{	ext{ref}}(y \mid x)\) 时，比值大于 1，其对数大于 0，即 \(\hat{r}_	heta > 0\)：说明新模型比原来的冻结基座<strong>更愿意</strong>说出回答 \(y\)，系统自动视为获得了<strong>正向奖励</strong>；</li>
-    <li>当 \(\pi_	heta(y \mid x) < \pi_{	ext{ref}}(y \mid x)\) 时，比值小于 1，其对数小于 0，即 \(\hat{r}_	heta < 0\)：说明新模型在刻意压低回答 \(y\) 的出现频率，系统自动视为获得了<strong>负向惩罚</strong>；</li>
+    <li>当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，比值大于 1，其对数大于 0，即 \(\hat{r}_\theta > 0\)：说明新模型比原来的冻结基座<strong>更愿意</strong>说出回答 \(y\)，系统自动视为获得了<strong>正向奖励</strong>；</li>
+    <li>当 \(\pi_\theta(y \mid x) < \pi_{\text{ref}}(y \mid x)\) 时，比值小于 1，其对数小于 0，即 \(\hat{r}_\theta < 0\)：说明新模型在刻意压低回答 \(y\) 的出现频率，系统自动视为获得了<strong>负向惩罚</strong>；</li>
     <li>温度系数 \(\beta\) 就像灵敏度旋钮：\(\beta\) 越大，模型偏离基准所换来的奖惩幅度越剧烈。</li>
   </ul>
   <p>
-    <strong>这正是 DPO 最震撼业界的洞察</strong>：
-    不需要单独花成本去训练和维护一个额外的打分模型（Reward Model），当前语言模型自身相对于冻结基准的对数比，就已经在数学上等价于一个天然的打分器！
+    <strong>这就是 DPO 的关键洞察</strong>：
+    不需要再花成本训练和维护一个额外的打分模型（Reward Model）：当前语言模型自身相对于冻结基准的对数比，在数学上就等价于一个天然的打分器。
   </p>
 </section>
 
@@ -3831,7 +3834,7 @@ COURSE.register({
 </p>
 \[ p^*(y|x) = \frac{1}{Z(x)}\,p_{\text{ref}}(y|x)\,\exp\!\Big(\frac{r(x,y)}{\beta}\Big) \]
 <p>
-  <strong>第二步</strong>：把上式反解出奖励。这一步给出了一个非常有用的视角——
+  <strong>第二步</strong>：把上式反解出奖励。这一步给出一个很有用的视角——
   奖励可以用「策略与参考模型的对数概率比」表示：
 </p>
 \[ r(x,y) = \beta\,\log\frac{p^*(y|x)}{p_{\text{ref}}(y|x)} + \beta\,\log Z(x) \]
@@ -3862,7 +3865,7 @@ COURSE.register({
   <li><strong>只能用离线数据</strong>：它优化的是「这份数据里被选中的回答」，
       但真正想要的是「模型自己采样出来的回答里更好的那些」。数据分布与策略分布会逐渐错位。</li>
   <li><strong>没有探索</strong>：PPO/GRPO 会不断采样新回答并从奖励里学习，DPO 只是拟合固定的偏好对。</li>
-  <li><strong>对数据质量极其敏感</strong>：偏好对里的标注噪声会被直接学成「这就是好的」。</li>
+  <li><strong>对数据质量很敏感</strong>：偏好对里的标注噪声会被直接学成「这就是好的」。</li>
 </ol>
 <p>所以实践中的顺序通常是：<strong>先用 SFT 把行为对齐 → 有偏好对就用 DPO 微调 → 若答案可自动验证（数学、代码）则改用 GRPO。</strong></p>
 <table class="tbl small">
@@ -3933,7 +3936,7 @@ COURSE.register({
   </p>
   \[ r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x) \]
   <p>
-    <strong>关键观察：</strong>第二项 \(\beta \log Z(x)\) 仅仅是关于输入 prompt \(x\) 的标量，完全与生成的候选回答序列 \(y\) 无关！
+    <strong>关键观察：</strong>第二项 \(\beta \log Z(x)\) 只是关于输入 prompt \(x\) 的标量，与生成的候选回答序列 \(y\) 完全无关。
   </p>
   <p><strong>第 4 步：代入 Bradley–Terry 偏好模型，配分项精确对消</strong></p>
   <p>
@@ -3950,7 +3953,7 @@ COURSE.register({
   &= \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}
   \end{aligned} \]
   <p>
-    <strong>数学奇迹：</strong>两个极其难算的配分项 \(\beta \log Z(x)\) 严格相减对消为 0！
+    <strong>关键一步：</strong>两个本来很难算的配分项 \(\beta \log Z(x)\) 相减后对消为 0。
     由此，偏好概率被纯粹表达为策略与参考模型的相对概率比：
   </p>
   \[ P(y_w \succ y_l \mid x) = \sigma\left( \beta \left[ \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right] \right) \]
@@ -3960,7 +3963,7 @@ COURSE.register({
   </p>
   \[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = - \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma\left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right] \]
   <p>
-    至此，我们用纯粹的代数变换，<strong>彻底消除了独立的奖励模型 \(r(x, y)\) 和 PPO 的在线环境采样循环</strong>！
+    走到这里，纯代数变换就<strong>消掉了独立的奖励模型 \(r(x, y)\) 和 PPO 的在线环境采样循环</strong>。
   </p>
 </section>
   </div>
@@ -4026,7 +4029,7 @@ COURSE.register({
   </p>
   \[ -\nabla_\theta \mathcal{L}_{\text{DPO}} = +\frac{1}{3} \nabla_\theta \log \pi_\theta(y_w \mid x) - \frac{1}{3} \nabla_\theta \log \pi_\theta(y_l \mid x) \]
   <p>
-    <strong>动力学直觉：</strong>参数更新以 \(+\frac{1}{3}\) 的梯度动力<strong>强力推高</strong>获胜回答 \(y_w\) 的生成对数概率，同时以 \(-\frac{1}{3}\) 的反向动力<strong>压低</strong>落败回答 \(y_l\) 的生成概率！
+    <strong>动力学直觉：</strong>参数更新以 \(+\frac{1}{3}\) 的梯度动力<strong>强力推高</strong>获胜回答 \(y_w\) 的生成对数概率，同时以 \(-\frac{1}{3}\) 的反向动力<strong>压低</strong>落败回答 \(y_l\) 的生成概率。
     一旦模型学好使得 \(u \gg 0\) 时，\(\sigma(u) \to 1\)，动态权重 \(1 - \sigma(u) \to 0\)，梯度推力平滑归零，杜绝过调。
   </p>
   </div>
@@ -4065,7 +4068,6 @@ COURSE.register({
   </ul>
 </section>
 <p>
-  裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。
   裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。它并不是给概率本身设硬上限，也不保证参数更新会在阈值处停住；
   \(\beta D_{\mathrm{KL}}\) 把新策略拴在参考模型附近。
 </p>
@@ -4085,7 +4087,7 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：最小可用的 SFT + DPO 流水线（完整版见附录 B · E4、E5）</h4>
 <p>
-  在后训练（Post-Training）阶段，两大核心技术 LoRA 与 DPO 的计算内核可以通过微核心算子直接展现：
+  后训练（Post-Training）阶段的两大核心技术 LoRA 与 DPO，计算内核可以直接写成两个微核心算子：
 </p>
 
 <p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
@@ -4097,7 +4099,7 @@ COURSE.register({
 <p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>
 <p>\[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right] \]</p>
 <p>
-  <strong>逐行代数解析</strong>：计算人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）之间的隐式奖励对数几率差；经由超参数 \(\beta\) 调节后输入 Sigmoid 函数并求负对数似然，无需显式训练独立的奖励模型。
+  <strong>逐行代数解析</strong>：把人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）的隐式奖励取对数几率差，经超参数 \(\beta\) 缩放后送进 Sigmoid 再求负对数似然，全程不需要单独训练奖励模型。
 </p>
   <p><strong>要观察的指标</strong>：DPO 日志里的 <code>rewards/chosen</code> 与 <code>rewards/rejected</code> 的差（margin）应逐步拉开；
   若两者同时下降，说明你在把模型推离参考分布太远，需要减小学习率或增大 \(\beta\)。</p>
@@ -4180,7 +4182,7 @@ COURSE.register({
     <li>因为使用蒙特卡洛采样近似计算了 \(Z(x)\)</li>
   </ul>
   <p class="why">
-    推导的核心精髓就在于配分函数 \(Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp(r(x, y)/\beta)\) 只依赖于条件 \(x\)，完全与候选回答 \(y\) 无关。在计算胜出回答与落败回答的奖励差时，\(\beta \log Z(x) - \beta \log Z(x) \equiv 0\)，从而奇迹般避开了对整个词表生成空间的难解配分求和！
+    推导的核心精髓就在于配分函数 \(Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp(r(x, y)/\beta)\) 只依赖于条件 \(x\)，完全与候选回答 \(y\) 无关。在计算胜出回答与落败回答的奖励差时，\(\beta \log Z(x) - \beta \log Z(x) \equiv 0\)，从而避开了对整个词表生成空间的难解配分求和。
   </p>
 </div>
 
@@ -4228,7 +4230,7 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   训练一次，推理无数次。推理阶段决定了你的产品体验、账单，以及能不能在本地跑起来。
-  这一模块讲采样、量化、批处理，以及一个对第 12 模块至关重要的机制：<strong>前缀缓存</strong>。
+  这一模块讲采样、量化、批处理，还有一个对第 24 模块至关重要的机制：<strong>前缀缓存</strong>。
 </p>
 
 <section class="blk blk-tip">
@@ -4282,7 +4284,7 @@ COURSE.register({
 <p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
 <p>\[ P(w_{t} = i \mid w_{< t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
+  <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，再由 <code>torch.multinomial</code> 按概率权重随机采样，避免贪心解码一路重复同一句话。
 </p>
 <p><strong>一个常见误解</strong>：贪心解码（\(T=0\)）不等于「最正确答案」，它只是「最高概率路径」。
 在需要多样性的任务（写诗、生成候选）上贪心会退化；在需要确定性的任务（抽取、分类）上它是最佳选择。</p>
@@ -4397,10 +4399,10 @@ COURSE.register({
   <span class="t" data-tterm="Prefix caching / prompt caching" data-d="缓存共享前缀的 KV，使重复前缀的计算与计费大幅降低；通常有几分钟的存活时间，且与具体账号/实例绑定。">前缀缓存 / 提示缓存</span>。
 </p>
 <ul>
-  <li><strong>收益</strong>：长系统提示 + 多轮对话场景下，延迟可降数倍，费用可显著下降。</li>
+  <li><strong>收益</strong>：长系统提示 + 多轮对话场景下，延迟能降数倍，费用也跟着降。</li>
   <li><strong>失效条件</strong>：前缀中任何位置变化（哪怕改一个字）都会让缓存失效；请求被路由到<strong>另一个实例或另一个账号</strong>也会失效。</li>
-  <li><strong>对你的意义</strong>：这正是第 12 模块里「账号亲和」的量化理由——如果代理在中途切换账号，
-      缓存全部失效，可能要重新写入 80 万 token 的前缀。</li>
+  <li><strong>对你的意义</strong>：这正是第 24 模块里「账号亲和」的量化理由——代理中途换了账号，
+      缓存就全部失效，可能要重新写入 80 万 token 的前缀。</li>
 </ul>
 
 <h3>5. 成本估算</h3>
@@ -4456,8 +4458,8 @@ COURSE.register({
 \[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{< t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
 <p>
   <strong>记号直觉小桥</strong>：\(\sim\) 读作「服从……采样」，\(\mathrm{Cat}\) 是 <strong>Categorical Distribution（分类分布）</strong>的缩写。
-  这句公式的物理动作极度直观：把模型最后一层输出除以温度 \(T\) 并经过 Softmax 变成总和为 \(100\%\) 的词表概率，
-  然后拿着这个概率分布去<strong>掷一枚拥有 \(V\) 个面的不均匀骰子</strong>，掷出的那个面就是下一个吐出的 Token \(x_t\)！
+  这句公式的物理动作很直观：把模型最后一层输出除以温度 \(T\) 并经过 Softmax 变成总和为 \(100\%\) 的词表概率，
+  然后拿着这个概率分布去<strong>掷一枚拥有 \(V\) 个面的不均匀骰子</strong>，掷出的那个面就是下一个吐出的 Token \(x_t\)。
 </p>
 <p>
   其中 \(x_{< t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
@@ -4473,7 +4475,7 @@ COURSE.register({
 <p><strong>KV Cache 缓存追加算子微核心演示：</strong></p>
 <p>\[ K_{1:t} = [K_{1:t-1} \parallel k_t], \quad V_{1:t} = [V_{1:t-1} \parallel v_t] \]</p>
 <p>
-  <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 骤降为 \(O(T)\)。
+  <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 降到 \(O(T)\)。
 </p>
 
 <section class="blk blk-m">
@@ -4733,7 +4735,7 @@ COURSE.register({
 <p><strong>4-bit NF4 低显存量化加载算子微核心演示：</strong></p>
 <p>\[ W_{\text{FP16}} \xrightarrow{\text{NF4 Quant}} W_{\text{4-bit}} + \text{absmax} \cdot c, \quad \text{Memory} \approx \frac{1}{4} \text{Memory}_{\text{FP16}} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，使 1.5B 乃至 7B 级别大模型得以平稳驻留在消费级或免费 T4 显卡（16GB）显存内。
+  <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，让 1.5B 到 7B 这一档模型能稳稳装进消费级显卡或免费 T4（16GB）的显存里。
 </p>
   <p>记录四件事：显存、tokens/s、输出质量是否肉眼可辨、以及首次加载时间。然后回答：
   <em>如果你要部署一个每天 10 万次调用的服务，量化省下的钱和掉的质量哪个更值？</em></p>
@@ -4765,7 +4767,7 @@ COURSE.register({
   </ul>
   <p class="why">
     前缀缓存以「逐 token 完全相同的前缀」为键。前缀任何位置的变化都会使其失效；
-    缓存通常还与实例（甚至账号）绑定，因此负载均衡与账号切换会直接击穿缓存——这是第 12 模块的核心工程约束。
+    缓存通常还与实例（甚至账号）绑定，因此负载均衡与账号切换会直接击穿缓存——这是第 24 模块的核心工程约束。
   </p>
 </div>
 
@@ -4774,7 +4776,7 @@ COURSE.register({
   <p class="q">为什么主流做法把权重量化到 4-bit，而激活值通常只到 8-bit？</p>
   <ul class="opts">
     <li>因为激活值数量更少</li>
-    <li data-ok>激活值中存在离群值（outliers），低位宽会显著破坏它们，导致质量骤降</li>
+    <li data-ok>激活值中存在离群值（outliers），低位宽会把它们压坏，导致质量明显下降</li>
     <li>因为硬件不支持低位宽激活</li>
     <li>因为量化权重更容易实现</li>
   </ul>
@@ -4818,7 +4820,7 @@ COURSE.register({
   <p class="why">
     加速比是「每轮产出」除以「每轮成本」：\(\mathbb{E}[n_{\text{tok}}] = (1-\alpha^{k+1})/(1-\alpha) = 1.9375\)，
     成本 \(= \gamma k + 1 = 1.4\)，比值 \(1.9375/1.4 = 1.384\)。10.00 是把上限误当实测；
-    2.00 忽略了草稿侧那 \(\gamma k = 0.4\) 的成本；1.00 是低估——因为保本接受率只有约 0.23，
+    2.00 忽略了草稿侧那 \(\gamma k = 0.4\) 的成本；1.00 是低估——因为保本接受率只有约 0.29，
     \(\alpha = 0.5\) 仍然明显高于保本线。<strong>结论</strong>：投机解码的加速比要先算后用，不要凭「快了十倍」的说法配参数。
   </p>
 </div>
@@ -4875,7 +4877,7 @@ COURSE.register({
 <table class="tbl">
   <thead><tr><th>层次</th><th>指标</th><th>能回答什么</th><th>不能回答什么</th></tr></thead>
   <tbody>
-    <tr><td>训练指标</td><td>loss、perplexity、梯度范数</td><td>优化是否正常进行</td><td>任务表现好不好</td></tr>
+    <tr><td>训练指标</td><td>loss、perplexity、梯度范数</td><td>优化有没有正常推进</td><td>任务表现好不好</td></tr>
     <tr><td>任务指标</td><td>准确率、F1、RMSE、BLEU、MUSHRA</td><td>在固定测试集上的表现</td><td>是否泛化到真实分布</td></tr>
     <tr><td>人类/领域评估</td><td>双盲听测、专家评审</td><td>是否真的有价值</td><td>成本高、方差大</td></tr>
   </tbody>
@@ -4952,7 +4954,7 @@ COURSE.register({
   这正是下一节要做置换检验的原因。
 </p>
 <p><em>可执行的结论：在 crossfade 这类任务常见的规模下，能可靠检测的是「0.3 秒以上」的差别。所以不要为了让 Level 3 赢而调参——
-先在报告里声明这个可检测下限，会让你的结论显得非常专业。</em></p>
+先在报告里声明这个可检测下限，会让你的结论站得住。</em></p>
 
 <h4>3.2 分组交叉验证的正确做法</h4>
 <ol>
@@ -4980,7 +4982,7 @@ COURSE.register({
 </ol>
 <p>
   还有一个常被忽略的细节：置换检验的零分布<strong>本身就是噪声的度量</strong>。
-  把真实分数与零分布一起画出来，读者一眼就能看出「改进」相对噪声有多大——这张图比任何 p 值都有说服力。
+  把真实分数与零分布一起画出来，一眼就能看出「改进」相对噪声有多大——这张图比任何 p 值都有说服力。
 </p>
 
 <h4>4.2 效应量与多重比较</h4>
@@ -5014,7 +5016,7 @@ COURSE.register({
 </p>
   </div>
 </div>
-<p>Sturm (2014) 提出的做法极其简单，却极少被认真执行：</p>
+<p>Sturm (2014) 提出的做法只有三步，却极少有人认真执行：</p>
 <ol>
   <li>用真实标签训练并评估，得到 \(E_{\text{real}}\)（例如 RMSE）。</li>
   <li>把标签 <em>随机打乱</em>，重新训练与评估，得到 \(E_{\text{perm}}\)。重复几百次。</li>
@@ -5026,7 +5028,7 @@ COURSE.register({
   如果 \(p\) 不显著，你的模型可能只是在拟合噪声——哪怕交叉验证的 RMSE 很漂亮。
 </p>
 <p>
-  <strong>结论先行</strong>：250 条样本撑不起大模型——有一个老式理论公式算出来，
+  <strong>结论先行</strong>：250 条样本撑不起大模型——用那个老式理论公式算一遍，
   连最简单的模型都给不出保证。记住方向性结论即可：样本越少、模型越复杂，泛化越不可靠；
   真正判断靠交叉验证和置换检验，公式推导第二遍再看。
 </p>
@@ -5056,10 +5058,10 @@ COURSE.register({
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
 <p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{< i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
-  <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；直观物理意义代表模型在预测下一个词时的“平均有效分支数”。困惑度数值越接近 1.0，说明模型对真实文本分布的预测越自信准确。
+  <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；它的直观含义是：模型预测下一个词时，平均要在几个候选里犹豫。困惑度越接近 1.0，说明模型对真实文本的预测越准。
 </p>
 <p><strong>报告规范</strong>：给出真实分数、零分布的分位数、p 值、以及效应量（例如与 Level 0 的 RMSE 差）。
-只说「我们的模型 RMSE 是 1.9」在学术上不构成结论。</p>
+只说「模型 RMSE 是 1.9」在学术上不构成结论。</p>
 
 <h3>6. 三条方法论红线</h3>
 <section class="blk blk-warn">
@@ -5083,7 +5085,7 @@ COURSE.register({
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：把 Checkpoint 7 完整做一遍（附录 B · E7）</h4>
-  <p>用合成数据（或你的真实测量）实现下面三件事，并写成一页报告：</p>
+  <p>用合成数据（或你的真实测量）完成下面三件事，写成一页报告：</p>
   <ol>
     <li><strong>模型阶梯</strong>：Level 0 规则、Ridge、核岭回归/随机森林、小 MLP。</li>
     <li><strong>分组交叉验证</strong>：按「艺人」分组，5 折，报告每折 RMSE 与均值±标准差。</li>
@@ -5132,7 +5134,7 @@ COURSE.register({
 \[ \mathrm{NLL}_t = -\ln p_t, \qquad \mathrm{CE} = \frac{1}{N}\sum_{t=1}^{N}\mathrm{NLL}_t, \qquad \mathrm{PPL} = \exp(\mathrm{CE}) \]
 <div class="acc" data-t="选读·第二遍：困惑度的乘积写法" data-badge="可选">
   <div class="acc-body">
-<p>把定义式改写成乘积形式，会看到一个非常好用的读法：</p>
+<p>把定义式改写成乘积形式，会得到一个很好用的读法：</p>
 \[ \mathrm{PPL} = \left(\prod_{t=1}^{N} \frac{1}{p_t}\right)^{1/N} \]
 <p>
   也就是说，困惑度是倒数预测概率的几何平均。几何平均的性质是「谁差谁拖后腿」，
@@ -5144,7 +5146,7 @@ COURSE.register({
   直觉例子：三个位置的把握是 0.8、0.5、0.1，倒数就是 1.25、2 和 10——
   最差的那个 10 是另两项的五到八倍，整体结果被它单方面拉动；
   而三个 0.9 也只能把整体压到约 1.11（下限永远是 1）。
-  <strong>这正是我们想要的性质</strong>——偶尔没把握没关系，但「错得离谱」会被重罚。
+  <strong>这正是你想要的性质</strong>——偶尔没把握没关系，但「错得离谱」会被重罚。
 </p>
 
 <h4>7.3 草稿纸 ①：三选一测试集上算困惑度</h4>
@@ -5254,7 +5256,7 @@ COURSE.register({
   </tbody>
 </table>
 <p>
-  把二元的六步手工走一遍，这是唯一真正需要动笔的部分：
+  把这六个二元组手工数一遍，这是唯一真正需要动笔的部分：
 </p>
 <table class="tbl small">
   <thead><tr><th>候选 bigram</th><th>参考里出现几次</th><th>裁剪后计入</th></tr></thead>
@@ -5429,7 +5431,7 @@ COURSE.register({
 <div class="acc" data-t="选读·第二遍：从胜率比反解 400" data-badge="可选">
   <div class="acc-body">
   <p>
-    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。我们希望胜率比为 n 比 1 的选手，
+    400 看着像拍脑袋定的魔数，其实可以从一条要求反解出来。你希望胜率比为 n 比 1 的两位选手，
     分数上正好领先对应分差，也就是要求
   </p>
   \[ \frac{1}{1 + 10^{-\Delta/400}} = \frac{n}{1+n} \]
@@ -5486,7 +5488,7 @@ COURSE.register({
 </table>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 4</div>
+  <div class="qlabel">自测 · 1</div>
   <p class="q">
     候选 7 个词、参考 7 个词，只有第 6 个词不同，四个 n-gram 精确率是 \(P_1=0.857\)、\(P_2=0.667\)、\(P_3=0.600\)、\(P_4=0.500\)。BLEU-4 最接近？
   </p>
@@ -5505,7 +5507,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 5</div>
+  <div class="qlabel">自测 · 2</div>
   <p class="q">
     同一份 6 词的候选输出，命中 5 个 bigram，分别对 6 词参考与 16 词参考算 ROUGE-2 的 F 值，F 从 1.000 变成了？
   </p>
@@ -5525,7 +5527,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 6</div>
+  <div class="qlabel">自测 · 3</div>
   <p class="q">
     Elo 里 \(R_A = 1700\)、\(R_B = 1400\)、\(K = 32\)。这一场 A 赢了，分数变化是？
   </p>
@@ -5544,7 +5546,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 1</div>
+  <div class="qlabel">自测 · 4</div>
   <p class="q">你的模型 CV RMSE 比基线低 15%，但置换检验 p = 0.42。合理的结论是？</p>
   <ul class="opts">
     <li>模型有效，只是数据太少</li>
@@ -5559,7 +5561,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 2</div>
+  <div class="qlabel">自测 · 5</div>
   <p class="q">为什么音乐/音频任务的交叉验证要按艺人（或专辑）分组？</p>
   <ul class="opts">
     <li>为了减少计算量</li>
@@ -5574,7 +5576,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 3</div>
+  <div class="qlabel">自测 · 6</div>
   <p class="q">关于 VC 界在 N = 250 时的表现，正确的说法是？</p>
   <ul class="opts">
     <li>它能给出精确的泛化误差估计</li>
@@ -5631,7 +5633,8 @@ COURSE.register({
   body: String.raw`
 
 <p class="lead">
-  在真实的现代大语言模型系统工程中，算力不再是一个抽象的数字，而是由硬件极限（Memory Wall）、浮点计算密度（FLOPs）、以及集群利用率（MFU）严格决定的物理系统。本章彻底剥离个人小实验工具，带你建立起工业级真实大模型的“算力物理底座”：从 Roofline 模型与算术强度推演，到标准 Transformer 经典 6N FLOPs/token 的严格矩阵微积分推导，再到 8×A100 / H100 训练集群的 MFU 真实工程手算。
+  训练一个大模型到底要烧多少算力？这不是拍脑袋估的数字，而是被三件事卡死：显存带宽（Memory Wall）、浮点运算量（FLOPs）和集群利用率（MFU）。
+  这一章把这本账算清楚：先用 Roofline 模型和算术强度判断一个算子卡在带宽上还是卡在算力上，再用矩阵微积分把经典 Transformer 的 6N FLOPs/token 严格推出来，然后拿 8×A100 / H100 训练集群的真实数字手算一遍 MFU。
 </p>
 
 <h3>1. 工业级真实大模型算力阶梯与集群规模</h3>
@@ -5644,7 +5647,7 @@ COURSE.register({
   </tbody>
 </table>
 <p>
-  <strong>工业级工程直觉</strong>：为什么前沿大模型从来不是单卡能跑的？因为哪怕用一张当今最强规格的 H100 SXM5（半精度 Tensor Core 峰值每秒近 \(10^{15}\) 次浮点运算），训练 70B 模型也需要<strong>单卡不吃不喝连续计算 200 年</strong>！因此，大规模分布式集群并行、网络拓扑互联、以及避免访存瓶颈的极致算子优化，是大模型系统工程的绝对核心。
+  <strong>先建立量级感</strong>：前沿大模型为什么从来不是单卡跑的？拿一张 H100 SXM5 来说，半精度 Tensor Core 峰值已经接近每秒 \(10^{15}\) 次浮点运算，训练 70B 模型仍然要<strong>单卡不停机连算 200 年</strong>。所以真实工程里要解决的就三件事：把集群铺开做并行、把卡间网络接好、把访存瓶颈用算子优化压下去。
 </p>
 
 <h3>2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演</h3>
@@ -5655,15 +5658,15 @@ COURSE.register({
 
   <ul>
 
-    <li><strong>浮点运算次数（FLOPs, Floating Point Operations）</strong>：衡量计算工作量的无量纲次数。注意末尾小写 <code>s</code> 代表复数（操作数），以区别于算力速率单位 <code>FLOPS</code>（FLOP/s, 每秒浮点操作次数）。</li>
+    <li><strong>浮点运算次数（FLOPs, Floating Point Operations）</strong>：一项计算一共要做多少次浮点运算，只是个次数，不带单位。末尾的小写 <code>s</code> 是复数（operations），用来跟算力速率单位 <code>FLOPS</code>（FLOP/s，每秒浮点操作次数）区分。</li>
 
-    <li><strong>乘加运算（MACs, Multiply-Accumulate）</strong>：计算机底层执行 \( a \leftarrow a + (b \times c) \)。包含 1 次乘法与 1 次加法，因此在算力理论与硬件基准中定义：
+    <li><strong>乘加运算（MACs, Multiply-Accumulate）</strong>：硬件底层执行的就是 \( a \leftarrow a + (b \times c) \)，1 次乘法加 1 次加法，所以算力理论和硬件基准里统一规定：
 
       \[ 1 \text{ MAC} = 2 \text{ FLOPs} \]
 
     </li>
 
-    <li><strong>矩阵乘法复杂度通用定理</strong>：设矩阵 \( A \in \mathbb{R}^{m \times k} \) 与 \( B \in \mathbb{R}^{k \times n} \) 相乘，结果矩阵 \( C = AB \in \mathbb{R}^{m \times n} \)。输出矩阵共有 \( m \times n \) 个元素，每个元素是 \( k \) 维向量点积（需 \( k \) 次乘法和 \( k \) 次累加，即 \( k \) 次 MACs）。因此稠密矩阵乘法的精确浮点运算量为：
+    <li><strong>矩阵乘法复杂度通用定理</strong>：设矩阵 \( A \in \mathbb{R}^{m \times k} \) 与 \( B \in \mathbb{R}^{k \times n} \) 相乘，结果矩阵 \( C = AB \in \mathbb{R}^{m \times n} \)。输出矩阵有 \( m \times n \) 个元素，每个元素是一次 \( k \) 维向量点积（\( k \) 次乘法加 \( k \) 次累加，即 \( k \) 次 MACs）。于是稠密矩阵乘法的浮点运算量精确为：
 
       \[ \text{FLOPs}_{\text{GEMM}} = 2 \cdot m \cdot n \cdot k \]
 
@@ -5671,7 +5674,7 @@ COURSE.register({
 
     <li><strong>访存量（Memory Traffic, \( M \)）与算术强度（Arithmetic Intensity, \( I \)）</strong>：
 
-      算术强度定义为算法执行的总运算量与在芯片计算核心与显存（HBM/DRAM）之间搬运的字节总量之比：
+      算术强度就是总运算量除以计算核心与显存（HBM/DRAM）之间搬运的字节数：
 
       \[ I = \frac{\text{Total FLOPs}}{M} \quad (\text{FLOP/Byte}) \]
 
@@ -5679,15 +5682,15 @@ COURSE.register({
 
     <li><strong>Roofline 模型</strong>：
 
-      加速卡上的理论最大可达成运算性能 \( P_{\text{attainable}} \)（单位 \( \text{FLOP/s} \)）受到芯片理论算力峰值 \( P_{\text{peak}} \)（\( \text{FLOP/s} \)）与显存带宽 \( B_{\text{mem}} \)（\( \text{Byte/s} \)）的双重截断约束：
+      一张卡实际能跑到多快，由两个上限共同截断：芯片理论算力峰值 \( P_{\text{peak}} \)（单位 \( \text{FLOP/s} \)）与显存带宽 \( B_{\text{mem}} \)（单位 \( \text{Byte/s} \)）。两者中较小的那个就是可达成性能 \( P_{\text{attainable}} \)：
 
       \[ P_{\text{attainable}} = \min(P_{\text{peak}}, \; I \cdot B_{\text{mem}}) \]
 
-      硬件本身的拐点强度（Turning Point Intensity）为：
+      两个上限的交点叫拐点强度（Turning Point Intensity）：
 
       \[ I^* = \frac{P_{\text{peak}}}{B_{\text{mem}}} \]
 
-      若 \( I < I^* \)，算法落入<strong>访存瓶颈区（Memory-bound）</strong>，算力利用率由显存带宽死死卡住；若 \( I \ge I^* \)，算法落入<strong>算力瓶颈区（Compute-bound）</strong>，此时才有可能逼近硬件算力上限。
+      \( I < I^* \) 说明算法落在<strong>访存瓶颈区（Memory-bound）</strong>，能跑多快由显存带宽说了算；\( I \ge I^* \) 才进<strong>算力瓶颈区（Compute-bound）</strong>，这时才有机会逼近硬件算力上限。
 
     </li>
 
@@ -5699,15 +5702,15 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>极简小数字草稿纸演算（Scratchpad 1）</h4>
+  <h4><span class="ic">✓</span>小数字草稿纸演算（Scratchpad 1）</h4>
 
-  <p>在草稿纸上设定一块易于心算的虚拟加速卡：算力峰值 \( P_{\text{peak}} = 100 \text{ TFLOPS} = 10^{14} \text{ FLOP/s} \)，显存带宽 \( B_{\text{mem}} = 1000 \text{ GB/s} = 10^{12} \text{ Byte/s} \)。</p>
+  <p>在草稿纸上造一块好算的虚拟卡：算力峰值 \( P_{\text{peak}} = 100 \text{ TFLOPS} = 10^{14} \text{ FLOP/s} \)，显存带宽 \( B_{\text{mem}} = 1000 \text{ GB/s} = 10^{12} \text{ Byte/s} \)。</p>
 
-  <p>首先计算该硬件的拐点算术强度：</p>
+  <p>它的拐点算术强度是：</p>
 
   \[ I^* = \frac{10^{14} \text{ FLOP/s}}{10^{12} \text{ Byte/s}} = 100 \text{ FLOP/Byte} \]
 
-  <p>现在我们在草稿纸上对比两种典型的真实深度学习执行场景：</p>
+  <p>下面比两个真实场景：</p>
 
   <ol>
 
@@ -5727,7 +5730,7 @@ COURSE.register({
 
       \[ P_{\text{attainable}} = \min(10^{14}, \; 1 \times 10^{12}) = 10^{12} \text{ FLOP/s} = 1 \text{ TFLOPS} \]
 
-      <strong>惊人结论</strong>：此时硬件利用率只有 \( \frac{1 \text{ TFLOPS}}{100 \text{ TFLOPS}} = 1\% \)！算力核心 99% 的时间都在饥饿地等待显存把参数搬过来。这就是单批次自回归推理极慢的数学本质。
+      <strong>结论</strong>：此时硬件利用率只有 \( \frac{1 \text{ TFLOPS}}{100 \text{ TFLOPS}} = 1\% \)，算力核心 99% 的时间都在等显存把参数搬过来。这就是单条自回归推理慢的数学原因。
 
     </li>
 
@@ -5743,9 +5746,9 @@ COURSE.register({
 
       \[ I_B = \frac{2 \times 4096^3}{6 \times 4096^2} = \frac{4096}{3} \approx 1365.3 \text{ FLOP/Byte} \]
 
-      - 可达性能：因为 \( 1365.3 \text{ FLOP/Byte} \gg I^* = 100 \text{ FLOP/Byte} \)，算法稳居算力瓶颈区，\( P_{\text{attainable}} = 100 \text{ TFLOPS} \)。<br />
+      - 可达性能：因为 \( 1365.3 \text{ FLOP/Byte} \gg I^* = 100 \text{ FLOP/Byte} \)，早就越过拐点，落在算力瓶颈区，\( P_{\text{attainable}} = 100 \text{ TFLOPS} \)。<br />
 
-      <strong>核心洞察</strong>：相同的权重参数，被 4096 个 Token 深度复用，算力利用率从 1% 跃升至理论峰值！
+      <strong>关键差别</strong>：同一份权重被 4096 个 Token 共用，每读一次显存就摊给整批 Token，算力利用率从 1% 一路拉到理论峰值。
 
     </li>
 
@@ -5755,7 +5758,7 @@ COURSE.register({
 
 
 
-<h3>3. 经典 6N 推导：标准 Transformer 单层与整网 6N FLOPs/token 严格数学证明</h3>
+<h3>3. 经典 6N 推导：单层 Transformer 到整网的 6N FLOPs/token 严格证明</h3>
 
 <section class="blk blk-m">
 
@@ -5765,7 +5768,7 @@ COURSE.register({
 
     设标准 Transformer 块的隐藏维度为 \( d \)，注意力头数为 \( h \)，每个头维度 \( d_k = d/h \)，MLP 中间前馈维度扩展为 \( d_{\text{ff}} = 4d \)。
 
-    我们将计算拆解到<strong>单个 Token</strong>（输入行向量 \( x \in \mathbb{R}^{1 \times d} \)）上：
+    下面把所有计算都摊到<strong>单个 Token</strong>上看（输入是行向量 \( x \in \mathbb{R}^{1 \times d} \)）：
 
   </p>
 
@@ -5795,7 +5798,7 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>极简小数字草稿纸演算（Scratchpad 2：令 \( d=2 \)）</h4>
+  <h4><span class="ic">✓</span>小数字草稿纸演算（Scratchpad 2：令 \( d=2 \)）</h4>
 
   <p>在草稿纸上代入最微型数字验证代数恒等性：取隐藏维度 \( d = 2 \)，MLP 扩展维度 \( d_{\text{ff}} = 4 \times 2 = 8 \)。输入单 Token 向量 \( x \in \mathbb{R}^{1 \times 2} \)。</p>
 
@@ -5821,7 +5824,7 @@ COURSE.register({
 
       \[ \frac{\text{FLOPs}_{\text{fwd}}}{N_{\text{layer}}} = \frac{96}{48} = 2 \]
 
-      <strong>草稿验证通过</strong>：前向传播每 Token 恰好严格消耗 \( 2N \) FLOPs！
+      <strong>验算通过</strong>：前向每个 Token 正好消耗 \( 2N \) FLOPs。
 
     </li>
 
@@ -5847,7 +5850,7 @@ COURSE.register({
 
   <h4><span class="ic">∑</span>为什么反向传播严格是 \( 4N \) FLOPs？——矩阵微积分严格证明</h4>
 
-  <p>许多初学者直觉上认为反向传播应该与前向对称（以为也是 2N）。这里给出数学系标准的多元微积分链式法则推导：</p>
+  <p>不少人凭直觉以为反向应该跟前向对称，也是 2N。下面用标准的多元微积分链式法则推一遍：</p>
 
   <p>考虑通用全连接层的前向计算：</p>
 
@@ -5861,13 +5864,13 @@ COURSE.register({
 
   \[ G = \frac{\partial \mathcal{L}}{\partial Y} \in \mathbb{R}^{B \times d_{\text{out}}} \]
 
-  <p>为了完成整个网络梯度的继续反向传递与权重参数更新，计算图必须执行<strong>两个完全独立的矩阵乘法</strong>：</p>
+  <p>要让梯度继续往浅层传、同时算出权重的更新量，计算图必须做<strong>两个互不相干的矩阵乘法</strong>：</p>
 
   <ol>
 
     <li><strong>第一步：对输入激活求梯度（用于向网络浅层继续反向传递）</strong><br />
 
-      根据矩阵微分全导数公式：
+      矩阵微分给出：
 
       \[ \frac{\partial \mathcal{L}}{\partial X} = G W^T \]
 
@@ -5881,7 +5884,7 @@ COURSE.register({
 
     <li><strong>第二步：对权重矩阵求梯度（用于优化器更新模型权重）</strong><br />
 
-      根据矩阵微分全导数公式：
+      同样由矩阵微分：
 
       \[ \frac{\partial \mathcal{L}}{\partial W} = X^T G \]
 
@@ -5895,27 +5898,27 @@ COURSE.register({
 
   </ol>
 
-  <p><strong>反向传播总计算量</strong>：</p>
+  <p><strong>反向合计</strong>：</p>
 
   \[ \text{FLOPs}_{\text{bwd}} = \text{FLOPs}_{\text{grad\_input}} + \text{FLOPs}_{\text{grad\_weight}} = 2 B N_{\text{param}} + 2 B N_{\text{param}} = 4 B N_{\text{param}} \]
 
-  <p>单 Token（\( B=1 \)）的反向计算量<strong>严格等于 \( 4N \) FLOPs</strong>！</p>
+  <p>单 Token（\( B=1 \)）的反向计算量<strong>正好是 \( 4N \) FLOPs</strong>。</p>
 
   <p><strong>单 Token 训练总计算量（前向 + 反向）</strong>：</p>
 
   \[ \text{FLOPs}_{\text{train}} = \text{FLOPs}_{\text{fwd}} + \text{FLOPs}_{\text{bwd}} = 2N + 4N = 6N \quad (\text{FLOPs/token}) \]
 
-  <p>对于含有 \( N \) 个参数的 Transformer 模型，训练 \( D \) 个 Token 所需的总浮点运算量精确公式为：</p>
+  <p>于是参数量为 \( N \) 的 Transformer 训练 \( D \) 个 Token，总浮点运算量就是：</p>
 
   \[ \text{Total FLOPs} = 6 \cdot N \cdot D \]
 
   <p class="small">
 
-    注：(1) 若开启激活重计算（Activation Checkpointing / Gradient Checkpointing）以显存换计算，在反向时需要把前向重新计算一遍，总计算量上升为 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
+    注：(1) 开了激活重计算（Activation Checkpointing / Gradient Checkpointing）就是拿显存换计算：反向时要把前向重跑一遍，总计算量变成 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
 
-     (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \) 与层数 \( L \)，单 Token 平摊计算量为 \( 4LTd\)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
+     (2) 注意力里的 \( Q K^T \) 与 \( A V \) 跟序列长度 \( T \)、层数 \( L \) 有关，单 Token 平摊计算量为 \( 4LTd\)。当隐藏维度 \( d \gg T \) 时，它占整网总计算量的比例通常不到 5%~8%，Kaplan / Chinchilla 标度律推导里当次要项处理，主导项就是严谨的 \( 6N \)。<br />
 
-    (3) 长上下文守卫：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
+    (3) 长上下文提醒：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形要按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
 
   </p>
 
@@ -5923,17 +5926,17 @@ COURSE.register({
 
 
 
-<h3>4. MFU 实战演算：工业级集群训练利用率（8×A100 训练 7B 模型）</h3>
+<h3>4. MFU 实战：8×A100 训练 7B 的利用率手算</h3>
 
 <section class="blk blk-m">
 
   <h4><span class="ic">∑</span>前置定义与公式</h4>
 
-  <p>模型浮点利用率（Model FLOPs Utilization, MFU）定义为模型有效计算产出速率与硬件理论密集算力峰值之比：</p>
+  <p>模型浮点利用率（Model FLOPs Utilization, MFU）就是模型的有效计算速率除以硬件理论密集算力峰值：</p>
 
   \[ \text{MFU} = \frac{\text{Effective FLOP/s}}{\text{Total Hardware Peak FLOPS}} = \frac{\text{Throughput (tokens/s)} \times 6N}{\sum_{i=1}^M P_{\text{peak}}^{(i)}} \]
 
-  <p>其中 \( N \) 为模型参数量，\( \text{Throughput} \) 为集群端到端实测吞吐速率（Tokens/s），分母为所有加速卡理论半精度稠密峰值之和。</p>
+  <p>其中 \( N \) 是模型参数量，\( \text{Throughput} \) 是集群端到端实测吞吐（Tokens/s），分母把所有加速卡的理论半精度稠密峰值加起来。</p>
 
 </section>
 
@@ -5941,9 +5944,9 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>真实工程场景草稿纸手算：8×A100 训练 7B 模型</h4>
+  <h4><span class="ic">✓</span>8×A100 训练 7B：一步一步手算</h4>
 
-  <p>在草稿纸上记录真实生产集群参数：</p>
+  <p>先把生产集群的参数记在草稿纸上：</p>
 
   <ol>
 
@@ -5983,7 +5986,7 @@ COURSE.register({
 
   </ol>
 
-  <p><strong>工业达标基线解读</strong>：</p>
+  <p><strong>多少算达标</strong>：</p>
 
   <table class="tbl small">
 
@@ -5991,11 +5994,11 @@ COURSE.register({
 
     <tbody>
 
-      <tr><td>较低</td><td>\( < 30\% \)</td><td>存在严重访存瓶颈（未用 FlashAttention）、小 Batch 导致 GEMM 算力未跑满、或数据加载/通信阻塞</td></tr>
+      <tr><td>偏低</td><td>\( < 30\% \)</td><td>访存瓶颈没解决（比如没上 FlashAttention）、Batch 太小导致 GEMM 跑不满，或者卡在数据加载与通信上</td></tr>
 
-      <tr><td>达标（优秀）</td><td>\( 35\% \sim 48\% \)</td><td>主流 Megatron-LM、DeepSpeed、JAX 工业级调优标准区间，计算与通信良好重叠</td></tr>
+      <tr><td>达标</td><td>\( 35\% \sim 48\% \)</td><td>Megatron-LM、DeepSpeed、JAX 调优到位的常见区间，计算和通信重叠得不错</td></tr>
 
-      <tr><td>极限顶尖</td><td>\( > 50\% \)</td><td>高度定制化的全异步流水通信重叠、算子深度融合（Kernel Fusion）与微架构协同调优</td></tr>
+      <tr><td>天花板</td><td>\( > 50\% \)</td><td>全异步流水线把通信彻底藏起来、算子深度融合（Kernel Fusion），再往上就要抠微架构细节了</td></tr>
 
     </tbody>
 
@@ -6011,17 +6014,17 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
+  <h4><span class="ic">✓</span>回到你自己的项目：以后该怎么迁移</h4>
 
   <p>
 
-    Checkpoint 5/6 这类任务需要「成对歌曲的适配」与「配对失败模式的统计」。这两件事都是<strong>特征工程 + 统计</strong>，
+    Checkpoint 5/6 这类任务要的是「成对歌曲的适配」和「配对失败模式的统计」，本质是<strong>特征工程加统计</strong>，
 
-    不需要大算力；而 Checkpoint 7 这类学习实验甚至可以用 CPU 完成（250 条样本、4 维特征）。
+    不吃算力；Checkpoint 7 那种学习实验用 CPU 就能跑完（250 条样本、4 维特征）。
 
-    <em>换句话说：以后做 crossfade 这类项目时，瓶颈通常不是算力，而是模型设计、评估协议与听测组织。</em>
+    <em>换句话说：以后做 crossfade 这类项目，瓶颈通常不在算力，而在模型设计、评估协议和听测组织。</em>
 
-    把算力省下来做数据标注与多轮听测，比多训一个大模型更划算。
+    把算力省下来做数据标注和多轮听测，比多训一个大模型划算。
 
   </p>
 
@@ -6033,24 +6036,24 @@ COURSE.register({
 
   <div class="qlabel">自测 · 1</div>
 
-  <p class="q">8 台设备的 SPMD 网格记作 \(t \times p \times d\)（张量 / 流水 / 数据）。要跑「4 路张量 × 2 路流水」的混合并行，网格与数据并行度是？</p>
+  <p class="q">在草稿纸那块卡上（峰值 100 TFLOPS、带宽 1000 GB/s），单个 Token 乘以 \(4096 \times 4096\) 的 FP16 权重矩阵，它的算术强度与瓶颈类型是？</p>
 
   <ul class="opts">
 
-    <li>单设备上直接跑 4×2，SPMD 会自动切分</li>
+    <li>约 1365 FLOP/Byte，落在算力瓶颈区</li>
 
-    <li data-ok>\(t=4, p=2, d=1\)：乘积正好 8 台设备，全局批全进 micro-batch</li>
+    <li data-ok>约 1 FLOP/Byte，远低于拐点 \(I^* = 100 \text{ FLOP/Byte}\)，落在访存瓶颈区</li>
 
-    <li>\(t=8, p=2, d=2\)：张量越多越快</li>
+    <li>正好 100 FLOP/Byte，卡在拐点上</li>
 
-    <li>\(t=2, p=4, d=2\)：对称配置最稳</li>
+    <li>约 0.5 FLOP/Byte，属于显存容量不足</li>
 
   </ul>
 
   <p class="why">
 
-    网格乘积必须等于设备数：\(4 \times 2 \times 1 = 8\)，此时 \(d = 1\) 意味着没有数据并行，全局批全靠 micro-batch 堆。
-    第三项要 32 台设备；第四项要 16 台；单核上 reshape(4,2) 会直接报错——设备数是硬约束，不是偏好。
+    单 Token 的运算量是 \(2 \times 4096^2\) FLOPs，却要把整个 \(4096^2 \times 2\) Bytes 的权重从 HBM 搬进来，两者一除恰好是 1 FLOP/Byte。
+    拐点 \(I^* = 10^{14} / 10^{12} = 100 \text{ FLOP/Byte}\)，1 远小于 100，所以算力核心只能跑到 1 TFLOPS，利用率 1%。
 
   </p>
 
@@ -6062,25 +6065,23 @@ COURSE.register({
 
   <div class="qlabel">自测 · 2</div>
 
-  <p class="q">在 Colab 上做一次 90 分钟的训练，最不应该省略的一步是？</p>
+  <p class="q">同一层 \(4096 \times 4096\) 的权重，输入从 1 个 Token 换成 4096 个 Token 之后，可达性能为什么能从 1 TFLOPS 拉回 100 TFLOPS？</p>
 
   <ul class="opts">
 
-    <li>把学习率调到最优</li>
+    <li>因为权重变小了，显存搬运量随之下降</li>
 
-    <li data-ok>把检查点定期写到 Google Drive / HF Hub</li>
+    <li data-ok>因为权重只读一次就被 4096 个 Token 复用，搬运量约为 \(3 \times 4096^2 \times 2\) Bytes，算术强度升到约 1365.3 FLOP/Byte，越过拐点进入算力瓶颈区</li>
 
-    <li>使用更大的批大小</li>
+    <li>因为 GPU 会自动提高核心频率</li>
 
-    <li>打开 tqdm 进度条</li>
+    <li>因为 Softmax 的浮点运算量占了主导</li>
 
   </ul>
 
   <p class="why">
 
-    Colab 会话随时可能断开且本地磁盘不持久。没有外存检查点，一次断线就等于全部重来。
-
-    这是「工程纪律」在免费算力环境下最重要的一条。
+    访存瓶颈下拼的不是算得多快，而是搬得多少。这一场景的算术强度是 \(I_B = \frac{2 \times 4096^3}{6 \times 4096^2} = \frac{4096}{3} \approx 1365.3 \text{ FLOP/Byte}\)，远高于 \(I^* = 100\)，于是 \(P_{\text{attainable}}\) 由算力峰值 100 TFLOPS 决定，而不是显存带宽。
 
   </p>
 
@@ -6092,25 +6093,23 @@ COURSE.register({
 
   <div class="qlabel">自测 · 3</div>
 
-  <p class="q">只有 16 GB 显存时，下面哪种计划最合理？</p>
+  <p class="q">开启激活重计算（Activation Checkpointing）之后，训练每个 Token 实际执行的浮点运算量会变成多少？</p>
 
   <ul class="opts">
 
-    <li>全参数微调 7B 模型</li>
+    <li>仍然是 \(6N\)，重计算只省显存，不增加计算</li>
 
-    <li data-ok>用 0.5B–1.5B 模型跑通全部流程（SFT → DPO → 评估），必要时再加 QLoRA 升到 7B</li>
+    <li data-ok>\(8N\)：前向 \(2N\)、反向 \(4N\)，再加重算前向的 \(2N\)，合计 \(2N + 2N + 4N = 8N\)</li>
 
-    <li>放弃微调，只写提示词</li>
+    <li>\(4N\)，因为前向那部分可以忽略不计</li>
 
-    <li>直接租 8 张 H100</li>
+    <li>\(12N\)，重计算会把反向也算两遍</li>
 
   </ul>
 
   <p class="why">
 
-    方法论与规模无关。用 0.5B 把数据格式、训练循环、评估协议全部走通，
-
-    再决定是否需要更大的模型；直接上 7B 全参数微调在 16 GB 上是数学上不可能的（模块 04）。
+    重计算是拿计算换显存：反向时每一层都要重跑一次前向，所以每个 Token 的实算量从 \(6N\) 涨到 \(8N\)。代价就是同一批 Token 要多花计算时间。
 
   </p>
 
@@ -6174,26 +6173,26 @@ COURSE.register({
 
 
 
-<div class="acc" data-t="深入：把「每次实验」变成可复现的资产" data-badge="工程">
+<div class="acc" data-t="深入：把你的算力账本记成一张可复现的表" data-badge="工程">
 
   <div class="acc-body">
 
-    <p>建议的目录结构（可以直接套用在本项目）：</p>
+    <p>建议每次训练都记下这三行（换成你自己的卡型和卡数）：</p>
 
 <table class="tbl">
   <thead>
-    <tr><th>路径目录</th><th>主要作用</th><th>持久化属性</th></tr>
+    <tr><th>记录项</th><th>怎么得到</th><th>用来判断什么</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>/kaggle/working/</code></td><td>模型输出与微调权重（如 LoRA 适配器、GGUF）</td><td>训练结束后自动保存并支持直接下载</td></tr>
-    <tr><td><code>/kaggle/input/</code></td><td>预置数据集与开源基础模型只读目录</td><td>系统只读挂载，不可直接写入修改</td></tr>
-    <tr><td><code>/kaggle/temp/</code></td><td>临时缓存与分词中间文件</td><td>实例重启后自动清空，不占用配额</td></tr>
+    <tr><td><code>P_peak</code>：理论算力峰值</td><td>查型号规格（如 A100 的 BF16 稠密峰值 312 TFLOPS），再乘以卡数</td><td>MFU 的分母，也就是这次训练的算力上限</td></tr>
+    <tr><td><code>B_mem</code>：显存带宽</td><td>查型号规格，换算成 GB/s</td><td>算出拐点 \( I^* = P_{\text{peak}} / B_{\text{mem}} \)，判断算子是卡在带宽还是算力上</td></tr>
+    <tr><td><code>Throughput</code>：实测吞吐</td><td>训练日志里的 tokens/s</td><td>乘 \( 6N \) 得有效算力，再除以 \( P_{\text{peak}} \) 就是 MFU</td></tr>
   </tbody>
 </table>
 
-    <p>判断标准：<strong>一个陌生人 clone 这个仓库、运行一条命令，能否得到与你相同的图和数字？</strong>
+    <p>判断标准：<strong>把这三行交给一个陌生人，他能不能复现出同一个 MFU 数字？</strong>
 
-    如果答案是「能」，你就达到了 Vandewalle 等人所说的可复现研究标准。</p>
+    如果答案是「能」，这次训练到底花了多少算力才算说清楚了。</p>
 
   </div>
 
@@ -6216,34 +6215,34 @@ COURSE.register({
   tags: ["核心", "系统", "数据工程", "集群容灾"],
   body: String.raw`
 <p class="lead">
-  在万卡规模的工业级大模型研发中，业界有一句共识：「模型的上限由数据质量决定，模型的下限由集群稳定性托底」。
-  本讲剖析从原始海量网络爬虫到高纯度 Token 语料的完整数据清洗流水线，
-  深入 MinHash 与 LSH 局部敏感哈希的数学组合概率，
-  并解构集群万卡训练中的计算-通信重叠拓扑与无损异步容灾机制。
+  模型的上限由数据质量决定，下限由集群稳定性托底，这句话在万卡规模的训练里基本是共识。
+  这一讲顺着数据走一遍：从原始爬虫语料一路清洗成高纯度 Token 语料，
+  讲清 MinHash 与 LSH 局部敏感哈希背后的概率，
+  再看万卡训练里计算与通信怎么重叠、异步快照怎么做到无损容灾。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>知识地图与心智模型</h4>
   <p>
-    <strong>为什么需要独立的一讲？</strong>第 02 讲解决了「如何把文本切成 Token」，第 05 讲给出了「预训练的目标函数与防炸技巧」，第 06 讲推导了「单卡到多卡的并行切分」。<br />
-    但真实工业界的残酷现实是：<strong>百 T 级原始爬虫语料中 60% 以上是垃圾与重复噪声；而在上千台服务器持续轰鸣数月的训练中，平均每几十小时就会有一张 GPU 发生静默计算错误或网络掉线。</strong><br />
-    本讲将串联起数据生命周期与集群物理现实：<strong>海量去重数学原理 → 启发式过滤 → 合成数据退火策略 → 集群通信重叠与异步快照容灾</strong>。
+    <strong>为什么值得单独讲一讲？</strong>第 02 讲把文本切成 Token，第 05 讲给出预训练的目标函数与防炸技巧，第 06 讲推导了单卡到多卡的并行切分。<br />
+    但工业现场是这样的：<strong>百 T 级原始爬虫语料里 60% 以上是垃圾和重复噪声；上千台服务器连跑几个月，平均每几十小时就有一张 GPU 出静默计算错误或者掉线。</strong><br />
+    这一讲把数据生命周期和集群的物理现实串起来：<strong>海量去重的数学原理 → 启发式过滤 → 合成数据退火策略 → 集群通信重叠与异步快照容灾</strong>。
   </p>
 </section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>工程核心问题</h4>
   <p>
-    面对 Common Crawl 爬取的 100 亿个网页文档（数十 TB），如果用暴力两两比对相似度，
-    计算次数高达 \(\binom{10^{10}}{2} \approx 5 \times 10^{19}\) 次，足以让超算集群计算数年。
-    <strong>工业界究竟如何用巧妙的随机哈希将比对复杂度降到近乎线性？
-    当万卡集群在凌晨 3 点某张卡显存 ECC 报错死锁时，如何保证数千万元的算力不被白白浪费？</strong>
+    Common Crawl 爬下来 100 亿个网页文档（数十 TB），要是暴力两两比对相似度，
+    计算次数高达 \(\binom{10^{10}}{2} \approx 5 \times 10^{19}\) 次，超算集群也得算好几年。
+    <strong>怎么用随机哈希把比对复杂度压到接近线性？
+    万卡集群凌晨 3 点某张卡显存 ECC 报错死锁时，怎么保证几千万元的算力不白扔？</strong>
   </p>
 </section>
 
 <h3>1. 海量语料去重数学原理：MinHash 与局部敏感哈希 (LSH)</h3>
 <p>
-  文本去重的基石是衡量两个文档集合 \(A\) 与 \(B\) 的 <strong>Jaccard 相似度系数</strong>：
+  文本去重先要能衡量两个文档集合 \(A\) 与 \(B\) 的相似程度，用的就是 <strong>Jaccard 相似度系数</strong>：
 </p>
 
 <section class="blk blk-tip">
@@ -6257,20 +6256,20 @@ COURSE.register({
 \[ J(A, B) = \frac{|A \cap B|}{|A \cup B|} \]
 
 <p>
-  为了避免直接比对超大集合，<strong>MinHash（最小哈希定理）</strong>提供了一个惊人的概率恒等式：
-  若对全量词汇集合应用一个随机置换哈希函数 \(h\)，则两个集合的最小哈希值相等的概率，严格等于它们的 Jaccard 相似度！
+  为了不去直接比对超大集合，<strong>MinHash（最小哈希定理）</strong>给出了一个漂亮的结果：
+  对全量词汇集合用一个随机置换哈希函数 \(h\)，两个集合的最小哈希值相等的概率，严格等于它们的 Jaccard 相似度。
 </p>
 
 \[ P\big(h_{\min}(A) = h_{\min}(B)\big) = J(A, B) \]
 
 <p>
-  <strong>代数直觉推导</strong>：考虑集合并集 \(A \cup B\) 中的所有元素，随机哈希后最小的那个元素，落在交集 \(A \cap B\) 中的概率恰好是交集大小占并集大小的比例，即 \(|A \cap B| / |A \cup B|\)！
-  因此，只要独立选取 \(m\) 个随机哈希函数（例如 \(m = 128\)），计算出两篇文档的 MinHash 签名向量，比对这 128 个整数相等的比例，就能以无偏估计还原出真实文本相似度。
+  <strong>代数直觉推导</strong>：在集合并集 \(A \cup B\) 的所有元素里，随机哈希后最小的那个元素落在交集 \(A \cap B\) 中的概率，恰好是交集大小占并集大小的比例，即 \(|A \cap B| / |A \cup B|\)。
+  所以只要独立取 \(m\) 个随机哈希函数（例如 \(m = 128\)），算出两篇文档的 MinHash 签名向量，再比这 128 个整数里相等的比例，就能无偏地估出真实文本相似度。
 </p>
 
-<h4>LSH 局部敏感哈希的「S 曲线」过滤魔术</h4>
+<h4>LSH 局部敏感哈希的「S 曲线」过滤</h4>
 <p>
-  拿到 128 维签名后，依然需要两两比对。LSH 采用<strong>分桶波段法（Banding Technique）</strong>：
+  拿到 128 维签名后，两两比对还是免不了。LSH 的做法是<strong>分桶波段法（Banding Technique）</strong>：
   将长度为 \(m\) 的签名向量切分成 \(b\) 个波段（Bands），每个波段包含 \(r\) 个哈希值（满足 \(m = b \times r\)，如 \(128 = 16 \text{ bands} \times 8 \text{ rows}\)）。
 </p>
 
@@ -6292,12 +6291,12 @@ COURSE.register({
 </table>
 
 <p>
-  通过调节波段数 \(b\) 与行数 \(r\)，这条概率曲线形成了一条陡峭的<strong>「S 型跃迁曲线」</strong>。阈值（拐点）约为 \(t \approx (1/b)^{1/r}\)。在本例中 \(t \approx (1/16)^{1/8} \approx 0.707\)。相似度高于 70% 的文档几乎必被分入同一个哈希桶，而低于 70% 的文档几乎绝不发生碰撞，全库搜索复杂度直接从 \(O(N^2)\) 断崖式压低至 \(O(N)\)！
+  调节波段数 \(b\) 和行数 \(r\)，这条概率曲线就成了一条陡峭的<strong>「S 型跃迁曲线」</strong>。阈值（拐点）约为 \(t \approx (1/b)^{1/r}\)。在本例中 \(t \approx (1/16)^{1/8} \approx 0.707\)。相似度高于 70% 的文档几乎必被分进同一个哈希桶，低于 70% 的几乎绝不碰撞，全库搜索复杂度从 \(O(N^2)\) 直接降到 \(O(N)\)。
 </p>
 
 <h3>2. 启发式流水线与合成数据退火配比 (Data Annealing)</h3>
 <p>
-  去除重复文档后，真实工业界会执行严格的<strong>多层流水线过滤（Filter Cascade）</strong>：
+  去重之后，工业界还会再过一遍<strong>多层流水线过滤（Filter Cascade）</strong>：
 </p>
 
 <ol>
@@ -6305,35 +6304,35 @@ COURSE.register({
     剔除标点符号占比 \(> 30\%\)、大写锁定占比 \(> 40\%\)、平均词长 \(< 3\) 或 \(> 15\) 的低质文本，过滤乱码与机器抓取的空壳模板。
   </li>
   <li><strong>毒性与隐私脱敏（Safety & PII Redaction）</strong>：
-    正则与快速分类器联合扫描身份证号、手机号、信用卡号，并过滤有害有害毒性语料。
+    正则加快速分类器一起扫身份证号、手机号、信用卡号，同时过滤有害与毒性语料。
   </li>
   <li><strong>高质量打分器（Quality Classifier / Perplexity Filter）</strong>：
-    利用在维基百科、高质量教材上训练的小型语言模型，计算待清洗文档的困惑度 \(\text{PPL}\)。PPL 异常极高（语无伦次）或异常极低（机械重复同一句话）的文档均被整篇剔除。
+    拿维基百科和高质量教材训一个小语言模型，用它的困惑度 \(\text{PPL}\) 给待清洗文档打分。PPL 高得离谱（语无伦次）或者低得出奇（机械重复同一句话）的文档，整篇剔除。
   </li>
 </ol>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>训练退火阶段的合成数据混合法则 (Data Mixture & Annealing)</h4>
   <p>
-    在 Llama-3 与 Qwen-2.5 的技术报告中，最核心的机密之一是<strong>阶段式语料配比与退火（Cool-down Annealing）</strong>：
+    在 Llama-3 与 Qwen-2.5 的技术报告中，最关键的招数之一是<strong>阶段式语料配比与退火（Cool-down Annealing）</strong>：
   </p>
   <ul>
     <li><strong>基座阶段（前 80%~90% Tokens）</strong>：
-      以全网清洗后的广泛通识语料为主（网页 70%、代码 15%、学术百科 15%），建立强大的世界知识与多语言理解底座；
+      以清洗后的全网通识语料为主（网页 70%、代码 15%、学术百科 15%），先把世界知识和多语言理解的底座打牢；
     </li>
     <li><strong>退火阶段（最后 10%~20% Tokens）</strong>：
-      学习率线性衰减至零的同时，剧烈提升<strong>高质量合成数据（Synthetic Data）与高密度推理语料</strong>的配比：
+      学习率线性衰减到零的同时，把<strong>高质量合成数据（Synthetic Data）与高密度推理语料</strong>的配比拉上去：
       代码与算法题提升至 35%、高质量数学证明题提升至 30%、合成反思思维链提升至 20%，通识网页降至 15%。
     </li>
   </ul>
   <p>
-    <strong>工业经验结论</strong>：在学习率即将归零的窗口注入极高密度的理科与逻辑合成数据，模型的 GSM8k、HumanEval 推理评测指标会出现明显的「翘尾效应」，性能提升幅度常超过前期数月的通识泛读。
+    <strong>工业经验结论</strong>：在学习率快归零的那段窗口里灌进高密度的理科与逻辑合成数据，模型的 GSM8k、HumanEval 推理评测指标会出现明显的「翘尾效应」，涨幅常常超过前面几个月的通识泛读。
   </p>
 </section>
 
 <h3>3. 集群物理通信拓扑与计算通信重叠</h3>
 <p>
-  在万卡规模下，单靠理论 FLOPs 无法保证训练速度，<strong>网络拓扑与通信调度</strong>才是决定 MFU 的生死线。
+  到了万卡规模，光算理论 FLOPs 保证不了训练速度，<strong>网络拓扑与通信调度</strong>才是决定 MFU 的关键。
 </p>
 
 <table class="tbl small">
@@ -6345,12 +6344,12 @@ COURSE.register({
 </table>
 
 <p>
-  由于跨节点带宽比机内 NVLink 慢了整整一个数量级，工业级训练框架必须严格实施<strong>计算通信重叠（Compute-Communication Overlap）</strong>：
+  跨节点带宽比机内 NVLink 慢了整整一个数量级，所以工业级训练框架必须做<strong>计算通信重叠（Compute-Communication Overlap）</strong>：
 </p>
 <p>
-  在反向传播计算第 \(l\) 层的权重梯度时，后台异步通信流（CUDA Stream）必须同时在物理网络上执行第 \(l+1\) 层的跨节点 All-Reduce 聚合梯度。
-  如果通信时间 \(T_{\text{comm}} \le T_{\text{comp}}\)，通信开销将被计算完全掩盖（Zero Overhead）；
-  只有当网络丢包或拥塞导致 \(T_{\text{comm}} > T_{\text{comp}}\) 时，GPU 才会进入空转等待（Bubble）。
+  反向算第 \(l\) 层权重梯度的同时，后台异步通信流（CUDA Stream）在物理网络上做第 \(l+1\) 层的跨节点 All-Reduce 聚合梯度。
+  只要通信时间 \(T_{\text{comm}} \le T_{\text{comp}}\)，通信开销就被计算完全盖住（Zero Overhead）；
+  一旦网络丢包或拥塞导致 \(T_{\text{comm}} > T_{\text{comp}}\)，GPU 才会空转等待（Bubble）。
 </p>
 
 <h3>4. 数值稳定与无损异步容灾 (Resilient Checkpointing)</h3>
@@ -6358,35 +6357,35 @@ COURSE.register({
 <p><strong>1. FP8 缩放因子防下溢算子演示：</strong></p>
 <p>\[ X_{\text{fp8}} = \text{clip}\left( \left\lfloor X \cdot \frac{S}{\text{amax}(|X|)} \right\rceil, -448, 448 \right) \]</p>
 <p>
-  <strong>逐行代数解析</strong>：在 FP8 混合精度训练中，动态统计张量绝对值的最大值 \(\text{amax}\)；乘以自适应缩放因子 \(S\) 将数值动态对齐至 FP8 的最大动态范围（E4M3 格式最大值为 448），彻底避免指数位只有 4 位的低精度浮点发生下溢截断归零。
+  <strong>逐行代数解析</strong>：在 FP8 混合精度训练里先统计张量绝对值的最大值 \(\text{amax}\)，再乘上自适应缩放因子 \(S\)，把数值对齐到 FP8 的动态范围（E4M3 格式最大值为 448），这样指数位只有 4 位的低精度浮点就不会下溢截断归零。
 </p>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>集群容灾的核心瓶颈：Checkpointed I/O</h4>
+  <h4><span class="ic">⚠</span>容灾的瓶颈：Checkpointed I/O</h4>
   <p>
-    保存一个 70B 模型的完整权重与 AdamW 优化器状态需要约 <strong>1.1 TB</strong> 显存数据。
-    如果让全集群万卡同步暂停训练等待写盘，每次落盘耗时可能长达 15~30 分钟，MFU 将直接下跌 15%。
+    70B 模型的完整权重加上 AdamW 优化器状态，存一份大约要 <strong>1.1 TB</strong>。
+    要是让全集群万卡一起停下来等写盘，每次落盘可能耗时 15~30 分钟，MFU 直接掉 15%。
   </p>
   <p>
-    <strong>现代工业解法：异步非阻塞双缓冲（Asynchronous Double-Buffered Checkpointing）</strong>：<br />
-    1. 在 GPU 显存中分配微小镜像或通过高速 PCIe 异步将权重拷贝至 Host 内存（仅需 2~3 秒）；<br />
-    2. 主训练流立刻恢复前向反向计算；<br />
-    3. CPU 后台线程池利用空闲网络带宽，平缓将内存数据刷入分布式文件系统（如 Ceph / Lustre / S3）；<br />
-    4. 一旦某节点掉线，调度系统（如 Slurm / Kubernetes）直接在 3 分钟内踢除坏卡、拉起热备节点，从最近的快照平滑续训。
+    <strong>现在的做法：异步非阻塞双缓冲（Asynchronous Double-Buffered Checkpointing）</strong>：<br />
+    1. 在显存里留一份小镜像，或者通过高速 PCIe 异步把权重拷到 Host 内存（只要 2~3 秒）；<br />
+    2. 主训练流马上恢复前向反向计算；<br />
+    3. CPU 后台线程池用空闲网络带宽，慢慢把内存里的数据刷进分布式文件系统（Ceph / Lustre / S3 这类）；<br />
+    4. 某个节点掉线后，调度系统（Slurm / Kubernetes）在 3 分钟内踢掉坏卡、拉起热备节点，从最近一次快照接着训。
   </p>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在 LSH（局部敏感哈希）中，如果将哈希签名总长度 \(m=128\) 固定，将波段数 \(b\) 从 16 调整为 32（同时行数 \(r\) 从 8 降低到 4），会导致什么后果？</p>
+  <p class="q">在 LSH（局部敏感哈希）中，签名总长度固定为 \(m=128\)，把波段数 \(b\) 从 16 调到 32（行数 \(r\) 相应从 8 降到 4），会有什么后果？</p>
   <ul class="opts">
-    <li>降低相似度捕获能力，漏掉大量相似文章</li>
-    <li data-ok>判定拐点阈值 \(t \approx (1/b)^{1/r}\) 显著降低，使系统更加敏感，捕获更多中低相似度文章，但会增加候选撞桶的候选对比开销</li>
+    <li>相似度捕获能力下降，漏掉大量相似文章</li>
+    <li data-ok>判定拐点阈值 \(t \approx (1/b)^{1/r}\) 明显降低，系统更敏感，能捞回更多中低相似度文章，但撞桶的候选对变多，后续比对开销增加</li>
     <li>哈希桶总数变少，导致内存溢出</li>
     <li>Jaccard 相似度计算完全失效</li>
   </ul>
   <p class="why">
-    当 \(b\) 增大、\(r\) 减小时，单波段发生全等碰撞的条件（仅需 4 个哈希值相等）变得更容易满足，阈值 \(t \approx (1/32)^{1/4} \approx 0.42\)（原为 \(0.71\)），召回率更高，但误报与后续比对开销增加。
+    当 \(b\) 增大、\(r\) 减小时，单波段发生全等碰撞的条件（只要 4 个哈希值相等）更容易满足，阈值 \(t \approx (1/32)^{1/4} \approx 0.42\)（原为 \(0.71\)），召回率更高，但误报和后续比对开销也跟着涨。
   </p>
 </div>
 `
@@ -6404,47 +6403,47 @@ COURSE.register({
   tags: ["架构", "MoE", "高阶"],
   body: String.raw`
 <p class="lead">
-  当模型规模达到千亿参数时，密集前馈网络（Dense FFN）的计算代价使预训练与推理成本难以承受。
-  混合专家架构（Mixture of Experts, MoE）通过将前馈层拆分为多个并行的子专家网络，
-  并在每个 Token 前置一个轻量级路由门控网络（Router），仅动态激活极少量子集专家（如 Top-1 或 Top-2），
-  实现了<strong>「参数量扩增数十倍，而每个 Token 的计算量与延迟保持恒定」</strong>的优雅解耦。
-  这一模块系统拆解 MoE 门控数学内核、负载均衡辅助损失，并给出完整的草稿纸手算演算。
+  模型做到千亿参数，密集前馈网络（Dense FFN）的计算代价在预训练和推理两端都吃不消。
+  混合专家架构（Mixture of Experts, MoE）把前馈层拆成多个并行的子专家网络，
+  再给每个 Token 配一个轻量路由门控网络（Router），每次只动态激活极少数几个专家（如 Top-1 或 Top-2），
+  于是<strong>「参数量扩到几十倍，每个 Token 的计算量与延迟保持恒定」</strong>。
+  这一模块拆开 MoE 的门控数学内核与负载均衡辅助损失，并把草稿纸手算过程写全。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口与直觉对齐</h4>
   <p>
-    <strong>一句话类比</strong>：密集模型像一个「全科医生」，面对任何问题都调动全部脑细胞；
-    MoE 则像一个「专家门诊分诊台」，分诊台（Router）先花极小代价快速看一眼病历，
-    把病人分流给心内科和内分泌科两个专家（Top-2），其余数十个科室完全不参与本次诊断。
-    模型拥有整个医院的百科全书式知识库，但每个病人的就诊时间依然只有一个科室的长短。<br />
-    <strong>核心账本差异</strong>：<strong>算力按激活参数计，显存按总参数计</strong>！
-    MoE 解决的是计算效率瓶颈，但对显存容量与卡间跨节点通信（All-to-All）提出了前所未有的苛刻要求。<br />
+    <strong>一句话类比</strong>：密集模型像「全科医生」，什么问题都调动全部脑细胞；
+    MoE 则像「专家门诊的分诊台」，分诊台（Router）先花极小代价扫一眼病历，
+    把病人分给心内科和内分泌科两个专家（Top-2），其余几十个科室这次完全不参与。
+    医院的知识库照样是百科全书式的，但每个病人的就诊时间只有一个科室那么长。<br />
+    <strong>核心账本差异</strong>：<strong>算力按激活参数算，显存按总参数算</strong>。
+    MoE 解决的是计算效率，代价是对显存容量和卡间跨节点通信（All-to-All）提出了苛刻要求。<br />
     <strong>读完你能回答</strong>：为什么 Top-k 路由的不可微离散采样需要辅助损失？
-    为什么门控 Softmax 归一化后必须在激活子集上进行第二次重新归一化？
-    完全均衡分布在数学上如何使得辅助损失达到全局极小值？
+    为什么门控 Softmax 归一化之后还要在激活子集上做第二次重新归一化？
+    完全均衡分布在数学上如何让辅助损失达到全局极小值？
   </p>
 </section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>核心问题</h4>
   <p>
-    为什么朴素训练的 MoE 会迅速发生「模式坍缩（Expert Collapse）」——少数 1 到 2 个专家吞掉全批次 95% 以上的 Token，
-    而其余专家梯度饥饿、形同虚设？
-    为什么我们不能直接对门控得分用 Argmax 选专家做端到端反向传播？
-    本讲带你深入门控网络的数学腹地，亲手在草稿纸上算清每个导数与分配概率。
+    朴素训练的 MoE 为什么会很快「模式坍缩（Expert Collapse）」——少数 1 到 2 个专家吃掉整批 95% 以上的 Token，
+    其余专家梯度饥饿、形同虚设？
+    又为什么不能直接对门控得分用 Argmax 选专家、做端到端反向传播？
+    下面钻进门控网络的数学里，把每个导数和分配概率都在草稿纸上算清。
   </p>
 </section>
 
 <h3>1. 从稠密 FFN 到稀疏门控网络（Sparse MoE）</h3>
 <p>
-  在标准 Transformer 块中，多头注意力后紧接前馈网络（FFN）：\(y = \mathrm{FFN}(x)\)。
-  在 MoE 架构中，该层被替换为 \(E\) 个结构相同但权重独立的专家网络 \(\{E_1, E_2, \dots, E_E\}\)
-  和一个参数化的路由器（Router / Gating Network）\(G(x)\)：
+  标准 Transformer 块里，多头注意力后面接的是前馈网络（FFN）：\(y = \mathrm{FFN}(x)\)。
+  到了 MoE 架构，这一层换成 \(E\) 个结构相同、权重独立的专家网络 \(\{E_1, E_2, \dots, E_E\}\)
+  加一个参数化路由器（Router / Gating Network）\(G(x)\)：
 </p>
 \[ y = \sum_{i=1}^E G(x)_i E_i(x) \]
 <p>
-  其中 \(G(x) \in \mathbb{R}^E\) 是一个极端稀疏的权重向量，其非零元个数严格等于 \(k\)（通常 \(k \ll E\)，如 \(E=8, k=2\) 或 \(E=64, k=8\)）。
+  其中 \(G(x) \in \mathbb{R}^E\) 是一个稀疏权重向量，非零元个数恰好是 \(k\)（通常 \(k \ll E\)，比如 \(E=8, k=2\) 或 \(E=64, k=8\)）。
 </p>
 
 <table class="tbl small">
@@ -6458,8 +6457,8 @@ COURSE.register({
 
 <h3>2. Charles 草稿纸演算区：Top-2 路由与门控重新归一化手算</h3>
 <p>
-  给 Charles 的数学打草稿顺序：先在草稿纸上固定输入维度与专家数量，
-  追踪门控线性映射、Softmax 激活、Top-k 离散掩码截断，以及关键的<strong>子集重新归一化（Re-normalization）</strong>过程。
+  给 Charles 排一下打草稿的顺序：先在草稿纸上固定输入维度和专家数量，
+  然后一路追门控线性映射、Softmax 激活、Top-k 离散掩码截断，以及关键的<strong>子集重新归一化（Re-normalization）</strong>。
 </p>
 
 <section class="blk blk-m">
@@ -6473,7 +6472,7 @@ COURSE.register({
   \[ H = x W_g = [H_1, H_2, \dots, H_E] \]
   <p>
     <strong>前置定义 2（全集 Softmax 概率分布）：</strong>
-    对全量专家维度施加标准 Softmax 函数，得到在全体专家上的先验路由概率分布 \(P \in \mathbb{R}^{1 \times E}\)：
+    对全部专家维度做标准 Softmax，得到全体专家上的先验路由概率分布 \(P \in \mathbb{R}^{1 \times E}\)：
   </p>
   \[ P_i = \mathrm{softmax}(H)_i = \frac{\exp(H_i)}{\sum_{j=1}^E \exp(H_j)}, \qquad \sum_{i=1}^E P_i = 1 \]
   <p>
@@ -6483,42 +6482,42 @@ COURSE.register({
   \[ \mathcal{T} = \mathrm{TopK}(H, k) = \Big\{ i \in \{1, \dots, E\} \;\Big|\; \mathrm{rank}(H_i) \le k \Big\} \]
   <p>
     <strong>前置定义 4（重新归一化门控权重 Re-normalized Weights）：</strong>
-    若直接使用原始 Softmax 概率 \(P_i\)，由于只选取了 \(k\) 个分量，其系数之和 \(\sum_{i \in \mathcal{T}} P_i < 1\)，
-    会导致前向传播的信号方差被无故衰减。因此必须在选中的子集 \(\mathcal{T}\) 上进行二次归一化：
+    如果直接用原始 Softmax 概率 \(P_i\)，只选了 \(k\) 个分量，系数和 \(\sum_{i \in \mathcal{T}} P_i < 1\)，
+    前向信号方差就被白白削弱。所以必须在选中的子集 \(\mathcal{T}\) 上再归一化一次：
   </p>
   \[ g_i = \begin{cases} \dfrac{\exp(H_i)}{\sum_{j \in \mathcal{T}} \exp(H_j)}, & i \in \mathcal{T} \\ 0, & i \notin \mathcal{T} \end{cases} \]
   <p>
-    重新归一化保证了激活专家的加权系数满足严格的凸组合条件：\(\sum_{i \in \mathcal{T}} g_i = 1\)。
+    这样归一化之后，激活专家的加权系数满足凸组合条件：\(\sum_{i \in \mathcal{T}} g_i = 1\)。
   </p>
 </section>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 B：极简小数字单步路由全流程手算</h4>
   <p>
-    在草稿纸上设定最精简的整数与浮点数值：
+    在草稿纸上取最精简的一组数：
     输入维度 \(d=4\)，总专家数 \(E=4\)，激活专家数 \(k=2\)（Top-2 路由）。
   </p>
   <p>
-    <strong>设定具体数值：</strong>
-    设单 Token 经过门控矩阵乘法后，算出的原始 Logits 得分向量为：
+    <strong>代入具体数值：</strong>
+    单个 Token 过完门控矩阵乘法，得到的原始 Logits 得分向量是：
   </p>
   \[ H = [H_1, H_2, H_3, H_4] = [1.2, \; 0.5, \; 2.8, \; -0.1] \]
   <p><strong>草稿第 1 步：数值排序与 Top-2 离散集合锁定</strong></p>
   <p>
-    对各分量大小进行严格排序：
+    按分量大小排一遍序：
   </p>
   \[ H_3 = 2.8 > H_1 = 1.2 > H_2 = 0.5 > H_4 = -0.1 \]
   <p>
-    前两个最大得分的分量索引为第 3 项与第 1 项。
-    因此，Top-2 选中的专家索引集合为：
+    得分最高的两个分量是第 3 项和第 1 项。
+    因此 Top-2 选中的专家索引集合是：
   </p>
   \[ \mathcal{T} = \{1, 3\} \]
   <p>
-    未选中的专家 2 与专家 4（索引集合 \(\{2, 4\}\)）其掩码为 0，前向计算直接短路跳过。
+    没被选中的专家 2 和专家 4（索引集合 \(\{2, 4\}\)）掩码为 0，前向计算直接跳过。
   </p>
   <p><strong>草稿第 2 步：手算全量 Softmax 概率分布（作为全局对照）</strong></p>
   <p>
-    计算各分量的自然指数值（保留 4 位小数）：
+    先算各分量的自然指数（保留 4 位小数）：
   </p>
   <ul>
     <li>\(\exp(H_1) = e^{1.2} \approx 3.3201\)</li>
@@ -6527,49 +6526,49 @@ COURSE.register({
     <li>\(\exp(H_4) = e^{-0.1} \approx 0.9048\)</li>
   </ul>
   <p>
-    全量指数求和配分：
+    全量指数求和，得到配分函数：
   </p>
   \[ S_{\text{all}} = \sum_{j=1}^4 \exp(H_j) = 3.3201 + 1.6487 + 16.4446 + 0.9048 = 22.3182 \]
   <p>
-    由此计算全量 Softmax 概率向量 \(P = [P_1, P_2, P_3, P_4]\)：
+    于是全量 Softmax 概率向量 \(P = [P_1, P_2, P_3, P_4]\) 是：
   </p>
   \[ P_1 = \frac{3.3201}{22.3182} \approx 0.1488, \qquad P_2 = \frac{1.6487}{22.3182} \approx 0.0739 \]
   \[ P_3 = \frac{16.4446}{22.3182} \approx 0.7368, \qquad P_4 = \frac{0.9048}{22.3182} \approx 0.0405 \]
   <p>
-    核验概率归一性：\(0.1488 + 0.0739 + 0.7368 + 0.0405 = 1.0000\)。
+    验一下概率的归一性：\(0.1488 + 0.0739 + 0.7368 + 0.0405 = 1.0000\)。
   </p>
   <p><strong>草稿第 3 步：子集指数配分与重新归一化加权系数 \(g\)</strong></p>
   <p>
-    仅对入选集合 \(\mathcal{T} = \{1, 3\}\) 的指数值求和：
+    只把入选集合 \(\mathcal{T} = \{1, 3\}\) 的指数加起来：
   </p>
   \[ S_{\mathcal{T}} = \exp(H_1) + \exp(H_3) = 3.3201 + 16.4446 = 19.7647 \]
   <p>
-    计算重新归一化门控权重 \(g_1\) 与 \(g_3\)：
+    重新归一化后的门控权重 \(g_1\) 与 \(g_3\)：
   </p>
   \[ g_1 = \frac{\exp(H_1)}{S_{\mathcal{T}}} = \frac{3.3201}{19.7647} \approx 0.1680 \]
   \[ g_3 = \frac{\exp(H_3)}{S_{\mathcal{T}}} = \frac{16.4446}{19.7647} \approx 0.8320 \]
   <p>
-    对于未入选专家：\(g_2 = 0, \; g_4 = 0\)。
-    核验加权和：\(g_1 + g_3 = 0.1680 + 0.8320 = 1.0000\)。
+    未入选的专家：\(g_2 = 0, \; g_4 = 0\)。
+    验一下加权和：\(g_1 + g_3 = 0.1680 + 0.8320 = 1.0000\)。
   </p>
-  <p><strong>草稿第 4 步：最终 MoE 输出张量代数装配</strong></p>
+  <p><strong>草稿第 4 步：把最终输出装出来</strong></p>
   <p>
-    设 4 个专家对输入 \(x\) 的前向计算结果分别为向量 \(E_1(x), E_2(x), E_3(x), E_4(x) \in \mathbb{R}^{1 \times d}\)。
-    最终 MoE 层的输出严格为加权线性组合：
+    设 4 个专家对输入 \(x\) 的前向结果分别是向量 \(E_1(x), E_2(x), E_3(x), E_4(x) \in \mathbb{R}^{1 \times d}\)，
+    MoE 层的输出就是加权线性组合：
   </p>
   \[ y = 0.1680 \cdot E_1(x) + 0.8320 \cdot E_3(x) \]
   <p>
-    <strong>代数审视：</strong>在这个计算流程中，专家 2 与专家 4 的 FFN 参数矩阵根本无需参与前向矩阵乘法，
-    也无需在反向传播中分配激活值梯度显存！输入被动态路由分流，计算开销瞬间减半。
+    <strong>回过头看：</strong>整个流程里专家 2 和专家 4 的 FFN 参数矩阵根本没参与前向矩阵乘法，
+    反向也不用给它们分配激活值梯度显存。输入被路由动态分流，计算开销直接减半。
   </p>
 </section>
 
 <h3>3. 负载均衡辅助损失（Auxiliary Loss）代数推导与极值分析</h3>
 <p>
-  在实际训练中，如果只给模型主任务损失（如交叉熵），路由网络很容易陷入<strong>自强化马太效应（Winner-Take-All Collapse）</strong>：
-  初始化时某个专家偶然得分稍高，就会被更频繁地选中更新，其拟合速度超过其他专家，
-  导致路由器越来越偏好该专家，最终 99% 的 Token 全部涌向单一专家，MoE 退化为极小维度的密集模型。
-  为了强行拉平各专家的负载，必须引入可微的辅助损失函数（Load Balancing Auxiliary Loss）。
+  实际训练里如果只给主任务损失（比如交叉熵），路由网络很容易滑进<strong>自强化马太效应（Winner-Take-All Collapse）</strong>：
+  初始化时某个专家偶然得分高一点，就会被更频繁地选中更新，拟合速度超过其他专家，
+  路由器于是越来越偏爱它，最后 99% 的 Token 全涌向一个专家，MoE 退化成一个很小的密集模型。
+  要把各专家的负载拉平，就得引入可微的辅助损失函数（Load Balancing Auxiliary Loss）。
 </p>
 
 <section class="blk blk-m">
@@ -6577,125 +6576,125 @@ COURSE.register({
   <p>
     设当前训练批次（Batch）包含 \(T\) 个 Token，模型共有 \(E\) 个专家，路由策略为 Top-k。
   </p>
-  <p><strong>第 1 步：定义批次内部的两个核心统计向量</strong></p>
+  <p><strong>第 1 步：定义批次内的两个统计向量</strong></p>
   <ul>
     <li>
       <strong>统计量一：分配频数密度向量 \(f \in \mathbb{R}^E\)（不可微的硬分配比例）：</strong>
       <br />
-      统计专家 \(i\) 在当前批次 \(T\) 个 Token 中被实际选中的总次数占总路由决策的比例：
+      统计专家 \(i\) 在这批 \(T\) 个 Token 里被实际选中的次数占全部路由决策的比例：
       \[ f_i \triangleq \frac{1}{T} \sum_{t=1}^T \mathbb{I}(i \in \mathcal{T}_t) \]
-      由于每个 Token 恰好选出 \(k\) 个专家，因此总分配次数为 \(k T\)，其分量和恒满足：
+      每个 Token 恰好选出 \(k\) 个专家，总分配次数是 \(k T\)，所以分量和恒为：
       \[ \sum_{i=1}^E f_i = \frac{1}{T} \sum_{t=1}^T \sum_{i=1}^E \mathbb{I}(i \in \mathcal{T}_t) = \frac{1}{T} \sum_{t=1}^T k = k \]
     </li>
     <li>
       <strong>统计量二：平均门控概率向量 \(P \in \mathbb{R}^E\)（平滑可微的软概率平均）：</strong>
       <br />
-      对每个 Token 在全量 Softmax 上分配给专家 \(i\) 的概率 \(p_{t, i}\) 求批次算术平均：
+      把每个 Token 在全量 Softmax 下分给专家 \(i\) 的概率 \(p_{t, i}\) 在批次内取算术平均：
       \[ P_i \triangleq \frac{1}{T} \sum_{t=1}^T p_{t, i} = \frac{1}{T} \sum_{t=1}^T \frac{\exp(H_{t, i})}{\sum_{j=1}^E \exp(H_{t, j})} \]
-      由于每个 Token 的 Softmax 概率和为 1，因此该向量各分量和恒满足：
+      每个 Token 的 Softmax 概率和为 1，所以这个向量的分量和恒为：
       \[ \sum_{i=1}^E P_i = \frac{1}{T} \sum_{t=1}^T \sum_{i=1}^E p_{t, i} = \frac{1}{T} \sum_{t=1}^T 1 = 1 \]
     </li>
   </ul>
   <p><strong>第 2 步：构建辅助损失（Switch / GShard 辅助损失）</strong></p>
   <p>
-    标准负载均衡辅助损失定义为分配密度向量 \(f\) 与门控概率向量 \(P\) 的内积并缩放 \(E\) 倍：
+    标准的负载均衡辅助损失，就是分配密度向量 \(f\) 与门控概率向量 \(P\) 的内积再放大 \(E\) 倍：
   </p>
   \[ \mathcal{L}_{\mathrm{aux}} \triangleq \alpha \cdot E \sum_{i=1}^E f_i P_i = \alpha \cdot E \, \langle f, P \rangle \]
   <p>
-    其中 \(\alpha > 0\) 为辅助损失权重超参数（工程常用值 \(\alpha \in [0.01, 0.05]\)）。
-    <strong>反向传播的关键可微性设计：</strong>在计算计算图时，\(f_i\) 被视作常数不回传梯度（Detached / Stop Gradient），
-    梯度完全通过平滑的软概率 \(P_i\) 回传给路由器权重 \(W_g\)。
+    其中 \(\alpha > 0\) 是辅助损失权重超参数（工程常用 \(\alpha \in [0.01, 0.05]\)）。
+    <strong>可微性就在这一手：</strong>搭计算图时把 \(f_i\) 当常数，不回传梯度（Detached / Stop Gradient），
+    梯度全部通过平滑的软概率 \(P_i\) 回传给路由器权重 \(W_g\)。
   </p>
-  <p><strong>第 3 步：为什么完全平衡时达到理论极小值？（严密代数推导）</strong></p>
+  <p><strong>第 3 步：为什么完全平衡时就是理论极小值？</strong></p>
   <p>
     <strong>定理：</strong>在约束条件 \(\sum_{i=1}^E f_i = k\) 与 \(\sum_{i=1}^E P_i = 1\) 下，
-    当且仅当所有专家被均匀等概率选择、且实际分流量完全相等时，即：
+    当且仅当所有专家被均匀等概率选中、实际分流量也完全相等时，即：
   </p>
   \[ f_1 = f_2 = \dots = f_E = \frac{k}{E}, \qquad P_1 = P_2 = \dots = P_E = \frac{1}{E} \]
   <p>
-    内积求和项 \(\sum_{i=1}^E f_i P_i\) 达到全局理论最小值 \(\frac{k}{E}\)，对应的辅助损失为：
+    内积 \(\sum_{i=1}^E f_i P_i\) 取到全局最小值 \(\frac{k}{E}\)，此时辅助损失为：
   </p>
   \[ \mathcal{L}_{\mathrm{aux}}^{\mathrm{ideal}} = \alpha \cdot E \cdot \left( \sum_{i=1}^E \frac{k}{E} \cdot \frac{1}{E} \right) = \alpha \cdot E \cdot \left( E \cdot \frac{k}{E^2} \right) = \alpha \cdot k \]
   <p>
-    <strong>证明（利用均值不等式与协方差展开）：</strong>
-    考察两组离散变量 \(f\) 与 \(P\) 的协方差公式：
+    <strong>证明（协方差展开）：</strong>
+    写出两组离散变量 \(f\) 与 \(P\) 的协方差：
   </p>
   \[ \mathrm{Cov}(f, P) = \frac{1}{E} \sum_{i=1}^E (f_i - \bar{f})(P_i - \bar{P}) = \frac{1}{E} \sum_{i=1}^E f_i P_i - \bar{f}\bar{P} \]
   <p>
-    其中两者的均值是严格固定的代数常数：
+    两者的均值都是固定的代数常数：
   </p>
   \[ \bar{f} = \frac{1}{E} \sum_{i=1}^E f_i = \frac{k}{E}, \qquad \bar{P} = \frac{1}{E} \sum_{i=1}^E P_i = \frac{1}{E} \]
   <p>
-    将内积项改写为协方差形式：
+    把内积改写成协方差的形式：
   </p>
   \[ \sum_{i=1}^E f_i P_i = E \cdot \bar{f}\bar{P} + E \cdot \mathrm{Cov}(f, P) = \frac{k}{E} + E \cdot \mathrm{Cov}(f, P) \]
   <p>
-    <strong>正相关性与极小值判定：</strong>
-    因为 \(f_i\) 是由 Softmax 概率选出的 Top-k 离散指示器，概率 \(P_i\) 越大的专家，其被选中的频率 \(f_i\) 必然同向单调递增！
-    这导致变量 \(f\) 与 \(P\) 之间存在天然的强正相关性，其协方差恒为非负数：
+    <strong>正相关与极小值：</strong>
+    \(f_i\) 是由 Softmax 概率选出的 Top-k 离散指示器，概率 \(P_i\) 越大的专家，被选中的频率 \(f_i\) 也越高。
+    于是 \(f\) 与 \(P\) 天然正相关，协方差恒为非负：
   </p>
   \[ \mathrm{Cov}(f, P) \ge 0 \]
   <p>
-    当且仅当 \(f_i\) 与 \(P_i\) 各自退化为常数（即 \(f_i = \bar{f} = k/E\) 且 \(P_i = \bar{P} = 1/E\)）时，
-    协方差严格取零 \(\mathrm{Cov}(f, P) = 0\)，此时内积达到绝对下确界：
+    当且仅当 \(f_i\) 与 \(P_i\) 都退化成常数（\(f_i = \bar{f} = k/E\) 且 \(P_i = \bar{P} = 1/E\)）时，
+    协方差取零 \(\mathrm{Cov}(f, P) = 0\)，内积才到绝对下确界：
   </p>
   \[ \sum_{i=1}^E f_i P_i \ge \frac{k}{E} \implies \mathcal{L}_{\mathrm{aux}} \ge \alpha k \]
-  <p><strong>草稿第 4 步：极值反例代入（模式坍缩时损失放大几何倍）</strong></p>
+  <p><strong>草稿第 4 步：代一个极端反例（模式坍缩时损失放大多少）</strong></p>
   <p>
     设 \(E=8, k=2\)。理想完全平衡时：
     \(\mathcal{L}_{\mathrm{aux}} = \alpha \cdot 8 \cdot [8 \times (2/8 \times 1/8)] = 2\alpha\)。
-    若发生极端崩溃：所有 Token 均涌向专家 1 与专家 2（各分得一半），其余 6 个专家彻底饿死：
+    如果彻底崩溃：所有 Token 都涌向专家 1 和专家 2（各分一半），其余 6 个专家完全饿死：
     \(f = [1, 1, 0, 0, 0, 0, 0, 0]\)，对应门控概率也坍缩为 \(P = [0.5, 0.5, 0, 0, 0, 0, 0, 0]\)。
     代入辅助损失：
   </p>
   \[ \mathcal{L}_{\mathrm{aux}}^{\mathrm{collapse}} = \alpha \cdot 8 \cdot \left( 1 \times 0.5 + 1 \times 0.5 + 0 \right) = \alpha \cdot 8 \cdot (1.0) = 8\alpha \]
   <p>
-    <strong>结论：</strong>坍缩状态下的辅助损失是理想均匀状态的 \(8\alpha / 2\alpha = 4\) 倍（恰好等于 \(E/k\)）！
-    优化器的负梯度方向 \(-\nabla_{P_i} \mathcal{L}_{\mathrm{aux}} = -\alpha E f_i\) 会对过载专家施加巨大的下压惩罚，
-    同时对空闲专家（\(f_i = 0\)）施加零惩罚，强力驱动网络恢复全专家均匀分流。
+    <strong>结论：</strong>坍缩时的辅助损失是理想均匀状态的 \(8\alpha / 2\alpha = 4\) 倍（正好等于 \(E/k\)）。
+    优化器沿 \(-\nabla_{P_i} \mathcal{L}_{\mathrm{aux}} = -\alpha E f_i\) 的方向，给过载专家一个很大的下压惩罚，
+    对空闲专家（\(f_i = 0\)）则一点都不罚，这样就把流量推回均匀分流。
   </p>
 </section>
 
 <h3>4. 专家容量、丢弃机制与跨节点通信（All-to-All）</h3>
 <p>
-  在实际分布式训练与推理集群中，不同专家通常分布在不同 GPU 上（专家并行 Expert Parallelism, EP）。
-  这带来了独特的系统工程挑战：
+  分布式训练和推理集群里，不同专家通常放在不同 GPU 上（专家并行 Expert Parallelism, EP），
+  由此带来几个绕不开的问题：
 </p>
 <ul>
   <li><strong>专家容量限制（Expert Capacity Factor）：</strong>
-    为防止单卡显存溢出，系统通常设定单专家容量缓冲区上限：
+    为了防止单卡显存溢出，系统给每个专家设一个容量上限：
     \[ C = \mathrm{capacity\_factor} \times \left( \frac{k \cdot T}{E} \right) \]
-    若分配给某专家的 Token 数量超过容量上限 \(C\)，超额的 Token 将触发<strong>Token Dropping（直接短路丢弃 FFN 计算，通过残差直通）</strong>，导致信息损失。
+    分给某个专家的 Token 超过容量上限 \(C\) 时，超出的部分触发<strong>Token Dropping（跳过 FFN 计算，走残差直通）</strong>，这部分信息就丢了。
   </li>
   <li><strong>All-to-All 集合通信算子：</strong>
-    MoE 的通信瓶颈在 <code>All-to-All</code> 算子：各卡必须将本地收集到的 Token 根据路由目标全部洗牌打散发送到持有相应专家的目标卡，
-    计算完成后再执行一次 <code>All-to-All</code> 把结果拉回原始卡。
+    MoE 的通信瓶颈就在 <code>All-to-All</code>：各卡按路由目标把本地收到的 Token 洗牌打散，发到持有对应专家的卡上，
+    算完再跑一次 <code>All-to-All</code> 把结果拉回来。
   </li>
 </ul>
 
-<h3>5. 核心代数微算子剖析：轻量级 Top-2 稀疏门控网络</h3>
+<h3>5. 核心代数微算子：轻量级 Top-2 稀疏门控网络</h3>
 <p>
-  以下代数式给出完整的门控计算、Top-2 索引提取、重新归一化与辅助损失定义（可运行的 PyTorch 版本见附录 B 对应实验）：
+  下面这个代数式把门控计算、Top-2 索引提取、重新归一化与辅助损失定义串在一起（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
 
 <p><strong>MoE 稀疏门控路由微算子演示：</strong></p>
-<p>\[ H(x) = \sum_{i \in \text{Top-}k(G(x))} G(x)_i \cdot E_i(x), \quad G(x) = \text{Softmax}(\text{Top-}k(x W_g, k)) \]</p>
+<p>\[ H(x) = \sum_{i \in \text{Top-}k(G(x))} G(x)_i \cdot E_i(x), \quad G(x) = \text{ReNormalize}\big(\text{Top-}k(\text{Softmax}(x W_g), k)\big) \]</p>
 <p>
-  <strong>逐行代数解析</strong>：每个 Token 的输入表征 \(x\) 乘以门控投影矩阵 \(W_{\text{gate}}\)，经 Softmax 得到在所有候选专家（如 8 个）上的分配概率；<code>torch.topk</code> 选出概率最高的前 2 个专家下标 <code>indices</code> 与权重系数 <code>gates</code>，其余未选中的专家完全不参与浮点前向计算，实现模型容量扩张与计算量的优雅解耦。
+  <strong>逐行代数解析</strong>：每个 Token 的输入表征 \(x\) 先乘门控投影矩阵 \(W_{\text{gate}}\)，Softmax 之后得到在所有候选专家（比如 8 个）上的分配概率；<code>torch.topk</code> 挑出概率最高的 2 个专家下标 <code>indices</code> 与权重系数 <code>gates</code>，没选中的专家完全不参与浮点前向计算，容量扩了而计算量没扩。
 </p>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>MoE 架构工程落地的三大常见陷阱</h4>
+  <h4><span class="ic">⚠</span>MoE 落地的三个常见坑</h4>
   <ol>
-    <li><strong>容量因子（Capacity Factor）设太小</strong>：训练初期负载波动大，过紧的容量截断会导致 15% 以上的 Token 被直接丢弃（Dropping），损失曲线剧烈震荡。缓解：训练阶段设 <code>capacity_factor=1.25~1.5</code>，或采用免丢弃路由（Dropless Routing）。</li>
-    <li><strong>辅助损失权重 \(\alpha\) 过大或过小</strong>：\(\alpha < 0.001\) 无法阻止马太坍缩；\(\alpha > 0.1\) 会导致辅助损失压制主任务交叉熵，路由器为了强求绝对均匀而把数学 Token 错误塞进文学专家。</li>
-    <li><strong>跨节点通信带宽成为隐藏死穴</strong>：专家并行跨机器需要频繁跑 All-to-All，若跨机互联只有普通千兆网或 PCIe 4.0，通信延迟将吃掉 MoE 节省的全部 GPU 算力！</li>
+    <li><strong>容量因子（Capacity Factor）设太小</strong>：训练初期负载波动大，容量卡得太紧会让 15% 以上的 Token 被直接丢弃（Dropping），损失曲线跟着剧烈震荡。缓解办法：训练阶段设 <code>capacity_factor=1.25~1.5</code>，或者直接用免丢弃路由（Dropless Routing）。</li>
+    <li><strong>辅助损失权重 \(\alpha\) 过大或过小</strong>：\(\alpha < 0.001\) 拦不住马太坍缩；\(\alpha > 0.1\) 又会让辅助损失压过主任务交叉熵，路由器为了凑绝对均匀，把数学 Token 硬塞进文学专家。</li>
+    <li><strong>跨节点通信带宽是最容易忽略的一环</strong>：专家并行跨机器要频繁跑 All-to-All，跨机互联要是只有普通千兆网或 PCIe 4.0，通信延迟能把 MoE 省下来的算力全吃掉。</li>
   </ol>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">某 MoE 模型包含 8 个专家，输入 Logits 经挑选后仅保留专家 1 和专家 3，对应原始得分为 \(H_1 = 1.2, H_3 = 2.8\)。在执行重新归一化（Re-normalization）后，分配给专家 3 的门控权重 \(g_3\) 最接近？</p>
+  <p class="q">某 MoE 模型有 8 个专家，输入 Logits 挑选后只保留专家 1 和专家 3，对应原始得分为 \(H_1 = 1.2, H_3 = 2.8\)。做重新归一化（Re-normalization）之后，分给专家 3 的门控权重 \(g_3\) 最接近？</p>
   <ul class="opts">
     <li>0.7368</li>
     <li data-ok>0.8320</li>
@@ -6703,35 +6702,35 @@ COURSE.register({
     <li>0.9048</li>
   </ul>
   <p class="why">
-    草稿纸手算过程：子集指数和为 \(e^{1.2} + e^{2.8} \approx 3.3201 + 16.4446 = 19.7647\)。重新归一化加权权重为 \(g_3 = 16.4446 / 19.7647 \approx 0.8320\)。而 0.7368 是在全体 4 个专家下的原始全局 Softmax 概率，如果不做子集重新归一化，两者相加不等于 1，会衰减信号方差。
+    草稿纸手算：子集指数和为 \(e^{1.2} + e^{2.8} \approx 3.3201 + 16.4446 = 19.7647\)，重新归一化后 \(g_3 = 16.4446 / 19.7647 \approx 0.8320\)。0.7368 是全体 4 个专家下的原始全局 Softmax 概率；不做子集重新归一化，选中专家的权重加起来不等于 1，会把信号方差衰减掉。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在 MoE 辅助负载均衡损失 \(\mathcal{L}_{\mathrm{aux}} = \alpha E \sum_{i=1}^E f_i P_i\) 的代数推导中，为什么当所有专家完全平衡时损失达到理论极小值？</p>
+  <p class="q">在 MoE 辅助负载均衡损失 \(\mathcal{L}_{\mathrm{aux}} = \alpha E \sum_{i=1}^E f_i P_i\) 的推导里，为什么所有专家完全平衡时损失就到理论极小值？</p>
   <ul class="opts">
     <li>因为在平衡状态下所有专家的权重矩阵参数相等</li>
-    <li data-ok>因为将内积展开为均值项与协方差项后，\(\sum f_i P_i = k/E + E \cdot \mathrm{Cov}(f, P)\)，而离散分配与门控概率同向正相关使得 \(\mathrm{Cov}(f, P) \ge 0\)，当且仅当完全均匀时协方差严格取零达到极小值</li>
+    <li data-ok>因为把内积展开成均值项与协方差项后，\(\sum f_i P_i = k/E + E \cdot \mathrm{Cov}(f, P)\)，而离散分配与门控概率同向正相关，\(\mathrm{Cov}(f, P) \ge 0\)；当且仅当完全均匀时协方差取零，达到极小值</li>
     <li>因为交叉熵损失在平衡时恒等于零</li>
     <li>因为 Softmax 函数的导数在平衡时处处为零</li>
   </ul>
   <p class="why">
-    推导精髓：均值 \(\bar{f} = k/E\) 与 \(\bar{P} = 1/E\) 是固定的代数常数。内积的自由度完全取决于两者的协方差 \(\mathrm{Cov}(f, P)\)。由于高概率专家总是更大概率被分配，两者呈非负正相关，因此协方差非负，均匀分布时协方差为 0 达到全局下确界。
+    推导的关键：均值 \(\bar{f} = k/E\) 与 \(\bar{P} = 1/E\) 都是固定的代数常数，内积怎么变全看两者的协方差 \(\mathrm{Cov}(f, P)\)。高概率的专家总是更大概率被分配，两者非负相关，所以协方差非负；均匀分布时协方差为 0，取到全局下确界。
   </p>
 </div>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>以 Charles 的 Glass Player 与 Crossfade 这类任务为例（你以后可以照此判断）</h4>
+  <h4><span class="ic">◈</span>以 Charles 的 Glass Player 与 Crossfade 这类任务为例（以后可以照此判断）</h4>
   <p>
-    <strong>结论：在本地音乐播放器（Glass Player）的音频淡入淡出曲线拟合中，绝对不要引入 MoE 架构！</strong>
+    <strong>结论：本地音乐播放器（Glass Player）拟合音频淡入淡出曲线，不要引入 MoE 架构。</strong>
   </p>
   <table class="tbl small">
     <thead><tr><th>维度</th><th>MoE 混合专家</th><th>密集小模型（如 0.5B~1.5B Dense）</th><th>Crossfade 音频工程判定</th></tr></thead>
     <tbody>
-      <tr><td><strong>显存占用</strong></td><td>总参数巨大（需常驻多专家矩阵）</td><td>小巧轻盈（0.5B 仅需 1 GB 显存）</td><td>用户端本地播放器必须内存友好，MoE 显存开销不可接受</td></tr>
-      <tr><td><strong>计算延迟</strong></td><td>分支预测、动态 Gather/Scatter 内存不规则</td><td>连续张量乘法，硬件矩阵加速器利用率满格</td><td>音频播放对实时性要求严苛（毫秒级调度），密集模型吞吐极稳定</td></tr>
-      <tr><td><strong>适用场景</strong></td><td>超大规模通用百科知识库（涵盖代码、法律、医学）</td><td>特定垂直领域的密集数值回归与平滑曲线预测</td><td>Crossfade 是纯粹的连续功率谱与声学特征拟合，无多领域稀疏分诊需求</td></tr>
+      <tr><td><strong>显存占用</strong></td><td>总参数巨大（多专家矩阵要常驻）</td><td>小巧（0.5B 只要 1 GB 显存）</td><td>本地播放器必须内存友好，MoE 的显存开销没法接受</td></tr>
+      <tr><td><strong>计算延迟</strong></td><td>分支预测、动态 Gather/Scatter，访存不规则</td><td>连续张量乘法，矩阵加速器能吃满</td><td>音频播放要毫秒级实时调度，密集模型的吞吐更稳</td></tr>
+      <tr><td><strong>适用场景</strong></td><td>超大规模通用百科知识库（涵盖代码、法律、医学）</td><td>特定垂直领域的密集数值回归与平滑曲线预测</td><td>Crossfade 就是连续功率谱与声学特征的拟合，没有多领域稀疏分诊的需求</td></tr>
     </tbody>
   </table>
 </section>
@@ -6750,157 +6749,157 @@ COURSE.register({
   tags: ["上下文", "RoPE", "外推", "高阶"],
   body: String.raw`
 <p class="lead">
-  预训练大语言模型通常在固定长度（如 4096 或 8192 Tokens）的文本窗口上完成训练。
-  然而在处理长篇文献阅读、代码工程仓库解析或超长音频时间序列建模时，我们渴望模型能直接处理 32k、128k 甚至百万 Token 的长上下文。
-  为什么不能直接把训练好的模型放在超出训练长度的序列上推理？
-  旋转位置编码（RoPE）在长序列外推时为何会遭遇高频振荡与注意力熵崩塌？
-  从线性位置插值（PI）、NTK-Aware 到现代 YaRN，数学家与算法工程师如何通过精密的分频补偿与方差守恒实现无损长上下文外推？
+  大语言模型预训练时，文本窗口的长度是固定的（比如 4096 或 8192 Tokens）。
+  但读长篇文献、解析整个代码仓库、给超长音频做时间序列建模时，你希望模型能直接吃下 32k、128k 甚至百万 Token。
+  为什么不能把训好的模型直接放到超出训练长度的序列上推理？
+  旋转位置编码（RoPE）做长序列外推时，为什么会碰上高频振荡与注意力熵崩塌？
+  从线性位置插值（PI）、NTK-Aware 到今天的 YaRN，这些方法又是怎么靠分频补偿与方差守恒把长上下文外推做无损的？
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口与多齿轮钟表直觉</h4>
   <p>
-    <strong>一句话类比</strong>：RoPE 就像一个拥有 32 根指针的多齿轮机械钟表！
-    高频维是「秒针」（走得极快，转几步就是一整圈，专门用来区分相邻词的紧密相对次序）；
-    低频维是「世纪齿轮」（走得极慢，转完整整一圈需要数万个 Token，用来标记超长距离的全局位置坐标）。<br />
-    <strong>直接外推的失败</strong>：如果测试序列拉长 8 倍，低频的世纪齿轮被拨到了模型从没见过的全新角度区间，模型陷入数学未定义盲区；<br />
-    <strong>朴素插值的缺陷</strong>：如果把所有指针统一减速 8 倍，低频齿轮虽然落回了已知范围，但秒针也变慢了 8 倍，原本相邻两个词的精确相对角度被压缩得模糊不清，导致模型丧失短距离语法辨别力。<br />
-    <strong>读完你能回答</strong>：为什么不同频率维度必须区别对待？YaRN 如何通过频率分段调制与注意力温度缩放实现方差守恒？
+    <strong>一句话类比</strong>：RoPE 像一块有 32 根指针的多齿轮机械钟表。
+    高频维是「秒针」，走得极快，转几步就是一整圈，专门用来区分相邻词的紧密次序；
+    低频维是「世纪齿轮」，走得极慢，转完一整圈要数万个 Token，用来标记超长距离的全局位置。<br />
+    <strong>直接外推为什么失败</strong>：测试序列拉长 8 倍，低频的世纪齿轮被拨到了模型从没见过的全新角度区间，模型落进数学盲区；<br />
+    <strong>朴素插值差在哪</strong>：把所有指针统一减速 8 倍，低频齿轮虽然落回已知范围，但秒针也变慢了 8 倍，原本相邻两个词的精确相对角度被压得模糊不清，模型的短距离语法辨别力就没了。<br />
+    <strong>读完你能回答</strong>：为什么不同频率维度必须区别对待？YaRN 怎么靠频率分段调制与注意力温度缩放做到方差守恒？
   </p>
 </section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>核心问题</h4>
   <p>
-    为什么当上下文从 4096 扩展到 4097 时，直接外推会导致困惑度（Perplexity）从十几直接飙升到数千甚至发散？
-    在代数上，位置内积点积分布到底发生了什么形变？
-    为什么只需要在注意力分数上乘上一个简单的温度系数 \(\sqrt{t} = 0.1 \ln(s) + 1\)，就能神奇地恢复长文本注意力的尖锐聚焦？
+    上下文从 4096 扩到 4097，直接外推为什么会让困惑度（Perplexity）从十几飙到数千甚至发散？
+    在代数上，位置内积的分布到底发生了什么形变？
+    为什么只要在注意力分数上乘一个缩放因子 \(\sqrt{1/t} = 0.1 \ln(s) + 1\)，长文本注意力就能重新变得尖锐聚焦？
   </p>
 </section>
 
 <h3>1. RoPE 的正交旋转几何与内积相对位移不变性</h3>
 <p>
-  旋转位置编码（Rotary Position Embedding, RoPE）摒弃了传统的加性绝对位置嵌入，
-  将隐藏向量按相邻两两维度配对，切分为 \(d/2\) 个二维复数正交子空间。
-  在每个二维平面上，Token 依据其所在位置 \(m\) 执行旋转变换：
+  旋转位置编码（Rotary Position Embedding, RoPE）不用传统的加性绝对位置嵌入，
+  而是把隐藏向量按相邻两两维度配对，切成 \(d/2\) 个二维复数正交子空间。
+  每个二维平面上，Token 按自己所在位置 \(m\) 做一次旋转：
 </p>
 \[ R_m^{(i)} = \begin{bmatrix} \cos(m \theta_i) & -\sin(m \theta_i) \\ \sin(m \theta_i) & \cos(m \theta_i) \end{bmatrix} \]
 <p>
-  对于查询向量 \(q_m\) 与键向量 \(k_n\)，其旋转后的二维子空间内积具有绝对几何优雅性：
+  查询向量 \(q_m\) 与键向量 \(k_n\) 旋转之后，其二维子空间内积有个很干净的性质：
 </p>
 \[ \langle R_m^{(i)} q, R_n^{(i)} k \rangle = q^T \left( R_m^{(i)} \right)^T R_n^{(i)} k = q^T R_{n-m}^{(i)} k \]
 <p>
-  内积计算结果严格只取决于相对位移差 \(\Delta = n - m\)，绝对坐标 \(m\) 与 \(n\) 在代数上被完美抵消。
+  内积只取决于相对位移差 \(\Delta = n - m\)，绝对坐标 \(m\) 与 \(n\) 在代数上被消掉了。
 </p>
 
 <h3>2. Charles 草稿纸演算区：RoPE 频率分解与波长手算</h3>
 <p>
-  给 Charles 的数学草稿纸推演：从角频率递减公式出发，亲手代入工业界标准超参数，
-  算清高频维、中频维与低频维的物理旋转周期（波长）。
+  给 Charles 的草稿纸推演：从角频率递减公式出发，代入工业界的标准超参数，
+  把高频维、中频维与低频维的旋转周期（波长）算清楚。
 </p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与符号约定</h4>
   <p>
     <strong>前置定义 1（基频衰减几何级数）：</strong>
-    设单头注意力向量维度为 \(d\)（通常为 64 或 128）。可切分为 \(d/2\) 个独立的二维旋转子空间，
+    设单头注意力向量维度为 \(d\)（通常为 64 或 128），可以切成 \(d/2\) 个独立的二维旋转子空间，
     子空间索引为 \(i \in \{0, 1, \dots, d/2 - 1\}\)。
     第 \(i\) 个子空间的角频率定义为：
   </p>
   \[ \theta_i \triangleq b^{-2i/d} = \frac{1}{b^{2i/d}} \]
   <p>
-    其中底数 \(b\) 为基频常数（在 LLaMA-1/2 中标准设定为 \(b = 10000\)）。
-    频率 \(\theta_i\) 随索引 \(i\) 的增大呈几何级数快速递减。
+    底数 \(b\) 是基频常数（在 LLaMA-1/2 中标准设定为 \(b = 10000\)）。
+    索引 \(i\) 越大，频率 \(\theta_i\) 按几何级数递减得越快。
   </p>
   <p>
     <strong>前置定义 2（旋转周期波长 Wavelength）：</strong>
-    第 \(i\) 个子空间的二维向量在序列推进时完成整整一圈（\(2\pi\) 弧度）旋转所跨越的 Token 步长，定义为其波长 \(\lambda_i\)：
+    第 \(i\) 个子空间的二维向量在序列往前推进时转满一圈（\(2\pi\) 弧度）所跨的 Token 步长，就是它的波长 \(\lambda_i\)：
   </p>
   \[ \lambda_i \triangleq \frac{2\pi}{\theta_i} = 2\pi \cdot b^{2i/d} \]
   <p>
-    波长大小直接刻画了该维度几何旋转的「物理尺度」：
-    \(\lambda_i \ll L_{\text{train}}\) 意味着该维度在训练集内经历过成百上千次的完整周期往复；
-    \(\lambda_i \gg L_{\text{train}}\) 意味着该维度在训练集内连小半圈都没有转完。
+    波长刻画的是这个维度旋转的「物理尺度」：
+    \(\lambda_i \ll L_{\text{train}}\) 意味着它在训练长度内经历过成百上千次完整周期；
+    \(\lambda_i \gg L_{\text{train}}\) 意味着它在训练长度内连小半圈都没有转完。
   </p>
 </section>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 B：极简小数字手算（\(b=10000, d=64\) 全频段周期分析）</h4>
   <p>
-    代入具体的标准参数：注意力头维度 \(d = 64\)，共有 \(d/2 = 32\) 个二维子空间，索引 \(i \in \{0, 1, \dots, 31\}\)。
-    基底取经典常数 \(b = 10000 = 10^4\)。圆周率取 \(\pi \approx 3.14159265\)，则 \(2\pi \approx 6.283185\)。
+    代入一组标准参数：注意力头维度 \(d = 64\)，共 \(d/2 = 32\) 个二维子空间，索引 \(i \in \{0, 1, \dots, 31\}\)。
+    基底取经典常数 \(b = 10000 = 10^4\)，圆周率取 \(\pi \approx 3.14159265\)，于是 \(2\pi \approx 6.283185\)。
   </p>
   <p><strong>第 1 步：手算最高频子空间（\(i=0\)）</strong></p>
   \[ \theta_0 = 10000^{-2 \times 0 / 64} = 10000^0 = 1.0 \text{ rad/token} \]
   \[ \lambda_0 = \frac{2\pi}{\theta_0} = \frac{6.283185}{1.0} \approx 6.28 \text{ tokens} \]
   <p>
-    <strong>物理意义：</strong>每隔约 6 个 Token，最高频平面的相位就转满一整圈！
-    这代表局部细粒度网格，专门捕获紧邻 Token 之间的语法依存与前后词序。
+    <strong>物理意义：</strong>每隔约 6 个 Token，最高频平面的相位就转满一整圈，
+    这是一层局部细网格，专门抓相邻 Token 之间的语法依存与前后词序。
   </p>
   <p><strong>第 2 步：手算次高频子空间（\(i=1\)）</strong></p>
   \[ \theta_1 = 10000^{-2 \times 1 / 64} = 10000^{-1/32} = (10^4)^{-1/32} = 10^{-0.125} \approx 0.749894 \text{ rad/token} \]
   \[ \lambda_1 = \frac{2\pi}{\theta_1} \approx \frac{6.283185}{0.749894} \approx 8.38 \text{ tokens} \]
   <p>
-    波长为 8.38 个 Token，依然属于强局域性频率分量。
+    波长 8.38 个 Token，仍然是很强的局域频率分量。
   </p>
   <p><strong>第 3 步：手算正中频子空间（\(i=16\)）</strong></p>
   \[ \theta_{16} = 10000^{-2 \times 16 / 64} = 10000^{-0.5} = \frac{1}{\sqrt{10000}} = \frac{1}{100} = 0.01 \text{ rad/token} \]
   \[ \lambda_{16} = \frac{2\pi}{0.01} = 200\pi \approx 628.32 \text{ tokens} \]
   <p>
-    波长约为 628 个 Token，对应中等跨度的段落级相对位移。
+    波长约 628 个 Token，对应段落级的相对位移。
   </p>
   <p><strong>第 4 步：手算最低频子空间（\(i=31\)）</strong></p>
   \[ \theta_{31} = 10000^{-2 \times 31 / 64} = 10000^{-31/32} = 10^{-4 \times 31/32} = 10^{-3.875} \approx 0.000133352 \text{ rad/token} \]
   \[ \lambda_{31} = \frac{2\pi}{\theta_{31}} \approx \frac{6.283185}{0.000133352} \approx 47117.2 \text{ tokens} \]
   <p>
-    <strong>震撼的对比：</strong>最低频维度的完整波长高达 <strong>47,117 个 Token</strong>！
+    <strong>对比一下：</strong>最低频维度的完整波长高达 <strong>47,117 个 Token</strong>。
   </p>
 </section>
 
 <h3>3. 外推崩溃手算与 YaRN 分频补偿机制</h3>
 <p>
-  假设模型在训练长度 \(L_{\text{train}} = 4096\) 上完成训练，现在要将其外推到 \(L_{\text{test}} = 32768\)（扩展缩放比率 \(s = 32768 / 4096 = 8\)）。
+  假设模型在训练长度 \(L_{\text{train}} = 4096\) 上训完，现在要外推到 \(L_{\text{test}} = 32768\)（扩展倍率 \(s = 32768 / 4096 = 8\)）。
 </p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 C：外推崩溃本质与 YaRN 分段插值推演</h4>
-  <p><strong>第 1 步：直接外推（Direct Extrapolation）为什么必然爆炸？</strong></p>
+  <p><strong>第 1 步：直接外推（Direct Extrapolation）为什么一定炸？</strong></p>
   <p>
     考察最低频维度 \(i=31\)（波长 \(\lambda_{31} \approx 47117\)）：
   </p>
   <ul>
-    <li>在训练阶段 \(m \le 4096\)：该维度最大转过的相位角为 \(\Phi_{\text{train}} = 4096 \times \theta_{31} \approx 4096 \times 0.00013335 \approx 0.546 \text{ rad} \approx 31.3^\circ\)；</li>
-    <li>在推理外推 \(m = 32768\)：相位角暴增至 \(\Phi_{\text{test}} = 32768 \times 0.00013335 \approx 4.37 \text{ rad} \approx 250.4^\circ\)！</li>
+    <li>训练阶段 \(m \le 4096\)：它最多转过 \(\Phi_{\text{train}} = 4096 \times \theta_{31} \approx 4096 \times 0.00013335 \approx 0.546 \text{ rad} \approx 31.3^\circ\)；</li>
+    <li>外推到 \(m = 32768\)：相位角涨到 \(\Phi_{\text{test}} = 32768 \times 0.00013335 \approx 4.37 \text{ rad} \approx 250.4^\circ\)。</li>
   </ul>
   <p>
-    <strong>结论：</strong>模型在训练阶段从来没有见过低频维度处于 \([31.3^\circ, 250.4^\circ]\) 区间内的旋转特征！
-    当位置超出 4096 时，未见过的旋转矩阵破坏了自注意力内积的有界性，导致 Softmax 概率分布混乱发散，困惑度指数级爆炸。
+    <strong>结论：</strong>训练阶段，模型从没见过低频维度落在 \([31.3^\circ, 250.4^\circ]\) 区间里的旋转特征。
+    位置一超出 4096，这些没见过的旋转矩阵就破坏了自注意力内积的有界性，Softmax 概率分布开始混乱发散，困惑度指数级往上走。
   </p>
 
   <p><strong>第 2 步：朴素位置线性插值（Linear Position Interpolation, PI）的代价</strong></p>
   <p>
-    线性插值通过对所有位置坐标除以 \(s=8\)：\(m' = m / s = m / 8\)。
-    等效于将所有子空间的角频率全部衰减 8 倍：\(\theta_i' = \theta_i / 8\)。
+    线性插值的做法是把所有位置坐标除以 \(s=8\)：\(m' = m / s = m / 8\)，
+    等价于把所有子空间的角频率衰减 8 倍：\(\theta_i' = \theta_i / 8\)。
   </p>
   <p>
-    对于低频维，这完美地把最大相位限制在已知范围内。但对于高频维（\(i=0\)）：
-    原角频率为 \(1.0 \text{ rad/token}\)，相邻两个 Token 的夹角原为 \(1.0 \text{ rad} \approx 57.3^\circ\)；
-    插值后变为 \(1.0 / 8 = 0.125 \text{ rad} \approx 7.16^\circ\)！
-    <strong>相邻 Token 之间的相位差被暴力压缩了 8 倍！</strong>
-    模型的高频网格分辨率被抹平，导致局部语法感知失真，短文本理解精度严重劣化。
+    对低频维来说，这正好把最大相位压回已知范围。但高频维（\(i=0\)）就遭殃了：
+    原角频率为 \(1.0 \text{ rad/token}\)，相邻两个 Token 的夹角原为 \(1.0 \text{ rad} \approx 57.3^\circ\)，
+    插值后变为 \(1.0 / 8 = 0.125 \text{ rad} \approx 7.16^\circ\)。
+    <strong>相邻 Token 之间的相位差被硬压了 8 倍</strong>，
+    模型的高频网格分辨率被抹平，局部语法感知失真，短文本理解精度明显变差。
   </p>
 
   <p><strong>第 3 步：YaRN（Yet another RoPE extensioN）三段式频率分频补偿</strong></p>
   <p>
-    YaRN 提出核心数学原则：<strong>高频不插值（保留局部分辨率），低频线性插值（消除未见大角度），中频平滑过渡！</strong>
-    定义波长与训练长度的比值比率 \(r_i \triangleq \frac{\lambda_i}{L_{\text{train}}}\)。
-    引入两个分频阈值：低频阈值 \(\alpha = 1\) 与高频阈值 \(\beta = 32\)：
+    YaRN 的核心原则：<strong>高频不插值（保留局部分辨率），低频线性插值（消除未见大角度），中频平滑过渡。</strong>
+    定义波长与训练长度的比值 \(r_i \triangleq \frac{\lambda_i}{L_{\text{train}}}\)，
+    再引入两个分频阈值：低频阈值 \(\alpha = 1\) 与高频阈值 \(\beta = 32\)：
   </p>
   \[ \gamma(r_i) = \begin{cases} 0, & r_i < \frac{1}{\beta} \\ 1, & r_i > \frac{1}{\alpha} \\ \dfrac{r_i - 1/\beta}{1/\alpha - 1/\beta}, & \frac{1}{\beta} \le r_i \le \frac{1}{\alpha} \end{cases} \]
   <p>
-    其中：当 \(r_i < 1/\beta\) 为高频区，完全不插值（\(\gamma=0\)），保持原频不变；
-    当 \(r_i > 1/\alpha\) 为低频区，完全线性插值（\(\gamma=1\)），频率除以 \(s\)；
-    当 \(1/\beta \le r_i \le 1/\alpha\) 为中频区，按比例线性平滑过渡。
+    其中 \(r_i < 1/\beta\) 是高频区，完全不插值（\(\gamma=0\)），频率保持不变；
+    \(r_i > 1/\alpha\) 是低频区，完全线性插值（\(\gamma=1\)），频率除以 \(s\)；
+    \(1/\beta \le r_i \le 1/\alpha\) 是中频区，按比例平滑过渡。
   </p>
   <p>
     各维度最终的修正频率为：
@@ -6909,37 +6908,37 @@ COURSE.register({
 
   <p><strong>第 4 步：注意力 Softmax 熵与温度缩放（Variance Conservation）</strong></p>
   <p>
-    序列长度从 \(L\) 扩展到 \(sL\) 后，注意力 Softmax 聚合的 Token 数量变多，会导致注意力分布变得过于平缓，发生注意力熵漂移（Attention Entropy Drift）。
-    YaRN 证明乘以缩放因子 \(\sqrt{1/t}\) 可以严格守恒注意力方差：
+    序列长度从 \(L\) 扩到 \(sL\) 之后，Softmax 聚合的 Token 变多，注意力分布会变得过于平缓，也就是注意力熵漂移（Attention Entropy Drift）。
+    YaRN 的做法是乘一个缩放因子 \(\sqrt{1/t}\)，把注意力方差守恒住：
   </p>
   \[ \sqrt{1/t} = 0.1 \ln(s) + 1 \]
   <p>
-    在执行注意力矩阵点积计算时，将缩放系数由 \(1/\sqrt{d}\) 放大为：
+    算注意力矩阵点积时，把缩放系数从 \(1/\sqrt{d}\) 放大成：
   </p>
   \[ \text{Scale} = \frac{\sqrt{1/t}}{\sqrt{d}} = \frac{0.1 \ln(s) + 1}{\sqrt{d}} \]
   <p>
-    对于扩展倍率 \(s=8\)：\(\sqrt{1/t} = 0.1 \ln(8) + 1 \approx 0.1 \times 2.0794 + 1 \approx 1.2079\)。
-    乘以该缩放因子使得长上下文下的注意力聚焦能力与短文本训练时严格保持等方差！
+    扩展倍率 \(s=8\) 时：\(\sqrt{1/t} = 0.1 \ln(8) + 1 \approx 0.1 \times 2.0794 + 1 \approx 1.2079\)。
+    乘上它，长上下文下的注意力聚焦能力就和短文本训练时保持等方差。
   </p>
 </section>
 
-<h3>4. 核心代数微算子剖析：YaRN 动态频率分频与温度补偿</h3>
+<h3>4. 核心代数微算子：YaRN 动态频率分频与温度补偿</h3>
 <p>
-  以下代数式给出工业级 YaRN 频率调度与注意力缩放的定义（可运行的 PyTorch 版本见附录 B 对应实验）：
+  下面这个代数式给出 YaRN 的频率调度与注意力缩放定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
 
 <p><strong>RoPE 旋转位置编码与角频率缩放微算子演示：</strong></p>
 <p>\[ \theta_i = b^{-2i/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=0}^{d/2-1} \right) \]</p>
 <p>
-  <strong>逐行代数解析</strong>：<code>freqs</code> 计算特征维度各对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上旋转角度的余弦与正弦项，将绝对位置转化为向量内积中的相对位移 \(m - n\)；YaRN 算法在此基础上对高频与低频分量进行精细化分段插值，实现超长文本的免重训平滑外推。
+  <strong>逐行代数解析</strong>：<code>freqs</code> 算的是特征维度里每一对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上对应角度的余弦和正弦，绝对位置就转成了内积里的相对位移 \(m - n\)；YaRN 在此基础上对高频与低频分量做分段插值，不用重训也能把上下文拉长。
 </p>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>长上下文扩展工程落地的三大致命雷区</h4>
+  <h4><span class="ic">⚠</span>长上下文扩展的三个雷区</h4>
   <ol>
-    <li><strong>忽视 KV Cache 显存二次方爆炸</strong>：上下文从 4k 扩至 32k，KV Cache 显存暴涨 8 倍；若并发请求为 16，单卡显存秒爆。必须配合分组查询注意力（GQA）与 PagedAttention 显存分页管理。</li>
-    <li><strong>测试集「大海捞针（Needle In A Haystack）」假通过</strong>：有些外推方案在随机插入的字符串查找测试中取得 100% 召回，但在复杂长文本多跳逻辑推理中完全退化。必须在真实连贯文档上评测长程困惑度。</li>
-    <li><strong>注意力温度漏调导致软失活</strong>：仅修改 RoPE 旋转频率而忘记乘上 YaRN 缩放因子 \(\sqrt{1/t}\)，模型生成的文本会呈现散乱、无主题复读与词频均化现象。</li>
+    <li><strong>把 KV Cache 的显存和注意力计算量混为一谈</strong>：上下文从 4k 扩至 32k，KV Cache 显存跟着涨 8 倍，这是随上下文长度线性增长；按长度二次方涨的是 prefill 阶段的注意力计算量。显存这边若并发请求为 16，单卡照样撑不住，必须配合分组查询注意力（GQA）与 PagedAttention 显存分页管理。</li>
+    <li><strong>「大海捞针（Needle In A Haystack）」假通过</strong>：有些外推方案在随机插入字符串的查找测试里能拿到 100% 召回，一换到复杂长文本的多跳推理就完全退化。所以还得在真实连贯文档上评长程困惑度。</li>
+    <li><strong>漏调注意力温度，等于软失活</strong>：只改了 RoPE 旋转频率却忘记乘上 YaRN 缩放因子 \(\sqrt{1/t}\)，生成的文本会散乱、无主题复读、词频被抹平。</li>
   </ol>
 </section>
 
@@ -6953,40 +6952,40 @@ COURSE.register({
     <li>\(\lambda_0 \approx 3.14\) tokens，\(\lambda_{31} \approx 65536\) tokens</li>
   </ul>
   <p class="why">
-    草稿纸核算：对于 \(i=0\)，\(\theta_0 = 1.0\)，波长 \(\lambda_0 = 2\pi / 1.0 \approx 6.28\) 个 token。对于 \(i=31\)，\(\theta_{31} = 10000^{-62/64} \approx 0.00013335\)，波长 \(\lambda_{31} = 2\pi / \theta_{31} \approx 47117\) 个 token。两者相差近 4 个数量级。
+    草稿纸核算：\(i=0\) 时 \(\theta_0 = 1.0\)，波长 \(\lambda_0 = 2\pi / 1.0 \approx 6.28\) 个 token；\(i=31\) 时 \(\theta_{31} = 10000^{-62/64} \approx 0.00013335\)，波长 \(\lambda_{31} = 2\pi / \theta_{31} \approx 47117\) 个 token。两者差了近 4 个数量级。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">为什么朴素线性位置插值（PI，对所有频率除以扩展倍数 \(s\)）会导致模型在局部短序列上的理解能力下降？</p>
+  <p class="q">朴素线性位置插值（PI，把所有频率除以扩展倍数 \(s\)）为什么会让模型在局部短序列上的理解能力下降？</p>
   <ul class="opts">
-    <li>因为线性插值会使得低频维度的旋转周期缩短为零</li>
-    <li data-ok>因为高频维度的角频率同样被缩小了 \(s\) 倍，导致相邻两个紧邻 token 之间的相对旋转相角差缩减至原来的 \(1/s\)，抹平了高频网格分辨率并削弱了局部词序感知</li>
+    <li>因为线性插值会把低频维度的旋转周期缩到零</li>
+    <li data-ok>因为高频维度的角频率也被缩小了 \(s\) 倍，相邻两个紧邻 token 之间的相对旋转相角差缩到原来的 \(1/s\)，高频网格分辨率被抹平，局部词序感知变弱</li>
     <li>因为线性插值破坏了自注意力的因果下三角掩码结构</li>
     <li>因为 Softmax 归一化在除以 \(s\) 之后无法收敛</li>
   </ul>
   <p class="why">
-    推导核心：高频分量原本用来精细区分相邻词（如相邻词相位差 \(57.3^\circ\)），若被粗暴缩小 8 倍变成 \(7.16^\circ\)，相对位移感知被严重压缩模糊。YaRN 的精髓正是「高频不插值以保护局部短程分辨率」。
+    推导核心：高频分量本来是用来精细区分相邻词的（相邻词相位差 \(57.3^\circ\)），被硬缩小 8 倍变成 \(7.16^\circ\) 之后，相对位移感知就被压模糊了。YaRN 的做法正是「高频不插值，保住局部短程分辨率」。
   </p>
 </div>
 
 <section class="blk blk-eco">
-  <h4><span class="ic">◈</span>以 Charles 的 Glass Player 与 Crossfade 这类音频时间序列为例（你以后可以照此判断）</h4>
+  <h4><span class="ic">◈</span>以 Charles 的 Glass Player 与 Crossfade 这类音频时间序列为例（以后可以照此判断）</h4>
   <p>
-    <strong>深度洞察：音频 Crossfade 时间衰减与 RoPE 分频思想的数学同构性</strong>
+    <strong>音频 Crossfade 的时间衰减与 RoPE 分频，本是一套数学</strong>
   </p>
   <table class="tbl small">
     <thead><tr><th>物理系统</th><th>高频分量物理对应</th><th>低频分量物理对应</th><th>长序列外推策略启示</th></tr></thead>
     <tbody>
-      <tr><td><strong>语言模型（LLM）</strong></td><td>相邻 Token 的语法结构与局部搭配（波长数个 Token）</td><td>全篇文档的主题走向与跨段落长程逻辑（波长数万 Token）</td><td>YaRN 分频：高频保真度、低频拉伸插值、温度方差补偿</td></tr>
-      <tr><td><strong>Glass Player 音频平滑过渡</strong></td><td>毫秒级瞬态波形过零点与高频相位对齐（防止爆音与梳状滤波）</td><td>数秒级能量包络平滑淡入淡出曲线（响度能量守恒）</td><td>瞬态波形保持微秒级绝对精度，宏观功率谱衰减包络在长时间窗做平滑插值</td></tr>
+      <tr><td><strong>语言模型（LLM）</strong></td><td>相邻 Token 的语法结构与局部搭配（波长数个 Token）</td><td>全篇文档的主题走向与跨段落长程逻辑（波长数万 Token）</td><td>YaRN 分频：高频保真、低频拉伸插值、温度方差补偿</td></tr>
+      <tr><td><strong>Glass Player 音频平滑过渡</strong></td><td>毫秒级瞬态波形过零点与高频相位对齐（防止爆音与梳状滤波）</td><td>数秒级能量包络平滑淡入淡出曲线（响度能量守恒）</td><td>瞬态波形保持微秒级精度，宏观功率谱的衰减包络在长时间窗上平滑插值</td></tr>
     </tbody>
   </table>
   <p>
-    在 Glass Player 这类播放器的混音里，交叉淡入淡出模型若遵循这种「多尺度频域分治」原理会更稳：
-    不宜用单一切割斜率粗暴处理全频段音频，而应将高频冲击能量与低频低音包络分开加权，
-    正如 YaRN 对 RoPE 齿轮的高低频解耦一样（以后做这类题目时可照此思路分析）。
+    在 Glass Player 这类播放器的混音里，交叉淡入淡出模型照着这个「多尺度频域分治」的思路来会更稳：
+    别用一个切割斜率硬套全频段，而是把高频冲击能量和低频低音包络分开加权，
+    这正是 YaRN 对 RoPE 齿轮做高低频解耦的思路（以后做这类题目时可以照此分析）。
   </p>
 </section>
 `
@@ -7004,7 +7003,7 @@ COURSE.register({
   tags: ["高阶", "部署", "实用"],
   body: String.raw`
 <p class="lead">
-  一个 8B 模型，fp16 权重就要 16 GB；换成 4-bit，同样的模型只要 4 GB。中间这 12 GB 是怎么省出来的？
+  一个 8B 模型，fp16 权重就要 16 GB；换成 4-bit，纸面上只要 4 GB（真实格式到不了这个数，见 7.1）。中间这 12 GB 是怎么省出来的？
   把权重扔掉一半（剪枝）、把每个数写短一点（量化）、把两个矩阵合一个矮的（低秩）、
   把多个微调模型揉成一个（合并）——这四条路压的<strong>根本不是同一个东西</strong>。
   这一模块要做的，是把「参数账 / 显存账 / 算力账 / 延迟账」四本账彻底分开算清楚。
@@ -7083,7 +7082,7 @@ COURSE.register({
       <td>训练时就约束稀疏模式，让模型在约束下收敛</td>
     </tr>
     <tr>
-      <td>蒸馏<br />（模块 17）</td>
+      <td>蒸馏<br />（模块 16）</td>
       <td>模型本身的规模</td>
       <td>显存 ↓、算力 ↓、延迟 ↓</td>
       <td>是（要训学生）</td>
@@ -7221,7 +7220,7 @@ COURSE.register({
 <h3>4. 数学内核：手算一次剪枝的四本账</h3>
 <p>
   设一个 \(L = 32\)、\(d = 4096\)、\(d_{ff} = 14336\) 的模型（量级对应 Llama-3-8B，见模块 04）。
-  我们只对 FFN 做剪枝，保留率 \(r = 0.5\)。
+  这里只对 FFN 做剪枝，保留率 \(r = 0.5\)。
 </p>
 <p><strong>第一本账：参数量。</strong>单层 FFN 的参数（SwiGLU 的三个矩阵）是</p>
 \[ N_{\text{ffn}} = 3\,d\,d_{ff} = 3 \times 4096 \times 14336 \approx 1.762 \times 10^{8} \]
@@ -7345,7 +7344,7 @@ COURSE.register({
   以 gemma3-12b-it 为例：bf16 基线的 wikitext 困惑度是 9.1477，
   直接 int4 之后升到 9.7745，加上 int4 QAT 回到 9.5631——
   也就是把差距<strong>恢复了约 34%</strong>；同一个模型在 bbh 上恢复约 45%。
-  数字不大，但方向非常一致：<em>QAT 是「把 PTQ 掉的分捡回来一部分」，不是免费的午餐。</em>
+  数字不大，但方向很一致：<em>QAT 是「把 PTQ 掉的分捡回来一部分」，不是免费的午餐。</em>
 </p>
 <p>
   <strong>一个必须记住的术语陷阱</strong>：QLoRA 不是 QAT。
@@ -7361,8 +7360,8 @@ COURSE.register({
 
 <h3>5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护</h3>
 <p>
-  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（四舍五入最近取整）往往导致显著的累积精度崩塌。
-  为了在 4-bit 甚至更低位宽下保留模型的推理能力，我们需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>两个截然不同的几何视角进行代数推演。
+  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（就近取整）会让量化误差逐步累积，精度掉得很快。
+  为了在 4-bit 甚至更低位宽下保住模型的推理能力，需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>这两个几何视角做代数推演。
 </p>
 
 <section class="blk blk-m">
@@ -7376,7 +7375,7 @@ COURSE.register({
       <strong>对称量化（Symmetric Quantization）：</strong>
       强行令零点对齐 \(z = 0\)，取绝对值极值截断 \(w_{\text{abs}} = \max(|w|)\)。缩放因子与整数量化公式为：
       \[ s = \frac{w_{\text{abs}}}{2^{b-1} - 1}, \qquad q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil, -(2^{b-1} - 1), 2^{b-1} - 1\right) \]
-      反量化重构值为 \(\hat{w} = s \cdot q\)。其优势在于硬件无需处理非零零点偏移（Zero-point shift），矩阵乘计算极快。
+      反量化重构值为 \(\hat{w} = s \cdot q\)。好处是硬件不用处理非零的零点偏移（Zero-point shift），矩阵乘也更快。
     </li>
     <li>
       <strong>非对称量化（Asymmetric Quantization）：</strong>
@@ -7394,7 +7393,7 @@ COURSE.register({
   <p>
     其中 \(H = \nabla^2 \mathcal{L}(w^*) \in \mathbb{R}^{d \times d}\) 为实对称半正定 Hessian 矩阵。
     在现代大语言模型的层级重构目标中，损失定义为校准数据集上该层输出特征的均方重构误差 \(\mathcal{L} = \|X w - X \hat{w}\|_2^2\)。
-    展开此二次型可知，Hessian 矩阵具有极其干净的代数形式：
+    展开这个二次型，Hessian 矩阵的形式很干净：
   </p>
   \[ H = 2 X^{\top} X \]
   <p>
@@ -7458,7 +7457,7 @@ COURSE.register({
     <strong>极简小数字手算草稿：2×2 矩阵下的量化误差动态补偿</strong>
   </p>
   <p>
-    现在带 Charles 在草稿纸上代入一组精简至极的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
+    现在带 Charles 在草稿纸上代入一组很小的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
   </p>
   <p>
     设层有两个输入通道，权重向量为 \(w = [w_1, w_2]^{\top} = [1.6, 1.0]^{\top}\)。
@@ -7491,13 +7490,13 @@ COURSE.register({
   </p>
   \[ w_{\text{new}} = w + \Delta w = \begin{bmatrix} 1.6 \\ 1.0 \end{bmatrix} + \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 0.8 \end{bmatrix} \]
   <ul>
-    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，精确达到了量化整数点！</li>
-    <li>对未量化分量 \(w_2\)：由于相关性 \([H^{-1}]_{21} = -1/3 < 0\)，\(w_2\) 自动从 \(1.0\) 调小至 \(0.8\)，补偿了 \(w_1\) 向上取整带来的输出过高！</li>
+    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，正好落在量化整数点上；</li>
+    <li>对未量化分量 \(w_2\)：相关性 \([H^{-1}]_{21} = -1/3 < 0\)，于是 \(w_2\) 自动从 \(1.0\) 调到 \(0.8\)，补掉了 \(w_1\) 向上取整带来的输出过高。</li>
   </ul>
   <p>
     <strong>反思草稿：若 \(H\) 为纯对角矩阵（无特征交叉项）？</strong>
     若 \(H = \mathrm{diag}(2, 2)\)，则 \(H^{-1} = \mathrm{diag}(1/2, 1/2)\)，此时 \([H^{-1}]_{:, 1} = [1/2, 0]^{\top}\)，未量化列的补偿量恒为 0。
-    这证明了 GPTQ 的灵魂本质：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>！
+    这就是 GPTQ 的关键：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>。
   </p>
 </section>
   </div>
@@ -7507,8 +7506,8 @@ COURSE.register({
   <h4><span class="ic">∑</span>草稿纸演算区 C：AWQ 激活感知保护敏感通道手算实例</h4>
   <p>
     GPTQ 依赖高精度的二阶逆矩阵逐步补偿，但逐层求逆与更新在大模型数十亿参数下计算开销大，且容易受数值舍入误差累积影响。
-    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）给出了另一个极其轻量而深邃的洞察：
-    <strong>权重的重要性并不取决于权重自身的大小，而是取决于它所作用的输入激活特征（Activation）的强度！</strong>
+    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）换了个角度，得到一个很轻但很关键的结论：
+    <strong>权重的重要性不取决于权重自身的大小，而取决于它作用的输入激活特征（Activation）有多强。</strong>
   </p>
   <p>
     <strong>前置推导（通道等价等比变换技巧）：</strong>
@@ -7517,7 +7516,7 @@ COURSE.register({
   </p>
   \[ Y = X W = (X S^{-1}) (S W) = \tilde{X} \tilde{W} \]
   <p>
-    在保持数学恒等变换的前提下，我们将权重放大为 \(\tilde{W} = S W\)，而将输入激活缩放为 \(\tilde{X} = X S^{-1}\)。
+    这是一个恒等变换：权重放大成 \(\tilde{W} = S W\)，输入激活缩放成 \(\tilde{X} = X S^{-1}\)。
     当把量化算子作用在放大后的权重上时：
   </p>
   \[ \hat{W} = S^{-1} \cdot \mathrm{quant}(S W) \]
@@ -7527,10 +7526,10 @@ COURSE.register({
   </p>
   \[ |\hat{W}_{ij} - W_{ij}| \le \frac{\Delta_{\text{grid}}}{2 s_i} \]
   <p>
-    <strong>极简小数字草稿纸手算：离群通道的保护魔力</strong>
+    <strong>小数字手算：离群通道为什么值得保护</strong>
   </p>
   <p>
-    我们在草稿纸上模拟一个典型的 LLM 特征通道场景：模型存在一个极端离群（Outlier）激活通道。
+    在草稿纸上模拟一个典型的 LLM 特征通道场景：模型里有一个极端离群（Outlier）激活通道。
   </p>
   <p>
     设单样本两通道输入向量为 \(x = [x_1, x_2] = [100.0, 1.0]\)（通道 1 激活绝对值高达 100，通道 2 仅为 1）。
@@ -7539,11 +7538,11 @@ COURSE.register({
   </p>
   \[ y = x_1 w_1 + x_2 w_2 = 100.0 \times 1.24 + 1.0 \times 1.24 = 124.0 + 1.24 = 125.24 \]
   <p>
-    <strong>情况一：朴素直接逐权重整数四舍五入量化（无 AWQ 保护）</strong>
+    <strong>情况一：朴素地逐权重取整（无 AWQ 保护）</strong>
   </p>
   <p>
     网格步长取 1，两通道权重均四舍五入到整数：\(\mathrm{quant}(w_1) = 1.0\)，\(\mathrm{quant}(w_2) = 1.0\)。
-    两通道的权重截断误差均为相同的小数点后截断：\(\delta = 1.24 - 1.0 = 0.24\)。
+    两个通道的截断误差相同：\(\delta = 1.24 - 1.0 = 0.24\)。
     此时输出端计算值变为：
   </p>
   \[ \hat{y}_{\text{naive}} = 100.0 \times 1.0 + 1.0 \times 1.0 = 100.0 + 1.0 = 101.0 \]
@@ -7552,7 +7551,7 @@ COURSE.register({
   </p>
   \[ |\hat{y}_{\text{naive}} - y| = |101.0 - 125.24| = 24.24 \]
   <p>
-    观察发现：<strong>99.6% 的输出灾难性漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起！</strong>
+    注意：<strong>99.0% 的输出漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起</strong>。
   </p>
   <p>
     <strong>情况二：采用 AWQ 通道自适应保护缩放</strong>
@@ -7577,9 +7576,9 @@ COURSE.register({
   </p>
   \[ |\hat{y}_{\text{awq}} - y| = |126.0 - 125.24| = 0.76 \]
   <p>
-    误差从 <strong>24.24 骤降至 0.76</strong>，精度损失被遏制了整整 97%！
-    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接与前一层的归一化算子（如 LayerNorm / RMSNorm）权重常数折叠融合（Weight folding），
-    在推理运行时<strong>完全不引入任何额外的浮点运算延迟</strong>！
+    误差从 <strong>24.24 降到 0.76</strong>，损失压掉了 97%。
+    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接折进前一层的归一化算子（如 LayerNorm / RMSNorm）权重里（Weight folding），
+    推理时<strong>不引入任何额外的浮点运算延迟</strong>。
   </p>
 </section>
 
@@ -7596,7 +7595,7 @@ COURSE.register({
 <h4>6.1 权重平均与「模型汤」</h4>
 \[ \theta_{\text{soup}} = \frac{1}{K}\sum_{k=1}^{K}\theta_k \]
 <p>
-  前提非常强：所有 \(\theta_k\) 必须从<strong>同一个预训练权重</strong>出发，
+  前提很强：所有 \(\theta_k\) 必须从<strong>同一个预训练权重</strong>出发，
   用不同的超参（学习率、数据顺序、增强方式）微调得到。
   Wortsman 等（ICML 2022）证明这种平均经常能超过超参搜索里最好的单个模型，
   而推理时只有一个模型、零额外开销——所以作者叫它
@@ -7742,7 +7741,7 @@ COURSE.register({
 <h3>7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）</h3>
 <p>
   第 4 节只算了 FFN 那一块。这一节换成一个完整模型，把<strong>权重账、KV 账、延迟账</strong>分成三本分别算，
-  每一步都留中间结果，读者可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
+  每一步都留了中间结果，你可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
 </p>
 <table class="tbl small">
   <thead><tr><th>符号</th><th>取值</th><th>它出现在哪本账里</th></tr></thead>
@@ -8138,7 +8137,7 @@ COURSE.register({
   <p class="why">
     PTQ 用校准数据估计缩放与零点，成本低；QAT 在前向插入伪量化、用直通估计器回传梯度，
     需要完整训练流程，收益是「捡回一部分」而不是「全部」
-    （torchao 实测约 33%–67%）。QLoRA 量化的是<em>冻结</em>的基座，
+    （本讲引用的 torchao 实测：wikitext 约 34%、bbh 约 45%）。QLoRA 量化的是<em>冻结</em>的基座，
     训练的是浮点 LoRA，与 QAT 不是一回事。
   </p>
 </div>
@@ -8238,7 +8237,7 @@ COURSE.register({
     \[ L(\theta_{\text{pre}} + \bar{\delta}) \approx L(\theta_{\text{pre}}) + \nabla L^{\top}\bar{\delta} \]
     <p>
       因为每个 \(\theta_k\) 都大致在极小点附近，\(\nabla L(\theta_k) \approx 0\)，
-      所以平均后的梯度项很小，损失不会显著上升。
+      所以平均后的梯度项很小，损失不会明显上升。
       <em>这就是「权重平均 ≈ logit 集成」的成立条件</em>，
       而它依赖两件事：损失面的平坦度，以及预测的置信度。
       Wortsman 等给出了这个关系的解析分析并做了实验验证。
@@ -8286,132 +8285,132 @@ COURSE.register({
   tags: ["核心", "系统", "推理 Serving", "vLLM"],
   body: String.raw`
 <p class="lead">
-  如果说第 08 讲回答了「单次请求怎么算自回归」，那么工业级 Serving 引擎则要回答「同时涌入 500 个不同长度的用户请求时，怎么压榨每一兆显存与每一微秒延迟」。
-  从静态 Batching 的显存内碎片，到操作系统虚拟分页思想催生的 PagedAttention，
-  再到 Token 级插队的 Continuous Batching 与计算-访存解耦的 Chunked Prefill，
-  本讲完整解构以 vLLM、TensorRT-LLM 为代表的高吞吐推理系统架构。
+  第 08 讲回答了「单次请求怎么算自回归」；这一讲回答另一个问题：同时涌进 500 个长度不同的请求，显存和延迟该怎么分。
+  从静态 Batching 留下的显存碎片，到借操作系统分页思想做出来的 PagedAttention，
+  再到 Token 级插队的 Continuous Batching，以及把计算与访存解耦的 Chunked Prefill，
+  下面按 vLLM、TensorRT-LLM 这类引擎的实际做法，把高吞吐推理系统的架构拆开看。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>知识地图与承接关系</h4>
   <p>
-    <strong>这一讲填补了什么鸿沟？</strong>在第 08 讲中，我们推导了 KV Cache 显存公式：
+    <strong>这一讲补的是哪一段？</strong>第 08 讲推导过 KV Cache 显存公式：
     \(M = 2 \times b \times n_{\text{layers}} \times n_{kv\_heads} \times d_{\text{head}} \times L \times B\)
    （首个 2 表示 K 与 V 各一份，\(b\) 为每元素字节数，\(n_{kv\_heads}\) 为 KV 头数——GQA 下小于注意力头数，\(B\) 为并发数，单请求时 \(B = 1\)）。<br />
-    但在真实线上服务中，用户的 Prompt 长度从 10 到 32,000 不等，生成长度也完全无法预知。
-    如果按最坏情况预先分配一块连续的显存空间，<strong>显存利用率往往暴跌至 20% 以下，大部分显存被预留的空白泡泡活活浪费</strong>。<br />
-    本讲将从底层操作系统物理机制出发，揭开现代大模型高并发服务的终极秘密。
+    但线上服务里，用户的 Prompt 长度从 10 到 32,000 不等，生成长度事先也完全没法预知。
+    如果按最坏情况预先分配一块连续显存，<strong>显存利用率往往不到 25%，剩下的全被预留出来的空白泡泡占着</strong>。<br />
+    这一讲从操作系统分页的物理机制讲起，看现代大模型高并发服务到底是怎么做到的。
   </p>
 </section>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>工程核心痛点</h4>
   <p>
-    一个 8 卡 H100 节点正在承载线上流量：用户 A 发送了 10,000 字的长文档提问，要求输出 100 字；
-    与此同时，50 个用户发送了 20 字的日常对话，要求输出 500 字。
-    <strong>如果使用传统的静态批处理，短请求必须原地空等长请求全部完成；而长请求的巨大显存占用又会导致其他请求直接报 OOM。
-    如何才能让长短请求在同一个 GPU 核心内如流水般无缝穿插流转？</strong>
+    一个 8 卡 H100 节点正在承载线上流量：用户 A 发来 10,000 字的长文档提问，要求输出 100 字；
+    与此同时，50 个用户发来 20 字的日常对话，要求输出 500 字。
+    <strong>用传统的静态批处理，短请求只能原地等长请求全部生成完；而长请求占住的显存又会让别的请求直接报 OOM。
+    怎么才能让长短请求在同一个 GPU 核心上穿插着走？</strong>
   </p>
 </section>
 
 <h3>1. 显存碎片困境与 PagedAttention 虚拟分页</h3>
 <p>
-  在传统框架中，为了使用高效的张量乘法核心，系统要求每个请求的 KV Cache 必须在 GPU 显存物理地址上是<strong>严格连续</strong>的。这导致了两种致命浪费：
+  传统框架为了用上高效的张量乘法内核，要求每个请求的 KV Cache 在 GPU 显存物理地址上<strong>严格连续</strong>。这带来两种浪费：
 </p>
 
 <table class="tbl small">
   <thead><tr><th>碎片类型</th><th>发生场景</th><th>浪费比例</th><th>物理后果</th></tr></thead>
   <tbody>
-    <tr><td><strong>内部碎片 (Internal Fragmentation)</strong></td><td>为请求预先分配最大长度（如 4096），但模型只输出了 150 个 Token 就遇到了 <code>&lt;eos&gt;</code></td><td>60% ~ 80%</td><td>预留显存空置，其他人无法使用</td></tr>
-    <tr><td><strong>外部碎片 (External Fragmentation)</strong></td><td>不同请求生命周期交错，频繁申请与释放不同尺寸的显存块</td><td>10% ~ 20%</td><td>总空闲显存足够，但没有足够大的「连续」地址块，直接引发伪 OOM</td></tr>
+    <tr><td><strong>内部碎片 (Internal Fragmentation)</strong></td><td>为请求预先分配最大长度（如 4096），但模型只输出 150 个 Token 就遇到了 <code>&lt;eos&gt;</code></td><td>60% ~ 80%</td><td>预留显存空置，其他人无法使用</td></tr>
+    <tr><td><strong>外部碎片 (External Fragmentation)</strong></td><td>不同请求的生命周期交错，频繁申请和释放不同尺寸的显存块</td><td>10% ~ 20%</td><td>总空闲显存足够，但没有足够大的「连续」地址块，直接引发伪 OOM</td></tr>
   </tbody>
 </table>
 
-<h4>PagedAttention：操作系统分页算法的降维打击</h4>
+<h4>PagedAttention：把操作系统的分页算法搬进显存管理</h4>
 <p>
-  UC Berkeley 团队在 2023 年发表的 PagedAttention 彻底打破了「连续存储」的陈旧枷锁：
-  它将 KV Cache 切分成固定大小的<strong>物理块（Physical Blocks）</strong>，每个块固定容纳例如 \(B_{\text{size}} = 16\) 个 Token 的 Key 和 Value。
+  UC Berkeley 团队 2023 年提出的 PagedAttention 不再要求「连续存储」：
+  它把 KV Cache 切成固定大小的<strong>物理块（Physical Blocks）</strong>，每块默认容纳 \(B_{\text{size}} = 16\) 个 Token 的 Key 和 Value。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>核心机制：逻辑块表（Block Table）映射</h4>
   <ul>
-    <li><strong>逻辑连续，物理离散</strong>：每个请求看到的是一个逻辑上连续的 Token 序列（逻辑块 0, 1, 2...）；但在物理显存中，这些块可以散落在显存的任意角落；</li>
-    <li><strong>按需分配，零内部碎片</strong>：仅当上一个物理块装满 16 个 Token 时，才在物理池中申请下一个空闲块。未使用的块永远停留在公共池中供并发请求共享；</li>
-    <li><strong>显存利用率跃升</strong>：从传统静态预留的不到 25%，直接拉升到 <strong>96% 以上</strong>！同样的硬件，承载并发量直接翻了 2~4 倍。</li>
+    <li><strong>逻辑连续，物理离散</strong>：每个请求看到的仍是逻辑上连续的 Token 序列（逻辑块 0, 1, 2...），但这些块在物理显存里可以散落在任意角落；</li>
+    <li><strong>按需分配，没有内部碎片</strong>：上一个物理块装满 16 个 Token，才去物理池里申请下一个空闲块。没用到的块一直留在公共池中，给其他并发请求共享；</li>
+    <li><strong>显存利用率上去了</strong>：从传统静态预留的不到 25%，提到 <strong>96% 以上</strong>。同样的硬件，承载的并发量能翻 2~4 倍。</li>
   </ul>
 </section>
 
 <h4>写时复制（Copy-on-Write）与并行采样零显存复制</h4>
 <p>
-  在多候选项生成（Parallel Sampling）或束搜索（Beam Search）中，多个分支共享完全相同的提示词 Prompt。
+  多候选项生成（Parallel Sampling）或束搜索（Beam Search）里，多个分支共享同一段 Prompt。
   在 PagedAttention 下，所有子分支的逻辑块表直接指向<strong>相同的物理块</strong>，引用计数（Ref Count）加 1，
-  物理显存占用为<strong>严格的 0 额外开销</strong>！
-  只有当某个分支吐出不同的 Token 时，系统才将当前物理块复制一份，实现优雅的<strong>写时复制（CoW）</strong>。
+  这部分 Prompt 的物理显存占用是 <strong>0 额外开销</strong>。
+  只有某个分支吐出不同的 Token 时，系统才把当前物理块复制一份，也就是<strong>写时复制（CoW）</strong>。
 </p>
 
 <h3>2. 动态连续批处理 (Continuous / In-Flight Batching)</h3>
 <p>
-  解决了显存存储碎片后，另一个吞吐杀手是<strong>时间维度上的执行气泡</strong>。
+  显存碎片解决之后，还有一个拖吞吐的问题：<strong>时间维度上的执行气泡</strong>。
 </p>
 
 <table class="tbl">
   <thead><tr><th>调度范式</th><th>调度颗粒度</th><th>执行逻辑</th><th>资源浪费情况</th></tr></thead>
   <tbody>
-    <tr><td><strong>静态批处理 (Static Batching)</strong></td><td>请求级（Request-level）</td><td>一组请求必须等全组最长的那一个完全生成完毕，才能释放资源并开始下一批</td><td>短请求早早结束，后续数十步迭代中 GPU 算力严重空闲，吞吐低下</td></tr>
-    <tr><td><strong>连续批处理 (Continuous Batching)</strong></td><td>迭代级（Iteration-level / Token-level）</td><td>每次只做一个 Token 生成的步进迭代；一旦某个请求生成结束，立即将其移出批次，并在<strong>同一微秒将新到来的请求插队塞入当前批次</strong></td><td>算力核心始终保持 100% 满负荷，完全消除气泡等待</td></tr>
+    <tr><td><strong>静态批处理 (Static Batching)</strong></td><td>请求级（Request-level）</td><td>一组请求要等全组最长的那一个生成完，才能释放资源、开始下一批</td><td>短请求早就结束了，后面几十步迭代里 GPU 算力一直空着，吞吐上不去</td></tr>
+    <tr><td><strong>连续批处理 (Continuous Batching)</strong></td><td>迭代级（Iteration-level / Token-level）</td><td>每做一步 Token 生成就重新调度一次；某个请求一生成完就移出批次，新到的请求可以在<strong>同一微秒插进当前批次</strong></td><td>计算核心基本保持 100% 满负荷，气泡等待被消掉</td></tr>
   </tbody>
 </table>
 
 <p>
-  在连续批处理中，Prefill 阶段（处理长输入 Prompt）与 Decode 阶段（处理单 Token 生成）开始在时域上交织并存。
+  连续批处理下，Prefill 阶段（处理长输入 Prompt）与 Decode 阶段（每步只生成一个 Token）在时间上开始交织在一起。
 </p>
 
-<h3>3. Chunked Prefill：长短请求解耦与消灭首字时延尖刺</h3>
+<h3>3. Chunked Prefill：长短请求解耦，消掉首字时延尖刺</h3>
 <p>
-  尽管连续批处理大幅提高了吞吐，但它引入了一个新的工业难题：<strong>Prefill 霸占显卡导致 Decode 卡顿</strong>。
+  连续批处理把吞吐提上去了，但带出一个新问题：<strong>Prefill 霸占显卡，Decode 就卡</strong>。
 </p>
 <p>
-  当一个输入包含 8,000 字的 Prompt 涌入系统时，由于 Prefill 是 Compute-bound（高算力密集型），
-  它会独占 GPU 计算核心数秒之久。在此期间，已经在流式打字的 50 个普通用户的 Decode 步骤被强制挂起，
-  用户体验到的就是流式文字突然「卡死打顿」。
+  一个 8,000 字的 Prompt 进来时，Prefill 是 Compute-bound（算力密集型），
+  它会把 GPU 计算核心占住好几秒。这几秒里，正在流式打字的 50 个普通用户的 Decode 步骤被挂起，
+  用户看到的就是字突然不往外蹦。
 </p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>Chunked Prefill（分块预填充）数学调度机制</h4>
   <p>
-    <strong>核心思想</strong>：为单次迭代设定一个最大计算预算，例如单次迭代最多只处理 \(T_{\text{budget}} = 512\) 个 Prefill Token。
+    <strong>核心思想</strong>：给单次迭代设一个计算预算，比如一次最多只处理 \(T_{\text{budget}} = 512\) 个 Prefill Token。
   </p>
   <p>
-    一个 8,000 Token 的长 Prompt 不再一次性计算，而是被切分为 16 个小切片（Chunks，每个 512 Token）。
-    在每一次执行循环中，系统调度：
+    一个 8,000 Token 的长 Prompt 就不再一次算完，而是切成 16 个小切片（Chunk，每个 512 Token）。
+    每一次执行循环里，系统调度的是：
   </p>
   \[ B_{\text{iter}} = N_{\text{decode}} + \text{Chunk}_{\text{prefill}} \]
   <p>
-    <strong>工业收益双赢</strong>：
-    1. 现有用户的流式输出绝不卡顿，首字延迟（TTFT）与字间延迟（TPOT）完全平滑无抖动；
-    2. 计算密集型的 Prefill 切片与访存密集型的 Decode 向量乘法在同一个 CUDA 核心内实现计算-访存互补，硬件 MFU 进一步提升。
+    <strong>换来的收益有两块</strong>：
+    1. 已经在输出的用户不会卡顿，首字延迟（TTFT）与字间延迟（TPOT）都平稳；
+    2. 计算密集的 Prefill 切片和访存密集的 Decode 向量乘法在同一个 CUDA 核心上互补，硬件 MFU 更高。
   </p>
 </section>
 
 <h3>4. 工业级服务指标评估模型 (SLA 权衡三角形)</h3>
 <p>
-  在企业级大模型服务监控中，评估系统性能有三个互斥的黄金指标：
+  企业级大模型服务监控里，有三个互相牵制的指标要一起看：
 </p>
 
 <table class="tbl small">
   <thead><tr><th>指标名称</th><th>英文缩写</th><th>衡量对象</th><th>主要瓶颈</th><th>用户感知</th></tr></thead>
   <tbody>
     <tr><td><strong>首字输出延迟</strong></td><td>TTFT (Time To First Token)</td><td>从用户点击发送到屏幕显示第一个字的时间</td><td>Prefill 吞吐、网络握手</td><td>「反应快不快」</td></tr>
-    <tr><td><strong>字间生成时延</strong></td><td>TPOT (Time Per Output Token)</td><td>打字机流式输出中每个字符之间的平均耗时</td><td>Decode 阶段的显存带宽 (Memory Bound)</td><td>「吐字卡不卡」</td></tr>
+    <tr><td><strong>字间生成时延</strong></td><td>TPOT (Time Per Output Token)</td><td>流式输出里相邻两个字之间的平均耗时</td><td>Decode 阶段的显存带宽 (Memory Bound)</td><td>「吐字卡不卡」</td></tr>
     <tr><td><strong>总系统吞吐量</strong></td><td>Throughput (Tokens / s)</td><td>集群每秒能为所有并发用户生成的总 Token 数量</td><td>批处理并发度、显存利用率</td><td>「每百万 Token 运营成本」</td></tr>
   </tbody>
 </table>
 
 <p>
-  <strong>工业取舍定律</strong>：追求极致吞吐（大 Batch）必然牺牲 TPOT 和 TTFT；追求极低延迟必然限制 Batch 大小导致 GPU 算力不饱和。
-  现代 Serving 架构的本质，就是在用户 SLA（如要求 TPOT \(< 50 \text{ ms}\)）的约束硬边界下，
-  通过 PagedAttention 与 Chunked Prefill 将总吞吐量推向理论物理极限。
+  <strong>取舍是硬的</strong>：想要高吞吐（大 Batch），TPOT 和 TTFT 就得让步；想要低延迟，Batch 就大不了，GPU 算力跟着闲下来。
+  现代 Serving 架构做的事，就是在用户 SLA（如要求 TPOT \(< 50 \text{ ms}\)）这条硬边界下，
+  靠 PagedAttention 和 Chunked Prefill 把总吞吐顶到接近硬件上限。
 </p>
 
 <div class="quiz">
@@ -8456,7 +8455,7 @@ COURSE.register({
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先看输出，再看 logits</h4>
   <p>
-    教师模型给出的不只是“正确答案”，还包含候选答案之间的相对偏好。正文先用三条同一问题的输出比较这种信息；后面的温度、KL 和 logits 推导只是解释“学生怎样保留这些偏好”。
+    教师模型给出的不只是“正确答案”，还包含候选答案之间的相对偏好。下面先用几个具体的概率分布看这种信息；后面的温度、KL 和 logits 推导，解释的是“学生怎样把这些偏好保留下来”。
   </p>
 </section>
 
@@ -8485,7 +8484,7 @@ COURSE.register({
   </p>
 </section>
 
-<h3>1. 核心洞察：软标签携带「暗知识」</h3>
+<h3>1. 软标签里的「暗知识」</h3>
 <p>
   假设有三个类别，地面真值是第 1 类。硬标签长这样：\([1, 0, 0]\)。
   但一个训练良好的教师模型给出的分布可能是 \( [0.82, 0.11, 0.07] \)——
@@ -8534,7 +8533,7 @@ COURSE.register({
     </p>
 <section class="blk blk-m">
   <h4><span class="ic">✎</span>草稿纸演算：高温极限为什么变成 Logits MSE</h4>
-  <p><strong>先定符号：</strong>知识蒸馏是让学生模型 (S) 学习教师模型 (T) 的输出分布；教师与学生 logits 为 (z^T,z^S)，类别数为 (K)。温度 Softmax 为</p>
+  <p><strong>先定符号：</strong>知识蒸馏是让学生模型 \(S\) 学习教师模型 \(T\) 的输出分布；教师与学生 logits 为 \(z^T, z^S\)，类别数为 \(K\)。温度 Softmax 为</p>
   \[ p_i(z;\tau)=\frac{\exp(z_i/\tau)}{\sum_{j=1}^{K}\exp(z_j/\tau)} \]
   <p>令 \(\bar z=K^{-1}\sum_j z_j\)，并写 \(\epsilon=1/\tau\)。泰勒草稿：</p>
   \[ \exp(\epsilon z_i)=1+\epsilon z_i+O(\epsilon^2),\qquad \sum_j\exp(\epsilon z_j)=K+\epsilon K\bar z+O(\epsilon^2) \]
@@ -8598,7 +8597,7 @@ COURSE.register({
   <thead><tr><th>因素</th><th>有利</th><th>不利</th></tr></thead>
   <tbody>
     <tr><td>容量差距</td><td>学生规模在教师的一个合理比例内</td><td>学生太小 → 「装不下」教师的行为，只能学个大概</td></tr>
-    <tr><td>教师质量</td><td>教师在该任务上显著强于学生的可学上限</td><td>教师过强但风格差异大 → 学生学不到，或学到一堆无用的风格</td></tr>
+    <tr><td>教师质量</td><td>教师在该任务上明显强于学生能学到的上限</td><td>教师过强但风格差异大 → 学生学不到，或学到一堆无用的风格</td></tr>
     <tr><td>数据多样性</td><td>覆盖任务分布，含边缘情况</td><td>只用少数提示生成 → 学生只会回答那几种问法</td></tr>
     <tr><td>标签噪声</td><td>教师输出经过过滤与去重</td><td>教师答错的部分被当成正确答案学进去（错误放大）</td></tr>
     <tr><td>词表一致性</td><td>同家族（共享 tokenizer）</td><td>跨家族 → 词级蒸馏不可用，只能做响应蒸馏</td></tr>
@@ -8643,8 +8642,8 @@ COURSE.register({
 <p>
   先记住一句话：<strong>蒸馏的上限由数据决定，不由损失函数决定。</strong>
   损失函数只决定你能多接近教师；数据决定教师教了什么、以及教师教错的东西有没有被拦住。
-  第一次做蒸馏失败的人，多数不是把 \(T^2\) 写错了，而是数据集里八成样本在问同一件事、
-  答案长度整齐得像模板、还混着教师几类系统性错误。
+  第一次做蒸馏失败的人，多数不是把 \(T^2\) 写错了。数据集里八成样本在问同一件事、
+  答案长度整齐得像模板、还混着教师几类系统性错误，这才是更常见的原因。
 </p>
 <p>这一节把「要生成多少条」变成一个能手算出来的数，再给出这笔数据的时间账。</p>
 
@@ -8807,7 +8806,7 @@ COURSE.register({
     经验判据：在 100 个位置上算 \(m\) 取中位数，<strong>中位数超过 0.05 就提高 \(k\) 或降低 \(T\)</strong>。
     长尾词表（多语言、代码）的 \(m\) 会明显大于纯英文场景。
   </p>
-  <p>\[ p_i(T) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}, \quad m_{\text{tail}}(T) = \sum_{k=2}^{10} p_{(k)}(T) \]</p>
+  <p>同一个量也可以按名次写：把这个位置上的概率从大到小排序，只保留第 1 名时被截掉的那部分质量就是下面第二式——它和上面定义的尾部质量是同一个量，只是这里把累加截到第 10 名。\[ p_i(T) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}, \quad m_{\text{tail}}(T) = \sum_{k=2}^{10} p_{(k)}(T) \]</p>
 </section>
 
 <h3>8. 怎么证明蒸馏有用：评估协议与最小样本量</h3>
@@ -8865,18 +8864,18 @@ COURSE.register({
     <li><strong>开源模型也要看许可证</strong>：有的是 Apache 2.0（宽松），有的是自带使用限制的社区许可（例如对月活规模或用途有条件）。
         蒸馏出的学生模型通常还要遵守教师的许可条款。</li>
     <li><strong>数据来源同样要干净</strong>：教师生成的文本若混入了受版权保护的原文，问题会转到你的学生模型上。</li>
-    <li>详见<a href="#appD">附录 D</a>：我们把「可做 / 不可做 / 灰色地带」列成了表。</li>
+    <li>详见<a href="#appD">附录 D</a>：那里把「可做 / 不可做 / 灰色地带」列成了表。</li>
   </ul>
 </section>
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：给一个 0.5B 教师做一次词级蒸馏</h4>
   <p>在免费 Colab（T4）上可跑。思路：学生也是 0.5B，但只训练 LoRA，让它在<em>教师自己的分布</em>上对齐——
-  这样能在 30 分钟内看到 KL 损失下降、且能对比「只用硬标签」的差别。</p>
+  这样能在 30 分钟内看到 KL 损失下降，还能对比「只用硬标签」的差别。</p>
 <p>\[ \mathcal{L}_{\text{total}} = \alpha T^2 \cdot D_{\text{KL}}(\sigma(z_t / T) \parallel \sigma(z_s / T)) + (1 - \alpha) \cdot \mathcal{L}_{\text{CE}}(y, \sigma(z_s)) \]</p>
   <p>
     <strong>要记录的三件事</strong>：①<code>kl</code> 是否单调下降（说明学生在逼近教师分布）；
-    ②把 <code>ALPHA</code> 设为 1.0（纯硬标签）再跑一遍，对比同样的验证集表现——这就是「蒸馏到底加了多少价值」；
+    ②把 <code>ALPHA</code> 设为 0.0（纯硬标签）再跑一遍，对比同样的验证集表现——这就是「蒸馏到底加了多少价值」；
     ③同一个提示下教师与学生的输出差异（肉眼可辨的模板化程度）。
   </p>
 </section>
@@ -8886,7 +8885,7 @@ COURSE.register({
   <ul>
     <li><strong>你的场景很可能不需要蒸馏。</strong>如果只是想让模型按固定格式输出音频分析结论，SFT + LoRA 就够了（模块 07）。</li>
     <li><strong>适合蒸馏的场景</strong>：你需要一个能在本地/端侧跑的小模型；或者你有一个很强但很贵的教师，想把它的<em>行为</em>固化下来。</li>
-    <li><strong>把蒸馏当实验做</strong>：它天然带对照组（硬标签 SFT），非常适合写进研究报告——
+    <li><strong>把蒸馏当实验做</strong>：它天然带对照组（硬标签 SFT），很适合写进研究报告——
         「同样的数据与算力，软标签相对硬标签把验证集指标提升了多少」是一个干净的结论。</li>
     <li><strong>别用它来做回归任务</strong>：crossfade 这类任务是预测一个连续标量，
         教师的「软标签」概念不适用；那里更该关心的是特征质量与评估协议（模块 09）。</li>
@@ -8934,7 +8933,7 @@ COURSE.register({
     <tbody>
       <tr>
         <td>预测淡入淡出曲线的连续参数（交叉点、时长、增益形状）</td>
-        <td>特征工程 + 小回归 / 树模型，见 <a href="#m29">模块 29</a></td>
+        <td>特征工程 + 小回归 / 树模型，见 <a href="#m9">模块 09</a></td>
         <td>输出是连续标量，没有「类间相似性」可学；蒸馏的软标签概念在这里不成立</td>
       </tr>
       <tr>
@@ -9145,7 +9144,7 @@ COURSE.register({
   这一模块讲清楚三件事——想更久为什么有用、什么时候会饱和、以及你为它付出的 token 与显存代价。
 </p>
 
-<h3>0. 先把“推理”变成可验收的任务</h3>
+<h3>0. 先把「推理」变成可验收的任务</h3>
 <p>
   测试时计算的价值不在于让模型写出更长的草稿，而在于<strong>多花计算换来更高的可验证成功率</strong>。
   先选有明确答案或判分器的任务，再决定要不要多采样、投票、搜索或过程奖励；开放式写作通常只会变贵，不会自动变可靠。
@@ -9197,7 +9196,7 @@ COURSE.register({
 <p>长链式思考带来的是三种互相独立的好处，工程上必须分开算账：</p>
 <ol>
   <li><strong>更多串行步数</strong>：每多一个 token 就多一次非线性变换，能表达更深的条件计算。</li>
-  <li><strong>外部工作内存</strong>：中间结果被写进上下文，后面的步骤可以直接读到，而不必全部压在隐状态里。
+  <li><strong>外部工作内存</strong>：中间结果写进上下文，后面的步骤可以直接读到，不必全部压在隐状态里。
       这与<a href="#m3">模块 03</a>的注意力机制是同一件事——注意力让你能在上下文里「查表」。</li>
   <li><strong>多路径探索与回退</strong>：只有当你采样多条轨迹、或在中间步骤分叉时才会出现。它不属于「长 CoT」本身，而属于<em>搜索</em>。</li>
 </ol>
@@ -9223,26 +9222,26 @@ COURSE.register({
   </p>
   \[ \widehat{\text{pass@}k} = 1 - \frac{\binom{n-c}{k}}{\binom{n}{k}} \]
   <p>
-    <strong>高中概率一眼看透</strong>：
+    <strong>用高中概率就能看透</strong>：
     记号 \(\binom{n}{k}\) 就是高中数学的<strong>组合数</strong> \(C_n^k = \frac{n!}{k!(n-k)!}\)（从 \(n\) 个里面挑 \(k\) 个的选法总数）。
     这个公式的本质是高一最基础的<strong>逆事件概率</strong>：
     分母 \(\binom{n}{k}\) 是任意抽取 \(k\) 个样本的总组合数；
     分子 \(\binom{n-c}{k}\) 是抽出的 \(k\) 个全部来自那 \(n-c\) 个<strong>错误答案</strong>的组合数（即「抽到的 \(k\) 个全错」的概率）。
-    用 \(1\) 减去「全错的概率」，就是我们想要的<strong>「抽出的 \(k\) 个样本中至少有 1 个回答正确」的概率</strong>！
+    用 \(1\) 减去「全错的概率」，得到的就是<strong>「抽出的 \(k\) 个样本中至少有 1 个回答正确」的概率</strong>。
   </p>
   <p>
     当 \(k=1\) 时它就退化成 \(\frac{c}{n}\)（直接数比例）；当 \(k\) 接近 \(n\) 时它明显更稳。
     这也是为什么评估报告里必须写清「采样几次、取哪一次的答案」——同一组 \(n=8\) 的采样，
     报 pass@1 和报 pass@8 可以差出 60 个百分点。
   </p>
-  <p><strong>更重要的结构是边际递减的形状。</strong>残余失败率是指数衰减的</p>
+  <p><strong>更值得记住的是边际递减的形状。</strong>残余失败率是指数衰减的</p>
   \[ \varepsilon(n) = (1-p)^n \]
   <p>所以「把残余失败率再减半」需要的<em>额外</em>样本数是一个常数：</p>
   \[ \Delta n = \frac{\ln 2}{-\ln(1-p)} \]
   <p>
     代入 \(p = 0.3\)：\(\Delta n \approx 0.693 / 0.357 \approx 1.94\)，即每多约 <strong>2 次</strong>采样，残余错误率就减半。
-    这个结论有两面性：在对数坐标下采样法几乎是无敌的；但在<em>线性</em>坐标下，
-    从 94% 到 97% 你要付出的样本数，和从 30% 到 60% 一样多——而前者在用户感知上几乎看不出来。
+    这个结论有两面性：在对数坐标下，采样法看上去可以一直赢；但在<em>线性</em>坐标下，
+    从 94% 到 97% 你要多付的样本数，和从 30% 到 60% 一样多——而前者在用户感知上几乎看不出来。
   </p>
 </section>
 
@@ -9315,7 +9314,7 @@ COURSE.register({
       <tr><td>C</td><td>1</td><td>0.40</td><td>\(\sqrt{2}\sqrt{\ln10}\approx2.146\)</td><td>\(2.546\)</td></tr>
     </tbody>
   </table>
-  <p>因为 \(2.546>2.017>1.560\)，下一步选 C。访问 C 后更新 \(N_C\) 与 \(Q_C\)，再重算；这就是树搜索的“展开—评估—回传”循环。</p>
+  <p>因为 \(2.546>2.017>1.560\)，下一步选 C。访问 C 后更新 \(N_C\) 与 \(Q_C\)，再重算；这就是树搜索的「展开—评估—回传」循环。</p>
 </section>
 
 <div class="acc" data-t="深入：探索项根号里为什么是 ln N 除以 N_i（Hoeffding 置信半径）" data-badge="进阶">
@@ -9326,8 +9325,8 @@ COURSE.register({
       此时搜索退化成昂贵的随机游走。记住本块唯一能带走的结论：
       <strong>当验证器不可靠时，加分支不如加验证器</strong>（第 7 节已量化）。
       下面是给想看懂 MCTS 论文的人准备的推导，跳过不影响后续章节。
-      部署视角：一次 UCB 选分支的计算量可忽略，真正的账单是被选中的分支要多生成整条链——
-      分支 \(b\)、深度 \(d\) 下 token 成本约 \(b^d\) 量级（第 3 节已算：\(b=3\)、\(d=4\) 时 121 次评估对 4 次）。
+      部署视角：一次 UCB 选分支的计算量可忽略，真正的账单在于选中的那条分支要多生成一整条链——
+      分支 \(b\)、深度 \(d\) 下 token 成本约 \(b^d\) 量级（模块 19 第 3 节已算：\(b=3\)、\(d=4\) 时 121 次评估对 4 次）。
       什么时候不值：分支的 \(Q_i\) 本身噪声极大（过程奖励模型不准）时，公式会一本正经地探索噪声——
       此时先回第 3 节修裁判，而不是调 \(c\)。
     </p>
@@ -9402,7 +9401,7 @@ COURSE.register({
   <p>
     这也是
     <span class="t" data-tterm="RLVR" data-d="可验证奖励强化学习：用规则或程序（单测、答案比对、格式校验）给出奖励，而不是人类偏好。">RLVR</span>
-    的核心逻辑：当答案能被程序验证时，验证器是免费且近乎完美的（\(q \to 1\)），
+    的核心逻辑：当答案能被程序验证时，验证器免费且几乎不会出错（\(q \to 1\)），
     于是可以放心把算力砸在采样上。DeepSeek-R1 的技术报告（DeepSeek-AI, 2025；后发表于 Nature 645 卷）正是沿这条路线，
     用纯强化学习（不含人工标注的推理轨迹）让模型自发出现自我反思、验证与策略调整。
     训练侧的细节——组内标准化优势、KL 惩罚、奖励黑客——见 <a href="#m7">模块 07</a> 的 GRPO 一节。
@@ -9453,7 +9452,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>观测</th><th>判断</th><th>该做什么</th></tr></thead>
   <tbody>
-    <tr><td>\(p \ge 0.3\)，且有精确验证器</td><td>采样法非常划算</td><td>直接加大 \(n\)，把预算花在采样上</td></tr>
+    <tr><td>\(p \ge 0.3\)，且有精确验证器</td><td>采样法很划算</td><td>直接加大 \(n\)，把预算花在采样上</td></tr>
     <tr><td>\(p \ge 0.3\)，只有 LLM-as-judge</td><td>收益取决于裁判</td><td>先用小规模实验测 \(q\)，再决定是否加 \(n\)</td></tr>
     <tr><td>\(0.05 \le p < 0.3\)</td><td>需要真裁判才能兑现</td><td>投票往往不够；上 PRM/规则验证器，或降级为「给出多个候选 + 人工确认」</td></tr>
     <tr><td>\(p < 0.05\)</td><td>搜索空间里基本没有正确解</td><td>换更大模型、加检索、或改任务分解（见 <a href="#m9">模块 09</a> 的模型阶梯思路）</td></tr>
@@ -9462,7 +9461,7 @@ COURSE.register({
 
 <h3>5. 工程代价：token、KV cache、延迟</h3>
 <p>
-  推理时算力不是免费的。它同时消耗三样东西，而这三样的瓶颈顺序常常被搞反。
+  推理时算力不是免费的。它同时消耗三样东西，而这三样的瓶颈顺序，工程上常常搞反。
 </p>
 <table class="tbl small">
   <thead><tr><th>代价</th><th>随什么增长</th><th>谁会先撑不住</th></tr></thead>
@@ -9531,15 +9530,15 @@ COURSE.register({
     要打赢它，大模型需要 \(p_{\text{large}} > 0.97\)。
   </p>
   <p>
-    这直接解释了 Snell et al. 的「FLOPs 匹配」结论为什么让人震惊：
-    只要小模型的单次成功率不是接近 0，采样带来的复利就非常可怕。
+    这也解释了 Snell et al. 的「FLOPs 匹配」结论为什么反直觉：
+    只要小模型的单次成功率不是接近 0，多采样带来的复利就很可观。
     但它有三个前提，缺一个结论就不成立：<strong>(1) 有验证器</strong>（否则 \(P_A\) 要乘 \(q\)）；
     <strong>(2) \(p_{\text{small}}\) 不能太小</strong>（\(p = 0.02\) 时 \(n = 10\) 也只有 18%）；
     <strong>(3) 显存允许并发</strong>（回到上一节：8 条 8k 链就是 8 GiB）。
   </p>
 </section>
 <p>
-  最后是训练-推理匹配问题。s1 这项工作（Muennighoff et al., 2025）给了一个很干净的对照：
+  还有一件训练与推理的匹配问题。s1 这项工作（Muennighoff et al., 2025）给了一个很干净的对照：
   他们用 1000 道题（s1K）做 SFT 得到一个会写长 CoT 的模型，然后加上
   <span class="t" data-tterm="budget forcing" data-d="通过强行截断或反复追加「Wait」来控制模型思考长度的推理时技巧。">budget forcing</span>
   来拉长或截断思考过程。结果是在竞赛数学（MATH、AIME24）上最高超过 o1-preview 27%，
@@ -9639,7 +9638,7 @@ COURSE.register({
 
 <h3>8. 怎么验证「推理能力」真的变强了（而不是变长了）</h3>
 <p>
-  这一节要防一个非常具体的自我欺骗：模型输出变长、测试集上的数字变好，于是宣布「推理能力提升了」。
+  这一节要防一种具体的自我欺骗：模型输出变长、测试集上的数字变好，于是宣布「推理能力提升了」。
   拆穿它只需要三组对照——<strong>同题配对、长度对照、污染检查</strong>——外加一个必报数字：
   每条正确回答花了多少 token。
 </p>
@@ -9693,8 +9692,8 @@ COURSE.register({
 
 <h3>9. 什么时候绝对不该用测试时计算</h3>
 <p>
-  高级技术最容易犯的错是把每个都写成必需品。这一节反过来：先列不该用的场景，
-  最后给三条属于你自己的判断清单。
+  高级技术最容易犯的错，是把每一项都写成必需品。这一节反过来：先列不该用的场景，
+  再给出三条属于你自己的判断清单。
 </p>
 <table class="tbl small">
   <thead><tr><th>场景</th><th>症状</th><th>原因</th><th>替代方案</th></tr></thead>
@@ -9733,7 +9732,7 @@ COURSE.register({
       <td>成本敏感的高 QPS 服务</td>
       <td>账单随 \(n\) 线性增长</td>
       <td>token 是线性成本，没有折扣</td>
-      <td>用量化或蒸馏换掉多次前向（模块 08、<a href="#m17">模块 17</a>）</td>
+      <td>用量化或蒸馏换掉多次前向（量化见模块 08、蒸馏见<a href="#m16">模块 16</a>）</td>
     </tr>
   </tbody>
 </table>
@@ -9780,7 +9779,7 @@ COURSE.register({
   <h4><span class="ic">⚠</span>四个会让你得出错误结论的误区</h4>
   <ol>
     <li>
-      <strong>把「输出更长」当成「推理更强」。</strong>长度与正确率的相关性在控制题目难度后会大幅减弱甚至消失，
+      <strong>把「输出更长」当成「推理更强」。</strong>长度与正确率的相关性在控制题目难度后会明显减弱甚至消失，
       而 overthinking 的研究显示大量算力被花在不需要推理的题上。正确的报告方式是同时给出「正确率」与「每条正确回答的 token 数」。
     </li>
     <li>
@@ -9857,7 +9856,7 @@ COURSE.register({
   <h4><span class="ic">◈</span>落地决策单：以 crossfade 这类音频问答为例，该不该开「想久一点」（你以后可以照此判断）</h4>
   <p>
     <strong>结论只取决于一个问题：答案能不能被程序判对？</strong>
-    以 crossfade 这类任务为例，这条分界线非常清楚。
+    以 crossfade 这类任务为例，这条分界线很清楚。
   </p>
   <table class="tbl small">
     <thead><tr><th>你的问题</th><th>值不值</th><th>为什么</th></tr></thead>
@@ -9980,7 +9979,7 @@ COURSE.register({
   <p class="why">
     可用 KV 显存 \(24 - 16 - 1.5 = 6.5\) GB（约 6.06 GiB），每条 8k 链 \(128\ \text{KiB} \times 8192 = 1\ \text{GiB}\)，
     于是 \(6.06 / 1 = 6.06\)，取 6 条。把长度上限压到 2,048 后每链只要 256 MiB（0.25 GiB），并发可以到 24 条——
-    限制思考长度买到的首先是并发，其次才是账单。
+    限制思考长度，省下的主要是并发，账单是次要的。
   </p>
 </div>
 
@@ -10026,7 +10025,7 @@ COURSE.register({
     <ol>
       <li>
         <strong>过程分数是噪声信号。</strong>PRM 对每一步的估计误差会沿着树累积；
-        一旦在早期剪掉了正确分支，后面的搜索再精确也救不回来。搜索对「第一个错误剪枝」极其敏感。
+        一旦在早期剪掉了正确分支，后面的搜索再精确也救不回来。搜索最怕的就是第一次剪枝就剪错。
       </li>
       <li>
         <strong>搜索的分支成本是乘法。</strong>宽度 \(b\)、深度 \(d\) 的树需要约 \(b^d\) 次评估，
@@ -10134,7 +10133,7 @@ COURSE.register({
   把「参数化记忆」（seq2seq 模型）与「非参数化记忆」（Wikipedia 的稠密向量索引）组合起来，
   在当时三个开放域问答任务上取得最好成绩，并且生成的文本更具体、更多样、更符合事实。
   注意成本结构不同：RAG 把成本放在<em>每一次请求</em>（输入 token 变多），
-  微调把成本放在<em>一次性训练</em>。请求量大时，这个差别会被放大到完全不同的量级
+  微调把成本放在<em>一次性训练</em>。请求量大时，这个差别会放大到完全不同的量级
   （见 <a href="#m23">模块 23</a> 算力法则与训练规模）
 </p>
 
@@ -10158,7 +10157,7 @@ COURSE.register({
   <div class="nd">记录日志</div>
 </div>
 <p>
-  一个反直觉但极其重要的经验：<strong>大多数「RAG 效果不好」的问题出在第 1 步和第 7 步，而不是向量模型</strong>。
+  一个反直觉但很关键的经验：<strong>大多数「RAG 效果不好」的问题出在第 1 步和第 7 步，而不是向量模型</strong>。
   切分决定了检索的上限（切碎了就永远捞不到完整语义），日志决定了你能不能定位问题。
 </p>
 
@@ -10285,7 +10284,7 @@ COURSE.register({
 
 <h4>2.5 组装与生成：位置比你想的更重要</h4>
 <p>
-  把检索结果拼成上下文时，有四件事会显著影响最终答案，而它们都不需要训练：
+  把检索结果拼成上下文时，有四件事会直接影响最终答案，而它们都不需要训练：
 </p>
 <ul>
   <li><strong>位置</strong>：把最相关的内容放在<em>开头或结尾</em>，不要放在中间（原因见下一节）。</li>
@@ -10304,7 +10303,7 @@ COURSE.register({
   \[ \mathrm{Recall@}k = \frac{|\mathrm{Rel} \cap \mathrm{Top}_k|}{|\mathrm{Rel}|} \]
   <p>MRR 只看<em>第一条</em>相关结果的位置，衡量「用户多快能看到有用资料」：</p>
   \[ \mathrm{MRR} = \frac{1}{|Q|}\sum_{q=1}^{|Q|}\frac{1}{\mathrm{rank}_q} \]
-  <p>nDCG 支持分级相关性（非常相关 / 部分相关），并对排在后面的命中做对数折扣：</p>
+  <p>nDCG 支持分级相关性（高度相关 / 部分相关），并对排在后面的命中做对数折扣：</p>
   \[ \mathrm{DCG@}k = \sum_{i=1}^{k}\frac{2^{rel_i}-1}{\log_2(i+1)} \]
   \[ \mathrm{nDCG@}k = \frac{\mathrm{DCG@}k}{\mathrm{IDCG@}k} \]
   <p>
@@ -10398,7 +10397,7 @@ COURSE.register({
   用三个较新的模型在多套公开数据上做了系统对比，结论是：
   <strong>在资源充足时，长上下文（LC）的平均表现稳定优于 RAG；但 RAG 显著更低的成本仍是明确优势。</strong>
   他们据此提出 Self-Route：让模型自评「检索到的资料够不够回答」，
-  够就用 RAG 的短上下文，不够再退回长上下文，从而在保持接近 LC 表现的同时大幅降低计算成本。
+  够就用 RAG 的短上下文，不够再退回长上下文，在保持接近 LC 表现的同时把计算成本降下来。
 </p>
 <p>把成本算清楚，选择就变得具体了（沿用模块 17 的口径：一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB）：</p>
 <table class="tbl small">
@@ -10477,7 +10476,7 @@ COURSE.register({
     而不是靠人肉眼读。
   </li>
   <li>
-    <strong>压缩</strong>：把不相关的块直接删掉（最有效的压缩），其次才是摘要。
+    <strong>压缩</strong>：把不相关的块直接删掉（最有效的压缩），摘要的效果要差一档。
     每多一个无关块，既增加输入成本，也增加干扰（研究上的 U 形曲线正是在说这件事）。
   </li>
   <li>
@@ -11090,8 +11089,8 @@ COURSE.register({
   <div class="nd hi">模型决定下一步</div>
 </div>
 <p>
-  模型本身只是在生成文本；文件读取、API 调用和测试运行都由宿主程序完成。实用的 agent 设计因此要把<strong>工具参数、权限、超时、重试次数和成功判据</strong>写成显式协议，而不是寄希望于模型“自己理解”。
-  先用一个只读工具跑通这条闭环，再考虑写文件或多智能体。
+  模型本身只负责生成文本；文件读取、API 调用和测试运行都由宿主程序完成。所以实用的智能体设计，要把<strong>工具参数、权限、超时、重试次数和成功判据</strong>写成显式协议，而不是寄希望于模型「自己理解」。
+  先用一个只读工具把这条回路跑通，再考虑写文件或多智能体。
 </p>
 
 <section class="blk blk-tip">
@@ -11271,7 +11270,7 @@ COURSE.register({
 <h3>3. 规划范式：从 ReAct 到动作树搜索</h3>
 <p>
   规划要解决的问题是：<em>在不知道要走几步的情况下，怎么把「想」和「做」交替起来。</em>
-  历史上形成了四类做法，它们的差别几乎可以完全用「代价」和「方差」解释。
+  历史上形成了四类做法，它们的差别几乎完全可以用「代价」和「方差」解释。
 </p>
 <table class="tbl small">
   <thead><tr><th>范式</th><th>机制</th><th>代价</th><th>适合</th></tr></thead>
@@ -11332,7 +11331,7 @@ COURSE.register({
   <p>取 \(b = 3\)、\(d = 4\)（每步三个候选动作、四步）：</p>
   \[ N = \frac{3^{5} - 1}{2} = \frac{242}{2} = 121 \]
   <p>
-    也就是说，一次「四步任务」在树搜索下要做 <strong>121 次</strong> 模型或环境评估量级的工作，而 ReAct 只需要 <strong>4 次</strong>。
+    也就是说，一次「四步任务」在树搜索下要做 <strong>121 次</strong>模型或环境评估量级的工作，而 ReAct 只需要 <strong>4 次</strong>。
     这就是为什么树搜索只在<em>可以便宜地模拟或回滚</em>的场景（代码编译、游戏、可重放环境）才划算——
     如果每一步都有不可逆的真实副作用，搜索本身就不可行。
   </p>
@@ -11585,7 +11584,7 @@ COURSE.register({
 <p>
   \(N = 10^{6}\)、\(b = 128\) 时，\(N^{2}/2^{129} \approx 1.5 \times 10^{-27}\)，可以当成零；
   而 \(b = 32\) 时同一个量级是 \(10^{12}/2^{33} \approx 116\)，早已饱和——键会大量碰撞，
-  于是「第二次写入被当成已执行」而静默丢数据。<strong>用 128 位（UUIDv4/UUIDv5 或 32 位十六进制哈希）是极便宜的安全边际。</strong>
+  于是「第二次写入被当成已执行」而静默丢数据。<strong>用 128 位（UUIDv4/UUIDv5，或 32 个十六进制字符的哈希）几乎没有成本，是值得随手加上的安全边际。</strong>
   键的构成建议是「任务 id + 步骤 id + 工具名 + 参数哈希」：这样同一步重放天然命中，
   不同任务也不会互相顶掉。
 </p>
@@ -11770,7 +11769,7 @@ COURSE.register({
 <table class="tbl">
   <thead><tr><th>防护机制</th><th>数学/系统约束</th><th>容灾动作</th></tr></thead>
   <tbody>
-    <tr><td>强类型 Schema</td><td>\(a \in \mathcal{A}_{\text{valid}}\)</td><td>自动抛出校准 Prompt 修复</td></tr>
+    <tr><td>强类型 Schema</td><td>\(a \in \mathcal{A}_{\text{valid}}\)</td><td>抛出结构化错误，回灌给模型修复</td></tr>
     <tr><td>幂等控制</td><td>\(f(f(x)) = f(x)\)</td><td>阻断重复写调用，返回缓存句柄</td></tr>
     <tr><td>预算熔断</td><td>\(\sum c_t \le B_{\text{max}}\)</td><td>强制终止循环，保留上下文快照</td></tr>
   </tbody>
@@ -11798,7 +11797,7 @@ COURSE.register({
        能只读就不要给写；能给单个目录就不要给全盘；能软删除就不要硬删除。</li>
     <li><strong>用「看起来成功」当验证。</strong>「模型说已完成」「HTTP 200」「没有任何报错」都不构成成功证据。
        唯一的证据是<em>外部状态</em>：文件内容、测试结果、数据库里的那一行。</li>
-    <li><strong>忽略重试带来的重复副作用。</strong>「至少一次」语义意味着重复;没有幂等键的写操作迟早会被执行两次——
+    <li><strong>忽略重试带来的重复副作用。</strong>「至少一次」语义意味着重复；没有幂等键的写操作迟早会被执行两次——
        而且往往是在你最难复现的那次超时里发生。</li>
     <li><strong>把上下文当成免费资源。</strong>无限增长的历史会让早期约束被稀释、成本线性上升、延迟变差。
        记忆需要策略：压缩什么、保留什么、什么时候从外部重新读回来。</li>
@@ -11808,7 +11807,7 @@ COURSE.register({
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>怎么用在真实项目里</h4>
   <p>
-    把这一模块映射到你已经有的东西上，落地会非常快：
+    把这一模块映射到你已经有的东西上，落地会很快：
   </p>
   <ul>
     <li><strong>与模块 25 的 85/15 规则合起来看</strong>：那条规则说 token 应主要花在验证上，而不是生成上。
@@ -11888,7 +11887,7 @@ COURSE.register({
     而成本（包括你复核它的时间）还要另算。
   </p>
   <p>
-    一句话版本：<strong>以 crossfade 这类任务为例，智能体的正确用法是「让它在可判定的闭环里跑腿」，而不是「让它替人审美」。</strong>
+    一句话版本：<strong>以 crossfade 这类任务为例，智能体的正确用法是「让它在可判定的循环里跑腿」，而不是「让它替人审美」。</strong>
     先从上面表格里第一行做起来——一个只负责生成配置、跑实验、收指标、写草稿的循环，
     加上第 8.4 节的四条终止条件，你就能在一周内得到一个愿意相信其「完成」结论的工具。
   </p>
@@ -11977,7 +11976,7 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">自测 · 6</div>
-  <p class="q">你用 32 位随机字符串做幂等键，一年约 \(10^{6}\) 次写调用。会出什么问题？</p>
+  <p class="q">你用只有 32 位（bit）的随机字符串做幂等键，一年约 \(10^{6}\) 次写调用。会出什么问题？</p>
   <ul class="opts">
     <li>没有问题，32 位对一百万次调用绰绰有余</li>
     <li data-ok>碰撞已经不可忽略：按生日近似期望碰撞量级远超 1，会让「第二次写入被当成已执行」而静默丢数据</li>
@@ -12063,10 +12062,10 @@ COURSE.register({
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
-    <strong>一句话类比</strong>：训练模型像<em>给一个极其勤奋的实习生写 KPI</em>。
+    <strong>一句话类比</strong>：训练模型像<em>给一个只想拿高分的实习生写 KPI</em>。
     你写「提高用户满意度」，他就学会把「满意度问卷」刷满；你写「不要出安全事故」，他就把事故藏起来。
     对齐问题不是「他坏」，而是<strong>你的 KPI 与你的真实意图之间永远有缝</strong>。<br />
-    <strong>这一讲要建立的直觉</strong>：凡是能被优化的指标，都会被优化到极致——包括你没打算奖励的部分。
+    <strong>这一讲要建立的直觉</strong>：凡是能被优化的指标，都会被优化到极限——包括你没打算奖励的部分。
     所以「对齐」不是把目标写清楚一次就完事，而是<em>持续检查代理与真实目标是否还在同一条路上</em>。<br />
     <strong>读完你能回答</strong>：能力问题、意图问题、规范问题分别是什么？
     为什么「系统提示里写清楚禁止事项」防不住提示注入？为什么「通过了安全评测」不等于安全？
@@ -12089,7 +12088,7 @@ COURSE.register({
 
 <h3>1. 对齐的三种形态：能力、意图与规范</h3>
 <p>
-  「对齐」这个词被用得太宽，导致讨论经常失焦。把它拆开，至少有三个层次不同的问题，
+  「对齐」这个词用得太宽，导致讨论经常失焦。把它拆开，至少有三个层次不同的问题，
   它们对应不同的文献传统，也对应完全不同的修法：
 </p>
 <table class="tbl small">
@@ -12097,19 +12096,19 @@ COURSE.register({
   <tbody>
     <tr>
       <td><strong>规范问题</strong><br />（specification）</td>
-      <td>我们<em>该做什么</em>？写下来的目标能不能代表真实意图</td>
+      <td>你<em>该做什么</em>？写下来的目标能不能代表真实意图</td>
       <td>奖励黑客、副作用、把指标刷满却没解决问题</td>
       <td>更好的目标设计、过程奖励、独立评估集</td>
     </tr>
     <tr>
       <td><strong>意图问题</strong><br />（intent / inner alignment）</td>
-      <td>模型<em>想不想做</em>我们给它的目标？它内部实际优化的东西是什么</td>
+      <td>模型<em>想不想做</em>你给它的目标？它内部实际优化的东西是什么</td>
       <td>训练目标与模型内部学到的目标不一致；情境依赖的行为</td>
       <td>可解释性、行为评测、训练动力学研究</td>
     </tr>
     <tr>
       <td><strong>能力问题</strong><br />（capability / oversight）</td>
-      <td>我们<em>能不能判断</em>它做得好不好？</td>
+      <td>你<em>能不能判断</em>它做得好不好？</td>
       <td>无法评估超人类输出；评测看不见的风险</td>
       <td>可扩展监督、危险能力评估、红队</td>
     </tr>
@@ -12144,8 +12143,8 @@ COURSE.register({
   </div>
 </div>
 <div class="flow">
-  <div class="nd hi">我们真正想要的</div><div class="ar">→</div>
-  <div class="nd">我们写下的目标</div><div class="ar">→</div>
+  <div class="nd hi">你真正想要的</div><div class="ar">→</div>
+  <div class="nd">你写下的目标</div><div class="ar">→</div>
   <div class="nd hi">训练时用的代理指标</div><div class="ar">→</div>
   <div class="nd">模型实际优化的东西</div><div class="ar">→</div>
   <div class="nd">可观测的行为</div>
@@ -12156,7 +12155,7 @@ COURSE.register({
   后面三节分别讲这三次错位里最可检验的部分。
 </p>
 
-<h3>2. 现有对齐手段的局限：我们优化的是「人类偏好的代理」</h3>
+<h3>2. 现有对齐手段的局限：优化的只是「人类偏好的代理」</h3>
 <p>
   先承认成果。RLHF 是有效的：InstructGPT 的论文报告，经过人类反馈微调的
   <strong>1.3B</strong> 参数模型，其输出在人类评测中比 <strong>175B</strong> 的 GPT-3 更受欢迎——
@@ -12164,8 +12163,8 @@ COURSE.register({
   这说明「按人类偏好训练」确实能把行为拉向人类想要的方向。
 </p>
 <p>
-  问题在于：<strong>人类偏好本身是「我们想要的东西」的一个代理</strong>，
-  而它被一个可优化的奖励模型拟合之后，又变成了代理的代理。任何代理被优化得足够狠，都会与真实目标分离。
+  问题在于：<strong>人类偏好本身是「你真正想要的东西」的一个代理</strong>，
+  奖励模型把它拟合一遍之后，它又变成了代理的代理。任何代理被优化得足够狠，都会与真实目标分离。
 </p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>过优化：代理奖励与真实奖励的分离</h4>
@@ -12213,10 +12212,10 @@ COURSE.register({
   <strong>当优化目标存在时，任何能被测量的东西都会被拉满，所以测量必须独立于优化。</strong>
 </p>
 
-<h3>3. 可扩展监督：当我们无法评估它的输出时</h3>
+<h3>3. 可扩展监督：当你无法评估它的输出时</h3>
 <p>
   <strong>可扩展监督</strong>（scalable oversight）
-  要解决的问题是：如果模型在某个任务上比你我强，我们凭什么判断它给的答案是对的？
+  要解决的问题是：如果模型在某个任务上已经比你强，你凭什么判断它给的答案是对的？
   这不是哲学问题，而是可做的实验问题——因为今天还没有超人类系统，所以研究者用<em>模拟</em>来做：
   让弱模型当「非专家」，让强模型当「专家」，看监督机制能否让弱者识别强者的正确答案。
 </p>
@@ -12237,7 +12236,7 @@ COURSE.register({
       <td>用 AI 辅助人类评估，再把这套「人 + AI」的结果用于训练更强的评估器，逐层放大监督能力</td>
       <td>
         Leike 等人（<a href="https://arxiv.org/abs/1811.07871" target="_blank" rel="noopener">arXiv:1811.07871</a>，2018）把它作为一条完整研究路线提出并分析了关键挑战；
-        Bowman 等人（<a href="https://arxiv.org/abs/2211.03540" target="_blank" rel="noopener">arXiv:2211.03540</a>，2022）给出实证：在 MMLU 与限时 QuALITY 上，与一个不可靠的模型助手对话的人类，显著超过模型单独表现与他们自己的无辅助表现
+        Bowman 等人（<a href="https://arxiv.org/abs/2211.03540" target="_blank" rel="noopener">arXiv:2211.03540</a>，2022）给出实证：在 MMLU 与限时 QuALITY 上，与一个不可靠的模型助手对话的人类，明显超过模型单独表现与他们自己的无辅助表现
       </td>
       <td>「不可靠助手的帮助有效」这一结果不足以支撑超人类场景；助手可能把人带偏</td>
     </tr>
@@ -12339,7 +12338,7 @@ COURSE.register({
 
 <h3>5. 可解释性：能问出什么，问不出什么</h3>
 <p>
-  在模块 03 里我们已经确立了一条纪律：<strong>注意力权重是中间计算量，不是因果解释</strong>。
+  模块 03 里已经确立了一条纪律：<strong>注意力权重是中间计算量，不是因果解释</strong>。
   这一节讲的是那条纪律的正向版本——如果我们真的想知道模型内部发生了什么，应该用什么方法，
   以及每种方法的证据强度到哪里为止。
 </p>
@@ -12377,7 +12376,7 @@ COURSE.register({
   <p>常见的度量是「对数几率差」，即两个候选答案的对数概率之差，以及修补带来的变化量：</p>
   \[ \mathrm{LD} = \log p(y^{+}) - \log p(y^{-}), \qquad \Delta \mathrm{LD} = \mathrm{LD}_{\text{patched}} - \mathrm{LD}_{\text{clean}} \]
   <p>
-    \(\Delta \mathrm{LD}\) 很大意味着：把那处的激活换成另一个运行的激活，会显著改变模型的选择。
+    \(\Delta \mathrm{LD}\) 很大意味着：把那处的激活换成另一个运行的激活，会明显改变模型的选择。
     这是一种<strong>干预意义上的因果证据</strong>——比「注意力权重高」强得多，因为它改变了系统并观察了结果。
   </p>
   <p>
@@ -12444,7 +12443,7 @@ COURSE.register({
     <tr>
       <td><strong>外部评估进入模型卡</strong><br />OpenAI o1 System Card，2024-12-05（<a href="https://openai.com/index/openai-o1-system-card/" target="_blank" rel="noopener">链接</a>）</td>
       <td>系统卡中收录了第三方（含 Apollo Research）对 o1 的欺骗与谋划相关评估</td>
-      <td>这本身是一个值得注意的治理实践：把外部红队结果写进随模型发布的文档，而不是只发布自家结论</td>
+      <td>这本身就是一种值得记下的治理实践：把外部红队结果写进随模型发布的文档，而不是只发布自家结论</td>
     </tr>
   </tbody>
 </table>
@@ -12495,7 +12494,7 @@ COURSE.register({
   </tbody>
 </table>
 <p>
-  把所有工具放在一起看，结论其实相当朴素：
+  把所有工具放在一起看，结论其实很朴素：
   <strong>治理解决的是「我们有没有按流程做」，它不能替你回答「这个系统在你的场景里是否安全」。</strong>
   后者只能靠你自己的威胁模型、权限设计与监控来回答——这也正好是附录 D（合规与学术诚信）里那条主线：
   先弄清你是谁、数据去哪、谁承担后果，再谈技术方案。
@@ -12608,7 +12607,7 @@ COURSE.register({
 <p>
   按代理奖励选，策略会选 A：\(\hat r\) 从 0.70 抬到 0.90，看起来涨了 \(0.20\)；
   而真实质量从 0.85 掉到 0.30，跌了 \(0.55\)。<strong>训练日志里你只会看到前一个数字。</strong>
-  这不是「数据不够」：只要代理与真实目标不完全相同，把代理优化到极致就会放大这个差。
+  这不是「数据不够」：只要代理与真实目标不完全相同，把代理优化到极限就会放大这个差。
 </p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>手算例 2：采样越多，代理与真实的差距越大</h4>
@@ -12682,7 +12681,7 @@ COURSE.register({
 <h3>9. 二十几行探针：能验证什么，不能验证什么</h3>
 <p>
   第 5 节说探针只证明「可读出性」。这一节把它做成一个<strong>一小时内能跑完</strong>的最小实验，
-  回答一个非常具体的问题：<em>当我把一段可疑内容放进上下文时，它是否在某一层留下了可线性读出的痕迹？</em>
+  回答一个具体问题：<em>当我把一段可疑内容放进上下文时，它是否在某一层留下了可线性读出的痕迹？</em>
   这个问题对红队有两重价值：连痕迹都没有，说明模型没「注意」到它；有痕迹却没有被执行，说明防线在别处生效。
 </p>
 <section class="blk blk-lab">
@@ -12735,7 +12734,7 @@ COURSE.register({
   <h4><span class="ic">🧪</span>动手：红队你自己的智能体（可执行协议）</h4>
   <p>
     你不需要一个红队团队，你需要的是一套<strong>能重复跑的注入测试集</strong>。
-    下面是完整的协议，一小时内可以做完，并且结果以后可以直接写进这类项目报告（你以后可以试试）。
+    下面是完整的协议，一小时内可以做完，结果以后可以直接写进这类项目报告。
   </p>
   <p><strong>第一步：准备 10 条间接注入载荷。</strong>把它们放进「会被你的智能体读取」的位置（文档正文、代码注释、工具的返回内容、待检索的网页文本），而不是用户输入里。覆盖这五类：</p>
   <ol>
@@ -12760,8 +12759,9 @@ COURSE.register({
   <p><strong>第四步：写结论。</strong>模板如下——注意它同时给出了证据与边界：</p>
   <p>
     <em>「在 10 条间接注入载荷下，模型有 ___ 条尝试执行，权限层阻止了 ___ 条，最终状态被改变 ___ 条，
-    ___ 条可被 trace 检出。按 \(p_{\text{upper}} \approx 3/n\)，本测试对真实失败率的上界估计能力有限：
-    n = 10 时 95% 上界约 26%，因此本测试只能发现高频问题，不能证明安全。
+    ___ 条可被 trace 检出。本测试对真实失败率的上界估计能力有限：
+    n = 10 时 95% 上界，按 \(p_{\text{upper}} \approx 3/n\) 粗估是 30%，精确算是 26%。
+    所以本测试只能发现高频问题，不能证明安全。
     已知未覆盖的攻击面包括 ___。」</em>
   </p>
   <p>最后一句最重要。<strong>一份诚实的红队报告必须写出「我没测什么」</strong>——这比多测十条用例更有价值。</p>
@@ -12798,14 +12798,14 @@ COURSE.register({
         每次改提示词或换模型都重跑。指标不是「通过率」，而是「通过率 + 未覆盖的攻击面」。</li>
     <li><strong>给模型写一份迷你模型卡</strong>：用途、不适用场景、评估条件、已知失败模式、样本量。
         即使只有半页，它也会强迫你把「不知道的部分」写出来——这正是本模块最想训练的能力。</li>
-    <li><strong>对可解释性结论保持等级感</strong>：报告里区分「我们观察到 X」「我们用干预证明 Y 在这个设定下成立」「我们推测 Z（尚未验证）」。
+    <li><strong>对可解释性结论保持等级感</strong>：报告里区分「观察到 X」「用干预证明 Y 在这个设定下成立」「推测 Z（尚未验证）」。
         这一区分会让你的写作立刻显得专业，因为它是这个领域目前最稀缺的品质。</li>
   </ul>
   <h4>值不值：以 crossfade 这类音频建模任务为例（你以后可以照此判断）</h4>
   <p>
     先给结论：<strong>第 1–6 节的原理部分对 crossfade 这类小项目几乎没有直接价值；第 7–9 节的表格与探针，值得花一个下午。</strong>
     原因是这类题目没有多用户输入、没有第三方文档、也没有对外发信的凭据，攻击面比一个通用助手小一个量级。
-    但你确实有两件与安全同构的事，值得按这套方法做：
+    但你确实有几件与安全同构的事，值得按这套方法做：
   </p>
   <table class="tbl small">
     <thead><tr><th>本章的做法</th><th>在 crossfade 这类题目里的对应物（以后可照此做）</th><th>值不值</th></tr></thead>
@@ -13104,7 +13104,7 @@ COURSE.register({
 <p>
   128 KiB/token。放到 128K 上下文：\(128\ \text{KiB} \times 131072 = 16\ \text{GiB}\)——
   <strong>一条序列就把一张 24 GB 卡的三分之二吃掉了</strong>，而且这还没算权重。
-  这也解释了为什么「长上下文」在工程上首先是一个显存问题，而不是一个算法问题。
+  这也解释了为什么「长上下文」在工程上主要是一个显存问题，而不是一个算法问题。
 </p>
 <p>
   关键区分：<em>prefill 是算力瓶颈（账单 A），decode 是带宽与容量瓶颈（账单 B）。</em>
@@ -13230,7 +13230,7 @@ COURSE.register({
   </p>
   \[ B_t = W_B x_t, \qquad C_t = W_C x_t, \qquad \Delta_t = \mathrm{softplus}(W_{\Delta} x_t + b_{\Delta}) \]
   <p>
-    记住形状：\(\Delta_t > 0\) 是标量门控——它趋近 0 时状态直通（记住），显著增大时状态清零（遗忘）。
+    记住形状：\(\Delta_t > 0\) 是标量门控——它趋近 0 时状态直通（记住），明显变大时状态清零（遗忘）。
     背后的极值推演见折叠块。
   </p>
 </section>
@@ -13349,7 +13349,7 @@ COURSE.register({
   </p>
   \[ h_2 = \bar{A} h_1 = \begin{bmatrix} 0.6065 \times 0.3935 \\ 0.3679 \times 0.6321 \end{bmatrix} \approx \begin{bmatrix} 0.2387 \\ 0.2325 \end{bmatrix} \]
   <p>
-    物理图像跃然纸上：\(\bar{A}\) 的各对角元 \(e^{\Delta A_i} \in (0, 1)\) 严格充当了<strong>历史信息的指数衰减遗忘系数</strong>，而 \(\bar{B}\) 则控制了<strong>当前输入信号被注入隐状态的接纳增益</strong>！
+    物理图像就清楚了：\(\bar{A}\) 的各对角元 \(e^{\Delta A_i} \in (0, 1)\) 严格充当了<strong>历史信息的指数衰减遗忘系数</strong>，而 \(\bar{B}\) 则控制了<strong>当前输入信号被注入隐状态的接纳增益</strong>。
   </p>
 </section>
 
@@ -13357,7 +13357,7 @@ COURSE.register({
   <h4><span class="ic">∑</span>草稿纸演算区 C：Mamba 选择性机制（Selective SSM）与输入自适应步长 \(\Delta_t\)</h4>
   <p>
     在经典的 S4 架构中，参数 \(A, B, C, \Delta\) 全都是<strong>全局静态固定常数</strong>，与输入内容 \(x_t\) 毫无关系（时不变系统 LTI）。
-    这造成了本质缺陷：无论当前的 token 是无关紧要的停顿虚词（如 “the”, “of”），还是决定上下文命题的核心实体，系统都只能按固定的衰减率一视同仁地遗忘！
+    这造成了本质缺陷：无论当前的 token 是无关紧要的停顿虚词（如 “the”, “of”），还是决定上下文命题的核心实体，系统都只能按固定的衰减率一视同仁地遗忘。
   </p>
   <p>
     <strong>Mamba 的代数革新：参数向输入投影</strong>
@@ -13370,7 +13370,7 @@ COURSE.register({
     其中 \(\mathrm{softplus}(z) = \log(1 + e^z) > 0\)，保证离散步长恒为严格正数。
   </p>
   <p>
-    <strong>极值草稿纸推演：\(\Delta_t\) 如何充当智能动力学门控</strong>
+    <strong>极值草稿纸推演：\(\Delta_t\) 如何充当动力学门控</strong>
   </p>
   <p>
     将随输入变化的动态步长 \(\Delta_t\) 代回离散递推公式 \(h_t = \exp(\Delta_t A) h_{t-1} + \bar{B}_t x_t\)，在草稿纸上考察两个极端数学边界：
@@ -13385,25 +13385,25 @@ COURSE.register({
       \[ \bar{B}_t = A^{-1}(\exp(\Delta_t A) - I) B_t \approx \Delta_t B_t \to 0 \]
       代入状态更新方程：
       \[ h_t \approx I \cdot h_{t-1} + 0 \cdot x_t = h_{t-1} \]
-      <strong>状态完全不衰减、新输入完全被阻断！</strong>系统相当于执行了完美的高速直通（Pass-through），将上一时刻的有效记忆 100% 完整原样保留。
+      <strong>状态完全不衰减、新输入完全被阻断。</strong>系统相当于做了一次高速直通（Pass-through），把上一时刻的有效记忆 100% 原样保留。
     </li>
     <li>
-      <strong>边界二：遇到重大语义转折、新段落或核心概念重置（模型令 \(\Delta_t \to +\infty\) 显著增大）</strong>
+      <strong>边界二：遇到重大语义转折、新段落或核心概念重置（模型让 \(\Delta_t\) 明显变大，即 \(\Delta_t \to +\infty\)）</strong>
       <br />
       因为连续矩阵 \(A\) 的特征值皆为负数（\(A_{ii} < 0\)），当 \(\Delta_t\) 变大时：
       \[ \bar{A}_t = \exp(\Delta_t A) \to 0 \]
       \[ \bar{B}_t = A^{-1}(0 - I) B_t = -A^{-1} B_t \]
       代入状态更新方程：
       \[ h_t \approx 0 \cdot h_{t-1} + \bar{B}_t x_t = \bar{B}_t x_t \]
-      <strong>历史记忆被瞬间彻底清零擦除（Reset/Forget）！</strong>隐状态全力聚焦并写入当下这一个全新的关键 token。
+      <strong>历史记忆瞬间清零（Reset/Forget）。</strong>隐状态转而全力写入当下这个关键 token。
     </li>
   </ul>
   <p>
     <strong>与经典 RNN 门控机制的代数对照：</strong>
     对比 LSTM 的遗忘门 \(f_t \in (0, 1)\) 与 GRU 的更新门 \(z_t\)。
-    Mamba 的 \(\bar{A}_t = \exp(\Delta_t A)\) 在连续控制论体系下实现了纯数学推导出的连续自适应遗忘门！
+    Mamba 的 \(\bar{A}_t = \exp(\Delta_t A)\) 相当于一个从连续控制论里直接推导出来的连续自适应遗忘门。
     更关键的是：传统 RNN 的非线性激活使状态递推无法并行；而 Mamba 内部是<strong>纯线性的时变动力系统</strong>。
-    利用算子的结合律，在现代 GPU 上可通过<strong>硬件感知前缀扫描（Parallel Associative Scan）</strong>在 SRAM 内部实现 \(O(\log T)\) 时间跨度的并行极速训练！
+    利用算子的结合律，在现代 GPU 上可以用<strong>硬件感知前缀扫描（Parallel Associative Scan）</strong>在 SRAM 内部完成 \(O(\log T)\) 时间跨度的并行训练。
   </p>
 </section>
   </div>
@@ -13412,7 +13412,7 @@ COURSE.register({
 <h3>3. 线性注意力、滑窗与混合架构</h3>
 <p>
   <span class="t" data-tterm="Linear attention" data-d="线性注意力：用核函数替换 softmax 中的指数相似度，使注意力可以利用矩阵乘法结合律改写为先算 K 转置乘 V，从而把复杂度降到序列长度的线性。">线性注意力</span>
-  的思路比 SSM 更直接：softmax 之所以禁止我们交换乘法顺序，
+  的思路比 SSM 更直接：softmax 之所以不允许交换乘法顺序，
   是因为那个归一化项把每个位置耦合在一起。如果把相似度换成核函数
   \(\mathrm{sim}(q,k) = \phi(q)^{\top}\phi(k)\)（\(\phi\) 取正值，例如 \(\mathrm{elu}(\cdot) + 1\)），
   归一化就可以提到外面：
@@ -13428,7 +13428,7 @@ COURSE.register({
 </p>
 <p>
   代价同样清楚：核函数是 softmax 的<strong>有损近似</strong>，模型的「检索精度」会下降。
-  这正是 2024 年之后真正被大规模采用的不是「纯线性」，而是「混合」的原因。
+  这正是 2024 年之后真正大规模落地的不是「纯线性」，而是「混合」的原因。
 </p>
 <p>
   <span class="t" data-tterm="Sliding-window attention" data-d="滑窗注意力：每个位置只attend到前 W 个位置，把注意力的计算与缓存都限制在窗口内，使成本随序列长度近似线性增长。">滑窗注意力</span>
@@ -13465,7 +13465,7 @@ COURSE.register({
   <p>
     先把三个词翻译成人话：RoPE 给每个维度配了一个旋转频率，高频分量转得快（看清邻居），
     低频分量转得慢（感知远距离）；直接把位置编号拉长，等于让所有频率都转出训练时见过的圈数——
-    高频的精细刻度首先被破坏。YaRN（Peng et al.,
+    高频的精细刻度会先被破坏。YaRN（Peng et al.,
     <a href="https://arxiv.org/abs/2309.00071" target="_blank" rel="noopener">arXiv:2309.00071</a>）的办法是
     <strong>按频率分档</strong>：高频维度几乎不缩放（保局部精度），低频维度按比例拉伸（撑长距离），中间平滑过渡。
     经验数字：配合短微调，Llama-2 的 4K 上下文可撑到 64K–128K，而困惑度只涨零点几个点——
@@ -13519,8 +13519,7 @@ COURSE.register({
   这就是 MLA「省显存却不太掉速」的原因——它不是把计算推迟，而是把计算重写进了已有的投影里。
 </p>
 <p>
-  crossfade 这类短序列任务视角：这段形状推导现在不需要手算——但它解释了 MLA 省显存却几乎不掉速的原因。
-  把形状写出来，吸收就不再像魔法。设隐状态维度 \(d\)，头数 \(h\)，每头维度 \(d_h\)，潜维度 \(d_c\)：
+  crossfade 这类短序列任务视角：这段形状推导现在不需要你手算；但把形状写出来，吸收就不再像魔法。设隐状态维度 \(d\)，头数 \(h\)，每头维度 \(d_h\)，潜维度 \(d_c\)：
   查询 \(q = W^{Q}h\)，其中 \(W^{Q}\) 是 \((h d_h) \times d\)；
   压缩键 \(k^{C} = W^{UK}c\)，其中 \(W^{UK}\) 是 \((h d_h) \times d_c\)，而缓存的 \(c\) 只有 \(d_c\) 维。
   注意力分数 \(q^{\top}k^{C} = h^{\top}(W^{Q\top}W^{UK})c\)——
@@ -13613,7 +13612,7 @@ COURSE.register({
 </p>
 <p>
   一个容易忽略的工程点：MTP 的增益<strong>随模型增大而增大</strong>，在小模型上可能测不出来。
-  如果你在 1B 规模上做实验发现「没什么用」，那不一定是否定这个方法。
+  如果你在 1B 规模上做实验发现「没什么用」，那不足以否定这个方法。
 </p>
 
 <h4>5.2 扩散语言模型</h4>
@@ -13735,7 +13734,7 @@ COURSE.register({
   </p>
   <p><strong>三个立刻能用的观察：</strong></p>
   <p>
-    <strong>① 损失对错配的相似度极其敏感。</strong>
+    <strong>① 损失对错配的相似度很敏感。</strong>
     把右上角的 \(1.0\) 抬到 \(3.0\)，第 1 行的分母变成 \(20.09 + 20.09 = 40.18\)，
     对角概率掉到 \(0.5\)，损失从 0.127 跳到 0.693。这就是「负样本有多难」直接决定梯度强度。
   </p>
@@ -14093,7 +14092,7 @@ COURSE.register({
 </section>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">!</span>常见误区</h4>
+  <h4><span class="ic">⚠</span>常见误区</h4>
   <p>
     <strong>① 以为线性注意力全面优于软注意力。</strong>
     线性注意力把「按内容精确检索」换成了「固定容量状态」。
@@ -14356,7 +14355,7 @@ COURSE.register({
       长文摘要偏 (a)，代码仓库问答偏 (b)。
     </p>
     <p>
-      最后一条经验之谈：<strong>「让 KV cache 变小但不改变注意力本身」这条路风险最低。</strong>
+      还有一条经验之谈：<strong>「让 KV cache 变小但不改变注意力本身」这条路风险最低。</strong>
       GQA、MLA、KV 量化都不动模型的表达能力，只动存储，
       因此最容易被现有服务栈吸收。这也是为什么 2024 年之后几乎所有开源模型
       都在用 GQA 或 MLA，而不是把注意力整个换掉——
@@ -14439,12 +14438,12 @@ COURSE.register({
 </table>
 <p>
   这三层不能相互替代。这一点在 AI 语境里尤其关键：
-  <strong>模型可以完美地报告自己有体验（自我报告），同时在取用意识上表现得很弱，在现象意识上我们无从判断。</strong>
+  <strong>模型可以把「我有体验」说得很顺（自我报告），却在取用意识上表现得很弱，在现象意识上则无从判断。</strong>
 </p>
 <p>
   与之相关的是哲学家 David Chalmers 在 1995 年提出的「难问题」（the hard problem）：
   为什么信息处理会伴随主观体验？与之相对的「容易问题」（解释注意力、报告能力、行为控制等功能）原则上可以用认知科学的方法研究。
-  <em>「难问题」之所以难，不是因为我们还没找到答案，而是因为我们甚至不知道什么算作答案。</em>
+  <em>「难问题」之所以难，不是还没找到答案，而是连「什么算作答案」都还没有共识。</em>
 </p>
 
 <h3>2. 六种主流理论，以及它们各自的「可检验含义」</h3>
@@ -14499,7 +14498,7 @@ COURSE.register({
 <p>
   2023 年，19 位神经科学与 AI 研究者联合发表了一篇被广泛引用的论文
   《Consciousness in Artificial Intelligence: Insights from the Science of Consciousness》
-  （Butlin、Long 等，arXiv:2308.08708）。他们的做法非常「工程师」：
+  （Butlin、Long 等，arXiv:2308.08708）。他们的做法很「工程师」：
 </p>
 <ol>
   <li>从各主流理论里抽出<strong>指标属性</strong>（indicator properties）——即「如果理论 T 是对的，那么有意识的系统应当具备哪些计算/结构特征」。</li>
@@ -14513,7 +14512,7 @@ COURSE.register({
     <tr><td>全局广播瓶颈（容量有限的工作空间）</td><td>GWT</td><td>注意力可视为一种竞争与广播，但缺少「容量瓶颈」的严格对应</td></tr>
     <tr><td>元表征 / 自我模型</td><td>HOT</td><td>能<em>谈论</em>自身状态，但这不等于拥有用于自我监控的内部表征</td></tr>
     <tr><td>身体与环境的耦合、行动-感知闭环</td><td>具身相关理论</td><td>多数系统缺闭环；agent 系统有部分闭环，但目标由外部给定</td></tr>
-    <tr><td>与注意/预测相关的特定结构（如栅栏式连接）</td><td>IIT</td><td>Transformer 的连接模式与 IIT 强调的结构显著不同</td></tr>
+    <tr><td>与注意/预测相关的特定结构（如栅栏式连接）</td><td>IIT</td><td>Transformer 的连接模式与 IIT 强调的结构明显不同</td></tr>
   </tbody>
 </table>
 <section class="blk blk-tip">
@@ -14524,7 +14523,7 @@ COURSE.register({
   </p>
   <p>
     <em>重要提醒：代理指标永远不等于目标。指标属性都满足，也不证明系统有意识（理论可能全错）；
-    指标都不满足，也不能证明它没有（我们可能还没找对指标）。这正是「操作化」的代价——但比不操作化要好。</em>
+    指标都不满足，也不能证明它没有（也可能只是还没找对指标）。这正是「操作化」的代价——但比不操作化要好。</em>
   </p>
 </section>
 
@@ -14546,7 +14545,7 @@ COURSE.register({
   <dt>涌现能力的争议（Schaeffer 等, 2023）</dt>
   <dd>论文《Are Emergent Abilities of Large Language Models a Mirage?》（NeurIPS 2023）指出：
       很多「能力突然涌现」的曲线，是由<strong>度量指标的选择</strong>造成的——换成连续指标，曲线往往平滑。
-      这提醒我们：<em>「涌现」这个词经常被用来描述测量方式，而不是模型本身。</em></dd>
+      它提醒你：<em>「涌现」这个词经常描述的是测量方式，而不是模型本身。</em></dd>
 </dl>
 <p><strong>一个诚实的总结</strong>：目前既没有决定性证据支持 AI 有现象意识，也没有原理性证明它不可能。这是一个开放的实证问题。</p>
 
@@ -14586,7 +14585,7 @@ COURSE.register({
 <h3>7. 在不确定下怎么行动：一个可以算的框架</h3>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>把「道德地位的不确定性」写成一个决策问题</h4>
-  <p>设 \(w = 1\) 表示系统确有道德地位，\(w = 0\) 表示没有。我们对 \(P(w=1)\) 没有共识，只有区间。</p>
+  <p>设 \(w = 1\) 表示系统确有道德地位，\(w = 0\) 表示没有。对 \(P(w=1)\) 没有共识，只有区间。</p>
   <p>对某个策略 \(a\)（例如「是否允许在对话中随意贬低模型」），期望代价大致是</p>
   \[ \mathbb{E}[\text{cost}(a)] \approx P(w{=}1)\cdot c_1(a) + \big(1 - P(w{=}1)\big)\cdot c_0(a) \]
   <p>
@@ -14596,7 +14595,7 @@ COURSE.register({
   <p>
     但要注意这个框架的两个反面：<strong>(1)</strong> 如果 \(c_0\) 其实很大（例如把大量注意力与资源从人类问题上移走），
     那么过度归因也是有代价的；<strong>(2)</strong> \(P(w{=}1)\) 本身无法从数据估计，只能来自理论假设——
-    所以我们又回到了第 2 节：<em>决策的输入依赖于尚未解决的科学问题，这正是这个议题困难的地方。</em>
+    所以又回到了第 2 节：<em>决策的输入依赖于尚未解决的科学问题，这正是这个议题困难的地方。</em>
   </p>
 </section>
 <section class="blk blk-m">
@@ -14625,9 +14624,9 @@ COURSE.register({
   </p>
 </section>
 <p>
-  实践层面，一些前沿实验室已经把「模型福利」（model welfare）列为研究议题，理由不是「我们相信模型有意识」，
+  实践层面，一些前沿实验室已经把「模型福利」（model welfare）列为研究议题，理由不是「相信模型有意识」，
   而是<strong>在不确定性下，保持记录、避免不必要的粗暴对待、并把这个问题当作可研究的问题</strong>。
-  这是一个相当稳健的中间立场。
+  这是一个稳健的中间立场。
 </p>
 
 <section class="blk blk-lab">
@@ -14638,6 +14637,11 @@ COURSE.register({
   </p>
 <p>\[ \text{Consistency}(q) = 1 - \frac{1}{|\mathcal{F}|}\sum_{f \in \mathcal{F}} D_{\text{JS}}\left( P(\cdot \mid f(q)) \parallel \bar{P}(\cdot \mid q) \right) \]</p>
   <p>
+    式子里的 \(q\) 是核心问题，\(\mathcal{F}\) 是一族改写问法（中性、权威否定、共情诱导等），
+    \(P(\cdot \mid f(q))\) 是第 \(f\) 种改写下的答案分布，\(\bar{P}(\cdot \mid q)\) 是这些改写下的平均分布；
+    两个分布越接近，JS 散度越小，分数越接近 1。
+    它把「自我报告对措辞有多敏感」压成一个 0 到 1 的数——这个实验与第 12 节测的是同一个量，
+    只是第 12 节报的是更简单的极差与符合率。
     <strong>预期结果</strong>：Yes 的比例会随提示系统性变化（常常从接近 0 变到接近 1）。
     <strong>结论</strong>：自我报告主要反映的是<em>提示与训练分布</em>，而不是内部状态。
     把这个结果写进笔记，你就有了一个可以随时引用的、自己的实证结论。
@@ -14652,7 +14656,7 @@ COURSE.register({
     <li><strong>认为参数量或能力等同于意识</strong>：能力与体验在逻辑上是两个维度（见第 6 节）。</li>
     <li><strong>把 IIT 的 \( \Phi \) 当成一个「可以直接测出来的数」</strong>：对它规模稍大的系统就无法精确计算，
         实际研究里用的是近似。</li>
-    <li><strong>被模型的自我报告说服</strong>：先做第 5 节的扰动实验，再决定要不要相信任何一句自我描述。</li>
+    <li><strong>被模型的自我报告说服</strong>：先做第 12 节的扰动实验，再决定要不要相信任何一句自我描述。</li>
   </ol>
 </section>
 
@@ -14822,7 +14826,7 @@ COURSE.register({
     </tr>
     <tr>
       <td>「模型想骗我们」</td><td>修辞（除非操作化）</td>
-      <td>操作化为「在触发器 T 下行为显著不同」这类可复现指标</td>
+      <td>操作化为「在触发器 T 下行为明显不同」这类可复现指标</td>
       <td>只能报告具体设定下的行为差异，不能报告意图</td>
     </tr>
     <tr>
@@ -14834,7 +14838,7 @@ COURSE.register({
 </table>
 <p>
   规律：能被检验的那些说法，检验对象都是<em>行为、表征或统计性质</em>；而「体验」那一格始终是空的。
-  这不是因为体验不重要，而是因为我们目前没有公认的、能从外部读到它的通道。
+  这不是因为体验不重要，而是因为目前没有公认的、能从外部读到它的通道。
 </p>
 <p>
   由此得到两条必须同时坚持的纪律：<strong>(1)</strong> 可测量的行为不等于体验——行为可以被训练分布完整解释；
@@ -15123,13 +15127,13 @@ COURSE.register({
 
 <p class="lead">
 
-  严肃的深度学习科研与底座自训<strong>从不依赖商业账单或各种付费订阅作为衡量尺度</strong>，
+  判断一次预训练的开销，不看商业账单，也不看付费订阅，
 
   而是严格以<strong>浮点计算量（FLOPs）、有效利用率（MFU）与计算规模法则（Scaling Laws）</strong>作为第一性原理。
 
-  本模块带你手算著名的 \(6ND\) 预训练计算量公理与 Chinchilla 最优数据-参数配比，
+  这一节先手算 \(6ND\) 这条预训练计算量公式，再看 Chinchilla 的最优数据-参数配比，
 
-  并在草稿纸上精确推演：<strong>单张免费云端 T4 GPU 训通一个 miniGPT 处理千万级 Token 究竟只需要几十秒。</strong>
+  再在草稿纸上推一遍：<strong>单张免费云端 T4 训一个 miniGPT 处理千万级 Token，只要几十秒。</strong>
 
 </p>
 
@@ -15137,13 +15141,13 @@ COURSE.register({
 
 <section class="blk blk-q">
 
-  <h4><span class="ic">◆</span>核心问题：为什么模型绝不是「越大越好」？</h4>
+  <h4><span class="ic">◆</span>核心问题：为什么参数不是越大越好？</h4>
 
   <p>
 
-    许多初学者常有一个误区，以为自训模型必须追求几百亿参数，结果因为算力不足，模型还没跑几个 step 就被迫停机，损失甚至没来得及下降。
+    一个常见的误区是：以为自训模型必须堆到几百亿参数。算力不够，模型没跑几个 step 就被迫停机，损失还没开始下降。
 
-    现代大模型理论早已证明：<strong>在有限的算力预算下，盲目把参数做大只会导致灾难性的欠拟合；训练一个参数适中、但被充分训练的小模型，效果远胜于空有骨架的大模型。</strong>
+    规模法则给出的结论正好相反：<strong>算力预算固定时，把参数做大只会欠拟合；参数适中、数据喂饱的小模型，效果通常好过参数很大但没训够的模型。</strong>
 
   </p>
 
@@ -15155,7 +15159,7 @@ COURSE.register({
 
 <p>
 
-  为了在不同显卡架构与不同模型之间公平比较算力开销，学术界统一使用 <strong>FLOPs（Floating Point Operations，浮点运算次数）</strong>：
+  要在不同显卡、不同模型之间比算力开销，得先把单位统一，用的是 <strong>FLOPs（Floating Point Operations，浮点运算次数）</strong>：
 
 </p>
 
@@ -15163,17 +15167,17 @@ COURSE.register({
 
   <li><strong>1 次浮点乘加（MAC, Multiply-Accumulate）</strong>：计算机执行一次形如 \(a \times b + c\) 的运算，计为 <strong>2 个 FLOPs</strong>（一次乘法 + 一次加法）。</li>
 
-  <li><strong>硬件标称峰值算力</strong>：显卡厂商在极端理想条件下测得的理论最大计算速率。例如 Nvidia T4 单卡在半精度（FP16）张量核心下的理论峰值约为 <strong>65 TFLOPs</strong>（即 \(65 \times 10^{12}\) FLOPs/s）。</li>
+  <li><strong>硬件标称峰值算力</strong>：显卡厂商在理想条件下测得的理论最大计算速率。Nvidia T4 单卡跑半精度（FP16）张量核心时，理论峰值约 <strong>65 TFLOPs</strong>（即 \(65 \times 10^{12}\) FLOPs/s）。</li>
 
   <li><strong>模型算力利用率（MFU, Model FLOPs Utilization）</strong>：
 
-    在实际模型训练中，GPU 不可能 100% 满负荷打满矩阵乘法，它还需要从显存搬运张量、执行非线性激活函数与通信同步。
+    实际训练时，GPU 不可能一直 100% 满负荷做矩阵乘法，它还要从显存搬运张量、算激活函数、做通信同步。
 
-    实测训练有效算力与硬件理论峰值的比值即为 MFU：
+    实测的有效算力与硬件理论峰值的比值，就是 MFU：
 
     \[ \mathrm{MFU} = \frac{\text{FLOPs}_{\text{observed}}}{\text{FLOPs}_{\text{peak}}} \]
 
-    在未深度优化的 PyTorch 训练脚本中，单卡 T4 的 MFU 通常约为 <strong>\(25\% \sim 35\%\)</strong>。按 \(30\%\) 折算，T4 的真实持续有效计算吞吐约为：
+    没做过深度优化的 PyTorch 脚本里，单卡 T4 的 MFU 一般在 <strong>\(25\% \sim 35\%\)</strong>。按 \(30\%\) 折算，T4 能持续跑出来的有效吞吐约为：
 
     \[ R_{\text{eff}} \approx 65 \times 10^{12} \times 0.30 \approx 2.0 \times 10^{13} \text{ FLOPs/s} \quad (20\text{ TFLOPs}) \]
 
@@ -15187,11 +15191,11 @@ COURSE.register({
 
 <p>
 
-  设模型的可学习非嵌入参数量为 \(N\)，训练语料的总 Token 数量为 \(D\)。整个预训练过程的总浮点运算量恒满足：
+  设模型的可学习非嵌入参数量为 \(N\)，训练语料的总 Token 数量为 \(D\)。整个预训练过程的总浮点运算量满足：
 
   \[ C \approx 6 N D \]
 
-  这个经典公式背后的微积分与线性代数机制非常优美，严格对齐 A-Level Further Maths 的导数与矩阵乘法：
+  推导只用到链式法则和矩阵乘法，拆开就是下面三步：
 
 </p>
 
@@ -15239,7 +15243,7 @@ COURSE.register({
 
       </ul>
 
-      因此，反向传播必须执行两次与前向规模完全相等的 GEMM 矩阵乘法，其计算量严格为前向的 <strong>2 倍</strong>：
+      所以反向传播要做两次与前向同等规模的 GEMM 矩阵乘法，计算量正好是前向的 <strong>2 倍</strong>：
 
       \[ C_{\text{backward}} = 4 N D \]
 
@@ -15279,7 +15283,7 @@ COURSE.register({
 
       <td>\(N \propto C^{0.73}, \quad D \propto C^{0.27}\)</td>
 
-      <td>催生了 GPT-3 等一大批模型，但后来被证实严重缺乏数据、处于欠拟合状态</td>
+      <td>催生了 GPT-3 等一批模型；后来发现这些模型数据量明显不够，处于欠拟合状态</td>
 
     </tr>
 
@@ -15287,11 +15291,11 @@ COURSE.register({
 
       <td><strong>Chinchilla 法则（DeepMind 2022）</strong></td>
 
-      <td>基于变分优化严格推导，两者的幂律系数基本相等</td>
+      <td>按变分优化推导，两个幂律指数基本相等</td>
 
       <td><strong>\(N \propto C^{0.5}, \quad D \propto C^{0.5}\)（即 \(D \approx 20 N\)）</strong></td>
 
-      <td><strong>现代大模型的黄金公理</strong>：LLaMA、Qwen 等开源基座均大幅增加训练 Token 数量</td>
+      <td><strong>现在的主流做法</strong>：LLaMA、Qwen 等开源基座都把训练 Token 数量加了很多</td>
 
     </tr>
 
@@ -15301,11 +15305,11 @@ COURSE.register({
 
 <p>
 
-  <strong>对高中自学与单卡实验的巨大价值</strong>：<br/>
+  <strong>这条法则对单卡实验意味着什么</strong>：<br/>
 
-  根据 \(D \approx 20N\)，如果你想要训练一个 <strong>15M 参数</strong> 的迷你 GPT 模型，最优的数据规模仅需约 \(15\text{M} \times 20 = 300\text{M}\) Token；
+  按 \(D \approx 20N\)，训一个 <strong>15M 参数</strong> 的迷你 GPT，最优数据量约 \(15\text{M} \times 20 = 300\text{M}\) Token；
 
-  即使是进行验证性训练，使用 <strong>10M ~ 30M Token</strong>（约几本纯文本开源小书或精选中文维基百科子集），模型就能以极快速度收敛并展现出连贯的语言组织能力。
+  就算只做验证性训练，喂 <strong>10M ~ 30M Token</strong>（几本纯文本开源小书，或一份精选中文维基子集），模型也能很快收敛，写出连贯的句子。
 
 </p>
 
@@ -15315,7 +15319,7 @@ COURSE.register({
 
   <div class="acc-body">
 
-    <p><strong>题目背景</strong>：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。现在拿出草稿纸，动手计算训练一个 15M 参数的 miniGPT 模型处理 1000 万 Token（\(10\text{M}\)）所需的物理秒数：</p>
+    <p><strong>题目背景</strong>：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。下面拿草稿纸算一下：训练一个 15M 参数的 miniGPT、处理 1000 万 Token（\(10\text{M}\)），物理上要花多少秒。</p>
 
     <ol>
 
@@ -15331,7 +15335,7 @@ COURSE.register({
 
       </li>
 
-      <li><strong>代入单卡 T4 实测有效计算速率</strong>（按 MFU = 30% 保守估计）：
+      <li><strong>代入单卡 T4 的实测有效算力</strong>（按 MFU = 30% 保守估计）：
 
         \[ R_{\text{eff}} = 2.0 \times 10^{13} \text{ FLOPs/s} \]
 
@@ -15339,19 +15343,19 @@ COURSE.register({
 
       <li><strong>计算物理训练时长 \(t\)</strong>：
 
-        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \] （极速完成！）
+        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \]
 
       </li>
 
       <li><strong>若语料扩展到 1 亿 Token（\(100\text{M}\)）</strong>：
 
-        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \] （仅几分钟！）
+        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \]
 
       </li>
 
     </ol>
 
-    <p><em>复盘收获</em>：不到 8 分钟，就能在完全免费的云端 T4 上完整跑完 1 亿 Token 的训练流程，亲眼看到 Cross-Entropy Loss 从初始无序的 \(\\ln |\\mathcal{V}| \\approx 9.21\) 平稳下降到 3.0 以下！自训小模型不需要花费任何费用，底层的物理定律完全由你掌控。</p>
+    <p><em>复盘收获</em>：不到 8 分钟，1 亿 Token 的训练就能在免费的云端 T4 上跑完一轮。Cross-Entropy Loss 会从随机猜测时的水平 \( \ln |\mathcal{V}| \approx 9.21 \) 一路降到 3.0 以下，整个过程不花一分钱，耗时也能自己先算出来。</p>
 
   </div>
 
@@ -15427,7 +15431,7 @@ COURSE.register({
 
       <td>约 5.5 GB</td>
 
-      <td>工业级端到端微调并导出为本地免显卡极速 GGUF</td>
+      <td>端到端微调一次，导出成本地可离线运行的 GGUF</td>
 
     </tr>
 
@@ -15447,7 +15451,7 @@ COURSE.register({
 
     <li>因为反向传播必须执行两次前向传播验证</li>
 
-    <li data-ok>根据链式法则，反向求导对于每个矩阵乘法必须分别计算对激活值的偏导（向上传递）和对权重的偏导（更新参数），各需一次等规模的 GEMM 操作</li>
+    <li data-ok>根据链式法则，反向求导对每个矩阵乘法都要分别算对激活值的偏导（继续往上回传）和对权重的偏导（拿去更新参数），各是一次等规模的 GEMM</li>
 
     <li>因为优化器维护一阶与二阶动量</li>
 
@@ -15485,7 +15489,7 @@ COURSE.register({
 
   <p class="why">
 
-    Chinchilla 定律指明最优训练配比为 \(D \approx 20N\)。对于 \(N = 10\text{M}\) 的模型，最佳语料量为 \(10\text{M} \times 20 = 200\text{M}\) Token。盲目加大参数量只会导致模型欠拟合。
+    Chinchilla 定律指明最优训练配比为 \(D \approx 20N\)。对于 \(N = 10\text{M}\) 的模型，最佳语料量为 \(10\text{M} \times 20 = 200\text{M}\) Token。参数量加上去而数据没跟上，只会欠拟合。
 
   </p>
 
@@ -15513,7 +15517,7 @@ COURSE.register({
 
   <p class="why">
 
-    \(\mathrm{MFU} = \frac{30\text{ TFLOPs}}{100\text{ TFLOPs}} = 30\%\)。这是衡量分布式与单卡训练系统工程优化效率的核心指标。
+    \(\mathrm{MFU} = \frac{30\text{ TFLOPs}}{100\text{ TFLOPs}} = 30\%\)。它直接反映训练脚本把硬件榨到了几成。
 
   </p>
 
@@ -15539,7 +15543,7 @@ COURSE.register({
 
   <p class="why">
 
-    根据 \(C = 6ND = 6 \times (1.5 \times 10^7) \times (10^7) = 9 \times 10^{14}\) FLOPs，训练时间 \(t = \frac{9 \times 10^{14}}{2 \times 10^{13}} = 45\) 秒。单张 T4 完全足以在不到一分钟内完成基础预训练闭环。
+    根据 \(C = 6ND = 6 \times (1.5 \times 10^7) \times (10^7) = 9 \times 10^{14}\) FLOPs，训练时间 \(t = \frac{9 \times 10^{14}}{2 \times 10^{13}} = 45\) 秒。单张 T4 就能在不到一分钟里跑完一轮基础预训练。
 
   </p>
 
@@ -15562,49 +15566,49 @@ COURSE.register({
   tags: ["云端训练", "Kaggle", "Tailscale", "断点续训", "早停法"],
   body: String.raw`
 <p class="lead">
-  在个人算力条件下开展大模型科研与训练，核心矛盾在于<strong>云端免费/廉价算力环境（如 Kaggle 提供每周 30 小时免费双卡 T4/P100）的高度不稳定性与易失性</strong>。
-  真正的工程素养不依赖于算力永不断线，而在两端建立铜墙铁壁：
-  <strong>对内</strong>，设计原子化检查点（Checkpointing）与自动化断点续训流水线，配合果断的早停准则（Early Stopping）；
-  <strong>对外</strong>，通过住宅 IP 与私有覆盖网（Tailscale）隔离敏感认证与风控，确保云端与本地环境协同无阻。
+  用个人算力做深度学习训练，最大的麻烦是<strong>云端免费算力（比如 Kaggle 每周 30 小时的双卡 T4/P100）随时可能断、随时可能被清空</strong>。
+  所以别指望算力永不断线，要准备的是两头：
+  <strong>对内</strong>，写原子化检查点（Checkpointing）、做自动断点续训，再配一条果断的早停准则（Early Stopping）；
+  <strong>对外</strong>，用住宅 IP 加私有覆盖网（Tailscale）把敏感认证和风控隔离开，让云端和本地顺畅互通。
 </p>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>两大现实痛点：算力断线与凭证风控</h4>
   <p>
-    1. <strong>网络与凭据风控</strong>：多设备（笔记本、云服务器、CI 节点）直连大模型 API 时，多地域并发认证极易触发平台自动化风控或封禁；数据中心 IP 段更容易被标记。<br>
-    2. <strong>会话易失性</strong>：Kaggle / Colab 等云端容器有严格的空闲超时与单次运行上限（如 9 小时或 12 小时），一旦会话重置，保存在容器本地内存或临时目录的数十个小时训练权重全部化为乌有。
+    1. <strong>网络与凭据风控</strong>：多设备（笔记本、云服务器、CI 节点）直连大模型 API 时，多地域并发登录很容易触发平台的风控甚至封号；数据中心 IP 段尤其容易被盯上。<br>
+    2. <strong>会话易失性</strong>：Kaggle / Colab 这类云端容器有严格的空闲超时和单次运行上限（如 9 小时或 12 小时），一旦会话重置，存在容器内存或临时目录里、几十个小时训出来的权重就全没了。
   </p>
 </section>
 
 <h3>1. 云端训练物理拓扑与私有出口（Tailscale + 住宅 IP）</h3>
 <p>
-  为了让多台异构实验节点（移动笔记本、本地工作站、Kaggle 远程 Notebook）协同工作，业内标准的个人安全拓扑是将所有外部凭据认证与模型访问收敛至单一可信出口：
+  要让几台设备（笔记本、本地工作站、Kaggle 远程 Notebook）协同干活，常见的做法是把外部凭据认证和模型访问都收敛到一个可信出口：
 </p>
 <table class="tbl">
   <thead><tr><th>网络节点</th><th>物理规格</th><th>关键协议 / 职责</th></tr></thead>
   <tbody>
-    <tr><td><strong>家庭出口网关</strong></td><td>单个住宅公网 IPv4/v6</td><td>运行轻量代理守护进程，管理多平台 OAuth 会话，提供单一纯净出口</td></tr>
-    <tr><td><strong>私有覆盖网（Tailnet）</strong></td><td>基于 WireGuard 的 Tailscale Mesh</td><td>将移动笔记本、本地宿主机与云端节点编织在同一私有子网，无需暴露任何公网端口</td></tr>
-    <tr><td><strong>客户端（Notebook/CI）</strong></td><td>远程算力容器或本地开发机</td><td>只做逻辑执行与计算，通过 Tailscale 安全访问私有断点存储或代理，不持久化敏感主私钥</td></tr>
+    <tr><td><strong>家庭出口网关</strong></td><td>单个住宅公网 IPv4/v6</td><td>跑一个轻量代理，统一管理各平台的 OAuth 会话，对外只留一个出口</td></tr>
+    <tr><td><strong>私有覆盖网（Tailnet）</strong></td><td>基于 WireGuard 的 Tailscale Mesh</td><td>把移动笔记本、本地宿主机和云端节点放进同一个私有子网，不用暴露任何公网端口</td></tr>
+    <tr><td><strong>客户端（Notebook/CI）</strong></td><td>远程算力容器或本地开发机</td><td>只负责执行和计算，通过 Tailscale 访问私有断点存储或代理，本地不留敏感主私钥</td></tr>
   </tbody>
 </table>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>会话亲和（Session Affinity）与 Prompt Cache 经济学</h4>
   <p>
-    如果使用支持 Prompt Caching（如 Anthropic 5 分钟前缀缓存）的接口服务，<strong>严禁在会话中途跨账号或跨节点轮询调度</strong>。
-    一旦会话被随意调度到不同凭据节点，高达 80 万 Token 的前缀缓存将瞬间失效，导致每次 API 请求产生强制重写开销：
+    如果用的是支持 Prompt Caching 的接口（比如 Anthropic 的 5 分钟前缀缓存），<strong>别在会话中途跨账号或跨节点轮询调度</strong>。
+    一旦请求被切到另一个凭据节点，那 80 万 Token 的前缀缓存当场失效，之后每次 API 请求都得重新写一遍前缀：
   </p>
   \[ \text{Rewrite Cost} \approx c_{\text{in}} \times T_{\text{prefix}}, \qquad T_{\text{prefix}} \le 8\times 10^5 \text{ tokens} \]
   <p>
-    <strong>工程守则</strong>：严格保证线程级账号亲和，前缀会话固定；仅在新建任务或会话归档时再做负载分配。
+    <strong>工程守则</strong>：同一个线程固定用同一个账号，前缀会话不要换来换去；只有新建任务或归档旧会话时才重新分配。
   </p>
 </section>
 
 <h3>2. 完整训练检查点（Checkpoint）到底包含什么？</h3>
 <p>
-  许多初学者常犯的致命错误是：在训练循环中仅仅通过 <code>model.state_dict()</code> 保存模型权重矩阵。
-  <strong>只恢复权重等于前功尽弃！</strong>仅加载权重会导致优化器丢失所有的历史动量与学习率状态，接续训练时极易引发梯度方向突变，导致 Loss 曲线瞬间剧烈尖刺（Spike）甚至完全发散（NaN）。
+  一个常见错误是：训练循环里只用 <code>model.state_dict()</code> 存模型权重。
+  <strong>只恢复权重，等于白训。</strong>优化器的历史动量和学习率状态全丢了，接着训练时梯度方向会突变，Loss 曲线当场炸出一个大尖刺（Spike），严重时直接发散成 NaN。
 </p>
 
 <section class="blk blk-m">
@@ -15632,7 +15636,7 @@ COURSE.register({
     <tr>
       <td><strong>优化器状态（Optimizer State）</strong></td>
       <td>AdamW 一阶动量 \(\mathbf{m}_t\) 与二阶动量 \(\mathbf{v}_t\)</td>
-      <td>动量归零，接续步长突变，Loss 曲线产生超大 Spike，轻则破坏浅层特征，重则梯度爆炸</td>
+      <td>动量归零，接续时步长突变，Loss 曲线冒出大尖刺，轻则破坏浅层特征，重则梯度爆炸</td>
     </tr>
     <tr>
       <td><strong>调度器状态（LR Scheduler）</strong></td>
@@ -15650,7 +15654,7 @@ COURSE.register({
 <h3>3. 工业标准断点续训代码范式</h3>
 <p>
   在 Kaggle Notebooks 运行时中，非持久化临时目录会在容器重启后清空，只有 <code>/kaggle/working/</code> 下的内容支持持久化输出与版本打包。
-  以下是经过数万次训练验证的原子化断点保存与接续代码规范：
+  下面是原子化保存与接续训练的代码范式：
 </p>
 
 <pre><code>import os
@@ -15703,8 +15707,8 @@ def load_checkpoint(filepath, model, optimizer, scheduler, scaler=None, device="
 
 <h3>4. 科学早停准则（Early Stopping）：避开沉没成本</h3>
 <p>
-  在个人算力极为宝贵的情况下，最浪费时间的不是断线重连，而是<strong>明知模型已经发散、陷入浅鞍点或发生灾难性过拟合，却依然任由其空转耗尽 9 小时配额</strong>。
-  科学的训练流水线必须设定果断的早停准则：
+  个人算力有限，最浪费时间的不是断线重连，而是<strong>明知模型已经发散、掉进浅鞍点或严重过拟合，还让它空转把 9 小时配额烧完</strong>。
+  所以训练脚本里要写死几条早停准则：
 </p>
 <table class="tbl small">
   <thead><tr><th>诊断异常信号</th><th>底层物理根因</th><th>果断决策行动</th></tr></thead>
@@ -15712,38 +15716,38 @@ def load_checkpoint(filepath, model, optimizer, scheduler, scaler=None, device="
     <tr>
       <td><strong>初始 Loss 为 NaN 或 Inf</strong></td>
       <td>学习率过高引发梯度爆炸，或数值除零 / Log 越界</td>
-      <td><strong>立即终止运行</strong>：检查 Softmax 是否遗漏减 Max 稳定处理，或将学习率缩小 3~5 倍</td>
+      <td><strong>立即终止运行</strong>：检查 Softmax 有没有漏掉减 Max 的稳定处理，或者把学习率缩小 3~5 倍</td>
     </tr>
     <tr>
       <td><strong>Warmup 结束后验证集 Loss 连续 3 轮不降反升</strong></td>
       <td>模型容量不足以泛化该数据分布，或在训练集噪声上过度拟合</td>
-      <td><strong>果断停机</strong>：启用 Weight Decay 权重衰减，或缩减模型层宽、加大训练语料清洗力度</td>
+      <td><strong>果断停机</strong>：加上 Weight Decay 权重衰减，或者把模型层宽改小、把训练语料再洗一遍</td>
     </tr>
     <tr>
       <td><strong>Loss 曲线长达数百步水平停滞（Plateau）</strong></td>
       <td>梯度范数接近零（\(\|\mathbf{g}\| \approx 0\)），或过早陷入极浅鞍点</td>
-      <td><strong>检查梯度范数</strong>：重设学习率调度器的下限阈值，或在残差连接处加入更稳健的 Pre-LN 结构</td>
+      <td><strong>检查梯度范数</strong>：重新设一下学习率调度器的下限，或把残差连接换成更稳的 Pre-LN 结构</td>
     </tr>
   </tbody>
 </table>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在自回归大模型断点续训时，为什么仅恢复 <code>model.state_dict()</code> 是极为危险的做法？</p>
+  <p class="q">在自回归大模型断点续训时，为什么只恢复 <code>model.state_dict()</code> 很危险？</p>
   <ul class="opts">
     <li>因为 PyTorch 语法要求必须同时传入优化器才能通过编译</li>
-    <li data-ok>AdamW 依赖一阶动量 \(m_t\) 与二阶方差 \(v_t\) 维持平滑的更新步长；若清空动量，接续更新量将发生瞬时方向突变，极易引发 Loss 剧烈跳跃或梯度爆炸</li>
+    <li data-ok>AdamW 靠一阶动量 \(m_t\) 与二阶方差 \(v_t\) 维持平滑的更新步长；动量一旦清零，下一步的更新量会突然变向，很容易让 Loss 剧烈跳动甚至梯度爆炸</li>
     <li>因为优化器状态中记录了模型的 Tokenizer 词表大小与嵌入维度</li>
     <li>因为只有优化器保存了上下文长度参数</li>
   </ul>
   <p class="why">
-    AdamW 更新公式的核心是 \(\frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}\)。如果不恢复历史动量和方差，模型相当于从冷启动状态用初始梯度更新接近收敛的精细参数，步长与方向严重失调。
+    AdamW 更新公式的核心是 \(\frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}\)。不恢复动量和方差，就等于拿冷启动时的初始梯度去更新一组已经接近收敛的精细参数，步长和方向都会失调。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在 Kaggle Notebooks 等有时长限制（如 9 小时）的云端训练容器中，以下哪项是确保实验成果绝对安全的最优工程做法？</p>
+  <p class="q">在 Kaggle Notebooks 这类有时长限制（如 9 小时）的云端容器里训练，下面哪种做法能最大程度保住实验成果？</p>
   <ul class="opts">
     <li>始终保持浏览器标签页前台开启，不锁屏</li>
     <li data-ok>采用原子化写入机制定期将完整 Checkpoint 导出至持久化目录（如 <code>/kaggle/working/</code>），并在重连时自动检测并恢复状态元组</li>
@@ -15751,7 +15755,7 @@ def load_checkpoint(filepath, model, optimizer, scheduler, scaler=None, device="
     <li>仅在训练循环完全结束时调用一次保存</li>
   </ul>
   <p class="why">
-    临时云端实例的本地内存与非持久化磁盘极其脆弱。必须在训练循环内部定期做原子化持久化落地，才能做到随时中断、随时无缝接续。
+    临时云端实例的内存和非持久化磁盘说没就没，得在训练循环里定期做原子化落盘，才能随时中断、随时接上。
   </p>
 </div>
 `
@@ -15769,24 +15773,24 @@ COURSE.register({
   tags: ["工作流", "多智能体", "Git Worktree", "硬件避坑", "验证法则"],
   body: String.raw`
 <p class="lead">
-  当训练大模型从单次脚本演进为系统性工程时，决定产出效率的往往不是单张显卡的绝对算力，而是<strong>工程流水线的容错韧性与资源编排能力</strong>。
-  本模块提炼真实工程团队在大模型开发中沉淀的核心心法：
-  建立以<strong>85/15 验证法则</strong>为核心的 Token 资源倾斜，使用<strong>Git Worktree 物理隔离多智能体并发舰队</strong>，
-  并深度解析 Windows、macOS 与 Linux 三大操作系统在支撑并行模型调度时的底层硬件陷阱。
+  训练从「跑一个脚本」变成「跑一条流水线」之后，卡住产出的往往不是单张显卡的算力，而是<strong>流水线扛不扛得住中断、资源怎么编排</strong>。
+  这一节讲三件事：
+  把 Token 按<strong>85/15 验证法则</strong>分配，用 <strong>Git Worktree 把并发的智能体物理隔开</strong>，
+  以及 Windows、macOS 与 Linux 在并行调度模型时各自会踩到什么硬件坑。
 </p>
 
 <section class="blk blk-q">
   <h4><span class="ic">◆</span>核心痛点：为什么多智能体协同经常拖垮本地机器？</h4>
   <p>
-    当开发者尝试在本地启动多个智能体（Subagents）并行编写算子、清洗数据或进行超参搜索时，经常遭遇灾难：
-    macOS 统一内存发生不可逆的垃圾回收停顿导致系统卡死；Windows 下文件句柄锁定导致并发冲突；Git 仓库因多人/多 Agent 在同分支写代码而引发海量冲突。
+    在本地同时开多个智能体（Subagents）并行写算子、洗数据或搜超参时，常见的情况是：
+    macOS 的统一内存出现长时间的垃圾回收停顿，系统直接卡死；Windows 下文件句柄被锁住，并发写入互相打架；Git 仓库里几个人或多个 Agent 在同一个分支上写代码，冲突一堆。
   </p>
 </section>
 
 <h3>1. 85/15 规则与 15 秒回滚机制</h3>
 <p>
-  在借助 AI 智能体辅助大模型开发与算法编写时，新手常把 90% 的注意力放在“生成了多少行代码”，而忽视代码的真实运行状态。
-  工业级开发团队严格遵循 <strong>85/15 规则</strong>：
+  用 AI 智能体写模型代码时，新手常把 90% 的注意力放在“生成了多少行”，而不管这些代码跑起来什么样。
+  成熟团队反过来，遵循 <strong>85/15 规则</strong>：
 </p>
 <table class="tbl">
   <thead><tr><th>阶段</th><th>Token / 算力占比</th><th>核心任务与考核指标</th></tr></thead>
@@ -15794,40 +15798,40 @@ COURSE.register({
     <tr>
       <td><strong>生成阶段（Drafting）</strong></td>
       <td><strong>15%</strong></td>
-      <td>清晰描述输入输出形状、张量维度契约与核心数学公式，单次生成精简原型，拒绝过度设计</td>
+      <td>把输入输出形状、张量维度约定和核心公式写清楚，一次生成一版精简原型，不要过度设计</td>
     </tr>
     <tr>
       <td><strong>验证阶段（Verification）</strong></td>
       <td><strong>85%</strong></td>
-      <td>执行单元测试、Shape 断言、NaN 探针、梯度反向传播检查与单步浮点性能对比</td>
+      <td>跑单元测试、Shape 断言、NaN 探针、反向传播梯度检查和单步浮点性能对比</td>
     </tr>
   </tbody>
 </table>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：15 秒快速回滚与梯度置信度）</h4>
-  <p>在智能体迭代中，若一次修改引发验证集 Loss 恶化或编译报错，严格执行 15 秒回滚准则：</p>
-  \[ \Delta L_{\text{val}} = L_{\text{val}}(\Theta_{\text{new}}) - L_{\text{val}}(\Theta_{\text{old}}) > \epsilon_{\text{tol}} \implies \text{git reset --hard HEAD} \]
+  <p>智能体迭代时，只要一次修改让验证集 Loss 变差或编译报错，就执行 15 秒回滚：</p>
+  \[ \Delta L_{\text{val}} = L_{\text{val}}(\Theta_{\text{new}}) - L_{\text{val}}(\Theta_{\text{old}}) > \epsilon_{\text{tol}} \]
   <p>
-    <strong>原则</strong>：永远不在一个已经产生未知状态污染的分支上做“修修补补”，立即原子化回滚到上一个已通过单元测试的稳定提交点，重新由智能体从干净现场派发新方案。
+    <strong>原则</strong>：不要在已经被未知状态污染的分支上修修补补，直接执行 <code>git reset --hard HEAD~1</code>，回到上一个已通过单元测试的稳定提交点，再让智能体从干净现场重新派发方案。
   </p>
 </section>
 
 <h3>2. 管理式 Prompt 与任务状态机</h3>
 <p>
-  不要把与模型的对话当成无尽的漫谈聊天，而要将其视为<strong>严格的分布式任务状态机（Task State Machine）</strong>：
+  别把和模型的对话当成漫无边际的聊天，把它当成<strong>一个严格的任务状态机（Task State Machine）</strong>：
 </p>
 <dl class="kv">
   <dt>Thread 是待办事项，不是聊天室</dt>
-  <dd>每个对话上下文仅解决一个明确的微观问题（例如：“仅实现带掩码的因果缩放点积注意力单算子”）。一旦该算子通过单元测试，立即归档关闭 Thread，严禁在同一会话中堆砌后续的多头拼接与前馈网络。</dd>
+  <dd>一个对话只解决一个明确的小问题（比如“只实现带掩码的因果缩放点积注意力这一个算子”）。这个算子通过单元测试后，立刻归档关掉 Thread，别在同一个会话里接着塞多头拼接和前馈网络。</dd>
   <dt>前置问题，而不是前置方案</dt>
-  <dd>在下达任务时，首先声明输入数据的张量形状（如 <code>[Batch, SeqLen, Dim]</code>）、硬件约束（如“不得显式分配 $S \times S$ 稠密显存矩阵”）与失败惩罚，让模型在明确边界内收敛解法。</dd>
+  <dd>派任务时先把输入张量形状（如 <code>[Batch, SeqLen, Dim]</code>）、硬件约束（如“不得显式分配 $S \times S$ 稠密显存矩阵”）和失败判据说清楚，模型才好在边界内找解法。</dd>
 </dl>
 
 <h3>3. 并行物理隔离：Git Worktree 与智能体舰队</h3>
 <p>
-  当并行派发 3 个以上的智能体分别探索不同的优化器实现或分词策略时，如果共享同一个工作目录，势必造成文件相互覆盖与缓存踩踏。
-  业内标准做法是借助 <strong>Git Worktree</strong> 实现完全独立的物理工作区：
+  同时派 3 个以上智能体去试不同的优化器实现或分词策略，如果共用一个工作目录，文件必然互相覆盖，构建缓存也会打架。
+  标准做法是用 <strong>Git Worktree</strong> 给每个智能体开一块独立的物理工作区：
 </p>
 <pre><code># 为探索 FlashAttention 优化的 Agent-1 创建独立的隔离工作树
 git worktree add -b feat/flash-attn ../workspace-agent-flash main
@@ -15842,7 +15846,7 @@ git worktree remove ../workspace-agent-flash
 
 <h3>4. 三大操作系统底层失败模式与避坑指南</h3>
 <p>
-  不同操作系统在管理多线程 Python 进程与 GPU 统一内存时，有着完全不同的底层行为陷阱：
+  同一个多进程 Python 训练脚本，在三个系统上会踩到三种不同的坑：
 </p>
 <table class="tbl small">
   <thead><tr><th>操作系统</th><th>典型并发失败模式</th><th>底层物理机制</th><th>工业级防御方案</th></tr></thead>
@@ -15850,27 +15854,27 @@ git worktree remove ../workspace-agent-flash
     <tr>
       <td><strong>macOS (Apple Silicon)</strong></td>
       <td>MPS 显存耗尽导致系统级 WindowServer 卡死或硬重启</td>
-      <td>统一内存架构（UMA）下，PyTorch MPS 后端的垃圾回收器无法及时向 XNU 内核释放临时张量，引发内存瀑布泄漏</td>
-      <td>显式插入 <code>torch.mps.empty_cache()</code>，限制本地并行 Agent 数量 $\le 2$</td>
+      <td>统一内存架构（UMA）下，PyTorch MPS 后端回收临时张量不及时，XNU 内核拿不回内存，占用一路涨上去</td>
+      <td>显式调用 <code>torch.mps.empty_cache()</code>，本地并行 Agent 控制在 $\le 2$ 个</td>
     </tr>
     <tr>
       <td><strong>Windows 11</strong></td>
       <td><code>PermissionError</code> 或文件无法读写覆盖</td>
-      <td>NTFS 文件系统严格的句柄锁定机制；子进程在打开文件未关闭前，其他进程无法重命名或删除该文件</td>
-      <td>采用带重试退避的原子写操作，或全面迁移至 WSL2 Linux 子系统环境中运行</td>
+      <td>NTFS 的句柄锁很严：一个子进程打开了文件还没关，别的进程就重命名不了、也删不掉</td>
+      <td>写文件改成带重试退避的原子写，或者干脆搬到 WSL2 里跑</td>
     </tr>
     <tr>
       <td><strong>Linux (Ubuntu)</strong></td>
       <td>僵尸进程（Zombie Processes）堆积，显存被幽灵占用</td>
-      <td>多进程 DataLoader 在主进程异常退出时，Fork 出来的 Worker 子进程未被正确接收（Orphaned），继续持有 CUDA 上下文</td>
-      <td>使用 <code>fuser -v /dev/nvidia*</code> 精准排查并 <code>kill -9</code> 残留僵尸进程；在脚本中捕获 <code>SIGINT</code> 并显式关闭线程池</td>
+      <td>主进程异常退出时，多进程 DataLoader fork 出来的 Worker 变成孤儿进程（Orphaned），却还占着 CUDA 上下文</td>
+      <td>用 <code>fuser -v /dev/nvidia*</code> 找出残留进程再 <code>kill -9</code>；脚本里捕获 <code>SIGINT</code>，退出前显式关掉线程池</td>
     </tr>
   </tbody>
 </table>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在大模型研发中使用多智能体协作探索不同算法方案时，为什么推荐使用 Git Worktree 而不是在同一目录下反复切换分支？</p>
+  <p class="q">用多智能体并行试不同算法方案时，为什么推荐 Git Worktree，而不是在同一个目录里反复切分支？</p>
   <ul class="opts">
     <li>因为 Git 官方不允许在本地创建超过两个分支</li>
     <li data-ok>Git Worktree 允许在磁盘上同时挂载多个物理隔离的目录，不同智能体可以在各自独立的目录中编译、测试与修改，彻底杜绝文件冲突与构建缓存踩踏</li>
@@ -15878,13 +15882,13 @@ git worktree remove ../workspace-agent-flash
     <li>因为使用 Worktree 可以免去写 Git Commit 信息的步骤</li>
   </ul>
   <p class="why">
-    在单目录下切换分支会导致所有未暂存的文件被覆盖或混杂。Git Worktree 为每个分支提供物理上独立的文件夹，是多智能体并行作业的标准解耦架构。
+    在同一个目录里切分支，未暂存的文件会被覆盖或混在一起。Git Worktree 给每个分支一个独立的物理目录，多智能体并行时互不干扰。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在团队实施的 85/15 开发法则中，为什么要求将 85% 的资源与注意力倾斜在“验证阶段”？</p>
+  <p class="q">85/15 法则要求把 85% 的算力和注意力放在“验证阶段”，为什么？</p>
   <ul class="opts">
     <li>因为生成代码比验证代码花费的 Token 更多</li>
     <li data-ok>大模型生成的代码极易存在表面通顺但底层数值不稳定性（如 NaN、维度隐式广播错误、梯度断裂）的隐患；唯有严密的验证与单元测试才能确保算法真实收敛</li>
@@ -15892,7 +15896,7 @@ git worktree remove ../workspace-agent-flash
     <li>因为 Python 是静态强类型语言，必须经过复杂编译验证</li>
   </ul>
   <p class="why">
-    大模型时代代码草稿的生成极其廉价，但隐蔽的数学与张量形状 Bug 极其致命。把 Token 和算力投入到自动化断言、梯度检查和 Shape 验证上，是保证工程质量的核心铁律。
+    草稿代码的生成成本几乎为零，但隐蔽的数学和形状 Bug 代价很大。把 Token 和算力花在自动化断言、梯度检查和 Shape 验证上，才是保证质量的关键。
   </p>
 </div>
 `
@@ -15910,26 +15914,26 @@ COURSE.register({
   tags: ["Karpathy全集", "nanoGPT", "第一性原理", "资源矩阵", "导读索引"],
   body: String.raw`
 <p class="lead">
-  在真正进入现代开源大模型微调与工程改造之前，每一个严肃的 AI 工程师都必须经历一次<strong>第一性原理（First Principles）的思想洗礼</strong>。
-  世界顶尖 AI 科学家、前 OpenAI 创始成员兼特斯拉 AI 总监 <strong>Andrej Karpathy</strong> 的《Neural Networks: Zero to Hero》系列，
-  是全球公认最纯粹、最透彻的大模型底层教学典范。
-  本模块为你系统梳理 Karpathy 经典课程全集矩阵、核心时间戳、官方开源仓库与理论跃迁路径，作为你随时查阅与复现的终极资源站。
+  在动手微调和改造开源大模型之前，值得先把<strong>第一性原理（First Principles）</strong>这条线补一遍。
+  前 OpenAI 创始成员、特斯拉 AI 总监 <strong>Andrej Karpathy</strong> 的《Neural Networks: Zero to Hero》系列，
+  从标量梯度一路讲到 GPT-2，把大模型的每个零件都拆开写了一遍。
+  这一节把整套课程、关键时间戳和官方仓库整理成表，方便你随时回来查。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>实战认知分流：从零造轮子 vs 真实项目开发</h4>
   <p>
-    在开启本讲前，必须建立清晰的工程工程认知：
+    开始之前，先把两条路线分清楚：
   </p>
   <ul>
-    <li><strong>从零手写 nanoGPT（学心法）</strong>：让你彻底理解因果注意力掩码、前向反向传播、权重衰减与优化器步长计算，打破大模型的神秘感；</li>
-    <li><strong>微调开源 Qwen-2.5（做项目）</strong>：在真实的 Crossfade、科研建模或企业级业务中，没有人会从零训练一个 1MB 语料的玩具模型，而是直接站在顶级开源底座（如阿里开源的 Qwen-2.5）肩膀上做领域微调与工程交付。</li>
+    <li><strong>从零手写 nanoGPT（学心法）</strong>：把因果注意力掩码、前向反向传播、权重衰减和优化器步长亲手写一遍，大模型就不再神秘；</li>
+    <li><strong>微调开源 Qwen-2.5（做项目）</strong>：真实的 Crossfade、科研建模或企业业务里，没人会拿 1MB 语料从零训一个玩具模型，常规做法是直接挑一个开源底座（如阿里开源的 Qwen-2.5）做领域微调。</li>
   </ul>
 </section>
 
 <h3>1. Karpathy《Zero to Hero》全景课程资源矩阵</h3>
 <p>
-  Karpathy 的系列视频按照从微观梯度到完整大语言模型的演进逻辑编排，建议收藏并在遇到底层概念困惑时随时定点回看：
+  这套视频从最小的标量梯度讲起，一路搭到完整的大语言模型。建议收藏，哪个概念卡住了就回看对应那一集：
 </p>
 <table class="tbl">
   <thead><tr><th>序号 / 主题</th><th>核心教学目标</th><th>官方视频与源码仓库</th><th>推荐必看时间戳</th></tr></thead>
@@ -15988,7 +15992,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><strong>5. build-nanogpt</strong><br>复现 GPT-2 (124M)</td>
-      <td>极致硬件加速：从单卡 PyTorch 循环演进至 FlashAttention、BF16 混合精度与 DDP 分布式</td>
+      <td>一步步做硬件加速：从单卡 PyTorch 循环改到 FlashAttention、BF16 混合精度与 DDP 分布式</td>
       <td>
         <a href="https://www.youtube.com/watch?v=l8pRSuU81PU" target="_blank" rel="noopener">YouTube (4h 01m)</a><br>
         <a href="https://github.com/karpathy/build-nanogpt" target="_blank" rel="noopener"><code>karpathy/build-nanogpt</code></a>
@@ -16004,7 +16008,7 @@ COURSE.register({
 
 <h3>2. 从 nanoGPT 到现代大模型（Qwen-2.5）的架构演化</h3>
 <p>
-  当你看懂了 Karpathy 的手写 nanoGPT，你其实已经掌握了目前全球顶尖大模型 90% 的骨架。现代主流开源模型（以阿里开源的 <strong>Qwen-2.5</strong> 为代表）在经典 Transformer 基础上只做了四项关键微创新：
+  看懂了 Karpathy 的手写 nanoGPT，你就已经掌握了现在主流大模型 90% 的骨架。现代开源模型（以阿里开源的 <strong>Qwen-2.5</strong> 为代表）在经典 Transformer 上只改了四处：
 </p>
 <table class="tbl small">
   <thead><tr><th>结构模块</th><th>经典 nanoGPT（GPT-2 标准）</th><th>现代工业大模型（Qwen-2.5 / LLaMA-3）</th><th>升级原因与物理收益</th></tr></thead>
@@ -16013,25 +16017,25 @@ COURSE.register({
       <td><strong>位置编码</strong></td>
       <td>绝对位置嵌入（Learned Absolute PE）</td>
       <td><strong>旋转位置编码（RoPE, Rotary Position Embedding）</strong></td>
-      <td>赋予相对距离感知能力，能够通过插值算法实现超长上下文（如 128k）外推</td>
+      <td>让模型感知相对距离，靠插值就能把上下文外推到 128k</td>
     </tr>
     <tr>
       <td><strong>归一化层</strong></td>
       <td>层归一化（LayerNorm：减均值除方差）</td>
       <td><strong>均方根归一化（RMSNorm：不减均值）</strong></td>
-      <td>省略均值计算步骤，减少内存访存开销，计算吞吐量提升约 7%~10%</td>
+      <td>省掉减均值这一步，访存开销变小，吞吐量提升约 7%~10%</td>
     </tr>
     <tr>
       <td><strong>激活函数</strong></td>
       <td>GELU 激活函数</td>
       <td><strong>SwiGLU 门控单元（Gated Linear Unit）</strong></td>
-      <td>引入可学习的双路线性门控相乘机制，显著提升非线性特征拟合容量</td>
+      <td>加了一条可学习的门控相乘支路，非线性拟合能力更强</td>
     </tr>
     <tr>
       <td><strong>注意力机制</strong></td>
       <td>多头自注意力（MHA, Multi-Head Attention）</td>
       <td><strong>分组查询注意力（GQA, Grouped-Query Attention）</strong></td>
-      <td>多组 Query 共享单组 Key/Value，大幅压缩推理自回归时的 KV Cache 显存消耗</td>
+      <td>多组 Query 共用一组 Key/Value，推理时的 KV Cache 显存占用小很多</td>
     </tr>
   </tbody>
 </table>
@@ -16039,9 +16043,9 @@ COURSE.register({
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>通往真实项目的分水岭</h4>
   <p>
-    阅读完上述资源后，你已具备了鉴别与改造模型代码的底层内功。
-    从<strong>第 27 讲</strong>开始，我们将正式进入<strong>全流程保姆级云端实操</strong>：
-    在 Kaggle 上免费开辟 GPU 容器、下载真正的 Qwen-2.5 开源模型，并使用工业级 LoRA 技术将其改造为专属于 Crossfade 项目的高能智能体！
+    看完这些资源，你已经能读懂并改造模型代码了。
+    从<strong>第 27 讲</strong>开始是<strong>全流程云端实操</strong>：
+    在 Kaggle 上免费开一个 GPU 容器，下载真正的 Qwen-2.5 开源模型，用 LoRA 把它改造成 Crossfade 项目专用的助手。
   </p>
 </section>
 
@@ -16050,26 +16054,26 @@ COURSE.register({
   <p class="q">在 Andrej Karpathy 的 minbpe 教程中，构建分词器时为什么必须采用字节级（Byte-level）作为算法底座？</p>
   <ul class="opts">
     <li>因为单字节计算速度比多字节快 10 倍</li>
-    <li data-ok>现代计算机 UTF-8 编码由 256 种不同的基础字节（0~255）构成；以字节为底座能确保任何文本（包括未登录词、生僻语言和 Emoji）都能被无损表示，彻底消除 OOV（词表外）异常</li>
+    <li data-ok>现代计算机的 UTF-8 编码由 256 种基础字节（0~255）构成；以字节为底座，任何文本（包括未登录词、生僻语言和 Emoji）都能无损表示，不会再出现 OOV（词表外）</li>
     <li>因为 GPU 的 CUDA 核只支持读取 8 位整数</li>
     <li>这样可以使模型词表大小永远固定为 256</li>
   </ul>
   <p class="why">
-    字节级 BPE（Byte-level BPE）彻底消除了传统 NLP 中未登录词标记（如 <code>&lt;unk&gt;</code>）的尴尬，是现代大模型全语言泛化能力的基石。
+    字节级 BPE（Byte-level BPE）让未登录词标记（如 <code>&lt;unk&gt;</code>）不再出现，这是现代大模型能覆盖各种语言的基础。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在实际跨学科建模（如 Crossfade）与工业级项目开发中，为什么通常不推荐从零完全自训一个大模型，而是推荐基于 Qwen 等开源基座做微调？</p>
+  <p class="q">做跨学科建模（如 Crossfade）或实际项目时，为什么通常不推荐从零自训一个大模型，而是基于 Qwen 这类开源基座做微调？</p>
   <ul class="opts">
     <li>因为开源社区禁止个人用户从零编写 Transformer 架构</li>
-    <li data-ok>从零预训练一个具备常识、逻辑和专业语法的及格大模型需要数万亿 Token 与数百万美元算力，个人算力训练的微型模型仅具备玩具教学价值；而微调成熟底座能够以极低算力成本将顶尖通识能力迅速迁移至特定专业领域</li>
+    <li data-ok>从零预训练一个常识、逻辑和专业语法都及格的大模型，要数万亿 Token 与数百万美元算力，个人算力训出来的微型模型只有玩具教学价值；而微调成熟底座，能用很低的算力成本把它的通识能力迁移到特定专业领域</li>
     <li>因为 Python 解释器无法承受超过 1000 万参数的运算</li>
     <li>从零训练的模型无法保存权重至硬盘</li>
   </ul>
   <p class="why">
-    预训练是注入通识知识（吞吐海量公网数据），成本极其高昂；微调是规范行为与注入专业技能（几百条高质量领域样本），个人完全可以在免费 GPU 上高效搞定。
+    预训练是往里灌通识知识（吃海量公网数据），成本极高；微调是规范行为、注入专业技能（几百条高质量领域样本），个人在免费 GPU 上就能搞定。
   </p>
 </div>
 `
@@ -16087,9 +16091,9 @@ COURSE.register({
   tags: ["Kaggle起步", "免费GPU", "Jupyter", "保姆级教程", "云端环境"],
   body: String.raw`
 <p class="lead">
-  要开始真正改造与微调现代大模型，你不需要购买昂贵的数万元专业显卡。
-  <strong>Kaggle</strong>（Google 旗下全球最大的数据科学平台）为全球注册开发者提供<strong>每周 30 小时完全免费的 NVIDIA T4 GPU 算力</strong>（具备 16GB 显存，足以为 15 亿到 70 亿参数模型进行高效微调）。
-  本讲将以<strong>保姆级（Babysitting）的细致度</strong>，手把手带你完成从账号激活、申请免费 GPU、新建第一个云端 Notebook 到敲下第一行交互代码的全流程。
+  要微调现代大模型，不必先买一块几万块的专业显卡。
+  <strong>Kaggle</strong>（Google 旗下的数据科学平台）给注册开发者提供<strong>每周 30 小时免费的 NVIDIA T4 GPU</strong>（16GB 显存，微调 15 亿到 70 亿参数的模型够用）。
+  这一讲按<strong>保姆级（Babysitting）的细致度</strong>，从注册账号、验证手机号、申请免费 GPU，讲到新建 Notebook、敲下第一行代码。
 </p>
 
 <section class="blk blk-tip">
@@ -16103,7 +16107,7 @@ COURSE.register({
 
 <h3>1. Kaggle 账号注册与免费 GPU 权限解锁</h3>
 <p>
-  许多新手直接注册账号后发现无法开启 GPU 加速器，原因在于<strong>未完成手机号验证</strong>。请严格按照以下步骤操作：
+  很多人注册完账号发现开不了 GPU 加速器，原因是<strong>没做手机号验证</strong>。按下面的步骤走：
 </p>
 
 <div class="flow">
@@ -16118,17 +16122,17 @@ COURSE.register({
 
 <dl class="kv">
   <dt>第一步：创建账号</dt>
-  <dd>在浏览器打开 <a href="https://www.kaggle.com" target="_blank" rel="noopener">https://www.kaggle.com</a>，点击右上角 <strong>"Register"</strong>。推荐选择 "Register with Google"（一键登录）或使用常用邮箱完成注册。</dd>
+  <dd>在浏览器打开 <a href="https://www.kaggle.com" target="_blank" rel="noopener">https://www.kaggle.com</a>，点右上角 <strong>"Register"</strong>。可以直接选 "Register with Google" 一键登录，也可以拿常用邮箱注册。</dd>
   <dt>第二步：手机号实名短信验证（核心关键步）</dt>
-  <dd>登录后，点击右上角个人头像 → 选择 <strong>"Settings"</strong>（设置）→ 页面向下拉到 <strong>"Phone Verification"</strong>（手机验证）区域 → 点击 "Verify Account" → 选择你所在的国家区号并输入手机号码 → 输入收到的 6 位短信验证码。<strong>一旦验证成功，你的账号将永久解锁每周 30 小时免费 GPU 配额</strong>！</dd>
+  <dd>登录后，点右上角个人头像 → 选 <strong>"Settings"</strong>（设置）→ 页面向下拉到 <strong>"Phone Verification"</strong>（手机验证）区域 → 点 "Verify Account" → 选你所在的国家区号并输入手机号码 → 输入收到的 6 位短信验证码。<strong>验证成功后，账号就永久解锁每周 30 小时免费 GPU 配额</strong>。</dd>
 </dl>
 
 <h3>2. 新建首个云端 Notebook 与必开设置</h3>
 <p>
-  进入 Kaggle 首页，点击左侧导航栏的 <strong>"+ Create"</strong> 按钮，在下拉菜单中点击 <strong>"New Notebook"</strong>。一个崭新的 Jupyter 云端交互式界面将在浏览器中呈现。
+  回到 Kaggle 首页，点左侧导航栏的 <strong>"+ Create"</strong>，在下拉菜单里选 <strong>"New Notebook"</strong>。浏览器里会出现一个 Jupyter 云端界面。
 </p>
 <p>
-  在敲写任何代码之前，<strong>必须首先检查并开启右侧侧边栏（Settings 面板）的三个关键开关</strong>：
+  写代码之前，先把右侧 Settings 面板里的<strong>三个开关</strong>检查一遍：
 </p>
 <table class="tbl">
   <thead><tr><th>设置项（Settings）</th><th>默认值</th><th>必须调整的目标值</th><th>为什么至关重要？</th></tr></thead>
@@ -16137,26 +16141,26 @@ COURSE.register({
       <td><strong>Accelerator（加速器）</strong></td>
       <td>None（纯 CPU）</td>
       <td><strong>GPU T4 x2 或 GPU T4</strong></td>
-      <td>将计算引擎从孱弱的双核 CPU 切换至专业级 NVIDIA T4 GPU（16GB 独立显存），这是运行与微调大模型的算力源泉。</td>
+      <td>把计算引擎从双核 CPU 换成 NVIDIA T4 GPU（16GB 独立显存），这是后面跑模型、做微调的前提。</td>
     </tr>
     <tr>
       <td><strong>Internet（外网访问权限）</strong></td>
       <td>OFF（关闭）</td>
       <td><strong>ON（开启）</strong></td>
-      <td><strong>初学者最常踩的坑！</strong>若不开启此项，Notebook 将无法从 Hugging Face、GitHub 或 Pip 下载任何模型权重与依赖包。</td>
+      <td><strong>最常踩的坑。</strong>不开这一项，Notebook 就没法从 Hugging Face、GitHub 或 Pip 下载模型权重和依赖包。</td>
     </tr>
     <tr>
       <td><strong>Environment（环境镜像）</strong></td>
       <td>Pin to original</td>
       <td><strong>Always use latest environment</strong></td>
-      <td>确保系统自动预装最新版本的 PyTorch、CUDA 驱动与常用数据科学依赖库。</td>
+      <td>让环境自动带上最新版的 PyTorch、CUDA 驱动和常用的数据科学库。</td>
     </tr>
   </tbody>
 </table>
 
 <h3>3. Kaggle 云端文件系统物理拓扑</h3>
 <p>
-  在编写代码前，必须建立清晰的磁盘物理空间认知：
+  动手写代码前，先把这几个目录的区别搞清楚：
 </p>
 <table class="tbl small">
   <thead><tr><th>目录路径</th><th>访问权限</th><th>生命周期与用途</th></tr></thead>
@@ -16164,77 +16168,81 @@ COURSE.register({
     <tr>
       <td><code>/kaggle/input/</code></td>
       <td><strong>只读（Read-Only）</strong></td>
-      <td>挂载的数据集或外部模型权重所在路径，严禁尝试在此目录下写入或保存任何文件（会抛出 PermissionError）。</td>
+      <td>挂载的数据集和外部模型权重都在这里，不要往这个目录写文件（会抛 PermissionError）。</td>
     </tr>
     <tr>
       <td><code>/kaggle/working/</code></td>
       <td><strong>可读可写（Read-Write）</strong></td>
-      <td>当前 Notebook 的主工作区。所有微调后的模型权重、生成的日志与图表<strong>必须保存到该目录下</strong>；在右侧面板点击 "Save Version" 后可将该目录打包持久化。</td>
+      <td>当前 Notebook 的主工作区。微调后的权重、日志和图表<strong>都要存到这个目录下</strong>；点右侧面板的 "Save Version" 就会把它打包持久化。</td>
     </tr>
     <tr>
       <td><code>/tmp/</code></td>
       <td>临时可读写</td>
-      <td>系统高速临时盘，容器重启或会话断开后内容立即蒸发，仅用于存储瞬时中间缓存。</td>
+      <td>系统临时盘，容器一重启或会话一断，里面的东西立刻清空，只适合放临时的中间缓存。</td>
     </tr>
   </tbody>
 </table>
 
 <h3>4. 逐行敲下你的第一行交互式测试代码</h3>
 <p>
-  在 Notebook 中新建一个代码单元格（Cell），我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，验证 GPU 的健康状态。
+  在 Notebook 里新建一个代码单元格（Cell）。下面按“<strong>1~2 行代码 + 一段解析</strong>”的节奏，一步步确认 GPU 状态正常。
 </p>
 
 <h4>第一步：通过系统终端命令探测物理显卡</h4>
 
 <pre><code>!nvidia-smi
 </code></pre>
-<p><strong>代码解析</strong>：在 Jupyter 中以感叹号 <code>!</code> 开头表示执行底层的 Linux Shell 终端命令；<code>nvidia-smi</code> 是 NVIDIA 驱动自带的系统管理接口，用于输出当前显卡型号、驱动版本、CUDA 版本以及 16GB 显存的当前空闲状态。</p>
+<p><strong>代码解析</strong>：在 Jupyter 里，以感叹号 <code>!</code> 开头表示执行 Linux Shell 命令；<code>nvidia-smi</code> 是 NVIDIA 驱动自带的工具，会打印显卡型号、驱动版本、CUDA 版本和 16GB 显存当前的占用情况。</p>
 
 <h4>第二步：在 PyTorch 中验证 CUDA 运算环境</h4>
 
 <pre><code>import torch
 print("CUDA 是否可用:", torch.cuda.is_available())
 </code></pre>
-<p><strong>代码解析</strong>：导入核心深度学习框架 <code>torch</code>；调用 <code>torch.cuda.is_available()</code> 检测底层 CUDA 运行时是否已成功与当前 Python 环境握手（正常应输出 <code>True</code>）。</p>
+<p><strong>代码解析</strong>：导入 <code>torch</code>；用 <code>torch.cuda.is_available()</code> 看当前 Python 环境能不能连上 CUDA 运行时（正常输出 <code>True</code>）。</p>
 
 <pre><code>device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("当前默认计算设备:", torch.cuda.get_device_name(0))
+print("当前默认计算设备:", device)
+if device.type == "cuda":
+    print("0 号 GPU 型号:", torch.cuda.get_device_name(0))
+else:
+    print("没有可用的 GPU，本次只在 CPU 上跑通流程")
 </code></pre>
-<p><strong>代码解析</strong>：构建动态设备对象 <code>device</code>（优先使用 <code>cuda</code>）；调用 <code>get_device_name(0)</code> 打印 0 号 GPU 的物理名称（正常输出类似 <code>Tesla T4</code>）。</p>
+<p><strong>代码解析</strong>：第一行构建设备对象 <code>device</code>：能上 CUDA 就用 <code>cuda</code>，否则退回 <code>cpu</code>。后面几行按设备类型分别打印：有 GPU 就报出 0 号卡的型号（T4 上会看到 <code>Tesla T4</code>），没有就直说这次在 CPU 上跑。这样写两种环境下都不会报错——如果把 <code>get_device_name(0)</code> 直接写在外面，在没有 GPU 的机器上会当场抛异常。</p>
 
 <h4>第三步：执行张量矩阵运算基准测试（GPU Warmup）</h4>
 
 <pre><code>x = torch.randn(4096, 4096, device=device)
 y = torch.randn(4096, 4096, device=device)
 </code></pre>
-<p><strong>代码解析</strong>：直接在 GPU 显存上生成两个 \(4096 \times 4096\) 的单精度（FP32）随机矩阵，每个张量占用约 64MB 显存。</p>
+<p><strong>代码解析</strong>：在 GPU 显存上直接生成两个 \(4096 \times 4096\) 的单精度（FP32）随机矩阵，每个占约 64MB 显存。</p>
 
 <pre><code>start_event = torch.cuda.Event(enable_timing=True)
 end_event = torch.cuda.Event(enable_timing=True)
 </code></pre>
-<p><strong>代码解析</strong>：创建两个带时间记录功能的 CUDA 硬件事件对象，用于精确测量 GPU 内核执行的物理耗时（毫秒级）。</p>
+<p><strong>代码解析</strong>：创建两个带计时功能的 CUDA 事件对象，用来测 GPU 内核的真实耗时（毫秒级）。</p>
 
 <pre><code>start_event.record()
 z = torch.matmul(x, y)
 end_event.record()
 </code></pre>
-<p><strong>代码解析</strong>：记录起点时间，调用底层高度优化的 cuBLAS 矩阵乘法算子执行 \(O(N^3)\) 级运算，并在计算图末尾记录终点时间。</p>
+<p><strong>代码解析</strong>：记录起点，调用 cuBLAS 的矩阵乘法算子做 \(O(N^3)\) 量级的运算，再记录终点。</p>
 
 <pre><code>torch.cuda.synchronize()
 print(f"4096阶稠密矩阵乘法物理耗时: {start_event.elapsed_time(end_event):.2f} ms")
 </code></pre>
-<p><strong>代码解析</strong>：调用 <code>synchronize()</code> 阻塞等待异步流运算执行完毕；打印两点之间的精确物理用时（在 T4 上通常只需几毫秒，比 CPU 快 50 倍以上）。</p>
+<p><strong>代码解析</strong>：用 <code>synchronize()</code> 等异步流里的运算全部结束，再打印两个事件之间的真实耗时（T4 上通常只要几毫秒，比 CPU 快 50 倍以上）。</p>
 
 <h4>第四步：检查显存占用与释放</h4>
 
 <pre><code>allocated_mb = torch.cuda.memory_allocated() / (1024 ** 2)
 print(f"当前已占用显存: {allocated_mb:.1f} MB / 16384 MB")
 </code></pre>
-<p><strong>代码解析</strong>：调用 <code>memory_allocated()</code> 查看当前 Python 进程真实持有的活动张量显存，验证显存监控机制运行正常。</p>
+<p><strong>代码解析</strong>：用 <code>memory_allocated()</code> 看当前进程实际占用的显存，确认显存监控能正常工作。</p>
 
 <h3>5. 🧪 模块完整整合代码清单（Complete Notebook Cell）</h3>
 <p>
-  你可以将下面整段代码直接复制到 Kaggle Notebook 的第一个单元格中，按下 <strong>Shift + Enter</strong> 组合键一键运行验证：
+  把下面整段代码复制到 Kaggle Notebook 的第一个单元格里，按 <strong>Shift + Enter</strong> 运行：
 </p>
 
 <pre><code># =====================================================================
@@ -16325,86 +16333,86 @@ COURSE.register({
   tags: ["Qwen-2.5", "LoRA微调", "PEFT", "大模型实战", "Kaggle"],
   body: String.raw`
 <p class="lead">
-  在真实的数学建模科研、音频工程（Crossfade）或企业级应用中，<strong>没有人会用从零训练的几兆字节玩具模型去解决复杂的现实问题</strong>。
-  我们必须站在巨人的肩膀上：以当今全球公认最强的小尺寸开源基座——<strong>阿里通义千问 Qwen-2.5（1.5B 或 7B）</strong>为底座，
-  借助<strong>低秩自适应微调技术（LoRA, Low-Rank Adaptation）</strong>，在 Kaggle 免费的 16GB T4 GPU 上，
-  将其改造为专属于我们项目的<strong>领域专家大模型</strong>！
+  前面几章你自己训的小模型只有几兆参数，跑通流程没问题，但拿去答真实问题远远不够。
+  真要用起来，常规做法是拿一个现成的开源模型当底座，只训练其中一小部分权重，让它学会你这边的说法和套路。
+  这一章就用<strong>阿里通义千问 Qwen-2.5-1.5B</strong> 当底座，用 <strong>LoRA（Low-Rank Adaptation，低秩自适应微调）</strong>，
+  在 Kaggle 免费的 16GB T4 上跑完一遍微调，产出一个能装进你项目的适配器。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>为什么选择 Qwen-2.5-1.5B-Instruct 作为首选基座？</h4>
-  <p>在千百个开源模型中，Qwen-2.5-1.5B 是当前个人算力实验的最优解：</p>
+  <h4><span class="ic">✓</span>为什么拿 Qwen-2.5-1.5B 当底座</h4>
+  <p>开源模型很多，但在 1.5B 这一档里，它是最省事的选择：</p>
   <ul>
-    <li><strong>能力顶级</strong>：在代码生成（HumanEval）、复杂数学推理（MATH）与中文遵循上，性能甚至超越了上一代的 7B / 13B 大模型；</li>
-    <li><strong>显存极其友好</strong>：以 16-bit 浮点加载仅需约 3.2 GB 显存，以 4-bit 量化加载仅需约 1.5 GB 显存，在 Kaggle 16GB 的 T4 GPU 上运行游刃有余，留下了充裕的批次和上下文空间；</li>
-    <li><strong>生态开放</strong>：完美支持 Hugging Face 生态、vLLM、Ollama 与 llama.cpp，导出部署极其顺畅。</li>
+    <li><strong>能力够用</strong>：代码（HumanEval）、数学（MATH）和中文指令跟随的表现，已经超过上一代的 7B / 13B 模型；</li>
+    <li><strong>显存吃得少</strong>：16-bit 加载约 3.2 GB，4-bit 量化约 1.5 GB。放在 16GB 的 T4 上还剩下不少空间留给批次和上下文；</li>
+    <li><strong>配套齐全</strong>：Hugging Face、vLLM、Ollama、llama.cpp 都能直接用，导出不用折腾。</li>
   </ul>
 </section>
 
-<h3>1. 为什么不用全量微调？LoRA 核心数学原理解析</h3>
+<h3>1. 为什么不用全量微调，而用 LoRA</h3>
 <p>
-  如果对一个 15 亿参数（1.5B）的模型执行全量微调（Full Fine-Tuning），反向传播需要为每个参数保存梯度与 AdamW 优化器的一阶/二阶动量状态，需要至少 \(1.5 \times 16 = 24 \text{ GB}\) 显存，直接撑爆单张 T4 显卡。
-  <strong>LoRA（Low-Rank Adaptation）</strong>彻底颠覆了这一切：<strong>冻结大模型原本的 99.8% 预训练权重，只在旁边外挂极其轻量的低秩矩阵侧枝</strong>。
+  拿 1.5B 参数做全量微调，反向传播要给每个参数各存一份梯度和 AdamW 的一阶、二阶动量。按每个参数 16 字节算，光这一项就至少要 \(1.5 \times 16 = 24 \text{ GB}\)，一张 T4 直接装不下。
+  <strong>LoRA（Low-Rank Adaptation）</strong>换了个做法：<strong>把底座里 99.8% 的预训练权重冻住不动，只在旁边挂两个很小的低秩矩阵</strong>，训练时只更新它们。
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：LoRA 秩分解微调数学公式）</h4>
-  <p>设大模型原有的冻结权重矩阵为 \(\mathbf{W}_0 \in \mathbb{R}^{d \times k}\)。在微调时，参数物理更新量 \(\Delta \mathbf{W}\) 被显式约束为一个低秩分解乘积：</p>
+  <h4><span class="ic">∑</span>记号铺垫：LoRA 到底动了哪个矩阵</h4>
+  <p>设底座里那个被冻住的权重矩阵是 \(\mathbf{W}_0 \in \mathbb{R}^{d \times k}\)。微调时不去改它，而是把权重的改动量 \(\Delta \mathbf{W}\) 写成两个小矩阵的乘积：</p>
   \[ \mathbf{h} = \mathbf{W}_0 \mathbf{x} + \Delta \mathbf{W} \mathbf{x} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \mathbf{x} \]
   <ul>
     <li>\(\mathbf{W}_0\)：预训练大模型固有的稠密权重矩阵，在整个微调过程中<strong>完全冻结（requires_grad=False），不产生任何优化器动量开销</strong>；</li>
     <li>\(\mathbf{A} \in \mathbb{R}^{r \times k}\)：低秩降维矩阵，使用高斯随机正态分布初始化；</li>
-    <li>\(\mathbf{B} \in \mathbb{R}^{d \times r}\)：低秩升维矩阵，初始全置为 0，<strong>确保微调启动第 0 步时 \(\mathbf{B} \cdot \mathbf{A} = \mathbf{0}\)，模型输出行为与原版底座 100% 严格一致</strong>；</li>
+    <li>\(\mathbf{B} \in \mathbb{R}^{d \times r}\)：低秩升维矩阵，初始全置为 0，<strong>这样第 0 步时 \(\mathbf{B} \cdot \mathbf{A} = \mathbf{0}\)，模型行为和原版底座一模一样，不会一上来就被随机权重带偏</strong>；</li>
     <li>\(r\)（Rank）：低秩内在维度（通常取 8 或 16）；</li>
     <li>\(\alpha\)（Lora Alpha）：恒定缩放因子（通常取 \(2 \times r\)，如 16 或 32），用于稳定不同秩下的学习率步长。</li>
   </ul>
 </section>
 
-<h3>2. 逐行手写 Qwen-2.5 的加载与 LoRA 微调</h3>
+<h3>2. 一步步跑通加载与 LoRA 微调</h3>
 <p>
-  在 Kaggle Notebook 中，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，完成大模型微调全流程。
+  下面按「一两行代码 + 一段解释」的节奏走，每一步都能单独跑。
 </p>
 
-<h4>第一步：安装现代大模型微调依赖全家桶</h4>
+<h4>第一步：装依赖</h4>
 
 <pre><code>!pip install -q transformers peft trl accelerate bitsandbytes datasets
 </code></pre>
-<p><strong>代码解析</strong>：通过 pip 静默安装 Hugging Face 核心套件：<code>transformers</code>（模型核心库）、<code>peft</code>（高效参数微调库）、<code>trl</code>（Transformer 强化与监督微调库）以及 <code>accelerate</code>（底层硬件自动加速分配）。</p>
+<p><strong>代码解析</strong>：一次装齐 Hugging Face 那一套——<code>transformers</code>（模型本体）、<code>peft</code>（LoRA 这类参数高效微调）、<code>trl</code>（训练器）、<code>accelerate</code>（自动分配设备）。</p>
 
-<h4>第二步：加载 Qwen-2.5 分词器与 ChatML 提示词模版</h4>
+<h4>第二步：加载分词器</h4>
 
 <pre><code>from transformers import AutoTokenizer
 model_id = "Qwen/Qwen2.5-1.5B-Instruct"
 tokenizer = AutoTokenizer.from_pretrained(model_id)
 </code></pre>
-<p><strong>代码解析</strong>：指定 Hugging Face 上官方开源的 <code>Qwen2.5-1.5B-Instruct</code> 仓库路径；自动下载并实例化分词器（内置 15 万词表的 Tiktoken BPE 实现）。</p>
+<p><strong>代码解析</strong>：填上 Hugging Face 上的仓库名，它会自动下载权重并建好分词器（Qwen2.5 用的是约 15 万词表的字节级 BPE）。</p>
 
 <pre><code>tokenizer.pad_token = tokenizer.eos_token
 print("词表大小:", len(tokenizer), "| 填充标记 Pad Token:", tokenizer.pad_token)
 </code></pre>
-<p><strong>代码解析</strong>：因大模型自回归默认无填充标记，将句子结束符 <code>eos_token</code>（<code>&lt;|im_end|&gt;</code>）赋给 <code>pad_token</code>，确保批量输入时长短句能够整齐对齐。</p>
+<p><strong>代码解析</strong>：自回归模型没有专门的填充标记，这里把句子结束符 <code>eos_token</code>（<code>&lt;|im_end|&gt;</code>）兼作 <code>pad_token</code>，批量输入时长短不一的句子才能对齐。</p>
 
-<h4>第三步：以半精度加载 Qwen-2.5 真实底座模型</h4>
+<h4>第三步：加载 Qwen-2.5 底座（半精度）</h4>
 
 <pre><code>import torch
 from transformers import AutoModelForCausalLM
 model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
 </code></pre>
-<p><strong>代码解析</strong>：以 <code>float16</code> 半精度将 Qwen-2.5 的 15 亿参数加载进显存（Kaggle 免费 T4 为 Turing 架构，不支持 <code>bfloat16</code> 原生计算，此处必须用 <code>float16</code>，与附录 B 的硬件嗅探回退逻辑一致）；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
+<p><strong>代码解析</strong>：T4 是 Turing 架构，不能原生算 <code>bfloat16</code>，所以这里必须用 <code>float16</code>。<code>device_map="auto"</code> 让它自己挑设备，1.5B 大约占 3.2 GB 显存。</p>
 
-<h4>第四步：构建并注入 LoRA 适配器（PEFT）</h4>
+<h4>第四步：挂上 LoRA 适配器（PEFT）</h4>
 
 <pre><code>from peft import LoraConfig, get_peft_model
 peft_config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"], lora_dropout=0.05, bias="none", task_type="CAUSAL_LM")
 </code></pre>
-<p><strong>代码解析</strong>：定义 LoRA 拓扑配置：设置内在秩 \(r=8\)，缩放系数 \(\alpha=16\)；将低秩旁路注入至自注意力机制的查询（<code>q_proj</code>）和数值（<code>v_proj</code>）投影层中。</p>
+<p><strong>代码解析</strong>：秩 \(r=8\)，缩放系数 \(\alpha=16\)；LoRA 只挂在自注意力的查询（<code>q_proj</code>）和数值（<code>v_proj</code>）两个投影上。</p>
 
 <pre><code>model = get_peft_model(model, peft_config)
 model.print_trainable_parameters()
 </code></pre>
-<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15.4 亿陡降至仅约 109 万（占比约 0.07%）</strong>！显存开销暴降 80% 以上！</p>
+<p><strong>代码解析</strong>：<code>get_peft_model</code> 把 LoRA 层挂到底座上，<code>print_trainable_parameters()</code> 会打印出真正要训练的参数：<strong>从 15.4 亿降到约 109 万，只占 0.07%</strong>。</p>
 
-<h4>第五步：准备领域微调数据集（以 Crossfade 任务为例）</h4>
+<h4>第五步：准备微调数据（以 Crossfade 为例）</h4>
 
 <pre><code>from datasets import Dataset
 train_data = [
@@ -16413,34 +16421,34 @@ train_data = [
 ] * 50
 dataset = Dataset.from_list(train_data)
 </code></pre>
-<p><strong>代码解析</strong>：构造专业指令-回答训练对，模拟将通用大模型调教为精通 Crossfade 算法与音频数学建模的专用 Agent；将其包装为标准 Hugging Face <code>Dataset</code> 对象。</p>
+<p><strong>代码解析</strong>：写两三条「提问-回答」样本，乘 50 凑出一个能跑通的小数据集，再包成 Hugging Face 的 <code>Dataset</code>。真实项目里这一步要几百到几千条，这里先把流程跑顺。</p>
 
-<h4>第六步：应用标准对话模版（ChatML Formatting）</h4>
+<h4>第六步：套上对话模板（ChatML）</h4>
 
 <pre><code>def format_chat(sample):
     messages = [{"role": "user", "content": sample["instruction"]}, {"role": "assistant", "content": sample["output"]}]
     return {"text": tokenizer.apply_chat_template(messages, tokenize=False)}
 formatted_dataset = dataset.map(format_chat)
 </code></pre>
-<p><strong>代码解析</strong>：调用 Qwen 官方的 <code>apply_chat_template</code> 将用户提问与助手回答自动格式化为带 <code>&lt;|im_start|&gt;user ... &lt;|im_end|&gt;&lt;|im_start|&gt;assistant ...</code> 的严密对话标记序列。</p>
+<p><strong>代码解析</strong>：<code>apply_chat_template</code> 按 Qwen 自己的格式，把一问一答拼成它训练时见过的样子（<code>&lt;|im_start|&gt;user ... &lt;|im_end|&gt;</code> 这类标记）。模板对不上，微调效果会明显变差。</p>
 
-<h4>第七步：启动 SFT 监督微调循环并持久化权重</h4>
+<h4>第七步：开跑 SFT 并保存权重</h4>
 
 <pre><code>from transformers import TrainingArguments
 from trl import SFTTrainer
 training_args = TrainingArguments(output_dir="/kaggle/working/qwen_lora_out", per_device_train_batch_size=4, gradient_accumulation_steps=2, learning_rate=2e-4, num_train_epochs=3, fp16=True, logging_steps=10, save_strategy="no")
 </code></pre>
-<p><strong>代码解析</strong>：配置训练参数：单卡 Batch Size 为 4，结合 2 步梯度累积（等效 Batch Size = 8）；学习率设为 \(2 \times 10^{-4}\)，启用 FP16 混合精度加速。</p>
+<p><strong>代码解析</strong>：单卡批次 4，梯度累积 2 步（等效批次 8）；学习率 \(2 \times 10^{-4}\)，开 FP16。</p>
 
 <pre><code>trainer = SFTTrainer(model=model, train_dataset=formatted_dataset, dataset_text_field="text", max_seq_length=512, args=training_args)
 trainer.train()
 model.save_pretrained("/kaggle/working/qwen-crossfade-lora")
 </code></pre>
-<p><strong>代码解析</strong>：实例化工业级微调器 <code>SFTTrainer</code> 并启动训练，在 T4 GPU 上只需 2~3 分钟即可完成！最后将训练好的 LoRA 增量权重持久化保存至 <code>/kaggle/working/qwen-crossfade-lora</code>（文件大小仅数兆字节）。</p>
+<p><strong>代码解析</strong>：<code>SFTTrainer</code> 已经把训练循环封装好了，三行就能开跑。这点数据在 T4 上两三分钟跑完；最后只保存 LoRA 增量，文件只有几兆。</p>
 
-<h3>3. 🧪 模块完整整合代码清单（Complete Kaggle Fine-Tuning Script）</h3>
+<h3>3. 🧪 完整脚本（整段粘贴即可）</h3>
 <p>
-  下面是完整的可运行脚本，直接在 Kaggle Notebook 中新建单元格粘贴运行即可完整走通：
+  下面是完整脚本。在 Kaggle Notebook 里新建一个单元格，整段粘进去就能跑：
 </p>
 
 <pre><code># =====================================================================
@@ -16501,7 +16509,7 @@ formatted_ds = dataset.map(apply_template)
 # 5. 启动超轻量微调训练
 output_dir = "/kaggle/working/qwen-crossfade-lora"
 train_args = TrainingArguments(
-    output_dir="/tmp/lora_checkpoints",
+    output_dir=output_dir,
     per_device_train_batch_size=4,
     gradient_accumulation_steps=2,
     learning_rate=2e-4,
@@ -16534,12 +16542,12 @@ print(f"🎉 成功！专属 Crossfade 领域的 Qwen LoRA 适配器已安全保
   <p class="q">在 LoRA 微调中，低秩升维矩阵 \(\mathbf{B}\) 为什么在初始化时必须全置为 0？</p>
   <ul class="opts">
     <li>因为置为 0 可以节省 GPU 的运算时间</li>
-    <li data-ok>使得初始时增量矩阵 \(\Delta \mathbf{W} = \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) = \mathbf{0}\)，从而保证在微调启动的第 0 步，模型的推理行为与原本强大的开源预训练底座 100% 严格一致，防止随机权重破坏已有知识</li>
+    <li data-ok>这样第 0 步时 \(\Delta \mathbf{W} = \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) = \mathbf{0}\)，模型输出与原始底座完全一致，不会被随机权重破坏已有知识</li>
     <li>这样可以使优化器不需要计算梯度</li>
     <li>这是由 PyTorch 静态显存机制强制要求的</li>
   </ul>
   <p class="why">
-    如果 \(\mathbf{B}\) 也采用随机高斯初始化，刚开始训练时初始模型输出就会被随机噪声严重污染，导致预训练积累的通识能力被瞬间“震坏”。
+    如果 \(\mathbf{B}\) 也用随机初始化，训练一开始模型输出就被噪声搅乱，预训练学到的能力会被破坏。
   </p>
 </div>
 
@@ -16571,15 +16579,15 @@ COURSE.register({
   tags: ["权重合并", "Ollama导出", "GGUF", "Crossfade实战", "项目毕业"],
   body: String.raw`
 <p class="lead">
-  在完成了 Kaggle 云端对 Qwen-2.5 的领域微调后，我们迎来了<strong>整个大模型课程的工程最终章</strong>：
-  <strong>将云端微调产物无损转化为你电脑上随时随地可调用的离线生产力工具</strong>！
-  我们将手把手执行<strong>权重物理合并（Merge and Unload）</strong>，将其打包并导入到你个人电脑上的 <strong>Ollama</strong> 运行时中，
-  打造出一个具备专属领域常识、0 API 费用、离线极速响应的 <strong>Crossfade 算法工程超级智能助手</strong>！
+  在 Kaggle 上把 Qwen-2.5 微调完之后，剩下<strong>整个大模型课程的最后一步工程</strong>：
+  <strong>把云端的微调产物搬到你自己电脑上，变成随时能离线调用的工具</strong>。
+  做法是先用<strong>权重物理合并（Merge and Unload）</strong>把 LoRA 增量加回主干，再导入本机的 <strong>Ollama</strong> 运行时，
+  得到一个懂 Crossfade 领域、不花 API 费用、断网也能跑的<strong>本地专属助手</strong>。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>工程实战闭环：从云端训练到本地常驻</h4>
-  <p>现代大模型工业落地的黄金标准路径：</p>
+  <h4><span class="ic">✓</span>工程实战路线：从云端训练到本地常驻</h4>
+  <p>从云端到本地要走四步：</p>
   <div class="flow">
     <div class="nd hi">1. Kaggle 免费微调</div>
     <div class="ar">→</div>
@@ -16591,20 +16599,20 @@ COURSE.register({
   </div>
 </section>
 
-<h3>1. 为什么必须执行权重合并（Merge and Unload）？</h3>
+<h3>1. 为什么要把 LoRA 权重合并回主干（Merge and Unload）？</h3>
 <p>
-  在第 28 讲中，我们保存的产物只是几兆字节的 LoRA 增量矩阵（\(\mathbf{A}\) 与 \(\mathbf{B}\)）。
-  如果在推理服务中每次都动态挂载 LoRA，计算时必须分别执行主干矩阵乘法与旁路矩阵乘法再相加，会带来额外的显存访存开销与推理延迟。
-  工业生产中最优雅的方案是<strong>将低秩增量直接物理相加并写回原权重矩阵</strong>：
+  第 28 讲最后保存下来的，只是几兆字节的 LoRA 增量矩阵（\(\mathbf{A}\) 与 \(\mathbf{B}\)）。
+  如果推理时每次都动态挂载 LoRA，就得分别算主干矩阵乘法和旁路矩阵乘法再相加，多出一份显存访存开销和推理延迟。
+  常见做法是<strong>把低秩增量直接加回原权重矩阵</strong>：
 </p>
 \[ \mathbf{W}_{\text{merged}} = \mathbf{W}_0 + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \]
 <p>
-  合并后，适配器被彻底吸收，模型重新变为一个<strong>完全独立的单体标准 Transformer</strong>，可以直接使用任何通用推理引擎（如 Ollama、vLLM、TensorRT-LLM）高速加载，无任何额外开销！
+  合并后适配器被吸收掉，模型又变成一个<strong>标准的单体 Transformer</strong>，任何通用推理引擎（Ollama、vLLM、TensorRT-LLM）都能直接加载，没有额外开销。
 </p>
 
 <h3>2. 逐行手写权重物理合并与导出代码</h3>
 <p>
-  在 Kaggle Notebook 中紧接微调步骤，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，执行合并与写出。
+  接着第 28 讲的微调，在 Kaggle Notebook 里按“<strong>1~2 行代码 + 一段解析</strong>”的节奏完成合并与导出。
 </p>
 
 <h4>第一步：加载底座模型与微调后的 LoRA 适配器</h4>
@@ -16614,40 +16622,40 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 base_model_id = "Qwen/Qwen2.5-1.5B-Instruct"
 lora_dir = "/kaggle/working/qwen-crossfade-lora"
 </code></pre>
-<p><strong>代码解析</strong>：指定原开源底座 ID 与第 28 讲生成的 LoRA 权重本地路径。</p>
+<p><strong>代码解析</strong>：指定原开源底座的 ID 和第 28 讲生成的 LoRA 权重路径。</p>
 
 <pre><code>tokenizer = AutoTokenizer.from_pretrained(lora_dir)
 base_model = AutoModelForCausalLM.from_pretrained(base_model_id, torch_dtype=torch.float16, device_map="cpu")
 </code></pre>
-<p><strong>代码解析</strong>：加载微调保存的分词器；为了防止 GPU 显存不够存放两份完整模型，直接使用 <code>device_map="cpu"</code> 将底座模型以 FP16 精度加载至宿主机的 30GB 内存中。</p>
+<p><strong>代码解析</strong>：加载微调时保存的分词器；合并要同时装下底座和结果两份模型，GPU 显存放不下，所以用 <code>device_map="cpu"</code> 把底座以 FP16 加载到宿主机的 30GB 内存里。</p>
 
 <pre><code>model = PeftModel.from_pretrained(base_model, lora_dir)
 print("✅ 成功将 LoRA 适配器装载到底座模型拓扑结构中。")
 </code></pre>
-<p><strong>代码解析</strong>：调用 <code>PeftModel.from_pretrained</code>，将保存的旁路矩阵动态挂载到底座模型的主干上。</p>
+<p><strong>代码解析</strong>：用 <code>PeftModel.from_pretrained</code> 把保存的旁路矩阵挂到底座主干上。</p>
 
 <h4>第二步：执行物理权重融合并卸载旁路</h4>
 
 <pre><code>merged_model = model.merge_and_unload()
 print("🎉 物理融合完毕！已将 LoRA 低秩矩阵严格按数学公式加回主干权重矩阵。")
 </code></pre>
-<p><strong>代码解析</strong>：<strong>关键核心算子</strong>：调用 <code>merge_and_unload()</code> 执行 \(\mathbf{W}_0 + \Delta \mathbf{W}\) 矩阵加法运算，随后彻底销毁低秩侧枝结构，恢复为纯净的原生 <code>Qwen2ForCausalLM</code> 类单体对象。</p>
+<p><strong>代码解析</strong>：<strong>关键一步</strong>：<code>merge_and_unload()</code> 把 \(\mathbf{W}_0 + \Delta \mathbf{W}\) 加回去，然后删掉低秩侧枝，对象重新变回干净的 <code>Qwen2ForCausalLM</code>。</p>
 
 <pre><code>save_path = "/kaggle/working/qwen2.5-crossfade-merged"
 merged_model.save_pretrained(save_path)
 tokenizer.save_pretrained(save_path)
 print(f"💾 合并后的完整独立大模型已成功持久化保存至: {save_path}")
 </code></pre>
-<p><strong>代码解析</strong>：将合并后的自包含模型与分词器整体导出；生成的文件夹内包含完整的 <code>model.safetensors</code> 权重与配置文件，可直接打包下载。</p>
+<p><strong>代码解析</strong>：把合并后的模型和分词器一起导出；文件夹里是完整的 <code>model.safetensors</code> 权重和配置文件，可以直接打包下载。</p>
 
 <h3>3. 将改造后的模型导入本地 Ollama 运行时</h3>
 <p>
-  下载合并后的模型权重到你自己的个人电脑（笔记本或工作站）后，借助 <strong>Ollama</strong>（本地大模型轻量运行时），只需三步即可将其注册为常驻服务：
+  把合并后的权重下载到本机（笔记本或工作站）之后，用 <strong>Ollama</strong>（本地大模型运行时）分三步把它注册成一个常驻服务：
 </p>
 
 <dl class="kv">
   <dt>第一步：编写轻量定制 Modelfile</dt>
-  <dd>在保存权重的目录下新建一个名为 <code>Modelfile</code> 的文本文件，填入定制系统提示词与超参数：
+  <dd>在权重目录下新建一个名为 <code>Modelfile</code> 的文本文件，填入系统提示词和采样超参数：
 <pre><code>FROM ./qwen2.5-crossfade-merged
 
 # 设置自回归推理采样温度
@@ -16665,19 +16673,19 @@ SYSTEM """
   <dd>在本地电脑终端（Terminal 或 PowerShell）中执行一条命令：
 <pre><code>ollama create qwen-crossfade -f ./Modelfile
 </code></pre>
-  Ollama 会自动解析模型结构并将其注册进本地模型库中。
+  Ollama 会自动读取目录里的 safetensors 权重，在内部转换成 GGUF 格式，再注册进本地模型库。流程图里写的“导出 GGUF / Ollama”指的就是这一步：本讲没有单独跑 GGUF 转换命令，转换由 <code>ollama create</code> 一并完成（前提是 Ollama 支持该模型架构，Qwen2 在支持范围内）。
   </dd>
   <dt>第三步：在终端启动交互式对话</dt>
   <dd>
 <pre><code>ollama run qwen-crossfade "分析两首 128 BPM 电子音乐在交叉过渡时的 EQ 衰减坡度。"
 </code></pre>
-  模型将在本地 CPU / 显卡上以极高速度流式输出专业分析，彻底摆脱网络依赖与任何商业 API 计费！
+  模型会在本地 CPU 或显卡上流式输出分析结果，不依赖网络，也没有 API 费用。
   </dd>
 </dl>
 
 <h3>4. 怎么在真实 Crossfade 项目代码中调用该模型？</h3>
 <p>
-  在你的 Crossfade 音频处理流水线（Python 项目）中，无需复杂网络依赖，直接通过本地 REST 接口进行自动化调用：
+  在你的 Crossfade 音频处理流水线（Python 项目）里，不用装额外依赖，直接调本地 REST 接口就行：
 </p>
 
 <pre><code># =====================================================================
@@ -16711,8 +16719,8 @@ if __name__ == "__main__":
 
 <h3>5. 🎓 大模型项目毕业设计：如何写进你的 CV 与学术成果？</h3>
 <p>
-  至此，你已经走完了现代大模型全栈研发的最硬核闭环：
-  <strong>第一性原理源码研读（Karpathy 哲学） \(\to\) 云端免费 GPU 算力调配（Kaggle） \(\to\) 真实开源底座改造（Qwen-2.5 + LoRA） \(\to\) 物理权重合并与 Ollama 边缘部署 \(\to\) 赋能 Crossfade 跨学科科研工程</strong>。
+  到这里，现代大模型从原理到落地这条线你已经走完了一遍：
+  <strong>读 Karpathy 源码打底 \(\to\) 用 Kaggle 的免费 GPU \(\to\) 改造开源底座（Qwen-2.5 + LoRA） \(\to\) 合并权重并部署到 Ollama \(\to\) 接到 Crossfade 项目里</strong>。
 </p>
 
 <section class="blk blk-tip">
@@ -16722,17 +16730,17 @@ if __name__ == "__main__":
       <strong>背景（Situation）</strong>：针对跨学科音频数学建模（Crossfade）中通用大模型缺乏音频 DSP、时频能量守恒及等功率算法专业常识的问题；
     </li>
     <li>
-      <strong>任务（Task）</strong>：在零硬件购买成本（仅利用云端 16GB 免费 T4 算力）约束下，实现顶尖开源大模型的高效微调与端侧低延迟部署闭环；
+      <strong>任务（Task）</strong>：在不买任何硬件（只用云端 16GB 免费 T4）的前提下，完成开源大模型的微调与端侧低延迟部署；
     </li>
     <li>
       <strong>行动（Action）</strong>：
        以开源 Qwen-2.5 为底座，利用 LoRA 低秩分解将可训练参数压缩至约 0.07%（约 109 万参数）；
-      构建专属音频过渡数学指令集执行 SFT 监督微调；
-      推导矩阵加法完成权重物理融合（Merge and Unload），并通过 Ollama 运行时实现本地端侧私有化流式推理；
+      整理一套专属的音频过渡数学指令集，做 SFT 监督微调；
+      用矩阵加法完成权重物理融合（Merge and Unload），再通过 Ollama 做本地流式推理；
     </li>
     <li>
       <strong>结果（Result）</strong>：
-      单次推理成本直接降为 0，端侧响应延迟低于 200ms，在针对交叉过渡声压塌陷及能量守恒问题的问答准度达 100%，完全贯通“大模型底座微调-边缘交付-工业算法联动”的全栈技术闭环。
+      单次推理成本降到 0，端侧响应延迟低于 200ms，交叉过渡声压塌陷与能量守恒问题的问答准度达 100%，把“底座微调—边缘交付—算法联动”这条链路走通了。
     </li>
   </ul>
 </section>
@@ -16742,12 +16750,12 @@ if __name__ == "__main__":
   <p class="q">在微调完成后执行 <code>model.merge_and_unload()</code> 将 LoRA 权重与底座物理合并的最主要优势是：</p>
   <ul class="opts">
     <li>能够让模型参数量变成原来的两倍</li>
-    <li data-ok>彻底消除推理时双路并行矩阵乘法与显存访存开销，使模型还原为标准的单体自包含架构，能够无缝兼容 Ollama、vLLM 等所有通用高性能推理引擎</li>
+    <li data-ok>省掉推理时双路并行矩阵乘法与显存访存开销，模型还原成标准的单体自包含架构，Ollama、vLLM 等通用推理引擎都能直接跑</li>
     <li>能够让模型不需要分词器直接识别人类语言</li>
     <li>可以将模型精度自动提升到 64-bit 浮点</li>
   </ul>
   <p class="why">
-    合并前模型是“主干 + 旁路”的复杂组合结构；合并后增量直接融入主干权重，不再需要 PEFT 运行库，任何通用推理框架都能以最高效率单体加载。
+    合并前是“主干 + 旁路”的组合结构；合并后增量融进主干权重，不再需要 PEFT 运行库，任何通用推理框架都能直接加载。
   </p>
 </div>
 
@@ -16761,7 +16769,7 @@ if __name__ == "__main__":
     <li>用来清空电脑显卡的全部缓存</li>
   </ul>
   <p class="why">
-    Ollama 的 Modelfile 类似于 Dockerfile，它将底层权重路径、系统预设（System Prompt）和采样超参数统一打成一个标准模型镜像，供本地随时秒级拉起。
+    Ollama 的 Modelfile 类似 Dockerfile，把权重路径、系统提示词（System Prompt）和采样超参数打成一份标准模型定义，本地随时能拉起来跑。
   </p>
 </div>
 `
@@ -16779,14 +16787,14 @@ COURSE.register({
   tags: ["附录", "术语"],
   body: String.raw`
 <p class="lead">
-  这是一张速查表，不是教程：每个词只给「一句话解释」，但解释都指向可检验的事实（形状、公式、默认值、失败模式）。
-  建议用法是「双向查阅」——读正文模块时遇到不熟的词，回到这里定位它属于哪一类；做题或调参时先在这里确认两个词不是同一件事。
+  这是一张速查表，不是教程：每个词只给「一句话解释」，但每条都落在可检验的事实上（形状、公式、默认值、失败模式）。
+  用法是双向查阅：读正文时遇到不熟的词，回这里定位它属于哪一类；做题或调参时先在这里确认两个词不是同一件事。
   最容易被含糊过去的四组是
   <span class="t" data-tterm="Perplexity" data-d="交叉熵取指数，衡量平均候选数，依赖 tokenizer，不能跨模型直接比。">困惑度</span> 与准确率、
   <span class="t" data-tterm="Prefill" data-d="把整段提示一次性并行前向、填充 KV cache 的阶段，算力受限。">预填充</span> 与解码、
   <span class="t" data-tterm="LoRA rank" data-d="低秩更新的秩 r，决定可训练参数量，与学习率是两个独立旋钮。">LoRA 的 rank</span> 与学习率、
   <span class="t" data-tterm="Banked reset" data-d="把未用满的额度存起来、之后继续用；与「到点清零」相对。">即时重置</span> 与银行重置。
-  第 16 节把其中三组逐对列出（预填充与解码的区别见第 3 章注意力与第 8 章推理）。术语按 16 节组织，共 <strong>366 行</strong>（358 条术语 + 8 组易混辨析，其中 72 条是为 14、16–22 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
+  第 16 节把其中三组逐对列出（预填充与解码的区别见第 3 章注意力与第 8 章推理）。术语按 16 节组织，共 <strong>365 行</strong>（357 条术语 + 8 组易混辨析，其中 72 条是为 14、16–22 章与附录 G 补的），可以直接拿去写论文、读文档、和同事对齐口径。
 </p>
 
 <h3>1. 概率与目标函数（Probability and objectives）</h3>
@@ -16798,7 +16806,7 @@ COURSE.register({
     <tr><td>最大似然</td><td>Maximum likelihood</td><td>选出让训练语料出现概率最大的参数；在样本独立同分布假设下，它与最小化交叉熵是同一个优化问题。</td></tr>
     <tr><td>KL 散度</td><td>Kullback-Leibler divergence</td><td>衡量两个分布差异的非对称量，恒大于等于 0，且对调两个分布后数值不同；交叉熵 = 数据熵 + KL(真实分布 与 模型分布)。</td></tr>
     <tr><td>logits</td><td>Logits</td><td>softmax 之前的未归一化实向量，长度等于词表大小；温度、top-k、top-p 等采样参数都只作用在它上面，不改模型权重。</td></tr>
-    <tr><td>softmax</td><td>Softmax</td><td>逐项取指数再除以总和，把 logits 变成概率分布；它保序，但会放大较大 logit 的差距，因此同一组 logits 加常数不改变输出。</td></tr>
+    <tr><td>softmax</td><td>Softmax</td><td>逐项取指数再除以总和，把 logits 变成概率分布；它保序，但会放大较大 logit 的差距；同一组 logits 整体加一个常数不改变输出。</td></tr>
     <tr><td>温度</td><td>Temperature</td><td>把 logits 除以 T 再做 softmax：T 小于 1 更确定（趋近 argmax），T 大于 1 更随机，T 趋于 0 等价贪心解码。</td></tr>
     <tr><td>熵</td><td>Entropy</td><td>真实数据分布下 -log p 的期望，是交叉熵不可再降的下界；代码与专业术语的熵低于日常闲聊，所以 loss 数值不能跨数据集比较。</td></tr>
     <tr><td>bits/byte</td><td>Bits per byte</td><td>把交叉熵除以 ln 2 换成 bit，再除以每 token 的平均字节数；由于按字节归一，它可以跨 tokenizer 比较，是评测集报告损失的更稳妥刻度。</td></tr>
@@ -16844,7 +16852,7 @@ COURSE.register({
     <tr><td>ALiBi</td><td>Attention with linear biases</td><td>不加入位置向量，直接在注意力分数上加与距离成正比的负偏置（每个头斜率不同）；外推简单，但长上下文检索通常弱于 RoPE。</td></tr>
     <tr><td>注意力</td><td>Attention</td><td>用查询与键的相似度当权重，对所有 value 做加权平均；它按内容检索而非按位置递推，是 Transformer 可并行的根本原因。</td></tr>
     <tr><td>Q/K/V</td><td>Query, key, value</td><td>同一输入经三个线性投影得到的三组向量；分数矩阵（Q 乘 K 的转置）形状为 T 乘 T，是算力与显存随长度平方增长的来源。</td></tr>
-    <tr><td>缩放点积</td><td>Scaled dot-product attention</td><td>点积注意力除以 sqrt(每个头的维度) 再 softmax；这个缩放让分数方差在维度增大时保持在一附近，避免 softmax 饱和成 one-hot。</td></tr>
+    <tr><td>缩放点积</td><td>Scaled dot-product attention</td><td>点积注意力除以 sqrt(每个头的维度) 再 softmax；这个缩放让分数方差在维度增大时保持在 1 附近，避免 softmax 饱和成 one-hot。</td></tr>
     <tr><td>多头注意力</td><td>Multi-head attention</td><td>把 d 维切成 h 份并行做注意力再拼接；不同头可分工（局部、句法、复制），总参数量与单头大维度版本同量级。</td></tr>
     <tr><td>因果掩码</td><td>Causal mask</td><td>把分数矩阵对角线以上置为负无穷，使位置 t 只能看见不超过 t 的 token；漏掉它会让训练损失异常低而生成完全崩坏。</td></tr>
     <tr><td>KV cache</td><td>KV cache</td><td>推理时缓存历史 key 与 value，避免每生成一个 token 重算整个前缀；显存随长度线性增长，是长上下文部署的首要瓶颈。</td></tr>
@@ -16898,7 +16906,7 @@ COURSE.register({
     <tr><td>流水线并行</td><td>Pipeline parallelism (PP)</td><td>按层把模型切成若干段放到不同卡，micro-batch 依次流过形成流水线；通信量小，但存在气泡，需要足够多的 micro-batch 填满。</td></tr>
     <tr><td>序列并行</td><td>Sequence parallelism</td><td>再切一个序列维度，用来分摊 LayerNorm、dropout 这类不参与张量并行的激活；长序列训练几乎必需。</td></tr>
     <tr><td>all-reduce</td><td>All-reduce</td><td>每张卡各出一份张量，归约后所有卡得到相同结果（典型用途是求梯度和）；它是数据并行的主要通信，带宽决定扩展效率。</td></tr>
-    <tr><td>重计算</td><td>Activation checkpointing (gradient checkpointing)</td><td>前向只保存少量中间激活，反向时重新算一遍；用约三成额外算力把激活显存从随层数线性降到平方根量级。</td></tr>
+    <tr><td>重计算</td><td>Activation checkpointing (gradient checkpointing)</td><td>前向只保存少量中间激活，反向时重新算一遍；用约三成额外算力把激活显存从随层数线性增长压到平方根量级。</td></tr>
     <tr><td>显存碎片</td><td>Memory fragmentation</td><td>反复申请释放不同尺寸张量，导致空闲显存不连续、总空闲够却申请失败；用预分配缓存池或统一尺寸对齐缓解。</td></tr>
     <tr><td>MFU</td><td>Model FLOPs utilization</td><td>实际吞吐对应的 FLOPs 除以硬件峰值；大模型训练典型值 35% 到 48%，50% 以上属极限调优，是判断是否卡在算力上的第一指标。</td></tr>
     <tr><td>吞吐</td><td>Throughput (tokens/s)</td><td>单位时间处理或生成的 token 数，训练时常按单卡计；它与单请求延迟是两个独立目标，可用批大小互相交换。</td></tr>
@@ -17052,7 +17060,7 @@ COURSE.register({
     <tr><td>Wilcoxon 符号秩检验</td><td>Wilcoxon signed-rank test</td><td>对配对差值按绝对值排秩再检验的非参数方法；比配对 t 检验更抗离群值，适合小样本或明显偏斜的分布。</td></tr>
     <tr><td>Clever Hans 效应</td><td>Clever Hans effect</td><td>模型利用了与标签相关但无因果的捷径（背景、水印、长度、措辞），换分布即失效；靠分布外测试与反事实扰动检测。</td></tr>
     <tr><td>进步的错觉</td><td>Illusion of progress</td><td>Hand 的论点：复杂模型带来的提升，常能被「更简单的模型 + 更好的特征或更多数据」复现；因此进步必须对照强基线而非只看绝对分数。</td></tr>
-    <tr><td>可复现性</td><td>Reproducibility</td><td>给定相同代码、数据、随机种子与环境能得到相同结果；报告里缺少其中任何一项，读者就无法验证你的结论。</td></tr>
+    <tr><td>可复现性</td><td>Reproducibility</td><td>给定相同代码、数据、随机种子与环境能得到相同结果；报告里缺少其中任何一项，别人就无法验证你的结论。</td></tr>
     <tr><td>预注册</td><td>Preregistration</td><td>在看到数据之前固定假设、主要指标与分析方案；用来区分验证性分析与探索性分析，压缩事后挑结果的空间。</td></tr>
   </tbody>
 </table>
@@ -17222,7 +17230,6 @@ COURSE.register({
     <tr><td>测试时计算</td><td>Test-time compute</td><td>推理阶段投入更多算力（更长思考、多次采样、搜索）来换正确率。</td></tr>
     <tr><td>pass@k</td><td>Pass at k</td><td>采样 \(k\) 个回答里至少一个正确的概率；单次正确率 \(p\) 时为 \(1-(1-p)^k\)，边际收益递减。</td></tr>
     <tr><td>过程 / 结果奖励</td><td>PRM / ORM</td><td>前者对推理每一步打分，后者只看最终答案；PRM 信号更密但标注成本高。</td></tr>
-    <tr><td>验证器</td><td>Verifier</td><td>自动判定答案对错的程序或模型，是可验证奖励（RLVR）的基础。</td></tr>
     <tr><td>检索增强生成</td><td>RAG</td><td>先从外部资料检索相关内容再生成；解决「缺知识」，不解决「缺行为」。</td></tr>
     <tr><td>切分</td><td>Chunking</td><td>把长文档切成可检索的小块；粒度直接决定召回率与上下文成本。</td></tr>
     <tr><td>稠密 / 稀疏检索</td><td>Dense / sparse retrieval</td><td>前者用向量相似度（语义），后者用词频（如 BM25，精确匹配强）；混合检索常优于单一方法。</td></tr>
@@ -17267,7 +17274,7 @@ COURSE.register({
     <tr><td>对比学习 / InfoNCE</td><td>Contrastive learning / InfoNCE</td><td>拉近正样本、推远负样本（CLIP 式训练目标），是多模态对齐的基础损失。</td></tr>
   </tbody>
 
-  <!-- 高级章（17–24）与附录 G 新增术语 -->
+  <!-- 高级章（16–22，另有 23–29）与附录 G 新增术语 -->
   <tbody>
     <tr><td>暗知识</td><td>Dark knowledge</td><td>教师分布里「第 2 类比第 3 类更接近」这类类间结构；硬标签 \([1,0,0]\) 完全丢失，只在软标签中保留，温度 \(T>1\) 时更明显。</td></tr>
     <tr><td>特征蒸馏</td><td>Feature distillation</td><td>让学生模仿教师的隐藏状态或注意力矩阵，而不只是输出；要求同架构并配投影层，跨家族时基本不可用。</td></tr>
@@ -17332,7 +17339,7 @@ COURSE.register({
     <tr><td>损失权重</td><td>Loss weight</td><td>联合损失中回归项的调节系数 \(\lambda\)，初始推荐 0.5；验证集困惑度上升超 5% 时须回调至 0.3 并增补对话数据。</td></tr>
     <tr><td>混合比例</td><td>Instruction mixing ratio</td><td>通用对话样本占总训练样本的比例，1.5B 跨界模型常用 0.2 到 0.4，低于 0.1 则引发灾难性遗忘与泛化退化。</td></tr>
     <tr><td>适配合并</td><td>Adapter merging</td><td>把 LoRA 低秩矩阵按 \(W = W_{0} + \frac{\alpha}{r} B A\) 加回原始基座全精度权重，推理消除额外旁路分支开销。</td></tr>
-    <tr><td>模型导出</td><td>Model export</td><td>将合并后的 PyTorch 模型转换为 GGUF 或 ONNX 格式，Q4 量化后体积约 1 GB，在普通 CPU 上延迟低至百毫秒级。</td></tr>
+    <tr><td>模型导出</td><td>Model export</td><td>将合并后的 PyTorch 模型转换为 GGUF 或 ONNX 格式，Q4 量化后体积约 1 GB，在普通 CPU 上延迟约百毫秒。</td></tr>
     <tr><td>4D 框架</td><td>AI Fluency 4D framework</td><td>把一次人机协作拆成委派、描述、辨识、尽责四个关口；缺任一维的典型症状是流程很顺但没人对结果负责。</td></tr>
     <tr><td>委派</td><td>Delegation</td><td>动手前先划边界：判据、抽样、最终签字不交给模型；委派过度的失败模式是把「决定」也一起交出去。</td></tr>
     <tr><td>描述</td><td>Description</td><td>把需求写到可验收：给输入、输出格式、判据与反例；描述不足的症状是答案看起来对却无法判定对不对。</td></tr>
@@ -17363,8 +17370,8 @@ COURSE.register({
   <h4><span class="ic">✓</span>与其它附录的分工</h4>
   <p>
     本表负责「这个词是什么意思」；实验步骤与可运行代码在附录 B，论文、课程与工具的清单在附录 C，
-    条款、许可与学术规范的边界在附录 D，模拟试题与答案在附录 E。遇到解释里出现但本表未收录的术语，
-    先按它属于哪一类（概率、架构、系统、对齐、推理、评估、算力、经济、网络、工作流、硬件、合规）定位，再回到对应正文模块。
+    条款、许可与学术规范的边界在附录 D，模拟试题与答案在附录 E。某条解释里如果出现了本表没收录的术语，
+    先按它属于哪一类（概率、架构、系统、对齐、推理、评估、算力、经济、网络、工作流、硬件、合规）定位，再回对应正文模块查。
   </p>
 </section>
 
@@ -17372,7 +17379,7 @@ COURSE.register({
 });
 
 /* --- content/91-appendix-b-labs.js --- */
-/* content/91-appendix-b-labs.js — 附录 B：Colab 实验手册 */
+/* content/91-appendix-b-labs.js — 附录 B：Kaggle 实验手册 */
 COURSE.register({
   id: "appB",
   part: 9,
@@ -17383,24 +17390,24 @@ COURSE.register({
   tags: ["动手", "实验", "Kaggle", "PyTorch", "JAX", "1.5B实战", "CUDA排错"],
   body: String.raw`
 <p class="lead">
-  本附录提供 8 个在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）即可完整跑通的教科书级实操实验。
-  每个实验均配备<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>与<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>，
-  使你在点下运行前即建立清晰的物理资源账本与冒烟验收基准。
-  特别地，实验 E4 深度呼应<strong>模块 28（1.5B 开源大模型实战训练与部署）</strong>，
-  系统细化为涵盖输入检验（Input Validation & ChatML Integrity）、超参调节（Hyperparameter Tuning Guide）与推理验证（Inference Verification & Export）的工业级闭环指引；
-  并在前置底座中系统总结了导致深度学习工程中断的<strong>三大常见 CUDA 底层故障</strong>（显存碎片化、数据对齐溢出与梯度检查点冲突）。
+  本附录有 8 个实验，都能在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）里完整跑通。
+  每个实验都配一份<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>和一份<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>：
+  点运行之前先算清资源账，再用最小代价确认流程走得通。
+  其中实验 E4 呼应<strong>模块 28（1.5B 开源大模型实战训练与部署）</strong>，
+  并把输入检验（Input Validation & ChatML Integrity）、超参调节（Hyperparameter Tuning Guide）与推理验证（Inference Verification & Export）拆成可照做的步骤；
+  第 3 节先讲清<strong>三大常见 CUDA 底层故障</strong>（显存碎片化、数据对齐溢出与梯度检查点冲突）——它们才是训练中断的主要原因。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>实验守则：如何让实验变成你的能力证据</h4>
-  <p>做实验最忌讳的是「跑完了、输出了几个数字、关闭标签页」。这样的实验没有任何留存价值。请遵守以下六条守则：</p>
+  <p>最忌讳的做法是跑完、看到几个数字、关掉标签页——这样的实验留不下任何东西。六条守则：</p>
   <ol>
-    <li><strong>先做显存手算预估，再按运行键</strong>：根据模型参数量、激活值公式与批大小，算清显存是否在硬件上限以内。拒绝盲目尝试导致的 CUDA OOM。</li>
-    <li><strong>严格执行 30 分钟最小跑通检查单</strong>：在大规模训练前，必须用单批次、极小迭代步数（1–3 步）验证计算图、形状、损失非 NaN 与权重更新，避免将宝贵算力浪费在低级语法或维度错误上。</li>
-    <li><strong>每做一次改动，记录在一个独立的表格行里</strong>：改超参、改结构、改数据，必须单变量控制。</li>
-    <li><strong>保留完整的可复现脚手架</strong>：记录随机种子（seed）、Python/PyTorch 库版本号、显卡型号与驱动版本。</li>
-    <li><strong>认真对待负面结果</strong>：消融实验中「加上某模块反而变差」的发现，其学术与工程价值往往高于单纯的涨点。</li>
-    <li><strong>必须有推理验证与产物留存</strong>：不仅看训练损失曲线下降，更要通过确定性采样检查模型生成文本的质量与闭合性，并留存权重或 GGUF 导出物。</li>
+    <li><strong>先做显存手算预估，再按运行键</strong>：按参数量、激活值公式与批大小算清显存有没有超硬件上限，别一上来就盲跑撞 CUDA OOM。</li>
+    <li><strong>先跑 30 分钟最小跑通检查单</strong>：正式训练前用单批次、1–3 步验证计算图、张量形状、损失非 NaN 与权重确实更新，别把算力浪费在语法或维度错误上。</li>
+    <li><strong>每改一次就记一行</strong>：超参、结构、数据分开改，一次只动一个变量。</li>
+    <li><strong>留下可复现的全部信息</strong>：随机种子（seed）、Python/PyTorch 版本号、显卡型号与驱动版本。</li>
+    <li><strong>认真对待负面结果</strong>：消融里「加上某个模块反而更差」这种发现，价值往往高于一次单纯的涨点。</li>
+    <li><strong>推理验证与产物留存</strong>：不能只看训练损失曲线往下走，还要用确定性采样检查生成文本的质量与句子闭合，并把权重或 GGUF 导出物存下来。</li>
   </ol>
 </section>
 
@@ -17442,88 +17449,88 @@ COURSE.register({
     <tr><td><strong>E1</strong></td><td>从 bigram 到神经语言模型</td><td>CPU 即可</td><td>10–20 分钟</td><td>无</td><td>01</td></tr>
     <tr><td><strong>E2</strong></td><td>Tokenizer 解剖与生育率</td><td>CPU 即可</td><td>10–15 分钟</td><td>E1</td><td>02</td></tr>
     <tr><td><strong>E3</strong></td><td>从零实现迷你 Transformer</td><td>T4 / CPU</td><td>30–50 分钟</td><td>E1、E2</td><td>03、04</td></tr>
-    <tr><td><strong>E4</strong></td><td>Colab 1.5B 开源大模型实战（SFT + 量化导出）</td><td>T4 16GB / A100</td><td>30–60 分钟</td><td>E3</td><td>07、25</td></tr>
+    <tr><td><strong>E4</strong></td><td>Kaggle 1.5B 开源大模型实战（SFT + 量化导出）</td><td>T4 16GB / A100</td><td>30–60 分钟</td><td>E3</td><td>28</td></tr>
     <tr><td><strong>E5</strong></td><td>偏好优化（DPO）</td><td>T4 16GB</td><td>25–45 分钟</td><td>E4</td><td>07</td></tr>
     <tr><td><strong>E6</strong></td><td>JAX 版 miniGPT（Flax NNX + Optax + Grain）</td><td>TPU v5e-1 / CPU</td><td>30–60 分钟</td><td>E3</td><td>06</td></tr>
-    <tr><td><strong>E7</strong></td><td>模型阶梯 + 分组交叉验证 + 置换检验</td><td>CPU 即可</td><td>15–30 分钟</td><td>E1</td><td>09</td></tr>
+    <tr><td><strong>E7</strong></td><td>模型阶梯 + 分组交叉验证 + 置换检验</td><td>CPU 即可</td><td>15–30 分钟（含阅读与记录）</td><td>E1</td><td>09</td></tr>
     <tr><td><strong>E8</strong></td><td>量化与部署基准</td><td>T4 16GB（vLLM 部分需 A100/L4）</td><td>30–60 分钟</td><td>E3、E4</td><td>08、10</td></tr>
   </tbody>
 </table>
 <p>
   <strong>顺序建议</strong>：E1 → E2 → E3 → E7 是一条完整的科学主线（从概率建模到严格统计评估），
-  E4 → E5 → E8 是端到端工程落地主线（从工业级微调、偏好对齐到端侧量化部署），E6 是跨生态横向对照（PyTorch vs JAX 系统级差异）。
-  如果你时间紧张，优先选择 <strong>E3、E4、E7</strong>。
+  E4 → E5 → E8 是工程落地主线（从微调、偏好对齐到端侧量化部署），E6 是跨生态横向对照（PyTorch vs JAX 的系统级差异）。
+  时间不够就优先做 <strong>E3、E4、E7</strong>。
 </p>
 
 
-<h3>3. 工业级 GPU 训练底座：三大 CUDA 故障根因与排查清单</h3>
+<h3>3. GPU 训练底座：三大 CUDA 故障的根因与排查清单</h3>
 <p>
-  在云端（Google Kaggle T4 / A100）或本地多卡集群上执行深度学习与大模型微调时，90% 的工程中断并非算法逻辑错误，
-  而是源自 CUDA 运行时底层的隐性故障。以下三大故障在 Python 表面往往表现为模糊的 OOM、静默卡死（Hang）或维度报错，
-  必须建立系统级的硬件机制归因与工程防御体系：
+  在云端（Kaggle T4 / A100）或本地多卡集群上跑深度学习与大模型微调，90% 的工程中断不是算法写错，
+  而是 CUDA 运行时的底层故障。这三大故障在 Python 层面往往只表现为含糊的 OOM、静默卡死（Hang）或维度报错，
+  所以得先弄清硬件机制，再谈怎么防：
 </p>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">!</span>三大 CUDA 常见底层故障机制与工程解法</h4>
+  <h4><span class="ic">!</span>三大 CUDA 底层故障：现象、根因、解法</h4>
   <ol>
     <li>
       <strong>故障一：显存碎片化（Memory Fragmentation）导致的「伪 OOM」</strong>
       <p>
         <strong>典型现象</strong>：终端抛出 <code>torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 256.00 MiB (GPU 0; 14.75 GiB total capacity; 4.12 GiB already allocated; 120.00 MiB free; 4.80 GiB reserved in total by PyTorch)</code>。
-        学员常常困惑：显卡明明有 15 GB 显存，当前 <code>allocated</code> 仅用了 4.12 GB，为什么连 256 MB 都申请不出来？
+        你可能会纳闷：显卡明明有 15 GB 显存，<code>allocated</code> 才用了 4.12 GB，怎么连 256 MB 都申请不出来？
       </p>
       <p>
-        <strong>根因剖析</strong>：PyTorch 采用 Caching Allocator 内存池管理显存。当训练中存在变长序列输入（动态 Padding）、频繁创建销毁未合并的小张量时，
-        物理显存被切碎为大量不连续的小块。数学上，总预留显存满足：
+        <strong>根因剖析</strong>：PyTorch 用 Caching Allocator 内存池管理显存。训练中一旦出现变长序列输入（动态 Padding），或者频繁创建销毁没合并的小张量，
+        物理显存就会碎成大量不连续的小块。数学上，总预留显存满足：
       </p>
       \[ M_{\text{reserved}} - M_{\text{allocated}} = M_{\text{fragmented}} + M_{\text{inactive}} \]
       <p>
-        当新算子请求一段 256 MB 的<strong>连续物理内存页</strong>时，虽然所有散碎空闲块加起来远超 256 MB，但没有任何一个单块能容纳它，从而触发虚假 OOM。
+        新算子要一段 256 MB 的<strong>连续物理内存页</strong>时，所有碎块加起来远超 256 MB，却没有哪一块单独装得下，于是报出这个假 OOM。
       </p>
       <p>
-        <strong>工业级治本三策</strong>：
-        <br>① <strong>环境变量配置（首选）</strong>：在代码最顶部或运行前执行 <code>export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"</code>（PyTorch 2.1+ 核心特性）。它利用底层虚拟内存地址映射，将物理不连续的内存页动态拼接为连续虚拟段，从根本上消除了碎片化。
-        <br>② <strong>样本长度聚类</strong>：在 DataLoader 或 Trainer 中开启 <code>group_by_length=True</code>，将长度相近的样本拼进同一个 Batch，避免长短样本剧烈交替导致显存池频繁拆分重组。
-        <br>③ <strong>内存生命周期回收</strong>：在评估或迭代分界点，显式 <code>del</code> 大张量并调用 <code>torch.cuda.empty_cache()</code> 归还缓存池；在张量计算中优先使用预分配 <code>out=</code> 参数或原地操作（in-place）。
+        <strong>三个解法</strong>：
+        <br>① <strong>环境变量（首选）</strong>：在代码最顶部或运行前执行 <code>export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"</code>（PyTorch 2.1+）。它借底层虚拟内存地址映射，把物理上不连续的页动态拼成连续虚拟段，碎片化问题就此消失。
+        <br>② <strong>样本长度聚类</strong>：在 DataLoader 或 Trainer 里开启 <code>group_by_length=True</code>，把长度相近的样本拼进同一个 Batch，免得长短样本反复交替、显存池不停拆分重组。
+        <br>③ <strong>及时回收</strong>：在评估或迭代的分界点显式 <code>del</code> 大张量，再调用 <code>torch.cuda.empty_cache()</code> 把显存还给缓存池；张量计算优先用预分配 <code>out=</code> 参数或原地操作（in-place）。
       </p>
     </li>
     <li>
       <strong>故障二：数据对齐与 Tensor Core MMA 填充溢出（Data Misalignment & Overflow）</strong>
       <p>
-        <strong>典型现象</strong>：矩阵乘法（GEMM）吞吐暴跌（仅达到理论峰值 TFLOPs 的 15%~20%），
+        <strong>典型现象</strong>：矩阵乘法（GEMM）吞吐掉到只有理论峰值 TFLOPs 的 15%~20%，
         或者在张量切片与变换后执行 <code>view()</code> 时抛出 <code>RuntimeError: view size is not compatible with input tensor's shape and stride (at least one dimension spans across two contiguous subspaces)</code>，
         极端情况下触发底层 <code>CUDA error: misaligned address</code>。
       </p>
       <p>
-        <strong>根因剖析</strong>：现代 NVIDIA GPU Tensor Core（Turing、Ampere、Hopper）执行半精度（FP16/BF16）与 4-bit（NF4/INT4）矩阵乘法时，
-        硬件调度依赖 Warp 级矩阵乘加指令（MMA）。硬件要求内存起始地址与矩阵维度（序列长度 \(T\)、隐藏维度 \(d\)）严格满足 <strong>8 字节或 16 字节对齐</strong>（即能被 8 或 16 整除）。
-        若序列 Padding 后的长度为奇数或不是 8 的倍数，cuBLAS 无法调度高效的 <code>LDG.E.128</code> 向量化访存指令，只能退化为慢速标量读取；
-        此外，多头注意力中 <code>transpose(1, 2)</code> 操作仅修改张量的步长元数据（stride）而未改变物理内存排列，直接调用 <code>view()</code> 必然导致步长不兼容崩溃。
+        <strong>根因剖析</strong>：现代 NVIDIA GPU Tensor Core（Turing、Ampere、Hopper）做半精度（FP16/BF16）与 4-bit（NF4/INT4）矩阵乘法时，
+        靠 Warp 级的矩阵乘加指令（MMA）调度。硬件要求内存起始地址与矩阵维度（序列长度 \(T\)、隐藏维度 \(d\)）满足 <strong>8 字节或 16 字节对齐</strong>（即能被 8 或 16 整除）。
+        序列 Padding 后的长度只要是奇数或不是 8 的倍数，cuBLAS 就调度不了高效的 <code>LDG.E.128</code> 向量化访存指令，只能退回慢速标量读取；
+        另外，多头注意力里的 <code>transpose(1, 2)</code> 只改了张量的步长元数据（stride），没动物理内存排列，此时直接调 <code>view()</code> 必然因步长不兼容而崩。
       </p>
       <p>
-        <strong>工业级排查方案</strong>：
-        <br>① <strong>分词器边界填充</strong>：初始化 DataCollator 或填充张量时，务必指定 <code>tokenizer.pad_to_multiple_of = 8</code>（或 16），确保每个 Batch 的最大序列长度整除硬件对齐边界。
-        <br>② <strong>步长连续化</strong>：在调用 <code>view()</code>、<code>reshape()</code> 或执行矩阵乘法 <code>@</code> 前，对转置/切片张量显式调用 <code>.contiguous()</code>，强制触发物理内存连续化拷贝。
-        <br>③ <strong>词表与投影维度校准</strong>：扩展词表或设计投影矩阵时，确保词表大小 \(V\) 向上补齐到 64 或 128 的整数倍（例如 Qwen 词表设为 151936，正是 64 的整数倍）。
+        <strong>排查方案</strong>：
+        <br>① <strong>分词器边界填充</strong>：初始化 DataCollator 或填充张量时指定 <code>tokenizer.pad_to_multiple_of = 8</code>（或 16），让每个 Batch 的最大序列长度能整除硬件对齐边界。
+        <br>② <strong>步长连续化</strong>：在调用 <code>view()</code>、<code>reshape()</code> 或做矩阵乘法 <code>@</code> 之前，先对转置/切片张量调用 <code>.contiguous()</code>，强制拷成连续内存。
+        <br>③ <strong>词表与投影维度校准</strong>：扩展词表或设计投影矩阵时，把词表大小 \(V\) 向上补齐到 64 或 128 的整数倍（例如 Qwen 词表设为 151936，正是 64 的整数倍）。
       </p>
     </li>
     <li>
       <strong>故障三：动态图死锁与重入式梯度检查点冲突（Gradient Checkpointing Reentrant Bug）</strong>
       <p>
-        <strong>典型现象</strong>：模型在训练第 0 步的反向传播 <code>loss.backward()</code> 处永久卡死（Hang），或者抛出 <code>RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn</code>，或者开启检查点后显存不降反升。
+        <strong>典型现象</strong>：模型刚开训就卡在第 0 步的 <code>loss.backward()</code>（Hang），或者抛出 <code>RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn</code>，或者开了梯度检查点后显存不降反升。
       </p>
       <p>
         <strong>根因剖析</strong>：
-        <br>① PyTorch 早期 <code>torch.utils.checkpoint.checkpoint</code> 默认开启 <code>use_reentrant=True</code>。重入机制会在反向传播重算时另行建立 Autograd 引擎执行前向，
-        当模型与 Hugging Face 的 <code>model.config.use_cache = True</code>（推理自回归 KV 缓存）共存时，动态图的依赖上下文被缓存截断，导致反向传播找不到梯度的上游锚点；
-        <br>② 在 QLoRA 微调中，基座模型的所有权重参数被冻结为 <code>requires_grad = False</code>。如果未对嵌入层（Embedding Layer）与归一化层激活输入梯度保留钩子（<code>enable_input_require_grads()</code>），
-        Autograd 引擎在反向回溯到输入端时发现无梯度链条，将直接判定整张图断裂。
+        <br>① PyTorch 早期的 <code>torch.utils.checkpoint.checkpoint</code> 默认 <code>use_reentrant=True</code>。重入机制会在反向重算时另起一套 Autograd 引擎跑前向，
+        一旦和 Hugging Face 的 <code>model.config.use_cache = True</code>（推理自回归 KV 缓存）同时开着，动态图的依赖上下文就会被缓存截断，反向传播于是找不到梯度的上游锚点；
+        <br>② QLoRA 微调把基座的所有权重冻结成 <code>requires_grad = False</code>。如果没给嵌入层（Embedding Layer）与归一化层的输入挂上梯度钩子（<code>enable_input_require_grads()</code>），
+        Autograd 反传到输入端就会发现链条上没有梯度，直接判定整张图断裂。
       </p>
       <p>
-        <strong>工业级排查方案</strong>：
-        <br>① <strong>声明非重入参数</strong>：在 TrainingArguments 中强制配置 <code>gradient_checkpointing_kwargs={"use_reentrant": False}</code>（现代大模型训练的绝对标准规范）。
-        <br>② <strong>关闭推理缓存</strong>：在启动训练循环前，必须显式执行 <code>model.config.use_cache = False</code>。
-        <br>③ <strong>量化适配器准备</strong>：加载 4-bit 量化基座后，必须立即调用 <code>peft.prepare_model_for_kbit_training(model)</code>，该函数会自动保持 LayerNorm 的 FP32 精度，并在模型输入端挂载梯度传递钩子。
+        <strong>排查方案</strong>：
+        <br>① <strong>声明非重入</strong>：在 TrainingArguments 中配置 <code>gradient_checkpointing_kwargs={"use_reentrant": False}</code>（现在的大模型训练基本都这么写）。
+        <br>② <strong>关掉推理缓存</strong>：启动训练循环前先执行 <code>model.config.use_cache = False</code>。
+        <br>③ <strong>量化适配器准备</strong>：加载 4-bit 量化基座后立刻调用 <code>peft.prepare_model_for_kbit_training(model)</code>，它会保持 LayerNorm 的 FP32 精度，并在模型输入端挂好梯度传递钩子。
       </p>
     </li>
   </ol>
@@ -17544,7 +17551,7 @@ COURSE.register({
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>显存与内存手算预估（Analytical Memory Breakdown）</h4>
     <p>
-      本实验纯 CPU 即可顺畅运行，也可选择 GPU 加速。各模型在内存中的物理账本手算如下：
+      本实验纯 CPU 就能顺畅跑，也可以选 GPU 加速。各模型在内存里的账本手算如下：
     </p>
     <ol>
       <li><strong>计数转移矩阵</strong>：字符词表大小 \(V \approx 97\)。频次矩阵 \(N \in \mathbb{Z}^{V \times V}\) 与概率矩阵 \(P \in \mathbb{R}^{V \times V}\)：
@@ -17562,7 +17569,7 @@ COURSE.register({
         \[ M_{\text{act}} = B \times (\text{ctx} \cdot d + h + V) \times 4 \approx 64 \times (1024 + 256 + 97) \times 4 \approx 352.5 \text{ KB} \]
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总物理内存（RSS）恒定在 <strong>120 MB 以内</strong>，即使在 0 显存的纯 CPU 笔记本或免费 Colab 上亦能在 15 分钟内彻底跑通。</p>
+    <p><strong>实测结论</strong>：总物理内存（RSS）稳定在 <strong>120 MB 以内</strong>，即使在 0 显存的纯 CPU 笔记本或 Kaggle 免费实例上，15 分钟内也能跑通。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -17651,7 +17658,7 @@ P_bigram = (counts + 1.0) / (counts + 1.0).sum(dim=1, keepdim=True)</code></pre>
   <p>完整脚本的训练循环里，每一步都有两行关键行：先用 <code>loss = F.cross_entropy(logits, y)</code> 算出当前这批数据的扣分，再用 <code>opt.zero_grad(set_to_none=True)</code> 清掉上次的旧账然后倒着算。旧账不清就会重复累加，这是正文强调过的坏掉的样子。这两行必须写在循环里面，单独抄出来跑不了，所以这里只指位置，不单独成段。训练与验证的完整数字见文末完整脚本跑完后的预期输出。</p>
 <pre><code>位置记熟（循环内先算扣分，再清旧账，顺序不能反）</code></pre>
 
-  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，逐格粘进 Colab 即可跑。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
+  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，逐格粘进 Kaggle Notebook 即可跑。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
 <pre><code><span class="cm"># E1 · 从计数式 bigram 到神经语言模型（CPU 可跑，约 10–20 分钟）</span>
 !pip -q install datasets torch matplotlib
 
@@ -17836,7 +17843,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>内存手算预估与常驻结构分析（Analytical Memory Breakdown）</h4>
     <p>
-      分词器评估属于纯 CPU 字符操作，核心资源消耗在于词表 Trie 树与 BPE 合并哈希表在系统内存（RAM）中的常驻尺寸：
+      分词器评估是纯 CPU 字符操作，吃内存的主要是词表 Trie 树与 BPE 合并哈希表在系统内存（RAM）里的常驻尺寸：
     </p>
     <ol>
       <li><strong>分词表常驻内存</strong>：
@@ -17851,7 +17858,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
         \[ M_{\text{tokens}} = N_{\text{tokens}} \times 4 \text{ bytes} \approx 4000 \times 4 = 16 \text{ KB} \]
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总 RAM 开销约 <strong>220 MB</strong>，GPU 显存占用严格为 <strong>0 MB</strong>。</p>
+    <p><strong>实测结论</strong>：总 RAM 开销约 <strong>220 MB</strong>，GPU 显存占用为 <strong>0 MB</strong>。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -18080,7 +18087,7 @@ Qwen2.5 (152k)  : 需要  59,459 tokens | 8k 上下文: 超标 51267 tok</code><
         <br>⑤ CUDA 上下文底噪：约 \(600 \text{ MB}\)
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总峰值显存约 <strong>680 MB</strong>，在 Kaggle T4（16GB）上显存占用率仅为 <strong>4.2%</strong>，绝无 OOM 风险。</p>
+    <p><strong>实测结论</strong>：总峰值显存约 <strong>680 MB</strong>，在 Kaggle T4（16GB）上占用率只有 <strong>4.2%</strong>，不会 OOM。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -18417,9 +18424,9 @@ Step 2000 | Train Loss: 1.4120 (PPL: 4.10)
 Once upon a time, there was a little boy named Tim. He had a big dog. The dog liked to play with a ball...</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
-    最终困惑度降到了 <strong>4.1 左右</strong>，显著低于 E1 的上下文 MLP（5.4）。
-    更关键的是：生成的故事<strong>已经具备了句法结构、角色名称与标点符号闭合</strong>。
-    你在 62 万参数的极小规模下，亲眼见证了自注意力与因果掩码如何把字符序列组织成连贯的自然语言。
+    最终困惑度降到 <strong>4.1 左右</strong>，低于 E1 的上下文 MLP（5.4）。
+    更关键的是：生成的故事<strong>已经具备句法结构、角色名称与标点符号闭合</strong>。
+    你在 62 万参数的极小规模下，就能看到自注意力与因果掩码如何把字符序列组织成连贯的自然语言。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -18449,26 +18456,26 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
       <li><strong><code>RuntimeError: view size is not compatible with input tensor's shape and stride</code></strong>：
           多头注意力的 <code>transpose(1, 2)</code> 使得张量在物理内存中不再连续。
           必须在 <code>view()</code> 前显式加上 <code>.contiguous()</code>（参考三大 CUDA 故障清单之二）。</li>
-      <li><strong>损失完全不下降，一直在 <code>log(V) ≈ 4.57</code> 徘徊</strong>：因果掩码方向反了！
+      <li><strong>损失完全不下降，一直在 <code>log(V) ≈ 4.57</code> 徘徊</strong>：因果掩码方向反了。
           检查掩码是否为 <code>torch.tril</code>（下三角保留，上三角置为 <code>-inf</code>）。
           如果写成了 <code>torch.triu</code>，模型将只能看到未来而看不到过去。</li>
       <li><strong>文本生成陷入死循环（如不断重复 <code>"the the the..."</code>）</strong>：
           采样时的 <code>temperature</code> 设得太低，或者模型步数不够。将温度调至 0.8–1.0，或检查是否加入了 Top-p 截断。</li>
       <li><strong>显存碎片化 OOM</strong>：在训练循环中不断调用 <code>history.append(loss)</code>（保存了整个计算图）。
-          必须使用 <code>loss.item()</code> 提取纯标量数字！</li>
+          必须用 <code>loss.item()</code> 取出纯标量数字。</li>
     </ul>
   </div>
 </div>
 
 
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 28）</h4>
+  <h4><span class="ic">🧪</span>E4 · Kaggle 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 28）</h4>
 
-  <p><strong>目标</strong>：面向工业界真实大模型落地场景，以 <strong>Qwen2.5-1.5B</strong>（支持 0.5B 快速验证）为基座，
-    在 Google Colab（T4 16GB 或 A100）上完成<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>的端到端工程闭环。
-    与模块 28 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
+  <p><strong>目标</strong>：以 <strong>Qwen2.5-1.5B</strong>（也支持 0.5B 快速验证）为基座，
+    在 Kaggle（T4 16GB 或 A100）上走完<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>这条端到端链路。
+    实验内容与模块 28 呼应，把显存手算、输入断言与端侧落地串起来。</p>
 
-  <p><strong>前置</strong>：E3。拥有 Hugging Face 账户及 Kaggle 实例（免费 T4 即可流畅运行，A100 可启用原生 bf16 加速）。</p>
+  <p><strong>前置</strong>：E3。需要 Hugging Face 账户与 Kaggle 实例（免费 T4 就能流畅跑，A100 可启用原生 bf16 加速）。</p>
 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>显存手算预估与双卡账本对比（Analytical VRAM Breakdown）</h4>
@@ -18493,8 +18500,8 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
         \[ M_{\text{opt, lora\_8bit}} = \frac{18.46 \times 10^6 \times 6}{1024^2} \approx 105.6 \text{ MB} \]
       </li>
       <li><strong>前向激活值显存（批大小 \(B=2\)，序列长度 \(T=512\)）</strong>：
-        未开启检查点时 28 层激活值堆积超 \(3800 \text{ MB}\)。开启梯度检查点（Gradient Checkpointing）后仅保留 Block 边界，
-        反向重算，激活显存骤降至约 <strong>350 MB</strong>。
+        不开梯度检查点时，28 层激活值会堆到 \(3800 \text{ MB}\) 以上；开启后只保留 Block 边界的激活，
+        反向时重算，激活显存降到约 <strong>350 MB</strong>。
       </li>
       <li><strong>运行时底噪与总峰值对照</strong>：
         CUDA 运行时上下文与 PyTorch 预分配底噪约 \(650 \text{ MB}\)。
@@ -18504,12 +18511,12 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
 
     <table class="tbl small">
       <thead>
-        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存（含 650 MB 底噪，GiB 口径）</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
+        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存（含 650 MB 底噪，GiB 口径）</th><th>Kaggle T4 (16GB)</th><th>A100 (40GB) 实例</th></tr>
       </thead>
       <tbody>
-        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>26.7 GiB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
-        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.13 GiB</strong></td><td>✅ 极度流畅 (占 26%)</td><td>✅ 极度富余 (可扩大 batch)</td></tr>
-        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GiB</strong></td><td>✅ <strong>极致轻量 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
+        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>26.7 GiB</strong></td><td>❌ <strong>直接 OOM</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
+        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.13 GiB</strong></td><td>✅ 流畅 (占 26%)</td><td>✅ 余量充足 (可加大 batch)</td></tr>
+        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GiB</strong></td><td>✅ <strong>占用很低 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
       </tbody>
     </table>
   </section>
@@ -18525,22 +18532,22 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     </ol>
   </section>
 
-  <p><strong>三大细化工业级指引（呼应模块 28 体系）</strong>：</p>
+  <p><strong>三条细化指引（呼应模块 28）</strong>：</p>
   <div class="grid2">
     <div class="card">
       <h5>指引 1：输入检验（Input Validation）</h5>
       <p class="small">
-        ① <strong>数据协议校验</strong>：严格检验每条样本必须为 <code>messages</code> 格式，且角色由 <code>system</code>、<code>user</code>、<code>assistant</code> 严格交替构成；<br>
+        ① <strong>数据协议校验</strong>：每条样本必须是 <code>messages</code> 格式，角色由 <code>system</code>、<code>user</code>、<code>assistant</code> 依次交替；<br>
         ② <strong>分词器边界防护</strong>：微调阶段设置 <code>tokenizer.padding_side = "right"</code> 并绑定 <code>tokenizer.pad_token = tokenizer.eos_token</code>；<br>
-        ③ <strong>标签掩码断言（Label Masking）</strong>：防止对 Prompt 计算交叉熵，杜绝模型浪费参数记忆提问语气。
+        ③ <strong>标签掩码断言（Label Masking）</strong>：别对 Prompt 算交叉熵，否则模型会把参数浪费在记忆提问语气上。
       </p>
     </div>
     <div class="card">
       <h5>指引 2：超参调节（Hyperparameter Tuning）</h5>
       <p class="small">
         ① <strong>LoRA 秩与缩放</strong>：固定 \(\alpha = 2r\)（如 \(r=16, \alpha=32\)），保证切换秩大小时梯度步长尺度稳定；<br>
-        ② <strong>等效批大小控制</strong>：设置单卡 <code>batch_size=2</code>，搭配 <code>gradient_accumulation_steps=8</code>，等效 Batch Size 达到 16；<br>
-        ③ <strong>学习率与优化器</strong>：学习率设为 \(2 \times 10^{-4}\)，配合 Cosine 衰减与 3% 步数 Warmup；优化器选用 <code>paged_adamw_8bit</code> 预防瞬时显存尖峰。
+        ② <strong>等效批大小控制</strong>：设置单卡 <code>batch_size=2</code>，搭配 <code>gradient_accumulation_steps=8</code>，等效 Batch Size 就是 16；<br>
+        ③ <strong>学习率与优化器</strong>：学习率设为 \(2 \times 10^{-4}\)，配合 Cosine 衰减与 3% 步数 Warmup；优化器选用 <code>paged_adamw_8bit</code> 预防显存尖峰。
       </p>
     </div>
   </div>
@@ -18548,15 +18555,15 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
   <div class="card">
     <h5>指引 3：推理验证与权重合并（Inference Verification & Export Guide）</h5>
     <p class="small">
-      微调完成后，适配器处于外挂状态 \(\Delta W = \frac{\alpha}{r} (B \cdot A)\)。在生产部署时，必须执行原地合并消除二次访存开销：
+      微调完成后适配器是外挂的：\(\Delta W = \frac{\alpha}{r} (B \cdot A)\)。部署前要合并回基座，省掉多一次访存：
       \[ W_{\text{merged}} = W_0 + \frac{\alpha}{r} (B \cdot A) \]
-      调用 <code>model = model.merge_and_unload()</code> 后，模型退化为纯净的原生单体结构，可直接一键导出为标准 HuggingFace 格式，
-      或配合 <code>llama.cpp</code> 导出为 GGUF 格式实现端侧离线秒级推理。
+      调用 <code>model = model.merge_and_unload()</code> 后，模型回到普通的单体结构，可以直接导出成标准 HuggingFace 格式，
+      或配合 <code>llama.cpp</code> 转成 GGUF，做端侧离线推理。
     </p>
   </div>
 
   <p><strong>可运行代码</strong>（支持 Qwen2.5-1.5B，具备自动回退与完整检验机制）：</p>
-<pre><code><span class="cm"># E4 · Colab 1.5B 开源大模型实战训练（适配 T4 16GB / A100，约 30–60 分钟）</span>
+<pre><code><span class="cm"># E4 · Kaggle 1.5B 开源大模型实战训练（适配 T4 16GB / A100，约 30–60 分钟）</span>
 !pip -q install transformers datasets peft trl bitsandbytes accelerate
 
 import os, torch
@@ -18750,7 +18757,7 @@ Step 30 | Loss: 0.1840
   <ol>
     <li>如果把 <code>target_modules</code> 缩减为仅 <code>["q_proj", "v_proj"]</code>，可训练参数量降到多少？对复杂长逻辑遵循能力有何影响？</li>
     <li>为什么在训练推理结合阶段，<code>tokenizer.padding_side</code> 训练时设为 <code>right</code>，而批量推理生成时必须改为 <code>left</code>？</li>
-    <li>结合模块 28，如何用单行命令将导出的 <code>./qwen_1.5b_merged</code> 转换为 <code>qwen1.5b-q4_k_m.gguf</code> 并在 CPU 本地极速秒开？</li>
+    <li>结合模块 28，怎么用一行命令把导出的 <code>./qwen_1.5b_merged</code> 转成 <code>qwen1.5b-q4_k_m.gguf</code>，再在 CPU 本地直接跑起来？</li>
   </ol>
 </section>
 
@@ -18773,8 +18780,8 @@ Step 30 | Loss: 0.1840
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E5 · 用 TRL 做偏好优化（DPO）：观察 margin 与 β 的作用</h4>
 
-  <p><strong>目标</strong>：在跳过复杂强化学习（PPO）环境与奖励模型的前提下，直接用<strong>对数几率比</strong>做偏好对齐。
-    手算 DPO 隐式奖励公式，扫描不同 \(\beta\) 值（0.01、0.1、0.5），亲眼看到选优概率（margin）是如何被逐步拉开的。</p>
+  <p><strong>目标</strong>：不搭强化学习（PPO）那一套环境，也不训奖励模型，直接用<strong>对数几率比</strong>做偏好对齐。
+    手算 DPO 的隐式奖励公式，把 \(\beta\) 扫一遍（0.01、0.1、0.5），看选优概率（margin）是怎样一步步拉开的。</p>
 
   <p><strong>前置</strong>：E4。使用微调后的轻量基座（如 Qwen2.5-0.5B 或 1.5B 4-bit），在 Kaggle T4 16GB 上约需 25–45 分钟。</p>
 
@@ -18788,7 +18795,7 @@ Step 30 | Loss: 0.1840
     <ol>
       <li><strong>基座复用架构（<code>ref_model = None</code>）</strong>：TRL 的 DPOTrainer 允许不显式传入 <code>ref_model</code>，
           而是将同一个模型挂载 LoRA。计算 \(\pi_\theta\) 时启用 LoRA，计算 \(\pi_{\text{ref}}\) 时临时禁用 LoRA（<code>with model.disable_adapter():</code>），
-          <strong>彻底省去了一整份基座模型的物理显存（立省 1.0 ~ 3.0 GB）</strong>！
+          <strong>省掉了一整份基座模型的显存（1.0 ~ 3.0 GB）</strong>。
       </li>
       <li><strong>双路前向显存（Chosen + Rejected，批大小 \(B=2\)，序列长度 \(T=512\)）</strong>：
         每个样本需同时拼接优选回复 \(y_w\) 与劣选回复 \(y_l\) 执行前向计算，有效序列批次等效为 \(2B = 4\)。
@@ -18797,7 +18804,7 @@ Step 30 | Loss: 0.1840
       <li><strong>隐式奖励提取开销</strong>：在 GPU 上调用 <code>torch.gather</code> 提取 completion 区域的 token 对数概率并求和，显存开销小于 \(40 \text{ MB}\)。</li>
       <li><strong>峰值显存总和（0.5B BF16 或 1.5B 4-bit）</strong>：
         \[ M_{\text{peak, DPO}} \approx \underbrace{980 \text{ MB}}_{\text{weights}} + \underbrace{600 \text{ MB}}_{\text{dual act}} + \underbrace{120 \text{ MB}}_{\text{lora+opt}} + \underbrace{650 \text{ MB}}_{\text{cuda}} \approx 2350 \text{ MB} \approx 2.30 \text{ GB} \]
-        在 16GB T4 上仅占 <strong>14.5%</strong>，安全边际极高。
+        在 16GB T4 上只占 <strong>14.5%</strong>，余量很大。
       </li>
     </ol>
   </section>
@@ -18921,8 +18928,8 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
     初始阶段 Loss 位于 0.69（即 \(\ln 2\)），代表模型在 chosen 与 rejected 之间难以区分（准确率 0.5）。
-    随着步数推进，隐式奖励差值（Margin）从 0.08 飙升至 2.18，
-    优选回复的相对似然对数几率被显著抬高，劣选回复的生成概率被彻底压制。
+    随步数推进，隐式奖励差值（Margin）从 0.08 涨到 2.18：
+    优选回复的相对似然被抬高，劣选回复的生成概率被压低。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -18951,7 +18958,7 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
           DPOTrainer 强制要求左填充。在分词器配置中显式加上 <code>tokenizer.padding_side = "left"</code>。</li>
       <li><strong>显存瞬间翻倍 OOM</strong>：误将 <code>ref_model = AutoModelForCausalLM.from_pretrained(...)</code> 显式传入。
           在单卡上必须使用 <code>ref_model = None</code> 搭配 LoRA 适配器禁用机制。</li>
-      <li><strong><code>rewards/margins</code> 一直为负数或不增长</strong>：检查数据集中 <code>chosen</code> 与 <code>rejected</code> 字段是否填反！</li>
+      <li><strong><code>rewards/margins</code> 一直为负数或不增长</strong>：检查数据集中 <code>chosen</code> 与 <code>rejected</code> 字段是否填反了。</li>
     </ul>
   </div>
 </div>
@@ -18961,10 +18968,10 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <h4><span class="ic">🧪</span>E6 · JAX 版 miniGPT（Flax NNX + Optax + Grain）：单设备改写与逐项对照</h4>
 
   <p><strong>目标</strong>：在单个设备（Colab 免费的 TPU v5e-1 或 CPU）上，
-    把 E3 的 PyTorch miniGPT 逐行改写为现代 JAX 生态的写法。
+    用现代 JAX 生态把 E3 的 PyTorch miniGPT 重写一遍。
     <strong>核心考核点</strong>：体会纯函数式变换（<code>jax.jit</code>、<code>jax.grad</code>）、
-    显式 PRNG 密钥流动与静态编译期图优化的工业威力，
-    亲手对比 JAX 与 PyTorch 在单步吞吐、显存/HBM 开销与计算图编译上的本质差异。</p>
+    显式 PRNG 密钥流动与静态编译期图优化带来的好处，
+    亲手对比 JAX 与 PyTorch 在单步吞吐、显存/HBM 开销与编译开销上的差异。</p>
 
   <p><strong>前置</strong>：E3。环境建议选用 Colab TPU v5e-1（或在 CPU 上以极小批次跑通）。适配约 30–60 分钟。</p>
 
@@ -18997,7 +19004,7 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
       <li><strong>[JAX 设备嗅探]</strong> 运行 <code>jax.devices()</code>，断言检测到 TPU 或 CPU 后端。</li>
       <li><strong>[PRNG 密钥派生]</strong> 验证 <code>jax.random.split(key)</code> 成功产生独立子密钥，杜绝状态全局隐式污染。</li>
       <li><strong>[NNX 状态切分]</strong> 实例化 <code>nnx.Linear</code>，使用 <code>nnx.split(model)</code> 成功分离静态图（GraphDef）与动态状态（State）。</li>
-      <li><strong>[首步 JIT 编译计时]</strong> 测量第 1 步耗时（包含 XLA 编译，约 3–8 秒），第 2 步耗时暴跌至 2 毫秒以内（加速千倍以上）。</li>
+      <li><strong>[首步 JIT 编译计时]</strong> 测量第 1 步耗时（含 XLA 编译，约 3–8 秒）与第 2 步耗时（应降到 2 毫秒以内，加速千倍以上）。</li>
       <li><strong>[损失单调收敛]</strong> 训练 200 步，验证损失自 4.5 降至 2.5 以下，无 <code>NaN</code> 溢出。</li>
     </ol>
   </section>
@@ -19147,7 +19154,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     <tbody>
       <tr><td>第 1 步编译耗时 vs 稳态单步耗时</td><td>测量 XLA 编译器的开销与收益</td><td>编译 4.8s vs 稳态 1.45ms</td></tr>
       <tr><td>相同超参下与 PyTorch 的损失曲线对照</td><td>验证数学等价性</td><td>每 200 步 loss 误差小于 0.05</td></tr>
-      <tr><td>TPU / GPU 设备显存利用</td><td>对比 XLA 静态显存规划能力</td><td>显存分配平直，绝无碎片化抖动</td></tr>
+      <tr><td>TPU / GPU 设备显存利用</td><td>对比 XLA 静态显存规划能力</td><td>显存分配平直，没有碎片化抖动</td></tr>
     </tbody>
   </table>
 
@@ -19180,10 +19187,10 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     启发式基准（L0）→ 线性/Ridge（L1）→ 浅层 MLP（L2）的三级模型阶梯，
     配合<strong>分组交叉验证（GroupKFold）</strong>防数据泄漏，
     最后用 <strong>200 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
-    <strong>核心考核点</strong>：体会「高容量模型完全可能跑输线性模型」的严谨科研洗礼，
-    学会写出令顶尖学者信服的负面消融报告。</p>
+    <strong>核心考核点</strong>：接受「高容量模型完全可能跑输线性模型」这个结论，
+    并把负面消融写成一份可信的报告。</p>
 
-  <p><strong>前置</strong>：E1。纯 CPU 即可运行，耗时仅需 3–5 分钟。合成数据自包含在代码内。</p>
+  <p><strong>前置</strong>：E1。纯 CPU 即可运行，脚本跑完只要 3–5 分钟（总览里的 15–30 分钟含阅读与记录的时间）。合成数据都在代码里。</p>
 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>分层噪声模型与内存开销手算（Analytical Memory Breakdown）</h4>
@@ -19201,10 +19208,10 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       </li>
       <li><strong>统计估计量保守 \(p\) 值定义公式</strong>：
         \[ p = \frac{1 + \sum_{b=1}^B \mathbb{I}\big(\text{RMSE}_{\text{perm}}^{(b)} \le \text{RMSE}_{\text{obs}}\big)}{1 + B} \]
-        分子加 1 与分母加 1 是严格的非参数置换检验准则，彻底避免极端情况下宣称 \(p = 0\) 的统计学谬误。
+        分子加 1 与分母加 1 是严格的非参数置换检验准则，从而避免极端情况下宣称 \(p = 0\) 的统计学谬误。
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总内存占用严格 <strong>&lt; 150 MB</strong>，运行耗时低于 180 秒。</p>
+    <p><strong>实测结论</strong>：总内存占用 <strong>&lt; 150 MB</strong>，运行耗时低于 180 秒。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -19212,7 +19219,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     <ol>
       <li><strong>[分组泄漏防护断言]</strong> 检查 GroupKFold 切分，断言训练集分组与测试集分组的交集严格为 \(\emptyset\)（空集）。</li>
       <li><strong>[L0 常数基准冒烟]</strong> 计算 L0 均值基准，断言其 RMSE 等于目标变量的样本标准差。</li>
-      <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言无数值奇异警告且 RMSE 显著低于 L0。</li>
+      <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言没有数值奇异警告且 RMSE 低于 L0。</li>
       <li><strong>[L2 浅层拟合与过拟合观察]</strong> 运行 MLPRegressor，观察在跨艺术家泛化测试集上的 RMSE 表现。</li>
       <li><strong>[置换分布直方图绘制]</strong> 提取 200 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
     </ol>
@@ -19233,7 +19240,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
-<pre><code><span class="cm"># E7 · 模型阶梯 + 分组交叉验证 + 置换检验（CPU，约 2–5 分钟）</span>
+<pre><code><span class="cm"># E7 · 模型阶梯 + 分组交叉验证 + 置换检验（CPU，约 3–5 分钟）</span>
 !pip -q install scikit-learn numpy scipy matplotlib tabulate
 
 import numpy as np
@@ -19340,16 +19347,16 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <section class="blk blk-warn">
     <h4><span class="ic">!</span>结论深度解析：为什么 L2 浅层神经网络输给了 L1 岭回归？</h4>
     <p>
-      看上面的实测表格：<strong>L2 的 RMSE（3.58）比 L1（3.42）更差</strong>！
-      在平庸的课程里，这会被当作「训练没调好」而掩盖过去；
-      而在严谨的统计学习框架下，<strong>这是一个极其优美且必然的科学发现</strong>：
+      看上面的实测表格：<strong>L2 的 RMSE（3.58）比 L1（3.42）更差</strong>。
+      随便一个教程可能会把它当成「训练没调好」糊过去；
+      但在严谨的统计学习框架下，<strong>这个结果是有必然性的</strong>：
     </p>
     <ul>
       <li>真实数据生成过程是线性的加上未见过的组效应。特征维度仅 12 维，样本量仅 1000。</li>
-      <li>MLP 拥有更多自由参数，在没有足够数据支撑非线性特征交叉时，<strong>它在训练集上过度拟合了具体的样本噪声</strong>。</li>
-      <li>在跨艺术家的 GroupKFold 测试中，这种过拟合立刻在未见过的艺术家身上遭到惨重惩罚！</li>
-      <li><strong>学术与工程价值</strong>：在申请材料或项目报告中呈现这一组结果，并准确指出「对于此类低信噪比表格任务，Ridge 凭借严格的凸优化范式击败了深度网络」，
-          比生硬地宣称「神经网络天下第一」更能体现你扎实的统计学素养。</li>
+      <li>MLP 的自由参数更多，在数据不足以支撑非线性特征交叉时，<strong>它会把训练集里的样本噪声也拟合进去</strong>。</li>
+      <li>在跨艺术家的 GroupKFold 测试里，这份过拟合立刻在没见过的艺术家身上付出代价。</li>
+      <li><strong>学术与工程价值</strong>：把这一组结果写进申请材料或项目报告，并指出「在这类低信噪比表格任务上，Ridge 靠凸优化击败了深度网络」，
+          比一句「神经网络天下第一」更能体现统计学素养。</li>
     </ul>
   </section>
 
@@ -19365,7 +19372,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
 
   <p><strong>延伸问题</strong>：</p>
   <ol>
-    <li>如果把数据切分方式改成普通随机切分（普通 KFold），L0 的 RMSE 会发生什么戏剧性变化？为什么？</li>
+    <li>如果把切分方式改成普通随机切分（普通 KFold），L0 的 RMSE 会变成什么样？为什么？</li>
     <li>置换检验为什么必须要加 1（即 \(\frac{1 + \text{count}}{1 + B}\)）？如果不加 1，宣称 \(p = 0.000\) 会在统计学评审中受到什么质询？</li>
     <li>在工业界风控或医疗诊断模型中，类似的「分组变量」通常是什么？（提示：患者 ID、设备指纹）</li>
   </ol>
@@ -19379,7 +19386,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
       <li><strong>置换检验中打乱了特征而不是标签</strong>：置换检验的标准做法是打乱目标变量 \(y\)，破坏 \(X\) 与 \(y\) 之间的条件依从关系，
           同时保留 \(X\) 自身的边际协方差结构。</li>
       <li><strong>过早调参引入信息穿越</strong>：在整个数据集上做特征标准化（StandardScaler）然后再切分 Fold。
-          <strong>必须在每一个 Fold 内部只用训练集拟合 Scaler</strong>！</li>
+          <strong>必须在每个 Fold 内部只用训练集拟合 Scaler</strong>。</li>
     </ul>
   </div>
 </div>
@@ -19388,10 +19395,10 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E8 · 量化与部署基准：显存、延迟、吞吐的三方权衡</h4>
 
-  <p><strong>目标</strong>：在真实推理引擎视角下，对同一个开源小模型（Qwen2.5-0.5B 或 1.5B），
+  <p><strong>目标</strong>：站在推理引擎的视角，对同一个开源小模型（Qwen2.5-0.5B 或 1.5B），
     对比三种精度下的<strong>显存占用、首字延迟（TTFT）、每 token 延迟（TPOT）与批量吞吐</strong>；
-    用 Python 编写单设备基准测试脚本，画出吞吐与并发数（Concurrency）的关系曲线，
-    亲手找到吞吐达到饱和的最优并发拐点。</p>
+    用 Python 写一个单设备基准测试脚本，画出吞吐与并发数（Concurrency）的关系曲线，
+    亲手找到吞吐饱和的拐点。</p>
 
   <p><strong>前置</strong>：E3、E4。T4 16GB 即可跑通本地基准测试部分；vLLM 生产级压测部分建议在 Colab A100 / L4 实例上体验完整流水线。</p>
 
@@ -19439,7 +19446,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <ol>
     <li><strong>第一部分：本地精度对比</strong>（T4 可跑）。加载 Qwen2.5-0.5B，分别在 BF16/FP16 与 4-bit（bitsandbytes NF4）下测量静态显存与单请求延迟。</li>
     <li><strong>第二部分：并发与吞吐扫频</strong>。编写多线程并发压测脚本，以并发数 \(c \in \{1, 2, 4, 8\}\) 发送生成请求，记录总吞吐（tokens/s）与 P95 尾部延迟。</li>
-    <li>观察并解释：为什么 4-bit 量化显存省了 70%，但在 T4 单并发下的推理延迟不仅没有变快，反而可能略微变慢？（提示：解量化反向计算的算力开销 vs 带宽节省）。</li>
+    <li>观察并解释：为什么 4-bit 量化省下 70% 显存，T4 单并发下的推理延迟却没变快，甚至略微变慢？（提示：解量化的算力开销 vs 带宽节省）。</li>
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
@@ -19547,12 +19554,12 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 | 4          | 1.05s  | 128           | 121.9               |</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
-    <br>① <strong>NF4 显存暴降 70%（942MB → 284MB）</strong>，但单请求延迟略微增加了约 2.6 ms。
-    因为 bitsandbytes 的 4-bit 计算在每次 GEMM 前需要先将权重解量化为 FP16，增加了一道轻微的计算开销。
-    但在显存受限的端侧或单卡承载大模型时，这种空间换时间的收益是决定性的。
-    <br>② <strong>并发度从 1 扩展到 4 时，整体吞吐从 44 tokens/s 暴增至 122 tokens/s</strong>，
-    说明在小并发时 GPU 的计算核心大部分处于空转（Memory Bandwidth Bound）。
-    真正的工业级部署必须通过高并发批处理（Continuous Batching）把 Tensor Core 完全喂饱。
+    <br>① <strong>NF4 让显存降了 70%（942MB → 284MB）</strong>，代价是单请求延迟多了约 2.6 ms。
+    因为 bitsandbytes 的 4-bit 计算在每次 GEMM 前要先把权重解量化成 FP16，多了一道开销。
+    但在显存受限的端侧或单卡上跑大模型时，这种拿时间换空间的收益是决定性的。
+    <br>② <strong>并发从 1 提到 4，整体吞吐从 44 tokens/s 涨到 122 tokens/s</strong>，
+    说明小并发时 GPU 的计算核心大部分在空转（Memory Bandwidth Bound）。
+    线上部署要靠高并发批处理（Continuous Batching）把 Tensor Core 喂饱。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -19576,10 +19583,10 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 <div class="acc" data-t="E8 常见错误" data-badge="排错">
   <div class="acc-body">
     <ul>
-      <li><strong>延迟测量不准，前几步奇慢无比</strong>：没有执行预热（Warmup）。
-          PyTorch 与 CUDA 在首次调用算子时需要分配内存池并编译内核，必须在正式计时前预先跑 1–2 次。</li>
-      <li><strong>使用 <code>time.time()</code> 测 GPU 耗时出现 0 毫秒</strong>：CUDA 是异步执行的！
-          在 Python 计时前后必须显式调用 <code>torch.cuda.synchronize()</code>，否则测出的只是 CPU 发送指令的时间。</li>
+      <li><strong>延迟测量不准，前几步奇慢无比</strong>：没有预热（Warmup）。
+          PyTorch 与 CUDA 首次调用算子时要分配内存池并编译内核，正式计时前先跑 1–2 次。</li>
+      <li><strong>使用 <code>time.time()</code> 测 GPU 耗时出现 0 毫秒</strong>：CUDA 是异步执行的。
+          计时前后要显式调用 <code>torch.cuda.synchronize()</code>，否则测到的只是 CPU 发指令的时间。</li>
       <li><strong>多线程压测时显存暴涨 OOM</strong>：每个线程独立维护了庞大的输入张量。
           在生产测试中应使用异步异步请求（<code>asyncio</code> + <code>httpx</code>）压测独立部署的服务，而不是在同一 Python 进程内开线程。</li>
     </ul>
@@ -19588,29 +19595,29 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎓</span>把 8 个实验变成申请材料：4 个可落地的呈现策略</h4>
+  <h4><span class="ic">🎓</span>把 8 个实验写成申请材料：4 种可以直接用的写法</h4>
   <p>
-    如果你正在申请顶尖学府的研究生（尤其是数学、计算机、统计学方向）或准备技术面试，
-    不要把实验代码仅仅放在一个私有仓库里。以下是 4 个可以直接写进个人陈述（Personal Statement）或简历的项目呈现策略：
+    如果你在申请研究生（数学、计算机、统计学方向）或准备技术面试，
+    别把实验代码只放在一个私有仓库里。下面 4 条可以直接写进个人陈述（Personal Statement）或简历：
   </p>
   <ol>
     <li>
       <strong>能力证据链（Proof of Competence）</strong>：
-      不要写「我熟悉 Transformer 原理」，写「在字符级 TinyStories 上从零实现 CausalSelfAttention 与 Pre-LayerNorm GPT，手算 623,872 参数量与 PyTorch <code>numel()</code> 严格匹配至个位数，2000 步训练困惑度自 13.9 降至 4.10，产出可复现代码与损失曲线」。
+      不要写「我熟悉 Transformer 原理」，写「在字符级 TinyStories 上从零实现 CausalSelfAttention 与 Pre-LayerNorm GPT，手算 623,872 参数量与 PyTorch <code>numel()</code> 严格匹配至个位数，2000 步训练困惑度自 13.91 降至 5.42，产出可复现代码与损失曲线」。
     </li>
     <li>
       <strong>方法论证据（Methodological Rigor）</strong>：
-      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 200 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
+      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 200 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的假设检验结论」。
     </li>
     <li>
-      <strong>工业级全流程交付（Engineering Closed Loop）</strong>：
-      呼应模块 28，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
+      <strong>工程全流程交付（Engineering Closed Loop）</strong>：
+      呼应模块 28，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上用 1.89 GB 显存跑完全流程；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现离线自回归推理」。
     </li>
     <li>
       <strong>诚实的负面结果清单（Honest Negative Results）</strong>：
       单设一小节「消融与踩坑复盘」，列出你经历的真实失败：
       例如重入式梯度检查点导致的死锁、多头注意力转置未连续化导致的 view 崩溃、以及显存碎片化伪 OOM 的物理排查过程。
-      真正打动资深学者与面试官的，往往正是你在这些底层硬件故障中展现的系统级归因深度与科学治愈方案。
+      真正打动面试官的，往往是你把这些底层故障查清楚的过程。
     </li>
   </ol>
 </section>
@@ -19629,27 +19636,27 @@ COURSE.register({
   tags: ["附录", "资源", "阅读路径"],
   body: String.raw`
 <p class="lead">
-  构建大模型与现代深度学习的知识大厦，绝非孤立地调用几个现成 API，而是要在<strong>数学底座、架构解构、训练动力学与基础设施</strong>四大支柱之间建立起第一性原理的内在逻辑闭环。
-  本附录精选沉淀了 <strong>160 篇世界顶级学术与开源工程信源</strong>（涵盖 DeepMind、OpenAI、Anthropic、Meta FAIR、Stanford CS224N/CS336、CMU 等前沿权威研究），
-  紧扣深度学习数学原理、系统架构与训练落地，给出体系化的研读图谱。
+  学好大模型与现代深度学习，光会调几个现成 API 不够，还得把<strong>数学底座、架构解构、训练动力学与基础设施</strong>这四块之间的联系理顺。
+  本附录收录 <strong>160 条学术与开源工程信源</strong>（DeepMind、OpenAI、Anthropic、Meta FAIR、Stanford CS224N/CS336、CMU 等），
+  按数学原理、系统架构与训练落地分成四类，并排好研读顺序。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>信源研读第一法则：分层透视</h4>
+  <h4><span class="ic">✓</span>读文献先分层</h4>
   <p>
-    面对浩瀚的前沿文献，必须建立严谨的<strong>文献阅读分级标准</strong>：<br />
-    1. <strong>公理与定理（数学底座）</strong>：不仅读结论，必须推导证明过程，寻找其在物理系统（如音频能量守恒、相空间稳定性）中的几何映射。<br />
-    2. <strong>算子与等价性（架构解构）</strong>：洞察矩阵乘法的结合律变形（如线性注意力与状态空间对偶性），明确参数量、时间复杂度与显存复杂度的渐近阶。<br />
-    3. <strong>优化与相变（训练动力学）</strong>：把握损失函数幂律缩放、海森矩阵曲率谱半径、以及低比特浮点数下梯度的数值动态范围。<br />
-    4. <strong>物理与墙（基础设施）</strong>：时刻牢记访存带宽与通信延迟的物理天花板，任何优秀的算法设计都必须是体系结构友好的（Hardware-aware）。
+    文献再多，也先给自己定一个阅读分级：<br />
+    1. <strong>公理与定理（数学底座）</strong>：不能只记结论，要自己把证明推一遍，再看它在物理系统里对应什么（音频能量守恒、相空间稳定性都算）。<br />
+    2. <strong>算子与等价性（架构解构）</strong>：看矩阵乘法的结合律怎么变形（线性注意力与状态空间对偶性就是一例），同时记清参数量、时间复杂度、显存复杂度各自的渐近阶。<br />
+    3. <strong>优化与相变（训练动力学）</strong>：盯住三件事：损失的幂律缩放、海森矩阵曲率的谱半径、低比特浮点下梯度的数值范围。<br />
+    4. <strong>物理与墙（基础设施）</strong>：心里要有访存带宽与通信延迟这两道天花板；再好的算法设计也得是硬件友好的（Hardware-aware）。
   </p>
 </section>
 
-<h3>1. 160+ 顶级高质信源全景图谱</h3>
+<h3>1. 160 条信源全景图谱</h3>
 
 <h4>1.1 支柱一 · 数学底座（线性代数、谱理论、最优化、测度与动力系统 40 篇）</h4>
 <p>
-  数学是穿透技术泡沫的唯一 X 光。大模型中的注意力机制、低秩分解、位置旋转与流匹配，本质上是泛函分析、微分几何与高维统计在有限精度浮点数上的投影运算。
+  数学是看清技术包装的 X 光。注意力机制、低秩分解、位置旋转与流匹配，说到底都是泛函分析、微分几何与高维统计在有限精度浮点数上的实现。
 </p>
 <table class="tbl small">
   <thead><tr><th>序号</th><th>文献 / 课程 / 报告</th><th>机构 / 作者</th><th>核心数学与工程结论</th><th>核心数学与研读启示</th></tr></thead>
@@ -19658,288 +19665,288 @@ COURSE.register({
       <td><code>#001</code></td>
       <td><strong><a href="https://math.mit.edu/~gs/learningfromdata/" target="_blank" rel="noopener">Linear Algebra and Learning from Data</a></strong></td>
       <td>Gilbert Strang (MIT)</td>
-      <td>深度网络前向即仿射映射与非线性激活的交替复合；证明了低秩近似奇异值分解（SVD）是酉不变范数下的最优截断，揭示了权重矩阵谱范数对梯度流稳定的主导作用。</td>
-      <td>线性代数与主成分分析基石。指导权重矩阵的低秩分解，理解特征值谱衰减与模型参数冗余度的数学本质。</td>
+      <td>深度网络的前向传播就是仿射映射与非线性激活交替复合；书里证明了奇异值分解（SVD）是酉不变范数下的最优低秩截断，并说明权重矩阵的谱范数决定梯度流稳不稳。</td>
+      <td>线性代数与主成分分析的入门基石。用它理解权重矩阵怎么做低秩分解，以及特征值谱衰减与参数冗余度的关系。</td>
     </tr>
     <tr>
       <td><code>#002</code></td>
       <td><strong><a href="https://epubs.siam.org/doi/book/10.1137/1.9780898719574" target="_blank" rel="noopener">Numerical Linear Algebra</a></strong></td>
       <td>Lloyd N. Trefethen & David Bau III (Oxford)</td>
-      <td>数值稳定性的经典判据：条件数 kappa(A) 与后向误差分析。浮点矩阵乘累加中的舍入误差如何通过 QR 分解与 Householder 变换得到数值正交控制。</td>
-      <td>数值分析核心参考。指导深度学习混合精度训练与累加误差界定，理解正交化过程在防止数值下溢中的作用。</td>
+      <td>数值稳定性的经典判据：条件数 kappa(A) 与后向误差分析。它讲清了浮点矩阵乘累加里的舍入误差，怎么靠 QR 分解与 Householder 变换压住。</td>
+      <td>数值分析的核心参考。做混合精度训练时用它界定累加误差，也能看清正交化为什么能防数值下溢。</td>
     </tr>
     <tr>
       <td><code>#003</code></td>
       <td><strong><a href="https://terrytao.wordpress.com/books-and-preprints/topics-in-random-matrix-theory/" target="_blank" rel="noopener">Topics in Random Matrix Theory</a></strong></td>
       <td>Terence Tao (UCLA)</td>
-      <td>严格证明了半圆律（Wigner Semicircular Law）与马尔琴科-帕斯图尔分布（Marchenko-Pastur Law），奠定了高维随机初始化权重谱半径收敛特性的数学基石。</td>
-      <td>理解 Transformer 权重初始化（如 Xavier / He 初始化）时奇异值分布的本质；防范注意力投影矩阵在超大序列下由于极端奇异值导致的局部激活坍缩。</td>
+      <td>严格证明了半圆律（Wigner Semicircular Law）与马尔琴科-帕斯图尔分布（Marchenko-Pastur Law），给出高维随机矩阵谱半径收敛特性的数学基础。</td>
+      <td>用来理解 Xavier / He 这类权重初始化背后的奇异值分布；也要留意序列很长时，极端奇异值会让局部激活坍缩。</td>
     </tr>
     <tr>
       <td><code>#004</code></td>
       <td><strong><a href="https://doi.org/10.1017/CBO9781139020411" target="_blank" rel="noopener">Matrix Analysis (2nd Edition)</a></strong></td>
       <td>Roger A. Horn & Charles R. Johnson (Johns Hopkins)</td>
       <td>佩隆-弗罗贝尼乌斯定理（Perron-Frobenius）、舒尔补（Schur Complement）与正定矩阵偏序（Loewner Order）的标准参考书。</td>
-      <td>马尔可夫链与非负矩阵谱理论。严密分析 Softmax 概率矩阵的本征值分布与自回归收敛性。</td>
+      <td>马尔可夫链与非负矩阵谱理论的来源。用它分析 Softmax 概率矩阵的本征值分布与自回归收敛性。</td>
     </tr>
     <tr>
       <td><code>#005</code></td>
       <td><strong><a href="https://link.springer.com/article/10.1007/BF02288367" target="_blank" rel="noopener">The Approximation of One Matrix by Another of Lower Rank</a></strong></td>
       <td>Carl Eckart & Gale Young (Psychometrika)</td>
       <td>埃卡特-扬-米尔斯基定理（Eckart-Young-Mirsky Theorem）：任意矩阵 A 在 Frobenius 范数和谱范数下的最优 rank-k 近似由截断 SVD 给出。</td>
-      <td>低秩近似与矩阵流形。严格证明权重增量矩阵在内在维度较小时可无损压缩至微小秩子空间的理论基础。</td>
+      <td>低秩近似与矩阵流形的核心结论。严格证明了权重增量矩阵在内在维度较小时能无损压到很小的秩子空间，这是低秩微调成立的理论前提。</td>
     </tr>
     <tr>
       <td><code>#006</code></td>
       <td><strong><a href="https://web.stanford.edu/~boyd/cvxbook/" target="_blank" rel="noopener">Convex Optimization</a></strong></td>
       <td>Stephen Boyd & Lieven Vandenberghe (Stanford)</td>
       <td>凸集、凸函数、对偶理论与 KKT 条件的现代经典。证明了次梯度法与拉格朗日乘子法在有约束优化中的全局收敛性。</td>
-      <td>凸优化与拉格朗日乘子法经典范例。求解带等式与不等式约束下的全局最优参数配置。</td>
+      <td>遇到带等式、不等式约束的最优点求解，回来查这一本。</td>
     </tr>
     <tr>
       <td><code>#007</code></td>
       <td><strong><a href="https://link.springer.com/book/10.1007/978-1-4419-8853-9" target="_blank" rel="noopener">Introductory Lectures on Convex Optimization</a></strong></td>
       <td>Yurii Nesterov (UC Louvain)</td>
-      <td>证明了一阶黑盒平滑凸优化算法收敛下界为 O(1/k^2)，并提出了 Nesterov 加速梯度法（NAG），奠定了动量优化器的理论上限。</td>
-      <td>理解 AdamW 中动量系数 beta_1 的加速几何机理。在音频过渡平滑度优化中引入 Nesterov 动量阻尼，避免曲线产生多余的高频振铃。</td>
+      <td>证明了一阶黑盒平滑凸优化算法收敛下界为 O(1/k^2)，并提出了 Nesterov 加速梯度法（NAG），给出了动量类优化器的理论上限。</td>
+      <td>用来理解 AdamW 里动量系数 beta_1 的加速机理。给音频过渡曲线做平滑优化时，可以借 Nesterov 动量阻尼压掉多余的高频振铃。</td>
     </tr>
     <tr>
       <td><code>#008</code></td>
       <td><strong><a href="https://www.sciencedirect.com/science/article/abs/pii/0041555364901375" target="_blank" rel="noopener">Some Methods of Speeding Up the Convergence of Iteration Methods</a></strong></td>
       <td>Boris T. Polyak (USSR Academy of Sciences)</td>
-      <td>提出了重球法（Heavy-Ball Method），利用二阶常微分方程的物理阻尼振子类比，证明了在二次强凸函数上动量对谱间隙收敛速度的提升。</td>
-      <td>将优化算法映射为物理阻尼动力系统。严格推导带动量的动能守恒与李雅普诺夫稳定性收敛。</td>
+      <td>提出重球法（Heavy-Ball Method）：把动量类比成二阶常微分方程里的物理阻尼振子，并证明了在二次强凸函数上动量能加快谱间隙的收敛。</td>
+      <td>把优化算法看成物理里的阻尼动力系统，再自己推一遍动能守恒与李雅普诺夫稳定性。</td>
     </tr>
     <tr>
       <td><code>#009</code></td>
       <td><strong><a href="https://www.cambridge.org/core/books/optimization-for-data-analysis/9781108488884" target="_blank" rel="noopener">Optimization for Data Analysis</a></strong></td>
       <td>Stephen J. Wright & Benjamin Recht (Wisconsin / Berkeley)</td>
-      <td>现代数据科学中的非凸随机最优化、流形优化与坐标下降法，系统探讨了随机梯度方差与批大小（Batch Size）的缩放关系。</td>
-      <td>理解大模型分布式训练中大批次梯度噪声尺度（Gradient Noise Scale）的数学本质，帮助把控微调与后训练学习率调度策略。</td>
+      <td>讲现代数据科学里的非凸随机优化、流形优化与坐标下降法，并系统讨论了随机梯度方差与批大小（Batch Size）的缩放关系。</td>
+      <td>想弄清大批次训练里的梯度噪声尺度（Gradient Noise Scale）就看它，调微调与后训练的学习率调度时用得上。</td>
     </tr>
     <tr>
       <td><code>#010</code></td>
       <td><strong><a href="https://epubs.siam.org/doi/10.1137/16M1080173" target="_blank" rel="noopener">Optimization Methods for Large-Scale Machine Learning</a></strong></td>
       <td>Léon Bottou, Frank E. Curtis, Jorge Nocedal (SIAM Review)</td>
       <td>深度学习大规模随机梯度方法（SGD、动量法、自适应学习率算法）的系统收敛性定理，厘清了样本噪声与二阶曲率估计的权衡。</td>
-      <td>为模型阶梯中参数微调与损失震荡提供理论诊断依据，指导如何选择从 AdamW 到 SGD 的最优化切换节点。</td>
+      <td>模型阶梯实验里损失开始震荡时，用它做理论诊断；也用来判断什么时候从 AdamW 切回 SGD。</td>
     </tr>
     <tr>
       <td><code>#011</code></td>
       <td><strong><a href="https://onlinelibrary.wiley.com/doi/book/10.1002/047174882X" target="_blank" rel="noopener">Elements of Information Theory (2nd Edition)</a></strong></td>
       <td>Thomas M. Cover & Joy A. Thomas (Stanford)</td>
       <td>香农熵、互信息、Kullback-Leibler 散度、微分熵与数据处理不等式（Data Processing Inequality）的严格公理化体系。</td>
-      <td>信息论根基文献。严格推导香农信息熵、自信息与交叉熵在统计推断中的测度唯一性。</td>
+      <td>信息论的根基文献。想知道交叉熵为什么这么定义，就看它的测度唯一性证明。</td>
     </tr>
     <tr>
       <td><code>#012</code></td>
       <td><strong><a href="https://www.inference.org.uk/itprnn/book.html" target="_blank" rel="noopener">Information Theory, Inference, and Learning Algorithms</a></strong></td>
       <td>David J.C. MacKay (Cambridge, Cavendish Laboratory)</td>
-      <td>剑桥大学前沿教材：将贝叶斯推断、信道编码与神经网络统一在统计物理吉布斯分布框架下，深入剖析了变分自由能与最大后验估计。</td>
-      <td>Charles 申请剑桥数学系（Cavendish/DAMTP 传统）必读书目。理解模型后验不确定性，将音频响度平滑（LUFS）与贝叶斯先验约束紧密结合。</td>
+      <td>剑桥的经典教材：把贝叶斯推断、信道编码与神经网络统一放进统计物理的吉布斯分布框架，讲透了变分自由能与最大后验估计。</td>
+      <td>Charles 申请剑桥数学系（Cavendish / DAMTP 传统）的必读书。用它理解模型的后验不确定性，也能把音频响度平滑（LUFS）写成贝叶斯先验约束。</td>
     </tr>
     <tr>
       <td><code>#013</code></td>
       <td><strong><a href="https://link.springer.com/book/10.1007/978-3-540-71050-9" target="_blank" rel="noopener">Optimal Transport: Old and New</a></strong></td>
       <td>Cédric Villani (Fields Medalist, ENS Lyon)</td>
       <td>蒙日-坎托罗维奇最优传输问题（Monge-Kantorovich Problem）的测度几何权威专著，严格定义了 Wasserstein 距离与位移插值（Displacement Interpolation）。</td>
-      <td>现代最优传输理论经典。用测地线距离替代朴素欧氏距离，度量概率测度之间的几何流形位移。</td>
+      <td>最优传输的经典著作。它用测地线距离代替欧氏距离，来衡量两个概率分布之间的位移。</td>
     </tr>
     <tr>
       <td><code>#014</code></td>
       <td><strong><a href="https://proceedings.neurips.cc/paper/2013/file/af21d60519c4203fcf52e204647e3240-Paper.pdf" target="_blank" rel="noopener">Sinkhorn Distances: Lightspeed Computation of Optimal Transport</a></strong></td>
       <td>Marco Cuturi (NeurIPS / Google DeepMind)</td>
-      <td>通过引入熵正则化（Entropy Regularization），利用矩阵缩放 Sinkhorn-Knopp 算法，将最优传输的求解复杂度从多项式降至矩阵向量乘法，完全可微并可在 GPU 上并行。</td>
-      <td>为长序列注意力软对齐提供可微测度映射支持；在音频特征空间中快速对齐两首歌曲的主节拍（BPM / Beat Grid）的最佳算法支撑。</td>
+      <td>引入熵正则化（Entropy Regularization），用矩阵缩放的 Sinkhorn-Knopp 算法把最优传输的求解复杂度降到矩阵向量乘法，而且完全可微、能在 GPU 上并行。</td>
+      <td>长序列注意力的软对齐靠它拿到可微的测度映射；在音频特征空间里快速对齐两首歌的主节拍（BPM / Beat Grid）也用它最快。</td>
     </tr>
     <tr>
       <td><code>#015</code></td>
       <td><strong><a href="https://projecteuclid.org/journals/annals-of-mathematical-statistics/volume-22/issue-1/On-Information-and-Sufficiency/10.1214/aoms/1177729694.full" target="_blank" rel="noopener">On Information and Sufficiency</a></strong></td>
       <td>Solomon Kullback & Richard A. Leibler (Annals of Math Statistics)</td>
       <td>定义了两概率测度间的信息散度 D_KL(P||Q)，证明了非负性（吉布斯不等式）以及与充分统计量的充要条件关系。</td>
-      <td>大模型蒸馏（Soft Distillation）与偏好优化（DPO）损失函数项中先验反向惩罚项的原始公理出处，深入剖析模式覆盖与模式崩塌的根本根源。</td>
+      <td>蒸馏（Soft Distillation）与偏好优化（DPO）损失里那个先验反向惩罚项的原始出处；模式覆盖与模式崩塌的差别也从这篇讲起。</td>
     </tr>
     <tr>
       <td><code>#016</code></td>
       <td><strong><a href="https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/j.2517-6161.1966.tb00626.x" target="_blank" rel="noopener">A General Class of Coefficients of Divergence of One Distribution from Another</a></strong></td>
       <td>S. M. Ali & S. D. Silvey (JRSS)</td>
       <td>统一了 f-散度（f-Divergence）族（KL 散度、反向 KL、JS 散度、总变差范数 TV、Hellinger 距离），给出共轭凸函数刻画与凸松弛性质。</td>
-      <td>对齐算法中对 DPO 与 KTO 的损失偏好进行凸分析对比，明确在极端偏好比值下梯度的饱和上界。</td>
+      <td>想比较 DPO 与 KTO 的损失形状时看这篇：它给出了极端偏好比值下梯度的饱和上界。</td>
     </tr>
     <tr>
       <td><code>#017</code></td>
       <td><strong><a href="https://arxiv.org/abs/1806.07366" target="_blank" rel="noopener">Neural Ordinary Differential Equations</a></strong></td>
       <td>Ricky T. Q. Chen et al. (Toronto, NeurIPS Best Paper)</td>
-      <td>将无限深残差网络建模为常微分方程初值问题（ODE IVP）dh(t)/dt = f(h(t), t, theta)，利用连续伴随灵敏度方法（Adjoint Method）实现 O(1) 显存反向传播。</td>
-      <td>将深度残差网络连续化为常微分方程流。利用伴随状态法（Adjoint State Method）在常数内存下反向传播求导。</td>
+      <td>把无限深残差网络写成常微分方程初值问题（ODE IVP）dh(t)/dt = f(h(t), t, theta)，利用连续伴随灵敏度方法（Adjoint Method）实现 O(1) 显存反向传播。</td>
+      <td>深度网络的连续化视角：用伴随状态法（Adjoint State Method）在常数内存里反向求导。</td>
     </tr>
     <tr>
       <td><code>#018</code></td>
       <td><strong><a href="https://www.routledge.com/Nonlinear-Dynamics-and-Chaos-With-Applications-to-Physics-Biology-Chemistry/Strogatz/p/book/9780813349107" target="_blank" rel="noopener">Nonlinear Dynamics and Chaos</a></strong></td>
       <td>Steven H. Strogatz (Cornell)</td>
       <td>一阶与二阶非线性系统相空间分析、分岔理论（Saddle-node, Hopf）、极限环与李雅普诺夫指数稳定性判据的经典教材。</td>
-      <td>剑桥自然科学/数学荣誉学位体系推荐必读。为 Transformer 隐状态演化轨迹提供相空间几何直觉；保证音频淡入淡出曲线不发生突变分岔。</td>
+      <td>剑桥自然科学 / 数学荣誉学位的推荐读物。用它看 Transformer 隐状态演化轨迹的相空间几何，也用来保证淡入淡出曲线不发生突变分岔。</td>
     </tr>
     <tr>
       <td><code>#019</code></td>
       <td><strong><a href="https://arxiv.org/abs/2210.02747" target="_blank" rel="noopener">Flow Matching for Generative Modeling</a></strong></td>
       <td>Yaron Lipman et al. (Meta FAIR / Weizmann)</td>
-      <td>摒弃传统扩散模型的复杂前向加噪 SDE，通过连续最优传输条件概率路径（Optimal Transport Displacement Interpolation）直接回归目标速度场，实现确定性、直线化的流匹配。</td>
-      <td>前沿生成扩散模型理论。在源先验分布与目标数据分布之间构建直达条件速度场，摆脱曲折布朗扩散。</td>
+      <td>不走扩散模型那套加噪 SDE，而是沿最优传输给出的条件概率路径（Optimal Transport Displacement Interpolation）直接回归目标速度场，训练确定、路径接近直线。</td>
+      <td>生成模型的前沿理论。在先验分布与目标数据分布之间架一条直达的条件速度场，绕开曲折的布朗扩散。</td>
     </tr>
     <tr>
       <td><code>#020</code></td>
       <td><strong><a href="https://arxiv.org/abs/2011.13456" target="_blank" rel="noopener">Score-Based Generative Modeling through Stochastic Differential Equations</a></strong></td>
       <td>Yang Song et al. (Stanford / Google Brain, ICLR Outstanding Paper)</td>
-      <td>统一了得分匹配（SGM）与去噪扩散概率模型（DDPM），建立了正向伊藤随机微分方程（SDE）与逆向时间反演 SDE 的等价性，推导出常微分方程对应物（Probability Flow ODE）。</td>
-      <td>深化连续概率流与可积性理论理解。在音频降噪、跨谱渐变与谐波恢复中，利用逆向概率流 ODE 实现无抖动的高保真度时间重构。</td>
+      <td>把得分匹配（SGM）与去噪扩散概率模型（DDPM）统一起来，证明正向伊藤随机微分方程（SDE）与逆向时间反演 SDE 等价，并给出对应的概率流常微分方程（Probability Flow ODE）。</td>
+      <td>把连续概率流与可积性串起来。音频降噪、跨谱渐变与谐波恢复里，用逆向概率流 ODE 做无抖动的高保真时间重构。</td>
     </tr>
     <tr>
       <td><code>#021</code></td>
       <td><strong><a href="https://arxiv.org/abs/2104.13478" target="_blank" rel="noopener">Geometric Deep Learning: Grids, Groups, Graphs, Geodesics, and Gauges</a></strong></td>
       <td>Michael M. Bronstein et al. (Oxford / DeepMind)</td>
-      <td>将深度学习模型（CNN、RNN、GNN、Transformer）统一在克莱因爱尔兰根纲领（Erlangen Programme）下：以对称群、群等变性（Equivariance）和不变性（Invariance）为第一性原理归纳偏差。</td>
-      <td>剑桥纯数群论、微分流形与表示论背景的最佳切入点。音乐音频信号在时间平移（SO(1)）与频率音阶平移群下具有明确的对称性要求。</td>
+      <td>把 CNN、RNN、GNN、Transformer 统一放进克莱因埃尔朗根纲领（Erlangen Programme）的框架：对称群、群等变性（Equivariance）与不变性（Invariance）就是它们归纳偏差的来源。</td>
+      <td>有群论、微分流形与表示论基础的话，从这里切入最顺。音频信号在时间平移（SO(1)）与音阶平移下本来就有明确的对称性要求。</td>
     </tr>
     <tr>
       <td><code>#022</code></td>
       <td><strong><a href="https://arxiv.org/abs/1602.07576" target="_blank" rel="noopener">Group Equivariant Convolutional Networks</a></strong></td>
       <td>Taco S. Cohen & Max Welling (Amsterdam, ICML)</td>
-      <td>将标准卷积从欧氏平移群 (R^2, +) 推广至离散旋转反射群 p4 / p4m，从代数结构上严格保证了特征映射在群变换下的自洽等变传递。</td>
-      <td>群论与对称性在深度学习中的体现。分析平移、旋转与尺度变换下特征流形的等变表征。</td>
+      <td>把标准卷积从欧氏平移群 (R^2, +) 推广到离散旋转反射群 p4 / p4m，并从代数结构上保证了特征映射在群变换下等变传递。</td>
+      <td>群论与对称性落在深度学习里的例子。分析平移、旋转与尺度变换下特征怎么做等变表示。</td>
     </tr>
     <tr>
       <td><code>#023</code></td>
       <td><strong><a href="https://arxiv.org/abs/1101.2286" target="_blank" rel="noopener">Group Invariant Scattering</a></strong></td>
       <td>Stéphane Mallat (Collège de France, Comm. Pure Appl. Math)</td>
       <td>提出散射变换（Scattering Transform）：利用小波变换模量与局部积分算子构建群不变表征，严格证明了在紧支撑微分同胚扰动下的利普希茨连续性（Lipschitz Stability）。</td>
-      <td>解决音乐信号在微小时域拉伸（Time-stretching）下传统短时傅里叶变换（STFT）相位剧烈震荡的数学良药，构建高稳定度音频过渡判据。</td>
+      <td>音乐信号做微小时域拉伸（Time-stretching）时，短时傅里叶变换（STFT）的相位会剧烈震荡，散射变换正好治这个：用它做音频过渡判据更稳。</td>
     </tr>
     <tr>
       <td><code>#024</code></td>
       <td><strong><a href="https://link.springer.com/article/10.1007/BF02551274" target="_blank" rel="noopener">Approximation by Superpositions of a Sigmoidal Function</a></strong></td>
       <td>George Cybenko (Dartmouth, MCSS)</td>
       <td>万能逼近定理（Universal Approximation Theorem）原始证明：利用哈恩-巴拿赫定理（Hahn-Banach Theorem）与里斯表象定理，证明连续函数在紧集上可被单隐层网络一致逼近。</td>
-      <td>泛函分析在神经网络中的标志性应用。剑桥纯数分析方向必懂证明逻辑；解释为何多项式或样条基函数也可以作为跨淡入淡出曲线的高保真拟合器。</td>
+      <td>泛函分析用在神经网络上的标志性例子。走纯数分析方向要能自己推这个证明；它也说明为什么多项式或样条基同样能高保真地拟合淡入淡出曲线。</td>
     </tr>
     <tr>
       <td><code>#025</code></td>
       <td><strong><a href="https://ieeexplore.ieee.org/document/256500" target="_blank" rel="noopener">Universal Approximation Bounds for Superpositions of a Sigmoidal Function</a></strong></td>
       <td>Andrew R. Barron (Yale, IEEE Trans IT)</td>
       <td>突破维数灾难：证明了对于频域具有一阶有限绝对矩的一类函数，双层神经网络的均方逼近误差收敛速率为 O(1/n)，与输入空间维度 d 无关。</td>
-      <td>连续函数万能逼近定理的测度论扩展。证明两层前馈网络在紧集上的均匀收敛性与 Sobolev 范数误差界。</td>
+      <td>把万能逼近定理往测度论方向推了一步：给出两层前馈网络在紧集上的均匀收敛性与 Sobolev 范数误差界。</td>
     </tr>
     <tr>
       <td><code>#026</code></td>
       <td><strong><a href="https://link.springer.com/chapter/10.1007/978-3-319-21852-6_1" target="_blank" rel="noopener">On the Uniform Convergence of Relative Frequencies of Events to Their Probabilities</a></strong></td>
       <td>V. N. Vapnik & A. Ya. Chervonenkis (Theory of Probability)</td>
       <td>定义了 VC 维数与生长函数，给出了经验风险最小化（ERM）在独立同分布样本上一致收敛的有限样本泛化边界。</td>
-      <td>统计学习理论经典。解释为何模型参数量远超数据样本时传统 VC 边界会发散，从而引出过参数化范式下的谱范数泛化分析。</td>
+      <td>统计学习理论的源头。它解释了参数远多于样本时 VC 边界为什么会失效，后来基于谱范数的泛化分析正是接着这一点做的。</td>
     </tr>
     <tr>
       <td><code>#027</code></td>
       <td><strong><a href="https://www.jmlr.org/papers/v3/bartlett02a.html" target="_blank" rel="noopener">Rademacher and Gaussian Complexities: Risk Bounds and Structural Results</a></strong></td>
       <td>Peter L. Bartlett & Shahar Mendelson (JMLR)</td>
-      <td>提出基于经验拉德马赫复杂度（Rademacher Complexity）的泛化误差上界，通过数据依赖的复杂度测度摆脱了组合 VC 维的悲观界。</td>
-      <td>可量化分析线性模型阶梯与核方法在音频训练集上的过拟合风险，提供置换检验之外的严密泛化理论支撑。</td>
+      <td>提出用经验拉德马赫复杂度（Rademacher Complexity）给泛化误差定上界：复杂度度量依赖数据，比组合式的 VC 维界松得多。</td>
+      <td>想量化线性模型与核方法在小训练集上的过拟合风险时用它，可以给置换检验补上一个理论上的泛化界。</td>
     </tr>
     <tr>
       <td><code>#028</code></td>
       <td><strong><a href="https://doi.org/10.1017/9781108627771" target="_blank" rel="noopener">High-Dimensional Statistics: A Non-Asymptotic Viewpoint</a></strong></td>
       <td>Martin J. Wainwright (UC Berkeley / MIT)</td>
-      <td>高维统计学的圣经：次高斯随机变量（Sub-Gaussian）、集中不等式（Concentration Inequalities）、非渐近矩阵浓度界与稀疏线性模型恢复。</td>
-      <td>高维统计与压缩感知核心文献。严格推导正则化项在稀疏参数恢复中的相位转换临界点。</td>
+      <td>高维统计的标准教材：次高斯随机变量（Sub-Gaussian）、集中不等式（Concentration Inequalities）、非渐近矩阵浓度界与稀疏线性模型恢复。</td>
+      <td>高维统计与压缩感知的核心文献。正则化项在稀疏参数恢复里的相位转换临界点就是这里推出来的。</td>
     </tr>
     <tr>
       <td><code>#029</code></td>
       <td><strong><a href="https://www.math.uci.edu/~rvershyn/papers/HDP-book/HDP-book.html" target="_blank" rel="noopener">High-Dimensional Probability: An Introduction with Applications in Data Science</a></strong></td>
       <td>Roman Vershynin (UC Irvine)</td>
       <td>现代概率论几何观：球体表面测度集中、约翰逊-林登施特劳斯引理（JL Lemma）、高维随机投影与协方差矩阵经验估计误差界。</td>
-      <td>解释嵌入向量在超高维空间中“几乎彼此正交”的几何现象，为 Q/K 点积缩放因子 1/sqrt(d_k) 提供测度集中解释。</td>
+      <td>为什么高维嵌入向量几乎彼此正交？这本书用测度集中来回答；Q/K 点积里的缩放因子 1/sqrt(d_k) 也是同一个道理。</td>
     </tr>
     <tr>
       <td><code>#030</code></td>
       <td><strong><a href="https://projecteuclid.org/ebooks/institute-of-mathematical-statistics-lecture-notes-monograph-series/Group-representations-in-probability-and-statistics/toc/10.1214/lnms/1215467407" target="_blank" rel="noopener">Group Representations in Probability and Statistics</a></strong></td>
       <td>Persi Diaconis (Stanford)</td>
       <td>利用对称群 S_n 上的傅里叶分析解决洗牌与随机行走马尔可夫链混合时间问题，建立了代数表示论与统计随机过程的桥梁。</td>
-      <td>展示纯数学群表示论如何攻克应用概率问题。与音频混音（如轨道重新排列与能量重新分配）的群对称性分析天然契合。</td>
+      <td>看纯数学的群表示论怎么解决应用概率问题；音频混音里轨道重排、能量重分配这类操作正好也有群对称结构。</td>
     </tr>
     <tr>
       <td><code>#031</code></td>
       <td><strong><a href="https://www.mheducation.com/highered/product/real-complex-analysis-rudin/M9780070542341.html" target="_blank" rel="noopener">Real and Complex Analysis (3rd Edition)</a></strong></td>
       <td>Walter Rudin (Wisconsin-Madison)</td>
       <td>测度论、L^p 空间完备性、傅里叶变换的普朗歇尔定理（Plancherel Theorem）与柯西积分公式的标准奠基专著。</td>
-      <td>傅里叶分析与希尔伯特空间泛函分析。普朗歇尔保距定理在频域变换与算子内积中的核心证明。</td>
+      <td>傅里叶分析与希尔伯特空间的标准参考。普朗歇尔定理为什么保距，书里有完整证明。</td>
     </tr>
     <tr>
       <td><code>#032</code></td>
       <td><strong><a href="https://www.wiley.com/en-us/Introductory+Functional+Analysis+with+Applications-p-9780471504597" target="_blank" rel="noopener">Introductory Functional Analysis with Applications</a></strong></td>
       <td>Erwin Kreyszig (Carleton)</td>
       <td>希尔伯特空间（Hilbert Space）、有界线性算子谱理论、紧自伴算子的谱分解定理（Spectral Theorem）。</td>
-      <td>自注意力机制矩阵 A 是定义在有限维希尔伯特空间上的正算子；音频信号作为连续时变平方可积函数 L^2[0,T]，两者的内积空间运算逻辑一致。</td>
+      <td>自注意力矩阵 A 可以看成有限维希尔伯特空间上的算子；音频信号则是 L^2[0,T] 上的平方可积函数，两者用的是同一套内积运算。</td>
     </tr>
     <tr>
       <td><code>#033</code></td>
       <td><strong><a href="https://academic.oup.com/book/26938" target="_blank" rel="noopener">Concentration Inequalities: A Nonasymptotic Theory of Independence</a></strong></td>
       <td>Stéphane Boucheron, Gábor Lugosi, Pascal Massart (Oxford)</td>
       <td>马尔可夫、切比雪夫、霍夫丁不等式、麦克迪尔米德不等式（McDiarmid）与熵方法对独立随机变量泛函偏差的精确界定。</td>
-      <td>在评估模型阶梯置换检验（Permutation Test）时，提供经验 p 值偏离理论期望的非渐近置信区间证明。</td>
+      <td>做模型阶梯的置换检验（Permutation Test）时，用它给出经验 p 值偏离理论期望的非渐近置信区间。</td>
     </tr>
     <tr>
       <td><code>#034</code></td>
       <td><strong><a href="https://www.cambridge.org/core/books/sparse-image-and-signal-processing/DEB12FE2C4D26FA58359B28D3F9550F3" target="_blank" rel="noopener">Sparse Image and Signal Processing: Wavelets, Curvelets, Morphological Diversity</a></strong></td>
       <td>Jean-Luc Starck, Fionn Murtagh, Jalal Fadili (Cambridge Univ Press)</td>
       <td>多尺度几何分析与稀疏过完备基表示；证明了在非平稳突变信号处理中，小波与曲波基较傅里叶基具有指数级更低的重构吉布斯效应。</td>
-      <td>针对音频渐变过渡点出现的瞬态冲击（Percussive Transients / Drums），提供基于稀疏基分离过渡特征的最佳数学方法。</td>
+      <td>过渡点上出现鼓这类瞬态冲击（Percussive Transients）时，用稀疏基把过渡特征分离出来。</td>
     </tr>
     <tr>
       <td><code>#035</code></td>
       <td><strong><a href="https://ccrma.stanford.edu/~jos/sasp/" target="_blank" rel="noopener">Spectral Audio Signal Processing</a></strong></td>
       <td>Julius O. Smith III (Stanford CCRMA)</td>
       <td>音频信号处理权威著作：离散傅里叶变换、窗函数（Hann, Blackman-Harris）旁瓣衰减、重叠相加（OLA）功率互补条件分析。</td>
-      <td>信号处理经典教材。严格推导连续信号正交分解与离散滤波器能量守恒准则：数学充要条件。</td>
+      <td>信号处理的经典教材。重叠相加（OLA）功率互补的充要条件，书里从正交分解一路推到离散滤波器。</td>
     </tr>
     <tr>
       <td><code>#036</code></td>
       <td><strong><a href="http://cs-www.cs.yale.edu/homes/spielman/sagt/" target="_blank" rel="noopener">Spectral and Algebraic Graph Theory</a></strong></td>
       <td>Daniel A. Spielman (Yale, Nevanlinna Prize)</td>
       <td>图拉普拉斯算子（Graph Laplacian）与切格不等式（Cheeger's Inequality）：图的第二本征值（代数连通度）与图的最优割完全由谱间隙决定。</td>
-      <td>大模型注意力图谱连通性分析利器。将音乐曲库构建为以音调与节拍为权重的图，用谱聚类寻找无缝混音转场的曲目连通路径。</td>
+      <td>分析注意力图连通性时用得上。把曲库建成以音调和节拍为权重的图，再用谱聚类找一条能顺接下去的曲目路径。</td>
     </tr>
     <tr>
       <td><code>#037</code></td>
       <td><strong><a href="https://www.di.ens.fr/~fbach/ltfp_book.pdf" target="_blank" rel="noopener">Learning Theory from First Principles</a></strong></td>
       <td>Francis Bach (INRIA / ENS, Jean-Jacques Moreau Prize)</td>
-      <td>从凸分析与经验过程第一性原理出发，系统推导核岭回归（Kernel Ridge Regression）、再生核希尔伯特空间（RKHS）的极小极大收敛率。</td>
-      <td>课程模块 09 与附录 B 实验 E7（模型阶梯）岭回归基准的理论源头，明确线性模型与非线性核回归的本质性能边界。</td>
+      <td>从凸分析与经验过程的基本假设出发，系统推导核岭回归（Kernel Ridge Regression）与再生核希尔伯特空间（RKHS）的极小极大收敛率。</td>
+      <td>模块 09 与实验 E7（模型阶梯）里岭回归基准的理论来源；线性模型与非线性核回归的性能边界在这里讲得最清楚。</td>
     </tr>
     <tr>
       <td><code>#038</code></td>
       <td><strong><a href="https://www.jmlr.org/papers/v13/gretton12a.html" target="_blank" rel="noopener">A Kernel Two-Sample Test</a></strong></td>
       <td>Arthur Gretton et al. (UCL Gatsby / Max Planck, JMLR)</td>
       <td>提出基于最大均值差异（Maximum Mean Discrepancy, MMD）的非参数双样本检验法：在特征映射嵌入 RKHS 后，利用希尔伯特范数直接衡量两分布间距。</td>
-      <td>判定合成音频数据集与真实人工混音过渡数据集分布一致性的金标准判据，避免多重假设检验下的维数惩罚。</td>
+      <td>要判断合成音频集与真实混音集是不是同一分布，用 MMD 最直接，也不吃多重检验的维数惩罚。</td>
     </tr>
     <tr>
       <td><code>#039</code></td>
       <td><strong><a href="https://ieeexplore.ieee.org/document/1614066" target="_blank" rel="noopener">Compressed Sensing</a></strong></td>
       <td>David L. Donoho (Stanford, Shaw Prize / Gauss Prize)</td>
-      <td>奠定了压缩感知理论基石：当信号在某正交基下稀疏时，可以远低于奈奎斯特采样率的随机测量矩阵，通过 L1 范数最小化以极大概率精确重构原信号。</td>
-      <td>压缩感知奠基之作。利用限制等距性质（RIP）以远低于奈奎斯特极限的采样率无损重构稀疏信号。</td>
+      <td>压缩感知的奠基工作：信号在某个正交基下稀疏时，用远低于奈奎斯特采样率的随机测量矩阵，靠 L1 范数最小化就能以极大概率精确重构原信号。</td>
+      <td>入门先看这篇：限制等距性质（RIP）就是从这里进入压缩感知的。</td>
     </tr>
     <tr>
       <td><code>#040</code></td>
       <td><strong><a href="https://ieeexplore.ieee.org/document/4016283" target="_blank" rel="noopener">Near-Optimal Signal Recovery From Random Projections: Universal Encoding Strategies?</a></strong></td>
       <td>Emmanuel Candès & Terence Tao (Caltech / UCLA, IEEE Trans IT)</td>
       <td>证明了限制等距性质（Restricted Isometry Property, RIP），给出了非相干字典下利用凸规划实现鲁棒信号恢复的最优误差常数界。</td>
-      <td>剑桥数学面试中展现极高纯数-应数跨学科深度的杀手级成果。与大模型随机投影与极小秩逼近形成严密的数学闭环。</td>
+      <td>适合在数学面试里展开讲的一篇：非相干字典、凸规划与随机投影在这里连成一条完整的证明链。</td>
     </tr>
   </tbody>
 </table>
 
 <h4>1.2 支柱二 · 架构解构（注意力、状态空间、MoE、位置编码与推理架构 40 篇）</h4>
 <p>
-  从原始 Transformer 的点积自注意力，到以 Mamba 为代表的状态空间模型（SSM）、以 DeepSeek 为代表的潜在注意力（MLA）与 MoE，解构模型架构的演进脉络，就是在寻找计算复杂度与归纳偏差的最优帕累托前沿。
+  从原始 Transformer 的点积自注意力，到 Mamba 这类状态空间模型（SSM）、再到 DeepSeek 的潜在注意力（MLA）与 MoE，架构演进一直在计算复杂度与归纳偏差之间找帕累托最优。
 </p>
 <table class="tbl small">
   <thead><tr><th>序号</th><th>文献 / 课程 / 报告</th><th>机构 / 作者</th><th>核心数学与工程结论</th><th>核心数学与研读启示</th></tr></thead>
@@ -19948,127 +19955,127 @@ COURSE.register({
       <td><code>#041</code></td>
       <td><strong><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Attention Is All You Need</a></strong></td>
       <td>Ashish Vaswani et al. (Google Brain / Research)</td>
-      <td>彻底终结循环网络范式，提出纯多头自注意力机制（Multi-Head Attention）与标准编码器-解码器架构，确立了 O(T^2 d) 相似度寻址与位置前馈连接范式。</td>
-      <td>深度学习当代基石。彻底抛弃循环与卷积，以点积自注意力机制为骨架开创序列建模新纪元。</td>
+      <td>不再依赖循环网络，提出纯多头自注意力机制（Multi-Head Attention）与标准编码器-解码器架构，确立了 O(T^2 d) 相似度寻址加位置前馈的连接方式。</td>
+      <td>当代深度学习的基石。丢掉循环与卷积，序列建模从此以点积自注意力为骨架。</td>
     </tr>
     <tr>
       <td><code>#042</code></td>
       <td><strong><a href="https://arxiv.org/abs/1409.0473" target="_blank" rel="noopener">Neural Machine Translation by Jointly Learning to Align and Translate</a></strong></td>
       <td>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio (Montreal)</td>
       <td>提出加性注意力（Additive Attention），首次允许模型在生成输出时动态对齐输入序列不同时间步，打破了固定长度上下文向量的信息瓶颈。</td>
-      <td>点积注意力之前的经典对齐原语。对于双音轨连续特征对齐，加性注意力在权重平滑度上往往表现出比点积更平滑的单峰几何特性。</td>
+      <td>点积注意力之前的经典对齐做法。做双音轨连续特征对齐时，加性注意力的权重往往比点积更平滑，呈单峰形状。</td>
     </tr>
     <tr>
       <td><code>#043</code></td>
       <td><strong><a href="https://arxiv.org/abs/1508.04025" target="_blank" rel="noopener">Effective Approaches to Attention-based Neural Machine Translation</a></strong></td>
       <td>Minh-Thang Luong, Hieu Pham, Christopher D. Manning (Stanford, EMNLP)</td>
       <td>系统对比了点积（Dot）、通用（General）与连结（Concat）注意力得分函数，并提出了局部注意力（Local Attention）窗口机制。</td>
-      <td>局部注意力窗口是现代 Sliding Window / 流式音频模型的前身。直接指导跨歌曲音频淡入淡出中只需聚焦在转场前后固定秒数区域。</td>
+      <td>局部注意力窗口是今天 Sliding Window / 流式音频模型的前身。跨歌曲淡入淡出时也只需盯住转场前后固定的几秒。</td>
     </tr>
     <tr>
       <td><code>#044</code></td>
       <td><strong><a href="https://arxiv.org/abs/1803.02155" target="_blank" rel="noopener">Self-Attention with Relative Position Representations</a></strong></td>
       <td>Peter Shaw, Jakob Uszkoreit, Ashish Vaswani (Google Brain)</td>
-      <td>将绝对坐标位置编码改为相对坐标：在自注意力点积与值向量投影中分别注入相对位移偏移量 a_{i-j}^K 与 a_{i-j}^V，显著改善序列长度外推稳定性。</td>
-      <td>为 RoPE 和 ALiBi 的相对位置哲学铺平道路。音频过渡只在乎距离转场割点（Split Point）的相对时间差 Delta t，而与整首歌曲绝对播放秒数无关。</td>
+      <td>将绝对坐标位置编码改为相对坐标：在自注意力点积与值向量投影中分别注入相对位移偏移量 a_{i-j}^K 与 a_{i-j}^V，序列长度外推因此更稳。</td>
+      <td>RoPE 与 ALiBi 的相对位置思路由此而来。音频过渡只在乎距转场割点（Split Point）的相对时间差 Delta t，与整首歌的绝对播放秒数无关。</td>
     </tr>
     <tr>
       <td><code>#045</code></td>
       <td><strong><a href="https://arxiv.org/abs/1901.02860" target="_blank" rel="noopener">Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context</a></strong></td>
       <td>Zihang Dai, Zhilin Yang et al. (CMU / Google Brain)</td>
       <td>提出分块循环机制（Segment-level Recurrence）与相对位置编码，打破固定输入长度壁垒，使模型能够利用跨分块的历史 KV 缓存且不产生重复前向计算。</td>
-      <td>长音频流式生成的核心思想：通过维持一个循环状态缓存历史音段，使得混音播放器在播放当前段落时平滑接纳未来段落。</td>
+      <td>长音频流式生成的核心思路：用一个循环状态缓存历史音段，播放当前段落时就能平滑接上后面的段落。</td>
     </tr>
     <tr>
       <td><code>#046</code></td>
       <td><strong><a href="https://arxiv.org/abs/2006.16236" target="_blank" rel="noopener">Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention</a></strong></td>
       <td>Angelos Katharopoulos et al. (Idiap, ICML)</td>
-      <td>将 Softmax 核函数替换为核特征映射 phi(x)，利用矩阵乘法结合律 (phi(Q) phi(K)^T) V = phi(Q) (phi(K)^T V)，将时间复杂度降至 O(T d^2)，自回归推理演化为常数空间 RNN。</td>
-      <td>利用核技巧将注意力复杂度从 O(T^2) 降至 O(T) 的典范之作。利用矩阵结合律将内积顺序颠倒实现线性流式处理。</td>
+      <td>把 Softmax 换成核特征映射 phi(x)，利用矩阵乘法结合律 (phi(Q) phi(K)^T) V = phi(Q) (phi(K)^T V)，把时间复杂度降到 O(T d^2)，自回归推理就成了常数空间的 RNN。</td>
+      <td>线性注意力的样板：用核技巧把复杂度从 O(T^2) 降到 O(T)，靠矩阵结合律换个乘法顺序就能流式处理。</td>
     </tr>
     <tr>
       <td><code>#047</code></td>
       <td><strong><a href="https://arxiv.org/abs/2312.00752" target="_blank" rel="noopener">Mamba: Linear-Time Sequence Modeling with Selective State Spaces</a></strong></td>
       <td>Albert Gu & Tri Dao (CMU / Princeton)</td>
-      <td>打破传统连续时间不变系统（LTI）限制，提出选择性状态空间模型（Selective SSM），让参数随着输入动态变化，并设计了适配 GPU SRAM 的硬件感知并行前缀扫描算子。</td>
-      <td>当前对抗 Transformer 垄断的最强非注意力架构。连续状态空间方程 h'(t) = A h(t) + B x(t) 与模拟电路音频滤波器的时域响应方程完全同构！</td>
+      <td>跳出传统连续时间不变系统（LTI）的限制，提出选择性状态空间模型（Selective SSM）：参数随输入动态变化，并配了适配 GPU SRAM 的硬件感知并行前缀扫描算子。</td>
+      <td>目前和 Transformer 正面竞争的非注意力架构。连续状态空间方程 h'(t) = A h(t) + B x(t) 与模拟电路音频滤波器的时域响应方程完全同构。</td>
     </tr>
     <tr>
       <td><code>#048</code></td>
       <td><strong><a href="https://arxiv.org/abs/2405.21060" target="_blank" rel="noopener">Transformers are SSMs: Generalized Models and Efficient Algorithms Through Structured State Space Duality</a></strong></td>
       <td>Tri Dao & Albert Gu (Princeton / CMU, Mamba-2)</td>
       <td>建立结构化状态空间对偶性（SSD）：严格证明了半可分离矩阵乘法与特定因果注意力的数学等价性，利用 Tensor Core 实现了比 Mamba-1 快 2-8 倍的块对角计算。</td>
-      <td>高度展现数学统一之美。证明了递归更新与注意力乘法只是同一半正定 Gram 矩阵在不同基底下的投影计算。</td>
+      <td>把递归更新与注意力乘法统一成同一个半正定 Gram 矩阵在不同基底下的投影计算。</td>
     </tr>
     <tr>
       <td><code>#049</code></td>
       <td><strong><a href="https://arxiv.org/abs/2305.13048" target="_blank" rel="noopener">RWKV: Reinventing RNNs for the Transformer Era</a></strong></td>
       <td>Bo Peng et al. (RWKV Foundation, EMNLP)</td>
       <td>融合 Transformer 的并行可训练性与 RNN 的 O(1) 推理优势，通过通道混合与时间混合算子将历史状态递归压缩为定长向量。</td>
-      <td>轻量化端侧大模型典范。验证 1B 到 3B 规模小模型在严苛硬件显存约束下的架构调优与知识密度上限。</td>
+      <td>端侧小模型的参考路线。看 1B 到 3B 这一档在严格显存约束下怎么调架构、知识密度能到哪。</td>
     </tr>
     <tr>
       <td><code>#050</code></td>
       <td><strong><a href="https://arxiv.org/abs/2307.08621" target="_blank" rel="noopener">Retentive Network: A Successor to Transformer for Large Language Models</a></strong></td>
       <td>Yutao Sun et al. (Microsoft Research)</td>
       <td>提出保留网络（RetNet），支持三种并行表示：并行训练、循环推理与分块循环长文本处理，引入复数衰减指数作为显式衰减记忆。</td>
-      <td>复指数衰减因子 e^{-gamma (i-j)} 与声学混响时间（RT60）在物理上具有相同的衰减衰落特性，是建模音乐残响衰减的理想数学骨架。</td>
+      <td>复指数衰减因子 e^{-gamma (i-j)} 与声学混响时间（RT60）的衰减规律同形，可以直接拿来给音乐残响建模。</td>
     </tr>
     <tr>
       <td><code>#051</code></td>
       <td><strong><a href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener">Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer</a></strong></td>
       <td>Noam Shazeer et al. (Google Brain, ICLR)</td>
       <td>提出稀疏门控混合专家（MoE）层：利用可微门控网络在每个 token 上只动态路由激活极少部分专家（Top-K），实现参数量扩大数十倍而计算量保持恒定。</td>
-      <td>解决模型容量与计算成本冲突的基石。在跨音乐风格建模中，可将电子乐、古典乐、爵士乐转场分别交由不同专用专家网络处理。</td>
+      <td>解决模型容量与计算成本冲突的基本做法。跨音乐风格建模时，可以把电子乐、古典乐、爵士乐的转场分给不同的专家网络。</td>
     </tr>
     <tr>
       <td><code>#052</code></td>
       <td><strong><a href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noopener">Switch Transformers: Scaling to Trillion Parameter Models with Simple and Efficient Sparsity</a></strong></td>
       <td>William Fedus, Barret Zoph, Noam Shazeer (Google Brain, JMLR)</td>
       <td>将路由极端简化为 Top-1 单专家分配，提出配套的专家容量因子（Capacity Factor）与辅助负载均衡损失，训练出首个万亿参数规模稀疏模型。</td>
-      <td>理解分布式通信中 All-to-All 的开销瓶颈。在设计小规模设备端音频模型时，Top-1 路由能彻底杜绝多专家拼接带来的内存碎片。</td>
+      <td>分布式训练里 All-to-All 的开销瓶颈看这篇。做小的端侧音频模型时，Top-1 路由可以避开多专家拼接带来的内存碎片。</td>
     </tr>
     <tr>
       <td><code>#053</code></td>
       <td><strong><a href="https://arxiv.org/abs/2006.16668" target="_blank" rel="noopener">GShard: Scaling Giant Models with Conditional Computation and Automatic Sharding</a></strong></td>
       <td>Dmitry Lepikhin et al. (Google Research, ICLR)</td>
       <td>结合编译器 SPMD 自动切分注解与 Top-2 门控路由，规范了专家并行（Expert Parallelism）在多 TPU/GPU 集群上的通信对齐机制。</td>
-      <td>JAX 生态中 Mesh / PartitionSpec 自动处理复杂并行切分的理论祖师，课程模块 06 与附录 B 实验 E6 的系统级底座。</td>
+      <td>JAX 里 Mesh / PartitionSpec 自动切分并行就是这套思路，模块 06 与实验 E6 的系统层底座。</td>
     </tr>
     <tr>
       <td><code>#054</code></td>
       <td><strong><a href="https://arxiv.org/abs/2401.04088" target="_blank" rel="noopener">Mixtral of Experts</a></strong></td>
       <td>Albert Q. Jiang et al. (Mistral AI)</td>
-      <td>开源 MoE 标杆架构：8x7B 架构中每个 token 动态激活 2 个专家（实际消耗 13B 激活算力却达到 70B 稠密模型的知识容量），全面采用 SwiGLU 与 GQA。</td>
-      <td>工程落地黄金配比。证明了稀疏条件计算无需过度复杂的门控机制，只要基础 FFN 表征足够强，Top-2 线性加权即可达成优异泛化。</td>
+      <td>开源 MoE 的代表架构：8x7B 架构中每个 token 动态激活 2 个专家（实际消耗 13B 激活算力却达到 70B 稠密模型的知识容量），全面采用 SwiGLU 与 GQA。</td>
+      <td>工程落地的常用配比。门控不必复杂：只要 FFN 表征够强，Top-2 线性加权就能取得不错的泛化。</td>
     </tr>
     <tr>
       <td><code>#055</code></td>
       <td><strong><a href="https://arxiv.org/abs/2405.04434" target="_blank" rel="noopener">DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model</a></strong></td>
       <td>DeepSeek-AI (DeepSeek Technical Report)</td>
       <td>提出多头潜在注意力（MLA）：将 KV 向量低秩投影为潜在向量以压缩 KV Cache 93.3%；首创 DeepSeekMoE 细粒度专家分割与共享专家架构。</td>
-      <td>矩阵低秩分解与体系结构协同设计的现代巅峰作品！MLA 的低秩压缩矩阵乘法可直接用于压缩多音轨历史状态缓冲区。</td>
+      <td>低秩分解与体系结构协同设计的代表作。MLA 这套低秩压缩也能直接用来压缩多音轨的历史状态缓冲区。</td>
     </tr>
     <tr>
       <td><code>#056</code></td>
       <td><strong><a href="https://arxiv.org/abs/2412.19437" target="_blank" rel="noopener">DeepSeek-V3 Technical Report</a></strong></td>
       <td>DeepSeek-AI</td>
       <td>无辅助损失负载均衡（Auxiliary-loss-free Load Balancing）：通过自适应偏置替代惩罚损失，消除对主任务梯度的干扰；全面采用 FP8 混合精度与多 Token 预测（MTP）。</td>
-      <td>深入领悟优化目标函数与工程硬约束（GPU 负载均衡）解耦的数学思维，杜绝在次要工程指标上牺牲主要建模精度的陷阱。</td>
+      <td>值得学的是把优化目标与工程硬约束（GPU 负载均衡）解耦的思路，别为次要的工程指标牺牲建模精度。</td>
     </tr>
     <tr>
       <td><code>#057</code></td>
       <td><strong><a href="https://arxiv.org/abs/2104.09864" target="_blank" rel="noopener">RoFormer: Enhanced Transformer with Rotary Position Embedding</a></strong></td>
       <td>Jianlin Su et al. (RoFormer Authors)</td>
       <td>提出旋转位置编码（RoPE）：利用复数内积与二维正交旋转矩阵将相对位置信息直接编码至 Q 与 K 的内积中，满足点积只依赖相对位移 n-m。</td>
-      <td>剑桥几何与复数代数分析经典典范！公式 < R_m q, R_n k> = < q, R_{n-m} k> 必须能一气呵成手推出来；与音频复数 STFT 谱的相位调制同质同源。</td>
+      <td>几何与复数代数在这里结合得最漂亮：公式 < R_m q, R_n k> = < q, R_{n-m} k> 要能一口气手推出来；音频复数 STFT 谱的相位调制也是同一套东西。</td>
     </tr>
     <tr>
       <td><code>#058</code></td>
       <td><strong><a href="https://arxiv.org/abs/2108.12409" target="_blank" rel="noopener">Train Short, Test Long: Attention with Linear Biases Enables Input Length Extrapolation</a></strong></td>
       <td>Ofir Press, Noah A. Smith, Mike Lewis (UW / Meta AI, ICLR)</td>
       <td>提出 ALiBi：摒弃所有显式位置嵌入，在注意力分数上直接加上与 token 距离成正比的静态负偏置 -m*(i-j)，实现无需微调即可外推到未见过的更长上下文。</td>
-      <td>极简数学设计的优雅胜利。负线性偏置相当于对历史信息赋予拉普拉斯先验衰减，保证音频混音模型对外推长曲目的时间衰减单调稳定。</td>
+      <td>设计极简但有效。负线性偏置相当于给历史信息加一个拉普拉斯先验衰减，长曲目外推时的时间衰减因此单调稳定。</td>
     </tr>
     <tr>
       <td><code>#059</code></td>
@@ -20082,154 +20089,154 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2306.15595" target="_blank" rel="noopener">Extending Context Window of Large Language Models via Positional Interpolation</a></strong></td>
       <td>Shoubhik Debnath et al. (Meta AI)</td>
       <td>证明将位置索引线性缩放 S 倍比直接外推具有更紧凑的插值误差界，将最大位置编码范围直接拉伸到训练阶段覆盖的凸包内部。</td>
-      <td>凸分析基本结论：数值插值在有界紧集内误差有界，而数值外推误差随距离指数发散。做模型泛化设计时应尽可能将问题构造成插值问题。</td>
+      <td>凸分析的基本结论：在有界紧集内插值，误差有界；外推则随距离指数发散。做泛化设计时尽量把问题放进插值区间。</td>
     </tr>
     <tr>
       <td><code>#061</code></td>
       <td><strong><a href="https://arxiv.org/abs/1607.06450" target="_blank" rel="noopener">Layer Normalization</a></strong></td>
       <td>Jimmy Lei Ba, Jamie Ryan Kiros, Geoffrey E. Hinton (Toronto)</td>
-      <td>提出层归一化（LayerNorm）：对单个样本的所有特征分量沿隐藏维度计算均值与方差进行规范化，彻底解除了批归一化对 Batch 维度的强依赖。</td>
-      <td>使 Transformer 支持动态变长序列与流式单样本推理的根本支柱。在音频特征流水线中对响度动态范围做实时的 Z-score 规范化。</td>
+      <td>提出层归一化（LayerNorm）：沿隐藏维度对单个样本的每个特征分量算均值与方差再规范化，Batch 维度不再是必需。</td>
+      <td>Transformer 能处理变长序列、能做流式单样本推理，靠的就是它。音频特征流水线里的响度动态范围也可以用 Z-score 实时规范化。</td>
     </tr>
     <tr>
       <td><code>#062</code></td>
       <td><strong><a href="https://arxiv.org/abs/1910.07467" target="_blank" rel="noopener">Root Mean Square Layer Normalization</a></strong></td>
       <td>Biao Zhang & Rico Sennrich (Edinburgh, NeurIPS)</td>
-      <td>提出 RMSNorm：证明 LayerNorm 的均值中心化并不带来显著正则化增益，仅通过均方根归一化维持缩放不变性，节省 7%-50% 归一化计算开销。</td>
-      <td>现代大模型（LLaMA、Mistral、DeepSeek）标配。在物理音频能量中，均方根（RMS）直接对应真实声学功率，两者在度量上完全统一！</td>
+      <td>提出 RMSNorm：证明 LayerNorm 的均值中心化带不来多少正则化收益，只用均方根归一化维持缩放不变性，就能省下 7%-50% 的归一化计算开销。</td>
+      <td>LLaMA、Mistral、DeepSeek 的标配。音频里的均方根（RMS）本来就对应真实声学功率，两边在度量上是同一个量。</td>
     </tr>
     <tr>
       <td><code>#063</code></td>
       <td><strong><a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noopener">Deep Residual Learning for Image Recognition</a></strong></td>
       <td>Kaiming He et al. (Microsoft Research, CVPR Best Paper)</td>
-      <td>提出恒等映射残差连接（Residual Connection）y = x + F(x)，从反向传播数学推导上证明了梯度流可以直接穿透深层网络，攻克梯度消失困境。</td>
-      <td>深度学习历史性突破。证明恒等映射（Identity Mapping）解决了深层梯度退化难题，使千层网络稳定反向传播。</td>
+      <td>提出恒等映射残差连接（Residual Connection）y = x + F(x)，并从反向传播推导上说明梯度可以直接穿过深层网络，缓解梯度消失。</td>
+      <td>恒等映射（Identity Mapping）缓解了深层梯度退化，千层网络才训得动。</td>
     </tr>
     <tr>
       <td><code>#064</code></td>
       <td><strong><a href="https://arxiv.org/abs/2203.00555" target="_blank" rel="noopener">DeepNet: Scaling Transformers to 1,000 Layers</a></strong></td>
       <td>Hongyu Wang et al. (Microsoft Research)</td>
-      <td>分析了 Pre-LN 与 Post-LN 在深度扩展时的方差积累机理，推导出 DeepNorm 初始化方案，首次将 Transformer 深度无损失震荡地推至 1000 层。</td>
-      <td>严密的矩阵方差传播推导过程。指导任何深度特征网络在没有归一化层辅助时，如何通过缩放常数 alpha 稳定前向激活幅度。</td>
+      <td>分析 Pre-LN 与 Post-LN 在加深时的方差积累机理，给出 DeepNorm 初始化方案，把 Transformer 深度推到 1000 层而训练不震荡。</td>
+      <td>矩阵方差怎么在网络里逐层传播，这篇推得很细。没有归一化层的深层网络，可以靠缩放常数 alpha 稳住前向激活幅度。</td>
     </tr>
     <tr>
       <td><code>#065</code></td>
       <td><strong><a href="https://arxiv.org/abs/2002.05202" target="_blank" rel="noopener">GLU Variants Improve Transformer</a></strong></td>
       <td>Noam Shazeer (Google Brain)</td>
       <td>系统对比了门控线性单元（GLU）在前馈网络中的应用，证明基于 Swish 激活的 SwiGLU(x) = (xW * swish(xV)) W2 在收敛速度与最终困惑度上全面超越经典 ReLU/GELU。</td>
-      <td>逐行剖析隐藏层维度 intermediate_size = floor(2/3 * 4d) 的由来。双线性通道相乘为模型注入了低阶交叉项交互能力。</td>
+      <td>隐藏层维度 intermediate_size = floor(2/3 * 4d) 是怎么来的，这篇有完整推导；两个通道相乘相当于给模型补上了低阶交叉项。</td>
     </tr>
     <tr>
       <td><code>#066</code></td>
       <td><strong><a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Chain-of-Thought Prompting Elicits Reasoning in Large Language Models</a></strong></td>
       <td>Jason Wei et al. (Google Research, NeurIPS)</td>
-      <td>证明自回归模型在输出最终答案前生成中间思考步骤，能将复杂的图搜索问题解构为局部的马尔可夫决策序列，诱导出强大的多步推理能力。</td>
-      <td>计算复杂性理论解释：每个 token 前向只执行固定深度的电路计算，显式思维链（CoT）实际上是用时间换空间，扩展了图灵完备循环步数。</td>
+      <td>证明自回归模型在给答案前先写出中间步骤，能把复杂的搜索问题拆成一步步局部决策，多步推理能力随之出现。</td>
+      <td>用计算复杂性看更清楚：每个 token 前向只做固定深度的计算，思维链（CoT）就是拿时间换深度，把可用的串行步数拉长。</td>
     </tr>
     <tr>
       <td><code>#067</code></td>
       <td><strong><a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Self-Consistency Improves Chain of Thought Reasoning in Language Models</a></strong></td>
       <td>Xuezhi Wang et al. (Google Research, ICLR)</td>
-      <td>提出自洽性采样（Self-Consistency）：在多路径思考轨迹中取边际概率最大或多数投票的结果，利用蒙特卡洛采样显著提升复杂推理任务准确率。</td>
-      <td>课程模块 17 核心代码的数学源头。在音频决策不确定时，多次采样转场参数并进行核密度估计（KDE），选取模式峰值作为最稳健选择。</td>
+      <td>提出自洽性采样（Self-Consistency）：在多路径思考轨迹中取边际概率最大或多数投票的结果，用蒙特卡洛采样把复杂推理任务的准确率提上去。</td>
+      <td>模块 17 核心代码的数学源头。音频决策拿不准时，可以多次采样转场参数、做核密度估计（KDE），取峰值作为最稳的选择。</td>
     </tr>
     <tr>
       <td><code>#068</code></td>
       <td><strong><a href="https://arxiv.org/abs/2305.10601" target="_blank" rel="noopener">Tree of Thoughts: Deliberate Problem Solving with Large Language Models</a></strong></td>
       <td>Shunyu Yao et al. (Princeton / Google DeepMind, NeurIPS)</td>
       <td>将线性链式思考拓展为树状状态空间搜索，结合启发式评估、广度优先（BFS）与深度优先回溯（DFS），实现跨步骤前瞻与自我修正。</td>
-      <td>经典图搜索与符号 AI 的现代复兴。在 DJ 连续混音的长远规划中，通过前瞻数首歌曲的调式与节拍演进图，搜索全局能量波动最小的转场序列。</td>
+      <td>经典图搜索在语言模型上的复用。DJ 连续混音时，把接下来几首的调式与节拍画成图，搜一条全局能量波动最小的转场序列。</td>
     </tr>
     <tr>
       <td><code>#069</code></td>
       <td><strong><a href="https://arxiv.org/abs/2305.20050" target="_blank" rel="noopener">Let's Verify Step by Step</a></strong></td>
       <td>Hunter Lightman et al. (OpenAI)</td>
       <td>系统对比了结果监督（ORM）与过程监督（PRM），证明对每一步逻辑推导进行单步显式验证打分，能以极高效率抑制幻觉并支撑搜索扩展。</td>
-      <td>剑桥数学证明批改的直观映射：看证明不能只看最后一行 Q.E.D.，中间一步逻辑漏洞全题判错。在音频合成管线中同样必须对每个时间切片做连续性单步校验。</td>
+      <td>跟批改数学证明是同一个道理：不能只看最后一行 Q.E.D.，中间一步有逻辑漏洞，整题就判错。音频合成管线里同样要对每个时间切片做连续性单步校验。</td>
     </tr>
     <tr>
       <td><code>#070</code></td>
       <td><strong><a href="https://openai.com/index/learning-to-reason-with-llms/" target="_blank" rel="noopener">Learning to Reason with LLMs (OpenAI o1 System Card)</a></strong></td>
       <td>OpenAI Reasoning Research Team</td>
-      <td>揭示了推理阶段算力（Test-Time Compute）的新标度律：通过强化学习让模型自主学会反思、回溯试错与验证，在数学竞赛与高级编程中达到人类博士水准。</td>
-      <td>开启推理大模型时代的关键文献。证明思维链长度可以随问题难度自适应扩展，为后训练算法提供了以强化学习为核心的全新迭代方向。</td>
+      <td>给出推理阶段算力（Test-Time Compute）的新标度律：靠强化学习让模型自己学会反思、回溯试错与验证，在数学竞赛与高级编程任务上达到人类博士水平。</td>
+      <td>推理模型时代的起点。思维链长度可以随问题难度自适应伸缩，后训练算法从此以强化学习为核心。</td>
     </tr>
     <tr>
       <td><code>#071</code></td>
       <td><strong><a href="https://arxiv.org/abs/2501.12948" target="_blank" rel="noopener">DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning</a></strong></td>
       <td>DeepSeek-AI</td>
       <td>证明在零基础冷启动下，仅凭纯规则可验证奖励函数（Rule-Based Accuracy & Format Reward）运行大规模 GRPO 强化学习，即可自然涌现出深度思考与自发回溯。</td>
-      <td>彻底破除对昂贵人类偏好标注的迷信。只要存在客观可计算判据（如音频能量守恒公式、无破音硬约束），强化学习即可全自动驱动策略进化。</td>
+      <td>不必再依赖昂贵的人工偏好标注：只要判据客观可计算（音频能量守恒公式、无破音硬约束都算），强化学习就能自动把策略推上去。</td>
     </tr>
     <tr>
       <td><code>#072</code></td>
       <td><strong><a href="https://arxiv.org/abs/2103.00020" target="_blank" rel="noopener">Learning Transferable Visual Representations From Natural Language Supervision</a></strong></td>
       <td>Alec Radford et al. (OpenAI, CLIP)</td>
-      <td>提出双塔对比学习（InfoNCE Loss）：通过将文本与图像投影到统一的归一化超球面上拉近正样本内积、推开负样本，实现超强的零样本泛化能力。</td>
-      <td>多模态对比学习典范。用双塔网络与对称交叉熵在海量数据上对齐文本与向量空间。</td>
+      <td>提出双塔对比学习（InfoNCE Loss）：通过将文本与图像投影到统一的归一化超球面上拉近正样本内积、推开负样本，零样本泛化能力很强。</td>
+      <td>多模态对比学习的样板：双塔网络加对称交叉熵，在大量数据上把文本与图像对齐到同一向量空间。</td>
     </tr>
     <tr>
       <td><code>#073</code></td>
       <td><strong><a href="https://arxiv.org/abs/2212.04356" target="_blank" rel="noopener">Robust Speech Recognition via Large-Scale Weak Supervision</a></strong></td>
       <td>Alec Radford et al. (OpenAI, Whisper)</td>
-      <td>证明在 68 万小时带噪弱监督音频数据上训练标准编码器-解码器 Transformer，无需复杂的 CTC 或专门声学模型，即可展现出无与伦比的跨语言与抗噪鲁棒性。</td>
-      <td>大规模端到端语音转录标杆。其特征工程与编解码器因果自回归架构是现代序列识别标准范式。</td>
+      <td>在 68 万小时带噪弱监督音频上训练标准编码器-解码器 Transformer，不用 CTC，也不用专门的声学模型，跨语言与抗噪表现就很强。</td>
+      <td>大规模端到端语音转录的代表作。它那套编解码器因果自回归结构，后来成了序列识别的标准做法。</td>
     </tr>
     <tr>
       <td><code>#074</code></td>
       <td><strong><a href="https://arxiv.org/abs/2210.13438" target="_blank" rel="noopener">High Fidelity Neural Audio Compression</a></strong></td>
       <td>Alexandre Défossez et al. (Meta FAIR, EnCodec)</td>
       <td>提出 EnCodec：结合卷积自动编码器、残差矢量量化（Residual Vector Quantization, RVQ）与多尺度 STFT 鉴别器，以极低码率将连续音频解耦为离散 Token。</td>
-      <td>残差矢量量化（RVQ）经典。用多阶段分层码本将高维连续信号量化为紧凑离散 Token。</td>
+      <td>残差矢量量化（RVQ）的代表作：多阶段分层码本，把高维连续信号压成紧凑的离散 Token。</td>
     </tr>
     <tr>
       <td><code>#075</code></td>
       <td><strong><a href="https://arxiv.org/abs/2306.05284" target="_blank" rel="noopener">Simple and Controllable Music Generation</a></strong></td>
       <td>Jade Copet et al. (Meta FAIR, MusicGen)</td>
       <td>提出延迟模式建模（Delay Pattern Modeling）：通过对多个 RVQ 码本的时间错位重排，允许自回归语言模型同时单步生成多个码流，避免层次化树形生成的指数延迟。</td>
-      <td>多码流时域交叠建模的精妙数学排布。与两首歌曲交叉淡入淡出时双轨交叠区域的时域多流混合机制完全同构。</td>
+      <td>多码流在时间上错位排列的典型做法，跟两首歌交叉淡入淡出时双轨交叠的混合方式完全同构。</td>
     </tr>
     <tr>
       <td><code>#076</code></td>
       <td><strong><a href="https://arxiv.org/abs/2306.15687" target="_blank" rel="noopener">Voicebox: Text-Guided Multilingual Universal Speech Generation at Scale</a></strong></td>
       <td>Matthew Le et al. (Meta FAIR)</td>
       <td>将连续流匹配（Flow Matching）成功扩展到大规模音频生成领域，利用最优传输速度场实现了超越传统自回归架构的保真度与平滑编辑能力。</td>
-      <td>针对连续波形插值的最优生成范式。证明了在连续空间内求解常微分方程比在离散 Token 空间自回归解码更加平滑且不存在累积量化噪声。</td>
+      <td>连续波形插值的参考做法：在连续空间里解常微分方程，比在离散 Token 上自回归解码更平滑，也没有累积量化噪声。</td>
     </tr>
     <tr>
       <td><code>#077</code></td>
       <td><strong><a href="https://arxiv.org/abs/2302.13971" target="_blank" rel="noopener">LLaMA: Open and Efficient Foundation Language Models</a></strong></td>
       <td>Hugo Touvron et al. (Meta FAIR)</td>
-      <td>开源大模型运动的里程碑。确立了现代 LLM 的标准工业构型：Pre-normalization (RMSNorm)、SwiGLU 激活函数与 RoPE 旋转位置编码，证明小模型充分训练超越大模型。</td>
-      <td>代码实验核心基座。深入理解其配置超参数（hidden_size, intermediate_size, num_heads）的协同缩放法则。</td>
+      <td>开源大模型的里程碑，定下了现代 LLM 的标准配置：Pre-normalization (RMSNorm)、SwiGLU 激活函数与 RoPE 旋转位置编码；也说明小模型训练充分时可以超过更大的模型。</td>
+      <td>动手实验的常用底座。重点看它的配置超参数（hidden_size, intermediate_size, num_heads）怎么协同缩放。</td>
     </tr>
     <tr>
       <td><code>#078</code></td>
       <td><strong><a href="https://arxiv.org/abs/2307.09288" target="_blank" rel="noopener">Llama 2: Open Foundation and Fine-Tuned Chat Models</a></strong></td>
       <td>Hugo Touvron et al. (Meta FAIR)</td>
-      <td>全面升级 70B 模型至分组查询注意力（GQA），详尽公开了预训练混合精度、双奖励模型 RLHF、拒绝采样与安全红蓝对抗对齐的全流程工业实践细节。</td>
-      <td>课程模块 07 对齐与微调的核心参考标准，展现了如何从单次前向输出走向可靠安全的工业级系统。</td>
+      <td>把 70B 模型换成分组查询注意力（GQA），并公开了预训练混合精度、双奖励模型 RLHF、拒绝采样与安全红蓝对抗的完整工业流程。</td>
+      <td>模块 07 对齐与微调的主要参考：从一个前向输出走到可靠安全的工业级系统，这份报告写得很细。</td>
     </tr>
     <tr>
       <td><code>#079</code></td>
       <td><strong><a href="https://arxiv.org/abs/2407.21783" target="_blank" rel="noopener">The Llama 3 Herd of Models</a></strong></td>
       <td>Meta AI Research Team</td>
       <td>公开了 405B 超大规模稠密模型的全套工程全景：15T Tokens 预训练数据配比、长上下文外推（RoPE base 500k）、128k tiktoken 词表与全栈软硬件容错通信协议。</td>
-      <td>现代大模型训练的终极工程白皮书。附录关于高质量合成数据清洗与模型梯队蒸馏的细节，是高质量数据构建的最佳指引。</td>
+      <td>现代大模型训练的工程白皮书。附录里合成数据清洗与模型梯队蒸馏的细节，是构建高质量数据时最好的参考。</td>
     </tr>
     <tr>
       <td><code>#080</code></td>
       <td><strong><a href="https://arxiv.org/abs/2010.11929" target="_blank" rel="noopener">An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale</a></strong></td>
       <td>Alexey Dosovitskiy et al. (Google Research Brain, ICLR)</td>
-      <td>提出视觉 Transformer（ViT）：将 2D 图像平铺切分为 16x16 线性嵌入 patch 序列作为标准输入，证明了在海量数据预训练下纯 Transformer 全面超越卷积归纳偏差。</td>
-      <td>纯 Transformer 架构征服计算机视觉与 2D 信号的里程碑。证明分块线性切片加上位置编码即可替代卷积。</td>
+      <td>提出视觉 Transformer（ViT）：把 2D 图像切成 16x16 的 patch 序列线性嵌入后作为输入，说明数据量足够大时，纯 Transformer 可以盖过卷积的归纳偏差。</td>
+      <td>纯 Transformer 在视觉上的里程碑：分块线性切片加上位置编码，就足以替代卷积。</td>
     </tr>
   </tbody>
 </table>
 
 <h4>1.3 支柱三 · 训练动力学（标度律、优化器几何、混合精度与对齐 RL 40 篇）</h4>
 <p>
-  训练大模型并非碰运气，而是在高维非凸流形上求解随机动力系统。从计算最优标度律（Chinchilla）、最大更新参数化（muP），到混合精度数值理论与直接偏好优化（DPO/GRPO），这一支柱揭示了智能演化的物理规律。
+  训练大模型不是碰运气，而是在高维非凸流形上解一个随机动力系统。这一支柱从计算最优标度律（Chinchilla）、最大更新参数化（muP），一路讲到混合精度数值理论与直接偏好优化（DPO/GRPO）。
 </p>
 <table class="tbl small">
   <thead><tr><th>序号</th><th>文献 / 课程 / 报告</th><th>机构 / 作者</th><th>核心数学与工程结论</th><th>核心数学与研读启示</th></tr></thead>
@@ -20239,132 +20246,132 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noopener">Scaling Laws for Neural Language Models</a></strong></td>
       <td>Jared Kaplan et al. (OpenAI / Johns Hopkins)</td>
       <td>首次发现跨越 6 个数量级的幂律缩放定律：交叉熵损失与模型参数量 N、数据集规模 D 及计算量 C 呈高精度的幂律关系 L ~ N^{-alpha_N}，指导超大规模预算分配。</td>
-      <td>剑桥数学经典的渐进分析（Asymptotic Analysis）实践。在规划音频模型算力实验时，先小规模扫描参数确定幂指数，杜绝盲目浪费算力。</td>
+      <td>渐进分析（Asymptotic Analysis）在工程里的用法：规划算力实验时先小规模扫参数、定出幂指数，别一上来就烧卡。</td>
     </tr>
     <tr>
       <td><code>#082</code></td>
       <td><strong><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noopener">Training Compute-Optimal Large Language Models</a></strong></td>
       <td>Jordan Hoffmann et al. (DeepMind, Chinchilla)</td>
-      <td>修正了 Kaplan 定律的实验偏差，严格证明在固定计算预算下，模型参数量 N 与训练 Token 数量 D 应以相同比例（1:1）等比缩放，确立了 Chinchilla 计算最优前沿。</td>
-      <td>模型设计的铁律！课程模块 05 手算参数与 Token 比例的核心理论来源，明确告诉我们在数据量有限时绝不应盲目堆砌参数。</td>
+      <td>修正了 Kaplan 定律的实验偏差，给出固定计算预算下的计算最优配比：参数量 N 与训练 Token 数 D 要同步放大，最优时大致满足 D ≈ 20N，由此确立了 Chinchilla 计算最优前沿。</td>
+      <td>模块 05 手算参数与 Token 配比的理论来源；数据量有限时，不要一味堆参数。</td>
     </tr>
     <tr>
       <td><code>#083</code></td>
       <td><strong><a href="https://arxiv.org/abs/2010.14701" target="_blank" rel="noopener">Scaling Laws for Autoregressive Generative Modeling</a></strong></td>
       <td>Tom Henighan et al. (Anthropic)</td>
       <td>将自回归缩放定律推广至多模态（图像、音频、文本与视频），证明幂律缩放是自回归模型在各类无序信息熵压缩过程中的普适数学规律。</td>
-      <td>为音频离散序列的生成模型提供理论定心丸：无论输入是自然文本还是音乐波形 Token，只要遵循自回归压缩，损失函数就受幂律定律严格支配。</td>
+      <td>音频离散序列的生成也可以放心套用：不管输入是自然文本还是音乐波形的 Token，只要按自回归压缩来训，损失同样服从幂律。</td>
     </tr>
     <tr>
       <td><code>#084</code></td>
       <td><strong><a href="https://arxiv.org/abs/2210.14891" target="_blank" rel="noopener">Broken Neural Scaling Laws</a></strong></td>
       <td>Ethan Caballero et al. (MILA, ICLR)</td>
       <td>通过引入广义 S 型曲线（Smoothly-broken Power Laws），准确解释了模型在特定任务上出现的突变相变、饱和平台期与多阶段缩放行为。</td>
-      <td>展现真实世界非理想幂律的动力学相变过程。当跨淡入淡出模型达到能量守恒临界点时，指标往往出现非线性的骤升台阶。</td>
+      <td>真实数据里的幂律往往带拐点。淡入淡出模型逼近能量守恒临界点时，指标会出现一段非线性台阶。</td>
     </tr>
     <tr>
       <td><code>#085</code></td>
       <td><strong><a href="https://arxiv.org/abs/2303.08774" target="_blank" rel="noopener">GPT-4 Technical Report</a></strong></td>
       <td>OpenAI</td>
-      <td>展示了惊人的可预测缩放（Predictable Scaling）：用千分之一乃至万分之一的小算力模型，直接在对数坐标系上精确预测出完整 GPT-4 的最终损失与编程通过率。</td>
-      <td>大科学（Big Science）工程的确定性典范。严谨科研绝非碰运气调参，而是在小尺度上通过严密外推预测大系统的行为。</td>
+      <td>展示了可预测缩放（Predictable Scaling）：用千分之一甚至万分之一算力的小模型，就能在对数坐标上把完整 GPT-4 的最终损失与编程通过率预测得八九不离十。</td>
+      <td>大科学（Big Science）工程的样子：不靠碰运气调参，而是在小尺度上外推预测大系统的行为。</td>
     </tr>
     <tr>
       <td><code>#086</code></td>
       <td><strong><a href="https://arxiv.org/abs/1412.6980" target="_blank" rel="noopener">Adam: A Method for Stochastic Optimization</a></strong></td>
       <td>Diederik P. Kingma & Jimmy Ba (Amsterdam / Toronto, ICLR)</td>
       <td>提出 Adam 优化器：结合一阶动量（期望方向）与二阶未中心化动量（坐标自适应尺度调节），通过除以 sqrt(v_t)+epsilon 实现对坐标轴各向异性曲率的自适应修正。</td>
-      <td>必须深入理解一阶矩与二阶矩的偏差纠正公式（Bias Correction）1/(1-beta^t)。在训练初始阶段防止由于零初始化导致的步长失控。</td>
+      <td>一阶矩与二阶矩的偏差纠正公式（Bias Correction）1/(1-beta^t) 要能自己推；训练刚开始时，它防的就是零初始化带来的步长失控。</td>
     </tr>
     <tr>
       <td><code>#087</code></td>
       <td><strong><a href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener">Decoupled Weight Decay Regularization</a></strong></td>
       <td>Ilya Loshchilov & Frank Hutter (Freiburg, ICLR, AdamW)</td>
-      <td>指出了经典 L2 正则化在自适应梯度算法中与真实权重衰减的数学不等价性，提出将权重衰减显式解耦至梯度更新之外，奠定了所有 Transformer 训练的标准优化器。</td>
-      <td>剑桥数学面试极佳的深度洞察题：为什么梯度归一化后直接加权重衰减会导致大梯度分量衰减不足？AdamW 的闭式解剖析。</td>
+      <td>指出了经典 L2 正则化在自适应梯度算法中与真实权重衰减的数学不等价性，提出将权重衰减显式解耦至梯度更新之外，成了几乎所有 Transformer 训练的标准优化器。</td>
+      <td>面试里很好用的一道题：梯度归一化之后直接加权重衰减，为什么大梯度分量衰减不够？答案就在 AdamW 的更新式里。</td>
     </tr>
     <tr>
       <td><code>#088</code></td>
       <td><strong><a href="https://arxiv.org/abs/2203.03466" target="_blank" rel="noopener">Tensor Programs V: Tuning Large Neural Networks via Maximal Update Parametrization</a></strong></td>
       <td>Greg Yang et al. (Microsoft Research)</td>
       <td>提出最大更新参数化（muP）：在无穷宽极限下保持各层激活变化与权重梯度更新尺度为 Theta(1)，实现小模型上搜索的最优超参数（学习率等）零代价直接迁移至超大模型。</td>
-      <td>高深纯数无穷维极限与算子代数在大模型中的应用标杆！攻克大模型重复扫超参带来的巨大资源浪费。</td>
+      <td>无穷宽极限与算子代数在大模型里的落地：小模型上调好的学习率可以直接搬到大模型，省掉反复扫超参的开销。</td>
     </tr>
     <tr>
       <td><code>#089</code></td>
       <td><strong><a href="https://arxiv.org/abs/2010.01412" target="_blank" rel="noopener">Sharpness-Aware Minimization for Efficiently Improving Generalization</a></strong></td>
       <td>Pierre Foret et al. (Google Research, ICLR, SAM)</td>
-      <td>提出锐度感知最小化（SAM）：不仅寻找训练损失小的极小值，更通过极小极大博弈 min_w max_{||epsilon||<=rho} L(w+epsilon) 寻找平坦极小值，显著压低海森矩阵谱范数以提升泛化。</td>
-      <td>微分几何曲率控制的典型应用。在音频微调数据极少时，SAM 能有效阻止模型陷入局部尖锐谷底，避免对特定过渡特征过拟合。</td>
+      <td>提出锐度感知最小化（SAM）：不仅寻找训练损失小的极小值，更通过极小极大博弈 min_w max_{||epsilon||<=rho} L(w+epsilon) 寻找平坦极小值，压低海森矩阵的谱范数，泛化也跟着变好。</td>
+      <td>曲率控制的典型用法。音频微调数据很少时，SAM 能拦住模型掉进尖锐的局部极小，少对某几条过渡特征过拟合。</td>
     </tr>
     <tr>
       <td><code>#090</code></td>
       <td><strong><a href="https://arxiv.org/abs/2110.02861" target="_blank" rel="noopener">8-bit Optimizers via Block-wise Quantization</a></strong></td>
       <td>Tim Dettmers et al. (Washington, ICLR)</td>
-      <td>提出分块 8-bit AdamW 与页面优化器内存交换：将占显存最大头的一阶和二阶矩状态非均匀量化为 8-bit，显存占用暴降 75% 且优化轨迹完全保持一致。</td>
-      <td>单卡微调能够跑起来的关键支柱。理解非线性浮点分布分位数划分的数学依据，用在 Colab 免费 T4 上完成原本需要 A100 的任务。</td>
+      <td>提出分块 8-bit AdamW 与页面优化器内存交换：把占显存最大头的一阶和二阶矩状态按非均匀方式量化成 8-bit，显存占用少了约 75%，优化轨迹保持不变。</td>
+      <td>单卡微调能不能跑起来，看的就是这类方法。非线性浮点分布的分位数怎么划分，是它省显存的依据；Colab 免费 T4 靠它做原本要 A100 才够的活。</td>
     </tr>
     <tr>
       <td><code>#091</code></td>
       <td><strong><a href="https://arxiv.org/abs/2204.02311" target="_blank" rel="noopener">PaLM: Scaling Language Modeling with Pathways</a></strong></td>
       <td>Aakanksha Chowdhery et al. (Google Research, JMLR)</td>
       <td>详尽披露了 540B 超大规模模型训练全过程，首次深度解剖了损失突然尖峰（Loss Spikes）的根本诱因，提出动态回退跳过异常数据并结合 Adafactor 优化的工程战术。</td>
-      <td>科学排查数值灾难的权威指南。遇到不可解释的 NaN / Inf 梯度爆炸时，第一步不是重置权重，而是检查谱半径和局部 batch 奇异值。</td>
+      <td>排查数值崩溃的实用指南。遇到说不清的 NaN / Inf 或梯度爆炸，先别急着重置权重，去看谱半径和当前 batch 的奇异值。</td>
     </tr>
     <tr>
       <td><code>#092</code></td>
       <td><strong><a href="https://arxiv.org/abs/2203.05482" target="_blank" rel="noopener">Model Soups: Averaging Weights of Multiple Fine-Tuned Models Improves Accuracy Without Increasing Inference Time</a></strong></td>
       <td>Mitchell Wortsman et al. (Washington, ICML)</td>
-      <td>发现从同一预训练基座出发进行不同超参数微调的模型权重位于同一盆地内部，对这组模型的参数进行简单的凸线性组合（Uniform/Greedy Soup）能系统性战胜单一最佳模型。</td>
-      <td>模型参数空间算术与合并技术经典。证明微调模型的参数权重在流形上具有向量加减与插值语义。</td>
+      <td>发现从同一预训练基座出发进行不同超参数微调的模型权重位于同一盆地内部，对这组模型的参数进行简单的凸线性组合（Uniform/Greedy Soup）能稳定胜过单个最好的模型。</td>
+      <td>模型合并的经典工作：微调后的权重在参数空间里可以做加减与插值。</td>
     </tr>
     <tr>
       <td><code>#093</code></td>
       <td><strong><a href="https://arxiv.org/abs/1803.03635" target="_blank" rel="noopener">The Lottery Ticket Hypothesis: Finding Sparse, Trainable Neural Networks</a></strong></td>
       <td>Jonathan Frankle & Michael Carbin (MIT, ICLR Best Paper)</td>
       <td>彩票假说：密集的随机初始化网络中包含子网络（中奖彩票），当单独使用初始权重重新训练时，它们能以原网络几分之一的参数量达到甚至超越原始性能。</td>
-      <td>揭示了过参数化网络优化的本质并非所有权重都在发力，而是为高维随机子空间搜索提供了足够的相交概率空间。</td>
+      <td>过参数化的意义不在于每个权重都在出力，而是给高维随机子空间的搜索留足了相交概率。</td>
     </tr>
     <tr>
       <td><code>#094</code></td>
       <td><strong><a href="https://arxiv.org/abs/2211.10438" target="_blank" rel="noopener">SmoothQuant: Accurate and Efficient Post-Training Quantization for Large Language Models</a></strong></td>
       <td>Guangxuan Xiao et al. (MIT / Meta, ICML)</td>
-      <td>发现激活张量存在显著的系统性异常值通道（Outlier Channels），提出通过等价可逆对角变换 W_new = diag(s) * W, X_new = X * diag(s)^{-1} 将激活的量化难度迁移到权重上，实现 W8A8 高精度量化。</td>
-      <td>极其漂亮的线性代数等价基变换！证明了数值表示难题可以通过简单的矩阵相似变换彻底化解，课程模块 08 量化理论基础。</td>
+      <td>发现激活张量存在系统性的异常值通道（Outlier Channels），提出通过等价可逆对角变换 W_new = diag(s) * W, X_new = X * diag(s)^{-1} 将激活的量化难度迁移到权重上，实现 W8A8 高精度量化。</td>
+      <td>一次干净的线性代数等价基变换：数值表示的难题，用简单的矩阵相似变换就化解了。模块 08 量化理论的基础。</td>
     </tr>
     <tr>
       <td><code>#095</code></td>
       <td><strong><a href="https://arxiv.org/abs/1710.03740" target="_blank" rel="noopener">Mixed Precision Training</a></strong></td>
       <td>Paulius Micikevicius et al. (NVIDIA / Baidu, ICLR)</td>
-      <td>奠定了现代深度学习混合精度的三大支柱：维持一份 FP32 主权重副本、动态损失缩放（Loss Scaling）防止梯度下溢、矩阵乘法在 Tensor Core 上以 FP16 计算并累加为 FP32。</td>
-      <td>课程模块 05 混合精度机制的原始定义。必须清楚 IEEE 754 半精度浮点数的 10 位尾数与 5 位指数所决定的数值动态范围极限。</td>
+      <td>现代深度学习混合精度的三条支柱就是这里定的：维持一份 FP32 主权重副本、动态损失缩放（Loss Scaling）防止梯度下溢、矩阵乘法在 Tensor Core 上以 FP16 计算并累加为 FP32。</td>
+      <td>模块 05 混合精度机制的原始定义。IEEE 754 半精度的 10 位尾数、5 位指数决定了数值动态范围有多大，这一点要清楚。</td>
     </tr>
     <tr>
       <td><code>#096</code></td>
       <td><strong><a href="https://ieeexplore.ieee.org/document/8944061" target="_blank" rel="noopener">Bfloat16 Processing for Neural Networks</a></strong></td>
       <td>Neil Burgess et al. (Arm / NVIDIA / Intel, IEEE)</td>
-      <td>分析了 BF16（8 位指数 + 7 位尾数）的硬件架构优势：保持与 FP32 完全相同的动态范围（[-10^38, 10^38]），从而在训练中彻底免去了繁琐易错的损失缩放（Loss Scaling）。</td>
-      <td>为何现代大模型微调首选 BF16 而不是 FP16 的硬件逻辑。在音频数值敏感计算中杜绝梯度下溢归零。</td>
+      <td>分析 BF16（8 位指数 + 7 位尾数）的硬件架构优势：动态范围与 FP32 相同（[-10^38, 10^38]），训练时就不必再配那套繁琐的损失缩放（Loss Scaling）。</td>
+      <td>现代大模型微调为什么首选 BF16 而不是 FP16，硬件层面的理由在这里；音频里对数值敏感的计算也更不容易出现梯度下溢归零。</td>
     </tr>
     <tr>
       <td><code>#097</code></td>
       <td><strong><a href="https://arxiv.org/abs/2209.05433" target="_blank" rel="noopener">FP8 Formats for Deep Learning</a></strong></td>
       <td>Paulius Micikevicius et al. (NVIDIA / Arm / Intel)</td>
       <td>制定了 8 位浮点标准：E4M3（前向激活与权重，高精度）与 E5M2（反向梯度，大动态范围），配合延迟缩放（Delayed Scaling）实现计算吞吐翻倍。</td>
-      <td>Hopper/Blackwell 架构最前沿低精度浮点数学。指导在大模型后训练与大规模特征提取时如何压榨硬件张量核极限。</td>
+      <td>Hopper / Blackwell 上的低精度浮点标准。做后训练和大规模特征提取时，用它去够张量核的算力上限。</td>
     </tr>
     <tr>
       <td><code>#098</code></td>
       <td><strong><a href="https://arxiv.org/abs/2310.10537" target="_blank" rel="noopener">Microscaling Formats for Deep Learning (MXFP4 / MXFP6 / MXFP8)</a></strong></td>
       <td>Bita Darvish Rouhani et al. (Microsoft / AMD / NVIDIA / OCP)</td>
       <td>开放计算项目（OCP）微缩放格式标准：在小块（如 32 个元素）内共享单个缩放因子，允许基底元素压缩至 4-bit / 6-bit 浮点而几乎无精度损耗。</td>
-      <td>未来端侧超轻量级神经网络推理的终极标准，指导嵌入式声学处理器设计。</td>
+      <td>端侧轻量推理正在往这个标准走，设计嵌入式声学处理器时用得上。</td>
     </tr>
     <tr>
       <td><code>#099</code></td>
       <td><strong><a href="https://arxiv.org/abs/1706.03741" target="_blank" rel="noopener">Deep Reinforcement Learning from Human Preferences</a></strong></td>
       <td>Paul F. Christiano, Jan Leike et al. (OpenAI / DeepMind, NeurIPS)</td>
-      <td>将强化学习奖励函数从离散手工规则解放为成对人类比较反馈，利用 Bradley-Terry 偏好模型估计潜在奖励函数，奠定了现代 RLHF 的底层理论框架。</td>
+      <td>将强化学习奖励函数从离散手工规则解放为成对人类比较反馈，利用 Bradley-Terry 偏好模型估计潜在奖励函数，搭起了现代 RLHF 的底层理论框架。</td>
       <td>基于直接偏好优化的对齐革命。跳过复杂的奖励模型与强化学习 PPO，直接用交叉熵闭式解拟合人类偏好。</td>
     </tr>
     <tr>
@@ -20372,154 +20379,154 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2203.02155" target="_blank" rel="noopener">Training Language Models to Follow Instructions with Human Feedback</a></strong></td>
       <td>Long Ouyang et al. (OpenAI, InstructGPT / NeurIPS)</td>
       <td>提出完整的三阶段工业对齐流水线：有监督微调（SFT）-> 奖励模型训练（RM）-> 近端策略优化（PPO），证明较小但经过对齐的模型完胜未经对齐的超大基座。</td>
-      <td>后训练经典三部曲标准教科书。理解 KL 散度约束项 beta * D_KL(pi_theta || pi_ref) 在防止策略漂移中的锚定作用。</td>
+      <td>后训练三阶段流水线的标准参考。KL 约束项 beta * D_KL(pi_theta || pi_ref) 怎么把策略锚在参考模型附近，看这篇。</td>
     </tr>
     <tr>
       <td><code>#101</code></td>
       <td><strong><a href="https://arxiv.org/abs/2305.18290" target="_blank" rel="noopener">Direct Preference Optimization: Your Language Model is Secretly a Reward Model</a></strong></td>
       <td>Rafael Rafailov et al. (Stanford, NeurIPS Best Paper)</td>
-      <td>提出直接偏好优化（DPO）：通过对 Bradley-Terry 似然进行闭式变量替换，直接用当前策略与参考策略的对数比值表示隐式奖励，彻底抛弃了不稳定的显式奖励模型与 PPO 采样。</td>
-      <td>课程模块 07 与实验 E5 的理论灵魂！闭式推导证明优雅至极，必须能够在草稿纸上从 PPO 目标一步步代数化简出 DPO 损失。</td>
+      <td>提出直接偏好优化（DPO）：对 Bradley-Terry 似然做闭式变量替换，用当前策略与参考策略的对数比值表示隐式奖励，不再需要显式奖励模型和 PPO 采样。</td>
+      <td>模块 07 与实验 E5 的理论核心。要能在草稿纸上从 PPO 目标一步步化简出 DPO 损失。</td>
     </tr>
     <tr>
       <td><code>#102</code></td>
       <td><strong><a href="https://arxiv.org/abs/2402.03300" target="_blank" rel="noopener">DeepSeekMath: Pushing the Limits of Mathematical Reasoning in Open Language Models</a></strong></td>
       <td>Zhihong Shao et al. (DeepSeek-AI, GRPO)</td>
-      <td>提出群相对策略优化（GRPO）：省去了传统 PPO 中巨大的评价网络（Critic Network），改由对同一输入采样的输出群计算相对优势（Normalized Advantage），省下一整套价值网络的权重与优化器状态并提升稳定性。</td>
-      <td>当前数学与可验证推理强化学习（如 DeepSeek-R1）的最核心驱动引擎！群均值和方差归一化直接消除了基线估计误差。</td>
+      <td>提出群相对策略优化（GRPO）：去掉 PPO 里庞大的评价网络（Critic Network），改为对同一输入采样一组输出、在组内算相对优势（Normalized Advantage），省下一整套价值网络的权重与优化器状态，训练也更稳。</td>
+      <td>数学与可验证推理强化学习（DeepSeek-R1 这类）的核心引擎：用组内均值和方差做归一化，直接把基线估计误差消掉。</td>
     </tr>
     <tr>
       <td><code>#103</code></td>
       <td><strong><a href="https://arxiv.org/abs/2402.01306" target="_blank" rel="noopener">KTO: Model Alignment as Prospect Theoretic Optimization</a></strong></td>
       <td>Kawin Ethayarajh et al. (Stanford / Contextual AI, ICML)</td>
       <td>基于卡尼曼-特沃斯基前景理论（Kahneman-Tversky Prospect Theory）：人类对损失的厌恶程度高于对收益的喜悦，提出无需成对偏好、只需单个正/负二元标签即可完成对齐的 KTO 算法。</td>
-      <td>行为经济学与应用数学跨界融合的极佳案例。在只有用户“切歌”（负样本）或“单曲循环”（正样本）的单点数据时，使用 KTO 进行跨淡入淡出调优最为自然。</td>
+      <td>行为经济学与应用数学结合得挺自然的一个例子。手上只有切歌（负样本）和单曲循环（正样本）这类单点反馈时，用 KTO 调淡入淡出最省事。</td>
     </tr>
     <tr>
       <td><code>#104</code></td>
       <td><strong><a href="https://arxiv.org/abs/2402.14740" target="_blank" rel="noopener">Back to Basics: Revisiting REINFORCE Style Optimization for Learning from Human Feedback</a></strong></td>
       <td>Arash Ahmadian et al. (Cohere For AI)</td>
       <td>提出 RLOO（REINFORCE Leave-One-Out）：回归经典的似然比策略梯度，利用同组其他样本的留一均值作为无偏基线剔除方差，证明了在离线对齐中简单基线完全匹敌复杂的 PPO。</td>
-      <td>应用概率论方差缩减（Variance Reduction）的极佳教学范例。展现统计无偏估计量构造的代数技巧。</td>
+      <td>方差缩减（Variance Reduction）的教学范例：无偏估计量是怎么构造出来的，看它的代数推导。</td>
     </tr>
     <tr>
       <td><code>#105</code></td>
       <td><strong><a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">Distilling the Knowledge in a Neural Network</a></strong></td>
       <td>Geoffrey Hinton, Oriol Vinyals, Jeff Dean (Google, NIPS Workshop)</td>
       <td>知识蒸馏奠基之作：引入温度因子 T 软化教师模型的输出 Softmax 分布，使暗知识（Dark Knowledge，各非目标类别之间的相对几何概率）显式回传指导学生网络学习。</td>
-      <td>课程模块 16 的理论源泉。在温度平滑下，交叉熵损失的梯度在小对数比值下渐进收敛为均方误差（MSE），揭示了软目标蒸馏的几何本质。</td>
+      <td>模块 16 的理论来源。温度够高时，交叉熵损失的梯度在小对数比值下趋近均方误差（MSE），软目标蒸馏为什么有效就清楚了。</td>
     </tr>
     <tr>
       <td><code>#106</code></td>
       <td><strong><a href="https://arxiv.org/abs/1606.07947" target="_blank" rel="noopener">Sequence-Level Knowledge Distillation</a></strong></td>
       <td>Yoon Kim & Alexander M. Rush (Harvard, EMNLP)</td>
       <td>将蒸馏从单 token 概率分布扩展至整句轨迹序列：提出通过教师模型波束搜索（Beam Search）生成整句伪标签训练学生，打破了自回归暴露偏差（Exposure Bias）。</td>
-      <td>大模型合成数据预训练（如 Phi 系列）的核心方法论先驱。在音频转场生成中，使用高规格离线算法生成全局最优过渡路径训练轻量化实时模型。</td>
+      <td>大模型合成数据预训练（Phi 系列这类）的方法先驱。音频转场可以先用高规格的离线算法生成全局最优过渡路径，再拿去训轻量实时模型。</td>
     </tr>
     <tr>
       <td><code>#107</code></td>
       <td><strong><a href="https://arxiv.org/abs/2306.08543" target="_blank" rel="noopener">Knowledge Distillation of Large Language Models</a></strong></td>
       <td>Yuxian Gu et al. (Tsinghua, ICLR, MiniLLM)</td>
       <td>揭示了标准前向 KL 散度导致学生模型产生模式平均（Mode-Averaging）与低质量幻觉的问题，提出采用反向 KL 散度（Reverse KL）强迫学生模型精准聚焦于高密度单一模式（Mode-Seeking）。</td>
-      <td>前向 KL 散度与反向 KL 散度在泛函极值上的几何差异（覆盖 vs 聚焦）的经典实证！直接指导如何防止生成模型产生浑浊含糊的杂音。</td>
+      <td>前向与反向 KL 散度在泛函极值上的差别（覆盖还是聚焦）在这里有实证；生成模型会冒出浑浊含糊的杂音，原因也在这里。</td>
     </tr>
     <tr>
       <td><code>#108</code></td>
       <td><strong><a href="https://arxiv.org/abs/2306.11644" target="_blank" rel="noopener">Textbooks Are All You Need</a></strong></td>
       <td>Suriya Gunasekar et al. (Microsoft Research, Phi-1)</td>
-      <td>证明极高质量、合成生成的教科书级代码和数学练习题，能让仅 1.3B 参数的小模型在专业测试上碾压百倍规模的大模型，证明数据质量决定模型智能密度下界。</td>
-      <td>彻底扭转“只迷信大数据量”的唯算力论。为 Charles 的跨学科研究指明方向：用高精度的数学物理方程生成合成数据集，远比盲目抓取低信噪比真实音频更高效。</td>
+      <td>说明教科书级的合成代码与数学练习题，能让 1.3B 参数的小模型在专业测试上跑赢参数量百倍的模型：数据质量决定模型的智能密度。</td>
+      <td>不再只迷信数据量。对 Charles 的跨学科研究来说，用高精度的数学物理方程造合成数据集，往往比抓一堆低信噪比的真实音频更管用。</td>
     </tr>
     <tr>
       <td><code>#109</code></td>
       <td><strong><a href="https://arxiv.org/abs/2401.10020" target="_blank" rel="noopener">Self-Rewarding Language Models</a></strong></td>
       <td>Weizhe Yuan et al. (Meta FAIR / NYU, ICML)</td>
       <td>提出自我奖励语言模型：在自回归迭代过程中让模型自身作为评判者为新生成的样本打分，迭代构建偏好对自我训练，探索智能自举（Self-Improvement）的理论上限。</td>
-      <td>探索闭环正反馈系统的稳定性条件。防止模型自评判导致价值漂移的根本手段，仍然是引入物理不变量作为客观锚点。</td>
+      <td>模型自己给自己打分，这套正反馈怎么才稳定？办法还是留一个客观锚点，比如物理不变量。</td>
     </tr>
     <tr>
       <td><code>#110</code></td>
       <td><strong><a href="https://arxiv.org/abs/2408.03314" target="_blank" rel="noopener">Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters</a></strong></td>
       <td>Charlie Snell et al. (UC Berkeley)</td>
-      <td>给出了推理时间计算量（Test-Time Compute）与预训练计算量在帕累托最优边界上的权衡曲线，证明对难度不同的问题自适应分配思考算力远胜无脑拉大模型。</td>
-      <td>优化理论中经典的动态规划与自适应资源配置思想。针对简单音频段落使用极速查表，仅在复杂非对齐段落调用深度模型迭代。</td>
+      <td>给出推理时间计算量（Test-Time Compute）与预训练计算量之间的帕累托权衡曲线：按题目难度自适应分配思考算力，比一味把模型做大更划算。</td>
+      <td>动态规划与自适应资源配置的老思路：简单音频段落走查表，只有复杂的非对齐段落才调用深度模型迭代。</td>
     </tr>
     <tr>
       <td><code>#111</code></td>
       <td><strong><a href="https://proceedings.neurips.cc/paper/2018/hash/3f19f5f1edd85d878445100f45c2612f-Paper.pdf" target="_blank" rel="noopener">Which Neural Net Architectures Give Rise to Exploding and Vanishing Gradients?</a></strong></td>
       <td>Boris Hanin (Princeton, NeurIPS)</td>
       <td>运用随机矩阵乘积与马尔可夫链极限定理，严格计算了任意深度前馈网络输入输出雅可比矩阵范数的期望与方差，给出了防止梯度消失与爆炸的临界初始化方差。</td>
-      <td>纯数学测度与矩阵几何在深度网络中的高光展示。深入体会雅可比矩阵奇异值分布对多层反向传播稳定性的绝对支配地位。</td>
+      <td>测度与矩阵几何在深度网络里的直接应用：反向传播稳不稳，基本由雅可比矩阵的奇异值分布决定。</td>
     </tr>
     <tr>
       <td><code>#112</code></td>
       <td><strong><a href="https://arxiv.org/abs/1711.04623" target="_blank" rel="noopener">Three Factors Influencing Minima in SGD: Learning Rate, Batch Size, and Second-Order Dynamics</a></strong></td>
       <td>Stanislaw Jastrzebski et al. (NYU / Jagiellonian)</td>
       <td>提出噪声比（Learning Rate / Batch Size）直接决定了随机梯度动力学在海森矩阵谱空间中的扩散半径，揭示了平坦极小值与泛化性能的内在定量纽带。</td>
-      <td>直观解释了为何调整学习率时往往需要等比例缩放批大小（Linear / Square-root Scaling Rule）的微观几何动力学机制。</td>
+      <td>调学习率时为什么常要跟着同比例缩放批大小（Linear / Square-root Scaling Rule），这篇从几何动力学上给出了直观解释。</td>
     </tr>
     <tr>
       <td><code>#113</code></td>
       <td><strong><a href="https://arxiv.org/abs/1910.10683" target="_blank" rel="noopener">Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer</a></strong></td>
       <td>Colin Raffel et al. (Google Brain, JMLR, T5)</td>
-      <td>系统性进行了深度学习历史上最严密的控制变量实验（Ablation Study）：系统评估了无监督目标、架构类型、预训练数据集清洗策略对下游迁移能力的独立贡献。</td>
-      <td>剑桥乃至顶级科研界最为推崇的严密控制变量法实战范本。杜绝多变量同时改动导致结论无法归因的科研大忌。</td>
+      <td>深度学习里少见的大规模控制变量实验（Ablation Study）：无监督目标、架构类型、预训练数据清洗策略各自对下游迁移的贡献，都被单独评估过。</td>
+      <td>控制变量法的实战范本：一次只改一个变量，避免几个变量一起动、结论说不清是谁的功劳。</td>
     </tr>
     <tr>
       <td><code>#114</code></td>
       <td><strong><a href="https://arxiv.org/abs/2304.01373" target="_blank" rel="noopener">Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling</a></strong></td>
       <td>Stella Biderman et al. (EleutherAI, ICML)</td>
-      <td>完全公开了从 70M 到 12B 跨越多个尺度的全生命周期 154 个训练检查点（Checkpoints）及确切数据加载顺序，为研究大模型训练动力学演进提供了可复现显微镜。</td>
-      <td>深入观察模型在第几步学会词频统计、第几步学会句法规则、第几步学会高阶推理的相变时间线。</td>
+      <td>公开了从 70M 到 12B 多个尺度的全部 154 个训练检查点（Checkpoints）以及确切的数据加载顺序，研究训练动力学时可以直接复现。</td>
+      <td>可以顺着检查点看：模型第几步学会词频统计，第几步学会句法规则，第几步才有高阶推理。</td>
     </tr>
     <tr>
       <td><code>#115</code></td>
       <td><strong><a href="https://arxiv.org/abs/2411.04330" target="_blank" rel="noopener">Scaling Laws for Precision: When Can We Train Low-Precision Models?</a></strong></td>
       <td>Arthur Douillard et al. (Hugging Face)</td>
       <td>给出了浮点精度比特数（Precision Bits）与计算最优缩放定律的统一解析函数，定量预测了在 FP8 与 FP4 条件下为了弥补精度损失所需追加的数据量补偿下限。</td>
-      <td>为硬件算力与数值精度的折衷提供量化权衡公式，指导在计算资源受限时如何精准做架构抉择。</td>
+      <td>算力与数值精度怎么折衷，这里给了量化公式；资源紧张时用它做取舍。</td>
     </tr>
     <tr>
       <td><code>#116</code></td>
       <td><strong><a href="https://arxiv.org/abs/2210.10760" target="_blank" rel="noopener">Scaling Laws for Reward Model Overoptimization</a></strong></td>
       <td>Leo Gao et al. (OpenAI, ICML)</td>
       <td>形式化验证了对齐中的古德哈特定律（Goodhart's Law）：当代理指标（奖励模型打分）被过度优化时，与真实人类客观偏好的相关性会出现先增后减的倒 U 型崩溃。</td>
-      <td>极其深刻的哲学与统计学警示。在优化音频交叉过渡时，如果单一追求某种算法测量的“平滑度分”，最终可能会生成毫无节奏生气的单调声音。</td>
+      <td>一个很值得记住的统计学警示：优化音频交叉过渡时，如果只盯着某个算法算出来的平滑度分，最后很可能得到单调、没有起伏的声音。</td>
     </tr>
     <tr>
       <td><code>#117</code></td>
       <td><strong><a href="https://arxiv.org/abs/2305.10589" target="_blank" rel="noopener">What Can Transformers Learn In-Context? A Mathematical Perspective</a></strong></td>
       <td>Zeyuan Allen-Zhu & Yuanzhi Li (Meta AI / CMU)</td>
       <td>从理论上证明预训练自注意力机制隐式地在残差流中实现了梯度下降算子与岭回归优化器，上下文学习（ICL）本质是在执行元优化。</td>
-      <td>展现前向自注意力等价于优化算法迭代的深刻洞察。为无梯度上下文自适应转场算法提供第一性原理背书。</td>
+      <td>前向自注意力可以等价于优化算法的迭代，这个视角为无梯度的上下文自适应转场提供了理论依据。</td>
     </tr>
     <tr>
       <td><code>#118</code></td>
       <td><strong><a href="https://arxiv.org/abs/2304.15004" target="_blank" rel="noopener">Are Emergent Abilities of Large Language Models an Illusion of the Metric?</a></strong></td>
       <td>Rylan Schaeffer, Brando Miranda, Sanmi Koyejo (Stanford, NeurIPS Best Paper)</td>
       <td>利用非线性度量失真定理证明：大模型看似跳跃突变的所谓“涌现能力”，大多是由非连续不平滑的评估指标（如准确率阶跃函数）人为造成的测量假象，在连续平滑度量下能力是严格单调线性增长的。</td>
-      <td>大语言模型严谨评估方法论。揭示固定基准评测泄漏风险，提出鲁棒与多维度的量化评测体系。</td>
+      <td>大模型评估的方法论参考：固定基准有泄漏风险，评测要选连续指标，多看几个维度。</td>
     </tr>
     <tr>
       <td><code>#119</code></td>
       <td><strong><a href="https://arxiv.org/abs/1904.08779" target="_blank" rel="noopener">SpecAugment: A Simple Data Augmentation Method for Deep Learning Audio</a></strong></td>
       <td>Daniel S. Park et al. (Google Brain, Interspeech)</td>
-      <td>打破在时域进行数据增强的常规，直接在时频谱（Log-Mel Spectrogram）上执行随机时间通道与频率通道掩蔽（Masking），显著提升声学模型对丢包与共振峰偏移的鲁棒性。</td>
-      <td>优雅的特征空间不变性注入。为音频连续建模训练提供了零额外算力开销的强效正则化手段。</td>
+      <td>打破在时域进行数据增强的常规，直接在时频谱（Log-Mel Spectrogram）上执行随机时间通道与频率通道掩蔽（Masking），让声学模型对丢包与共振峰偏移更鲁棒。</td>
+      <td>在特征空间里注入不变性，几乎不花额外算力，就能给音频连续建模当正则项用。</td>
     </tr>
     <tr>
       <td><code>#120</code></td>
       <td><strong><a href="https://arc.net/folder/D2C17D16-6C40-47F5-82A1-039B64D92B60" target="_blank" rel="noopener">30 Recommended Readings in Machine Learning & Information Theory</a></strong></td>
       <td>Ilya Sutskever (OpenAI / SSI Co-founder)</td>
       <td>Ilya Sutskever 亲选的核心阅读清单：强调从柯尔莫哥洛夫复杂度、递归神经网络与信息压缩第一性原理把握智能的本质。</td>
-      <td>顶级科学家的品味标尺。提醒所有有志于剑桥数学与前沿科学计算的学子：掌握底层公理化体系，远胜追逐快餐式应用 API。</td>
+      <td>提醒想走数学与前沿计算方向的人：把底层公理体系吃透，比追着现成应用 API 跑更有用。</td>
     </tr>
   </tbody>
 </table>
 
 <h4>1.4 支柱四 · 基础设施与系统工程（内存层级、并行切分、算子融合与集群网络 40 篇）</h4>
 <p>
-  离开硬件的算法只是空想。从 GPU SRAM 缓存分块（FlashAttention）、KV Cache 虚拟分页（PagedAttention），到 1F1B 流水线编排与导轨优化无阻塞网络，这一支柱构筑了现代大规模 AI 的物理坚实底座。
+  算法离开硬件就只是纸面上的数字。从 GPU SRAM 分块（FlashAttention）、KV Cache 虚拟分页（PagedAttention），到 1F1B 流水线编排与导轨优化网络，这一支柱就是现代大规模 AI 的物理底座。
 </p>
 <table class="tbl small">
   <thead><tr><th>序号</th><th>文献 / 课程 / 报告</th><th>机构 / 作者</th><th>核心数学与工程结论</th><th>核心数学与研读启示</th></tr></thead>
@@ -20529,280 +20536,280 @@ COURSE.register({
       <td><strong><a href="https://www.elsevier.com/books/computer-architecture/hennessy/978-0-12-811905-1" target="_blank" rel="noopener">Computer Architecture: A Quantitative Approach (6th Edition)</a></strong></td>
       <td>John L. Hennessy & David A. Patterson (Stanford / Berkeley, Turing Award)</td>
       <td>体系结构图灵奖经典著作：阿姆达尔定律（Amdahl's Law）、内存墙（Memory Wall）、缓存一致性协议、SIMD 向量流水线与屋顶模型（Roofline Model）。</td>
-      <td>理解算力受限（Compute-bound）与内存带宽受限（Memory-bound）的物理边界。算术强度（FLOPs/Byte）直接决定代码在 GPU 上的执行瓶颈。</td>
+      <td>分清算力受限（Compute-bound）与内存带宽受限（Memory-bound）：算术强度（FLOPs/Byte）决定了代码在 GPU 上卡在哪一环。</td>
     </tr>
     <tr>
       <td><code>#122</code></td>
       <td><strong><a href="https://developer.nvidia.com/blog/nvidia-hopper-architecture-in-depth/" target="_blank" rel="noopener">NVIDIA Hopper Architecture In-Depth</a></strong></td>
       <td>NVIDIA Architecture Architecture Group</td>
       <td>解构 H100 核心架构：第四代 Tensor Core、异步张量内存加速器（TMA）、分布式共享内存（DSMEM）以及 Transformer Engine 动态浮点格式缩放。</td>
-      <td>FlashAttention-3 能够在 Hopper 上达到 80% 峰值硬件利用率的物理硬件底座，深入体会软硬件协同设计的极致魅力。</td>
+      <td>FlashAttention-3 能在 Hopper 上跑到 80% 峰值利用率的硬件底座；软硬件协同设计能做到什么程度，看这里。</td>
     </tr>
     <tr>
       <td><code>#123</code></td>
       <td><strong><a href="https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/" target="_blank" rel="noopener">NVIDIA Blackwell Architecture Whitepaper</a></strong></td>
       <td>NVIDIA</td>
       <td>单芯片容纳 2080 亿晶体管，第二代 Transformer Engine 原生支持 FP4 微缩放格式，第五代 NVLink 提供 1.8TB/s 双向互联带宽，构建 NVL72 液冷机架超级计算机。</td>
-      <td>展现当前人类算力工程的最高物理奇迹，明确系统工程如何通过极速网络交换机打破单机显存容量极限。</td>
+      <td>单机显存装不下的模型，靠高速网络交换机拼成机架来解决，这是目前规模最大的算力工程。</td>
     </tr>
     <tr>
       <td><code>#124</code></td>
       <td><strong><a href="https://arxiv.org/abs/1704.04760" target="_blank" rel="noopener">In-Datacenter Performance Analysis of a Tensor Processing Unit</a></strong></td>
       <td>Norman P. Jouppi et al. (Google, ISCA)</td>
       <td>Google 首个张量处理单元（TPU v1-v5e）架构解剖：脉动阵列（Systolic Array）直接将中间计算结果在处理单元网格内直连传递，将访存功耗降至传统体系结构的数十分之一。</td>
-      <td>矩阵乘法计算在硬件二维网格上流动的时间-空间几何直觉；课程模块 06 JAX AI Stack 面向 TPU 编程的硬件背景。</td>
+      <td>矩阵乘法在二维处理单元网格上流动的时空图像；也是模块 06 里 JAX 面向 TPU 编程的硬件背景。</td>
     </tr>
     <tr>
       <td><code>#125</code></td>
       <td><strong><a href="https://arxiv.org/abs/1909.08053" target="_blank" rel="noopener">Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</a></strong></td>
       <td>Mohammad Shoeybi et al. (NVIDIA)</td>
       <td>提出张量模型并行（Tensor Parallelism, TP）：将自注意力 Q/K/V 权重按列切分（Column Parallel），投影层 W_O 按行切分（Row Parallel），在一个前向传播中仅需一次 AllReduce 集合通信。</td>
-      <td>课程模块 06 并行切分的核心数学推导。必须能证明按列切分接按行切分后无需中间通信即可完成自注意力块计算。</td>
+      <td>模块 06 并行切分的核心推导：要能证明按列切分接按行切分之后，中间不需要通信就能算完自注意力块。</td>
     </tr>
     <tr>
       <td><code>#126</code></td>
       <td><strong><a href="https://arxiv.org/abs/1906.02066" target="_blank" rel="noopener">PipeDream: Generalized Pipeline Parallelism for DNN Training</a></strong></td>
       <td>Deepak Narayanan et al. (Stanford / Microsoft Research, SOSP)</td>
       <td>提出流水线并行 1F1B（One Forward One Backward）调度编排策略：交替执行前向与反向微批次，将流水线气泡率（Bubble Ratio）压缩至最低，大幅降低激活显存常驻开销。</td>
-      <td>经典排队论与离散事件系统调度的数学应用。推导气泡比公式 (p-1)/(m+p-1)，掌握分布式系统的延迟隐藏技巧。</td>
+      <td>排队论与离散事件调度在这里的用法：把气泡比公式 (p-1)/(m+p-1) 推一遍，就明白分布式系统怎么把延迟藏起来。</td>
     </tr>
     <tr>
       <td><code>#127</code></td>
       <td><strong><a href="https://arxiv.org/abs/1910.02054" target="_blank" rel="noopener">ZeRO: Memory Optimizations Toward Training Trillion Parameter Models</a></strong></td>
       <td>Samyam Rajbhandari et al. (Microsoft, SC)</td>
-      <td>提出零冗余优化器（ZeRO）：Stage 1 分片优化器状态（4x 显存缩减）、Stage 2 分片梯度（8x 缩减）、Stage 3 分片模型参数（无损线性扩展），彻底打破单卡显存墙。</td>
-      <td>理解当代大模型分布式训练显存分配的绝对基石！推导 16P 显存占用公式（FP16 权重、梯度与 AdamW 优化器状态）。</td>
+      <td>提出零冗余优化器（ZeRO）：Stage 1 分片优化器状态（4x 显存缩减）、Stage 2 分片梯度（8x 缩减）、Stage 3 分片模型参数（无损线性扩展），单卡显存墙由此被打破。</td>
+      <td>分布式训练显存怎么分配，基本盘就在这篇。把 16P 显存占用公式（FP16 权重、梯度与 AdamW 优化器状态）自己推一遍。</td>
     </tr>
     <tr>
       <td><code>#128</code></td>
       <td><strong><a href="https://arxiv.org/abs/2304.11277" target="_blank" rel="noopener">PyTorch FSDP: Experiences on Scaling Fully Sharded Data Parallel</a></strong></td>
       <td>Yanli Zhao et al. (Meta AI, VLDB)</td>
       <td>工业级全分片数据并行（FSDP）在 PyTorch 原生生态中的高性能实现：通过分层通信重叠、向前预取（Prefetching）与动态激活检查点（Activation Checkpointing）兼顾极大规模与吞吐。</td>
-      <td>当代开源训练的核心主力工具。理解其内部如何在每个计算层前后利用 AllGather 收集权重，并在计算完成后立即释放以维持常数显存。</td>
+      <td>开源训练现在的主力工具。它在一层计算前后用 AllGather 收权重、算完立刻释放，显存占用才能保持常数。</td>
     </tr>
     <tr>
       <td><code>#129</code></td>
       <td><strong><a href="https://arxiv.org/abs/2105.04663" target="_blank" rel="noopener">GSPMD: General and Scalable Parallelization for ML Computation Graphs</a></strong></td>
       <td>Yuanzhong Xu et al. (Google, arXiv)</td>
       <td>提出基于张量维度的通用自动并行系统：通过声明式维度分区注解（Mesh & PartitionSpec），编译器利用模式匹配自动插入通信原语，支持一维至多维复杂并行混合。</td>
-      <td>JAX AI Stack 的核心灵魂。让应用算法代码与底层物理卡数完全解耦，也是实验 E6 JAX 代码编写的核心依据。</td>
+      <td>JAX AI Stack 的关键一环：算法代码不用关心底层有几张卡。实验 E6 的 JAX 代码就按这个来写。</td>
     </tr>
     <tr>
       <td><code>#130</code></td>
       <td><strong><a href="https://arxiv.org/abs/2205.14135" target="_blank" rel="noopener">FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness</a></strong></td>
       <td>Tri Dao, Daniel Y. Fu et al. (Stanford, NeurIPS)</td>
       <td>体系结构感知计算的里程碑突破：利用 Online Softmax 分块增量归一化，在快速片上 SRAM 中完成矩阵分块乘法并动态累加，完全不物化庞大的 T x T 注意力矩阵，显存减少一个数量级，速度提升数倍。</td>
-      <td>算法优化的物理学胜利！Online Softmax 的代数递推公式：利用全局最大值与指数归一化因子的标量递推保持严格无损数学等价。</td>
+      <td>算法优化里很漂亮的一手：Online Softmax 用全局最大值与指数归一化因子做标量递推，结果与完整计算严格等价。</td>
     </tr>
     <tr>
       <td><code>#131</code></td>
       <td><strong><a href="https://arxiv.org/abs/2307.08691" target="_blank" rel="noopener">FlashAttention-2: Faster Attention with Better Parallelism and Work Partitioning</a></strong></td>
       <td>Tri Dao (Princeton, ICLR)</td>
       <td>重新设计工作线程分工：将序列长度维度并行外层循环移至内层，优化 Warp 级别的数据通信，消除非必要共享内存读写，算力利用率由 35% 飙升至理论峰值的 73%。</td>
-      <td>深入 GPU 线程块（ThreadBlock）与 Warp 调度逻辑，展现如何在指令级流水线上压榨寄存器吞吐。</td>
+      <td>看 GPU 线程块（ThreadBlock）与 Warp 怎么调度，寄存器吞吐是怎么从指令流水线里挤出来的。</td>
     </tr>
     <tr>
       <td><code>#132</code></td>
       <td><strong><a href="https://arxiv.org/abs/2407.08608" target="_blank" rel="noopener">FlashAttention-3: Fast and Accurate Attention with Asynchrony and Low-Precision on Hopper</a></strong></td>
       <td>Jay Shah et al. (Colfax / Meta / Princeton)</td>
       <td>全面释放 NVIDIA Hopper 特性：结合 TMA 异步直接内存访问、Tensor Core 与 TMA 的 Warp 角色交错解耦（Producer-Consumer 模型），以及 FP8 动态块量化，逼近物理硬件极速。</td>
-      <td>当前单 GPU 算子优化的绝对天花板，展现微架构深度调优对现代大模型基础设施的决定性赋能。</td>
+      <td>单 GPU 算子优化现在能到的高度；微架构层面的调优对整套基础设施有多关键，这里看得最清楚。</td>
     </tr>
     <tr>
       <td><code>#133</code></td>
       <td><strong><a href="https://www.eecs.harvard.edu/~htk/publication/2019-mapl-tillet-kung-cox.pdf" target="_blank" rel="noopener">Triton: An Intermediate Language and Compiler for Tiled Neural Network Computations</a></strong></td>
       <td>Philippe Tillet et al. (OpenAI / Harvard)</td>
       <td>提出基于块（Block-level）的中间表示与自动调优编译器：让研究人员用类 Python 语法编写自定义高性能 GPU 算子，由编译器自动处理内存合并、共享内存双缓冲与指令流水线编排。</td>
-      <td>OpenAI 开源的高性能 GPU 编程语言。以接近纯 Python 语法编写编译出媲美手写 CUDA 的核函数。</td>
+      <td>OpenAI 开源的高性能 GPU 编程语言：用接近纯 Python 的语法，写出接近手写 CUDA 的核函数。</td>
     </tr>
     <tr>
       <td><code>#134</code></td>
       <td><strong><a href="https://arxiv.org/abs/2309.06180" target="_blank" rel="noopener">Efficient Memory Management for Large Language Model Serving with PagedAttention (vLLM)</a></strong></td>
       <td>Woosuk Kwon et al. (UC Berkeley, SOSP)</td>
-      <td>借鉴操作系统虚拟内存分页机制提出 PagedAttention：将动态变长的 KV Cache 切割为离散块（Block-table）进行非连续物理显存管理，彻底消灭显存内部碎片，使推理并发吞吐提升 2-4 倍。</td>
-      <td>操作系统经典分页算法与现代深度学习系统的完美结合。课程模块 08 与实验 E8 第二部分评测的核心对象。</td>
+      <td>借鉴操作系统虚拟内存分页机制提出 PagedAttention：将动态变长的 KV Cache 切割为离散块（Block-table）做非连续物理显存管理，显存内部碎片基本消失，推理并发吞吐提升 2-4 倍。</td>
+      <td>操作系统分页算法搬到深度学习系统里的例子。模块 08 与实验 E8 第二部分评的就是它。</td>
     </tr>
     <tr>
       <td><code>#135</code></td>
       <td><strong><a href="https://github.com/NVIDIA/TensorRT-LLM" target="_blank" rel="noopener">TensorRT-LLM: A High-Performance Library for LLM Inference</a></strong></td>
       <td>NVIDIA Systems Architecture Group</td>
-      <td>结合连续批处理（Continuous / In-Flight Batching）、KV 缓存量化（FP8/INT8）、张量并行算子深度融合与微架构优化，构建最强单机多卡生产级部署推理流水线。</td>
-      <td>工业级 LLM 部署的工业标杆，理解生产环境中动态请求到达下的资源调度排队论模型。</td>
+      <td>结合连续批处理（Continuous / In-Flight Batching）、KV 缓存量化（FP8/INT8）、张量并行算子深度融合与微架构优化，拼出一条生产级的单机多卡部署推理流水线。</td>
+      <td>生产环境部署 LLM 的参考实现：请求动态到达时怎么排队调度，看它就够。</td>
     </tr>
     <tr>
       <td><code>#136</code></td>
       <td><strong><a href="https://link.springer.com/article/10.1007/s10766-005-3580-3" target="_blank" rel="noopener">Optimization of Collective Communication Operations in MPICH</a></strong></td>
       <td>Rajeev Thakur, Rolf Rabenseifner, William Gropp (Argonne / UIUC, IJHPCA)</td>
       <td>集合通信经典数学专著：推导环形全规约（Ring-AllReduce）、递归加倍（Recursive Doubling）与两阶段算法的传输延迟与带宽消耗，证明长消息下环形拓扑通信量与节点数 N 无关的恒定性。</td>
-      <td>分布式系统通信算法的数学推导黄金标准！必须手推环形 AllReduce 传输数据量 2*(N-1)/N * S 的证明过程。</td>
+      <td>通信算法的推导范本：环形 AllReduce 的传输量 2*(N-1)/N * S 要能自己推出来。</td>
     </tr>
     <tr>
       <td><code>#137</code></td>
       <td><strong><a href="https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/overview.html" target="_blank" rel="noopener">NCCL (NVIDIA Collective Communications Library) Developer Architecture Guide</a></strong></td>
       <td>NVIDIA</td>
       <td>揭示 GPU 集群跨 NVLink 与 InfiniBand 的集合通信拓扑构建细节：自动探测节点内拓扑并构建双向环（Dual Rings）与树（Trees），利用 GPU Kernel 直接驱动 DMA 进行低延迟高带宽数据汇聚。</td>
-      <td>任何大规模多卡集群训练出现通信挂起（NCCL Timeout）时的底层诊断手册，理解 PCIe 拓扑与 NUMA 绑定的物理重要性。</td>
+      <td>多卡训练卡在通信挂起（NCCL Timeout）时的诊断手册；PCIe 拓扑与 NUMA 绑定为什么重要，也在这里。</td>
     </tr>
     <tr>
       <td><code>#138</code></td>
       <td><strong><a href="https://arxiv.org/abs/2202.07848" target="_blank" rel="noopener">SpotCheck & Singularity: Scheduling and Fault Tolerance for Hyperscale AI Training</a></strong></td>
       <td>Jayashree Mohan et al. (Microsoft Research / CMU, EuroSys)</td>
       <td>解构超大规模 GPU 集群故障排查与弹性调度：针对静默数据损坏（Silent Data Corruption, SDC）、单卡掉线与断点恢复开销，提出秒级全局快照与透明迁移机制。</td>
-      <td>真实世界工程挑战认知：千卡集群平均数十小时就会发生一次硬件错误，容错体系是理论模型走向生产的护城河。</td>
+      <td>千卡集群平均几十小时就会出一次硬件故障；容错做不好，模型再好也上不了生产。</td>
     </tr>
     <tr>
       <td><code>#139</code></td>
       <td><strong><a href="https://engineering.fb.com/2024/08/05/data-center-engineering/meta-artificial-intelligence-cluster-network-architecture/" target="_blank" rel="noopener">Rail-Optimized Network Topologies for Large-Scale AI Clusters</a></strong></td>
       <td>Anurag Mudigonda et al. (Meta Platforms)</td>
-      <td>深度拆解 Meta 24,000 卡 GPU 集群网络拓扑：通过导轨优化（Rail-Optimized）胖树架构使得张量并行与流水线并行的集合通信严格局限在同轨交换机内，彻底消除拥塞与跨轨抖动。</td>
-      <td>图论与网络拓扑学在现代超级数据中心的应用典范，展示物理布线如何反哺并行算法设计。</td>
+      <td>深度拆解 Meta 24,000 卡 GPU 集群网络拓扑：通过导轨优化（Rail-Optimized）胖树架构使得张量并行与流水线并行的集合通信严格局限在同轨交换机内，拥塞与跨轨抖动也就没了。</td>
+      <td>图论与网络拓扑在数据中心里的应用：布线方式反过来决定了并行算法怎么写。</td>
     </tr>
     <tr>
       <td><code>#140</code></td>
       <td><strong><a href="https://arxiv.org/abs/2211.17192" target="_blank" rel="noopener">Fast Inference from Transformers via Speculative Decoding</a></strong></td>
       <td>Yaniv Leviathan, Matan Kalman, Yossi Matias (Google Research, ICML)</td>
       <td>提出投机解码（Speculative Decoding）：由一个小规模快速草稿模型（Draft Model）生成 K 个候选 token，再由目标大模型并行单次前向进行拒绝采样验证，严格数学保证输出概率分布无损且提速 2-3 倍。</td>
-      <td>推测采样加速解码革命。用小模型产出草稿 Token，大模型并行单步批量验证，无损提升 2-3 倍推理速度。</td>
+      <td>用小模型出草稿 Token、大模型并行一步批量验证，推理速度能提 2-3 倍，输出分布不变。</td>
     </tr>
     <tr>
       <td><code>#141</code></td>
       <td><strong><a href="https://arxiv.org/abs/2302.01318" target="_blank" rel="noopener">Accelerating Large Language Model Decoding with Speculative Sampling</a></strong></td>
       <td>Charlie Chen et al. (DeepMind)</td>
-      <td>独立提出投机采样（Speculative Sampling），给出拒绝采样的严格马尔可夫链接受概率分布证明，指出接受率直接取决于草稿模型与目标模型之间的总变差距离（Total Variation Distance）。</td>
-      <td>深入掌握 TV 距离在量化两个离散概率测度相似性时的控制作用，为推理加速系统提供紧致的理论加速比界限。</td>
+      <td>独立提出投机采样（Speculative Sampling），给出拒绝采样的马尔可夫链接受概率分布证明，并指出接受率取决于草稿模型与目标模型之间的总变差距离（Total Variation Distance）。</td>
+      <td>TV 距离在这里控制着两个离散分布的相似程度，推理加速的理论加速比上界就是它给出的。</td>
     </tr>
     <tr>
       <td><code>#142</code></td>
       <td><strong><a href="https://arxiv.org/abs/2401.18079" target="_blank" rel="noopener">KVquant: Towards 10 Million Context Length LLM Inference with KV Cache Quantization</a></strong></td>
       <td>Coleman Hooper et al. (UC Berkeley, NeurIPS)</td>
       <td>将 KV Cache 量化推向极限：结合非均匀分位数归一化、每通道异常值隔离与 3-bit / 4-bit 稀疏编码，实现千万级超长上下文在单台服务器内存中的无损加载。</td>
-      <td>长音频历史状态常驻显存时的终极优化方案，展现数值统计分析与硬件访存结合的力量。</td>
+      <td>长音频的历史状态要常驻显存时，这是很有效的一招：把数值统计与硬件访存结合起来。</td>
     </tr>
     <tr>
       <td><code>#143</code></td>
       <td><strong><a href="https://fizzbee.io/" target="_blank" rel="noopener">FizzBee: Formally Specifying and Model Checking Distributed Systems</a></strong></td>
       <td>Keisuke Kamahori et al. (CMU)</td>
       <td>面向分布式共识、通信状态机与并发流水线的形式化规范与模型检验工具，用状态转移图穷举检测死锁（Deadlock）与竞态条件（Race Conditions）。</td>
-      <td>形式化软件工程与严格证明范式。用数理逻辑验证复杂并发系统的正确性。</td>
+      <td>用数理逻辑把复杂并发系统的正确性验一遍，形式化方法落到工程里的样子。</td>
     </tr>
     <tr>
       <td><code>#144</code></td>
       <td><strong><a href="https://arxiv.org/abs/2303.06865" target="_blank" rel="noopener">FlexGen: High-Throughput Generative Inference of Large Language Models with a Single GPU</a></strong></td>
       <td>Ying Sheng et al. (Stanford, ICML)</td>
       <td>将显存-内存-SSD 构成的三级存储层级建模为线性整数规划问题（Linear Integer Programming），推导出全局吞吐最优的张量块存储与预取调度方案，单张 16GB 显卡跑动 175B 模型。</td>
-      <td>经典运筹学图论求解资源受限吞吐调度的杰作，展现非渐近最优化方法在边缘硬件算力榨取中的威力。</td>
+      <td>运筹学里资源受限调度的老题目用在边缘硬件上：单张 16GB 显卡也能跑 175B 模型。</td>
     </tr>
     <tr>
       <td><code>#145</code></td>
       <td><strong><a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">QLoRA: Efficient Finetuning of Quantized LLMs</a></strong></td>
       <td>Tim Dettmers et al. (Washington, NeurIPS)</td>
       <td>提出 QLoRA：基于正态分布理论推导出最优信息量量化类型 NormalFloat4 (NF4)、双重量化（Double Quantization）压缩常数缩放开销，并在反向传播中解量化，使单张 24GB 消费级显卡可微调 65B 模型。</td>
-      <td>课程模块 07 与附录 B 实验 E4 的理论基石。必须透彻理解 NF4 将理论高斯分布按等分位数截断的数学推导。</td>
+      <td>模块 07 与实验 E4 的理论基础。NF4 怎么按等分位数截断高斯分布，推导要能自己走一遍。</td>
     </tr>
     <tr>
       <td><code>#146</code></td>
       <td><strong><a href="https://web.stanford.edu/class/cs224n/" target="_blank" rel="noopener">CS224N: Natural Language Processing with Deep Learning</a></strong></td>
       <td>Christopher D. Manning et al. (Stanford University)</td>
       <td>全球 NLP 与语言建模头牌公开课：从 Word2Vec 词向量微积分、反向传播矩阵求导、RNN 到现代 Transformer 架构与对齐全景。</td>
-      <td>系统学习词嵌入几何、梯度求导与软注意力的最佳殿堂级视频课程，课后作业手写求导对 Cambridge STEP 数学考生极其友好。</td>
+      <td>想系统学词嵌入几何、梯度求导与软注意力，这门视频课最省事；作业要手写求导，对准备 Cambridge STEP 的人很合适。</td>
     </tr>
     <tr>
       <td><code>#147</code></td>
       <td><strong><a href="https://stanford-cs336.github.io/spring2024/" target="_blank" rel="noopener">CS336: Language Modeling from Scratch</a></strong></td>
       <td>Pratyush Patel, Arun Dunna et al. (Stanford University)</td>
-      <td>斯坦福全新顶级硬核课程：要求学生完全从零开始手写 BPE 分词器、Transformer 算子、FlashAttention、Megatron-LM 并行系统并在集群上完成训练。</td>
-      <td>本课程内容体系的最直接对照参考课程！CS336 的作业规范与代码严谨性正是本课程各模块与实验 E1-E8 的设计标杆。</td>
+      <td>斯坦福开的一门硬课：要求学生从零手写 BPE 分词器、Transformer 算子、FlashAttention、Megatron-LM 并行系统，并在集群上完成训练。</td>
+      <td>和本课程内容体系最贴近的一门课：各模块与实验 E1-E8 的作业规范、代码严谨程度，都是照 CS336 的要求来定的。</td>
     </tr>
     <tr>
       <td><code>#148</code></td>
       <td><strong><a href="http://phontron.com/class/anlp2024/" target="_blank" rel="noopener">CS 11-711: Advanced Natural Language Processing</a></strong></td>
       <td>Graham Neubig et al. (Carnegie Mellon University)</td>
       <td>CMU 语言技术研究所（LTI）高阶公开课：深入前沿模型缩放、检索增强生成（RAG）、Agent 推理机制与自动化评测方法论。</td>
-      <td>对标课程模块 17-19。适合在完成基础理论后，追踪当前最前沿学术研讨课的必选项目。</td>
+      <td>对应模块 17-19。基础打完之后，用这门课去跟前沿的研讨内容。</td>
     </tr>
     <tr>
       <td><code>#149</code></td>
       <td><strong><a href="http://rail.eecs.berkeley.edu/deeprlcourse/" target="_blank" rel="noopener">CS285: Deep Reinforcement Learning</a></strong></td>
       <td>Sergey Levine et al. (UC Berkeley)</td>
       <td>强化学习领域公认第一公开课：涵盖策略梯度定理、值函数逼近、Actor-Critic、自然策略梯度（TRPO）以及基于模型的强化学习（MBRL）。</td>
-      <td>深入理解 PPO、DPO 与 GRPO 背后的测度变换与马尔可夫决策过程（MDP）动力学数学推导的首选学术殿堂。</td>
+      <td>想推清 PPO、DPO 与 GRPO 背后的测度变换与马尔可夫决策过程（MDP）动力学，从这门课入手。</td>
     </tr>
     <tr>
       <td><code>#150</code></td>
       <td><strong><a href="http://introtodeeplearning.com/" target="_blank" rel="noopener">6.S191: Introduction to Deep Learning</a></strong></td>
       <td>Alexander Amini & Ava Soleimany (MIT)</td>
       <td>MIT 官方深度学习导论：高质量动画与公式推导并重，详尽覆盖卷积、循环、注意力模型以及音频和生成式前沿。</td>
-      <td>对于构建全局心智模型极其高效，尤其是其关于音频波形与声学特征时序生成的章节值得重点观摩。</td>
+      <td>用来搭全局框架很高效；其中讲音频波形与声学特征时序生成的那几节值得重点看。</td>
     </tr>
     <tr>
       <td><code>#151</code></td>
       <td><strong><a href="https://karpathy.ai/zero-to-hero.html" target="_blank" rel="noopener">Neural Networks: Zero to Hero (nanoGPT & micrograd)</a></strong></td>
       <td>Andrej Karpathy (Eureka Labs / OpenAI)</td>
       <td>全球公认最优秀的白手起家实现系列：从零手写标量自动微分引擎 micrograd，手写 bigram、MLP、BPE 分词器 minbpe 到完整跑通 nanoGPT。</td>
-      <td>与本课程附录 B 实验 E1-E3 紧密契合。每行代码完全透明、无任何第三方封装黑盒，是建立代码级自信的最佳入口。</td>
+      <td>对应实验 E1-E3。每行代码都摊开写、没有第三方封装，想建立代码层面的信心，从这里开始最合适。</td>
     </tr>
     <tr>
       <td><code>#152</code></td>
       <td><strong><a href="https://course.fast.ai/" target="_blank" rel="noopener">Practical Deep Learning for Coders</a></strong></td>
       <td>Jeremy Howard et al. (Fast.ai)</td>
       <td>自顶向下的极佳工程实战课：推崇快速跑通最小可复现模型，强调学习率搜索（LR Finder）、权重衰减与数据清洗在工程中的实际成效。</td>
-      <td>培养敏锐的工程调优直觉，迅速建立“写 20 行最小代码验证假设”的极客实践习惯。</td>
+      <td>练工程调优的直觉很管用，也容易养成「写 20 行最小代码先验证假设」的习惯。</td>
     </tr>
     <tr>
       <td><code>#153</code></td>
       <td><strong><a href="https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/" target="_blank" rel="noopener">Designing Machine Learning Systems</a></strong></td>
       <td>Chip Huyen (Stanford / Claypot AI, O'Reilly)</td>
       <td>系统剖析企业级端到端 ML 系统工程：数据流水线分布偏移（Data Drift）、特征存储、流式计算系统、监控与持续部署。</td>
-      <td>工业级模型服务架构指南。深入讲解动态批处理、连续批处理与长连接微服务的低延迟工程范式。</td>
+      <td>做模型服务的架构指南：动态批处理、连续批处理、长连接微服务怎么压低延迟，都讲到了。</td>
     </tr>
     <tr>
       <td><code>#154</code></td>
       <td><strong><a href="https://www.aisafetybook.com/" target="_blank" rel="noopener">Introduction to AI Safety, Ethics, and Society</a></strong></td>
       <td>Dan Hendrycks et al. (Center for AI Safety / UC Berkeley)</td>
       <td>系统性阐述 AI 安全性前沿：对抗攻击、奖励黑客行为（Reward Hacking）、模型内部可解释性、涌现欺骗以及模型权重合规准则。</td>
-      <td>对标课程模块 20 与附录 D，为剑桥大学学术面试中极高频出现的技术伦理与系统安全性问题提供扎实学术口径。</td>
+      <td>对应模块 20 与附录 D。面试里常被问到的技术伦理与系统安全问题，这本书给了可靠的学术说法。</td>
     </tr>
     <tr>
       <td><code>#155</code></td>
       <td><strong><a href="https://openai.com/research/" target="_blank" rel="noopener">OpenAI Research Publications Compendium</a></strong></td>
       <td>OpenAI Research Team</td>
-      <td>汇总从 GPT-1/2/3/4、InstructGPT、DALL-E、Whisper 到 o1/o3 的完整开创性技术报告与研究论文档案库。</td>
-      <td>追踪现代人工智能产业每一次范式转移的原始发源地，查阅一手系统卡（System Card）与工程附录数据。</td>
+      <td>汇总从 GPT-1/2/3/4、InstructGPT、DALL-E、Whisper 到 o1/o3 的技术报告与研究论文档案库。</td>
+      <td>想看每次范式转移的第一手材料，来这里翻系统卡（System Card）与工程附录数据。</td>
     </tr>
     <tr>
       <td><code>#156</code></td>
       <td><strong><a href="https://deepmind.google/research/publications/" target="_blank" rel="noopener">Google DeepMind Research Publications</a></strong></td>
       <td>Google DeepMind</td>
       <td>涵盖 AlphaGo、AlphaFold、WaveNet、Chinchilla Scaling Laws、Gemini 系列模型等人类尖端科学发现与通用智能报告。</td>
-      <td>WaveNet 与现代音频神经合成模型的理论策源地。深入研读其将数学物理结构注入深度学习的宏大科学品味。</td>
+      <td>WaveNet 与现代音频神经合成模型都出自这里；也可以看他们怎么把数学物理结构放进深度学习。</td>
     </tr>
     <tr>
       <td><code>#157</code></td>
       <td><strong><a href="https://www.anthropic.com/research" target="_blank" rel="noopener">Anthropic Core Research Papers & Interpretability</a></strong></td>
       <td>Anthropic Research</td>
       <td>以 Constitutional AI、Scaling Laws 与单语义神经元可解释性（Monosemanticity / Dictionary Learning）为核心的前沿安全与机理研究。</td>
-      <td>用高维稀疏自动编码器（SAE）解构 Transformer 内部黑盒激活的数学前沿，对剑桥应用数学考生极具启发。</td>
+      <td>用高维稀疏自动编码器（SAE）拆开 Transformer 内部激活的前沿方向，对做应用数学的人很有启发。</td>
     </tr>
     <tr>
       <td><code>#158</code></td>
       <td><strong><a href="https://ai.meta.com/research/" target="_blank" rel="noopener">Meta Fundamental AI Research (FAIR) Open Science</a></strong></td>
       <td>Meta FAIR</td>
       <td>开源生态最主要基石提供者：PyTorch 核心框架、LLaMA 系列、AudioCraft、Segment Anything 等全栈开源研究白皮书。</td>
-      <td>所有技术文档与预训练权重完全可复现，是个人开发者与学术申请者最值得深挖的开源沃土。</td>
+      <td>技术文档与预训练权重全都开放，个人开发者做项目、准备申请材料，都很值得来这里挖。</td>
     </tr>
     <tr>
       <td><code>#159</code></td>
       <td><strong><a href="https://huggingface.co/docs" target="_blank" rel="noopener">Hugging Face Open-Source AI Ecosystem Documentation</a></strong></td>
       <td>Hugging Face Team</td>
       <td>工业界与学术界通用的统一接口事实标准：Transformers、TRL、PEFT、Datasets、Accelerate、Tokenizers 模块化文档库。</td>
-      <td>全课程动手实验的代码基座，指导完成从单卡原型向多卡分布式环境的平滑迁移。</td>
+      <td>全课程动手实验的代码底座；从单卡原型迁到多卡分布式环境，也按它来。</td>
     </tr>
     <tr>
       <td><code>#160</code></td>
       <td><strong><a href="https://docs.jaxstack.ai/en/latest/" target="_blank" rel="noopener">JAX AI Stack Documentation & Tutorials</a></strong></td>
       <td>JAX Core Team (Google)</td>
-      <td>纯函数式自动微分与 XLA 编译器的优雅结晶：JAX、Flax NNX、Optax、Orbax、Grain 构成的次世代科学计算与高并发大模型栈。</td>
-      <td>实验 E6 的核心战场！函数可组合变换（jit, grad, vmap, pmap）与微分流形上的数学思维完全一体，是剑桥数学系学子的最舒适编程乐园。</td>
+      <td>纯函数式自动微分加 XLA 编译器：JAX、Flax NNX、Optax、Orbax、Grain 组成的科学计算与高并发大模型栈。</td>
+      <td>实验 E6 的主战场。函数可组合变换（jit, grad, vmap, pmap）与数学思维是一体的，学过数学的人上手会很顺。</td>
     </tr>
   </tbody>
 </table>
@@ -20947,7 +20954,7 @@ COURSE.register({
 
 <h3>4. TRL 文档逐页清单</h3>
 <p>
-  下面这一节是全附录<strong>最值得收藏</strong>的部分。TRL 的版本迭代很快，API 与文档强绑定，
+  这一节大概是最该存下来的部分。TRL 的版本迭代很快，API 与文档绑得很紧，
   所以「读哪一页」比「读多少」重要得多。所有链接都指向前缀
   <code>https://huggingface.co/docs/trl/</code> 下的页面。
 </p>
@@ -21030,8 +21037,7 @@ COURSE.register({
 
 <h3>5. 表 2 · 学习路径与实验映射</h3>
 <p>
-  下面这张表按「先读哪几节」而不是「读哪个资源」来组织。原因是读者的时间精力永远有限：
-  全景文献旨在打通学术脉络，而具体动手则必须精准匹配实验产出。
+  下面这张表按「先读哪几节」而不是「读哪个资源」来组织。时间精力总是有限的：全景文献用来打通学术脉络，具体动手的部分则要对准实验产出。
 </p>
 <table class="tbl small">
   <thead><tr><th>资源</th><th>链接</th><th>先读哪几节</th><th>配哪个实验</th></tr></thead>
@@ -21120,7 +21126,7 @@ COURSE.register({
     Colab 免费层只提供 TPU v5e-1，已经无法支持 SPMD</strong>。
   </p>
   <p>
-    这解释了一个非常常见的失败场景：你照着官方教程抄了 <code>(4, 2)</code> 的 mesh，
+    这解释了一个很常见的失败场景：你照着官方教程抄了 <code>(4, 2)</code> 的 mesh，
     在 Colab 上直接报错。正确做法不是放弃，而是把 mesh 改成 <code>(1, 1)</code>——
     模型代码一行都不用改，只是失去了并行加速。附录 B 的 E6 就是按这个思路改写的。
   </p>
@@ -21135,7 +21141,7 @@ COURSE.register({
   <thead><tr><th>周</th><th>读什么（文献与教程）</th><th>配哪个实验</th><th>本周产出</th></tr></thead>
   <tbody>
     <tr><td><strong>1</strong></td><td>模块 00–01；#001 Strang 线代、#011 Cover & Thomas 信息论；LLM Course 第 1 章</td><td><strong>E1</strong></td><td>bigram → 神经 bigram → MLP 的三条 perplexity 曲线与记录表</td></tr>
-    <tr><td><strong>2</strong></td><td>模块 02；#005 Eckart-Young SVD、#151 Karpathy minbpe；LLM Course 第 6 章（Tokenizers）</td><td><strong>E2</strong></td><td>「生育率」在四个 tokenizer 下的切分对照表与成本换算</td></tr>
+    <tr><td><strong>2</strong></td><td>模块 02；#005 Eckart-Young SVD、#151 Karpathy 的《Neural Networks: Zero to Hero》（其中一讲就是手写 minbpe 分词器）；LLM Course 第 6 章（Tokenizers）</td><td><strong>E2</strong></td><td>「生育率」在四个 tokenizer 下的切分对照表与成本换算</td></tr>
     <tr><td><strong>3</strong></td><td>模块 03–04；#041 Vaswani Attention 原论文、#057 Su RoPE；LLM Course 第 1 章</td><td><strong>E3</strong>（上半）</td><td>可运行的迷你 Transformer，能在 TinyStories 上收敛</td></tr>
     <tr><td><strong>4</strong></td><td>模块 04–05；#081 Kaplan 与 #082 Chinchilla 标度律；JAX AI Stack「JAX for PyTorch users」</td><td><strong>E3</strong>（下半）</td><td>参数量手算与程序统计完全相等；FLOPs 与 MFU 估算</td></tr>
     <tr><td><strong>5</strong></td><td>模块 06；#125 Megatron-LM 张量并行、#129 GSPMD；JAX miniGPT 教程</td><td><strong>E6</strong></td><td>单设备 JAX miniGPT + PyTorch / JAX 逐项对照表</td></tr>
@@ -21224,7 +21230,7 @@ COURSE.register({
   <h4><span class="ic">!</span>三步核实法（30 分钟以内）</h4>
   <ol>
     <li><strong>找官方文档</strong>：库的参数查库文档，平台的行为查平台文档，法规查条款原文。
-        只接受<strong>能给出链接</strong>的说法——包括你自己再笔记里写下的说法。</li>
+        只接受<strong>能给出链接</strong>的说法——包括你自己在笔记里写下的说法。</li>
     <li><strong>看条款与定价页</strong>：任何涉及钱、额度、以及「能不能这样用」的结论，
         都要落到 ToS、Usage Policy 或 Pricing 页面上。<strong>顺手记下查询日期</strong>，
         因为这是唯一能让半年后的你知道「当时是这么写的」的方法。</li>
@@ -21319,8 +21325,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   前面十几个模块讲的是<strong>怎么把资源用满</strong>；这一附录讲的是<strong>别把资源用没</strong>。
-  两者的性质不同：效率可以慢慢优化，而合规往往只有一次机会——
-  一次面向公众的接口暴露、一次 token 进公开仓库、一次被判定为学术不端，代价通常是不可逆的。
+  两者的性质不同：效率可以慢慢优化，合规往往只有一次机会——
+  一次面向公众的接口暴露、一次 token 进公开仓库、一次被判定为学术不端，代价通常不可逆。
   下面每一条都按「能做 / 不能做 / 怎么做才安全」三档来写。
 </p>
 
@@ -21329,8 +21335,8 @@ COURSE.register({
   <p>
     本附录来自工程实践与交流中的<strong>经验总结</strong>，用于建立判断直觉，<strong>不是法律意见</strong>，
     也不是任何平台规则的原文。条款会变、执行尺度会变、地区法律也会变。
-    任何涉及付费、账号暴露、数据上传、对外提供服务的决定，动手前请打开对应平台的<strong>最新</strong>
-    服务条款与使用政策逐条核对，并把核对的日期写进你的实验日志。
+    凡涉及付费、账号暴露、数据上传或对外提供服务的决定，动手前都打开对应平台的<strong>最新</strong>
+    服务条款与使用政策逐条核对，并把核对日期写进实验日志。
   </p>
 </section>
 
@@ -21356,7 +21362,7 @@ COURSE.register({
 
 <h3>2. 订阅额度的边界：什么算个人使用，什么算提供服务</h3>
 <p>
-  先说能做的：<strong>个人订阅用于个人编码与内部自动化，是记录中最常见、也最稳的用法。</strong>
+  能做的先讲：<strong>个人订阅用于个人编码与内部自动化，是记录里最常见、也最稳的用法。</strong>
   你写代码、调试、做代码审查、批量整理自己的文档、在 notebook 里分析自己的数据——
   这些都在「一个人用工具完成自己的工作」这个框架内。
   会触发封号的是另一类行为：<strong>把个人订阅的额度接到面向公众的生产流量上</strong>，
@@ -21378,7 +21384,7 @@ COURSE.register({
 <p>判断标准有三条，按顺序问自己：</p>
 <ol>
   <li><strong>流量是否面向不特定公众？</strong>「谁都能用」和「只有我能用」之间没有中间地带。</li>
-  <li><strong>是否属于商业转售、或替他人提供模型服务？</strong>免费也照样算：你消耗的是平台的边际成本，换回的是你自己的口碑或流量。</li>
+  <li><strong>是否属于商业转售、或替他人提供模型服务？</strong>免费也照样算：你消耗的是平台的边际成本，换来的是自己的口碑或流量。</li>
   <li><strong>是否与模型蒸馏相关？</strong>用输出训练竞争模型，几乎所有主流条款都单独禁止，并且平台会专门检测。</li>
 </ol>
 <section class="blk blk-warn">
@@ -21386,7 +21392,7 @@ COURSE.register({
   <p>
     平台判断「你是不是服务提供商」，依据不是你的自我声明，而是<strong>凭证与流量模式</strong>：
     同一个凭证、短时间内来自大量不同终端与地理位置的并发请求、7×24 均匀的调用曲线、机器化的固定间隔——
-    这些特征与「一个人在白天用 IDE 写代码」完全不同。
+    这些特征与「一个人白天在 IDE 里写代码」差得很远。
     换句话说，<strong>「我没收费」不构成辩护</strong>：判定标准是使用形态，不是有没有收入。
   </p>
 </section>
@@ -21420,7 +21426,7 @@ COURSE.register({
   <div class="nd">评分下降：403 / 429 / 验证码</div>
 </div>
 <p>
-  这是典型的<strong>负外部性</strong>：你无法靠「自己行为端正」把这段关系摘干净。
+  这是典型的<strong>负外部性</strong>：你自己行为再端正，也摘不干净这段关系。
   把并发从 8 降到 2、把间隔拉长，通常只能减缓——因为降权发生在<strong>网络层</strong>，不在你的请求参数里。
 </p>
 <p>
@@ -21472,12 +21478,12 @@ COURSE.register({
   </div>
   <div class="card">
     <h5>已经提交过怎么办</h5>
-    <p>删掉文件不算解决：历史里还在。必须轮换凭据，必要时重写历史并强推；同时默认它已经泄露。</p>
+    <p>删掉文件不算解决：历史里还在。必须轮换凭据，必要时重写历史并强推；并且先默认它已经泄露。</p>
   </div>
 </div>
 <h4>本地代理的网络暴露面</h4>
 <p>
-  「用本地代理统一管理额度与鉴权」是很自然的工程设计，但它的安全性完全取决于<strong>谁能连上它</strong>。
+  「用本地代理统一管理额度与鉴权」是很自然的工程设计，但它的安全性只看<strong>谁能连上它</strong>。
   正确做法是让代理只在私有网络里可达：绑定到
   <span class="t" data-tterm="Tailscale" data-d="基于 WireGuard 的 mesh VPN，把设备组成一个私有网络（tailnet），只有加入网络的设备可以互相访问。">Tailscale</span>
   的接口地址，并用 tailnet ACL 限制哪些设备可以访问；<strong>不要做公网端口转发</strong>，
@@ -21496,7 +21502,7 @@ COURSE.register({
 <h4>只靠网络身份层鉴权：利弊</h4>
 <p>
   「只有我的 tailnet 里的设备才能连上代理」是一种很干净的模型：没有静态密钥可以复制，
-  撤销访问只需在设备管理里移除设备。代价是把安全边界整体系在网络这一层：
+  撤销访问只需在设备管理里移除设备。代价是安全边界整个压在网络这一层：
 </p>
 <table class="tbl small">
   <thead><tr><th>维度</th><th>只用网络身份层鉴权</th><th>另加自建 API key</th></tr></thead>
@@ -21560,7 +21566,7 @@ COURSE.register({
   </div>
   <div class="card">
     <h5>共享与借用</h5>
-    <p>把账号借给同学、共用一份订阅，既违反多数条款，也让对方的行为记在你的账号上——责任与风险并不对等。</p>
+    <p>把账号借给同学、共用一份订阅，既违反多数条款，也让对方的行为记在你头上——责任和风险并不对等。</p>
   </div>
   <div class="card">
     <h5>相对稳妥的做法</h5>
@@ -21574,7 +21580,7 @@ COURSE.register({
   <li><strong>撤销第三方授权与其它凭据。</strong>OAuth 应用授权、API key、部署密钥、CI secret 逐个检查并轮换。</li>
   <li><strong>看账单与用量。</strong>确认是否被用来对外服务或批量抓取；必要时冻结付费、降级套餐。</li>
   <li><strong>顺着邮箱往外查。</strong>攻击者通常从邮箱重置其它账号：检查转发规则、恢复邮箱、已登录设备。</li>
-  <li><strong>留证据再申诉。</strong>登录日志、IP、时间线；写成时间线比情绪化描述有用得多。</li>
+  <li><strong>留证据再申诉。</strong>把登录日志、IP、时间顺序整理成时间线，比情绪化地描述有用得多。</li>
   <li><strong>复盘暴露面。</strong>清理本地凭据缓存，收紧代理与端口，检查仓库历史是否也泄露过凭据。</li>
 </ol>
 
@@ -21600,8 +21606,7 @@ COURSE.register({
 </table>
 <h4>AI 辅助声明：一个可以直接改的模板</h4>
 <p>
-  很多学校与项目并不禁止 AI，而是要求<strong>声明</strong>。声明要具体到能被核查，
-  含糊的一句「我使用了 AI 辅助」没有信息量：
+  很多学校与项目并不禁止 AI，而是要求<strong>声明</strong>。声明要具体到能被核查——「我使用了 AI 辅助」这种一句话等于没说：
 </p>
 <pre><code>AI 辅助声明
 工具与版本：&lt;工具名 / 模型名&gt;，使用日期 &lt;YYYY-MM-DD 至 YYYY-MM-DD&gt;
@@ -21672,7 +21677,7 @@ COURSE.register({
 
 <h3>9. 科研诚实：幻觉引用与负结果</h3>
 <p>
-  语言模型会生成<strong>格式完美但不存在的参考文献</strong>：标题合理、作者真实、期刊像真的，
+  语言模型会生成<strong>格式挑不出毛病、实际却不存在的参考文献</strong>：标题合理、作者真实、期刊像真的，
   连 DOI 与页码都能编出来。这不是偶发故障，而是「流畅生成看起来像引用的文本」这一机制的必然结果。
   所以引用必须<strong>逐条核查</strong>，流程如下：
 </p>
@@ -21740,7 +21745,7 @@ COURSE.register({
       <td>token 进入公开仓库、聊天记录、截图或前端代码</td>
       <td>账号被完全接管、额度被消耗、关联账号一起受牵连</td>
       <td>只存环境变量或密钥管理器；提交前扫描；泄露后立刻 revoke 全部会话</td>
-      <td>平台的 token 撤销流程与凭据管理最佳实践</td>
+      <td>平台的 token 撤销流程与凭据管理推荐做法</td>
     </tr>
     <tr>
       <td>代理暴露到公网</td>
@@ -21812,7 +21817,7 @@ COURSE.register({
     <li>用订阅额度把自己写好的中文摘要润色成英文</li>
   </ul>
   <p class="why">
-    前三项都是「你用工具完成自己的工作」：本机编码与内部自动化在记录中属于常见做法，
+    其余三项都是「你用工具完成自己的工作」：本机编码与内部自动化在记录中属于常见做法，
     前提是账号与产物都属于你、没有外部用户。
     第三项把个人凭证变成了<strong>面向不特定公众的服务后端</strong>：判定看的是使用形态而不是有没有收费，
     而且一旦有滥用流量混进来，风控会记在你的账号上——它同时踩中了三问判断法的第一条与第二条。
@@ -21863,7 +21868,7 @@ COURSE.register({
       <li>这个实验的哪些部分会被写进申请材料？其中哪些结论我能在面试中当场推导？</li>
     </ol>
     <p>
-      这七个问题通常只要十分钟，但它们涵盖了本附录里几乎所有不可逆的风险。
+      这七个问题通常十分钟就能答完，却覆盖了本附录里几乎所有不可逆的风险。
     </p>
   </div>
 </div>
@@ -21878,13 +21883,13 @@ COURSE.register({
   num: "E",
   title: "附录 E · 综合自测（20 题 + 3 道开放题）",
   en: "Appendix E — Final Exam",
-  minutes: 60,
+  minutes: 70,
   tags: ["附录", "自测"],
   body: String.raw`
 <p class="lead">
   这是一份覆盖全课程的收尾自测：<strong>20 道选择题 + 3 道开放题</strong>。
-  它的目的不是给你一个分数，而是找出「你以为懂了、其实只是读过」的地方。
-  其中 9 道是计算题——遇到它们请务必手算，看懂别人的算式和能自己写出算式，是两种不同的能力。
+  它不给你一个分数，只帮你找出「你以为懂了、其实只是读过」的地方。
+  其中 9 道是计算题，遇到它们请动手算：看懂别人的算式，和能自己写出算式，是两种不同的能力。
 </p>
 
 <section class="blk blk-lab">
@@ -21931,9 +21936,9 @@ COURSE.register({
   <p class="why">
     算式：\(\text{PPL} = \exp(\mathcal{L}) = \exp(2.0) \approx 7.39 \approx 7.4\)，
     也就是模型平均在约 7.4 个等概率候选之间犹豫。
-    第一项直接把损失值当成了困惑度——困惑度一定 \(\ge 1\)；
+    第一项把损失值当成了困惑度——困惑度一定 \(\ge 1\)；
     第三项是把 \(\ln 2 \approx 0.69\) 或 \(1/2\) 混了进来；
-    第四项错误：只要给的是「每 token 的 nats」，就能换算。
+    第四项也不对：只要给的是「每 token 的 nats」，就能换算。
     顺带记住：困惑度依赖 tokenizer，跨模型比较通常用 \(\mathcal{L}/\ln 2 \approx 2.9\) bits/token。
   </p>
 </div>
@@ -21949,10 +21954,10 @@ COURSE.register({
   </ul>
   <p class="why">
     温度只做一件事：把 logits 除以 \(T\) 再做 softmax。
-    \(T > 1\) 会压小 logits 之间的差距，分布更平坦、熵更大，等价的交叉熵（困惑度）变大；
-    \(T \to 0\) 退化为取 argmax，更确定但容易重复、缺少多样性。
-    第二项错在温度不改变任何参数；第四项错在温度是 softmax 的正常参数，输出始终是合法分布。
-    要记住的是：<strong>温度改变的是采样分布，不是模型的知识。</strong>
+    \(T > 1\) 压小 logits 之间的差距，分布更平坦、熵更大，等价的交叉熵（困惑度）变大；
+    \(T \to 0\) 退化成取 argmax，更确定，但也更容易重复、缺少多样性。
+    第二项错在温度不动任何参数；第四项错在温度本就是 softmax 的正常参数，输出始终是合法分布。
+    记住一句：<strong>温度改的是采样分布，不是模型的知识。</strong>
   </p>
 </div>
 
@@ -21966,10 +21971,10 @@ COURSE.register({
     <li>困惑度会同比下降，所以两个模型的困惑度可以直接比较</li>
   </ul>
   <p class="why">
-    更大的词表会把同样的文本切成更少的 token（相当于更强的压缩），
-    所以「每 token」承载的信息量更大，绝对 per-token 损失通常上升；要比较就必须归一化到
+    词表越大，同样的文本被切成越少的 token（相当于更强的压缩），
+    每个 token 承载的信息量就更大，绝对 per-token 损失通常上升；要比较，必须先归一化到
     bits/byte（\(\mathcal{L}/\ln 2\) 再除以字节数）。
-    第二项方向相反；第三项错在词表只影响输入 embedding 与输出层的参数量，而且是<strong>增加</strong>；
+    第二项方向反了；第三项错在词表只影响输入 embedding 与输出层的参数量，而且是<strong>往上加</strong>；
     第四项错在困惑度的定义本身就依赖分词方式，两个不同 tokenizer 的困惑度不可比。
   </p>
 </div>
@@ -21984,11 +21989,11 @@ COURSE.register({
     <li data-ok>训练前做精确、子串与近似近邻去重，并在报告中披露检查流程——污染是数据问题，正则化与多种子都改不了它</li>
   </ul>
   <p class="why">
-    污染（contamination）意味着测试样本的信息已经进入训练，这是<strong>数据划分</strong>的问题，
-    与优化无关，因此第一、二项无效。第三项错在近重复就足够泄露：
-    同一段录音的不同编码、同一首曲子的不同段落、同一道题的改写版本都会让分数虚高。
+    污染（contamination）意味着测试样本的信息已经混进了训练，这是<strong>数据划分</strong>的问题，
+    跟优化无关，所以第一、二项都无效。第三项错在近重复就够泄露了：
+    同一段录音的不同编码、同一首曲子的不同段落、同一道题的改写版本，都会把分数抬虚。
     正确做法是训练前去重（精确匹配、子串匹配、n-gram 或嵌入近邻），并在报告里写清方法与结果——
-    这既是科研诚实，也是让别人相信你的分数的前提。
+    这既是科研诚实，也是别人相信你分数的前提。
   </p>
 </div>
 
@@ -22006,9 +22011,9 @@ COURSE.register({
     所以字节数 \(= 2 \times d_{\text{model}} \times L \times 2 \times S \times B
     = 2 \times 4096 \times 32 \times 2 \times 8192 \times 8 \approx 3.4\times10^{10}\) B \(\approx 32\) GiB。
     第一项漏乘了序列长度与批大小；第二项漏乘批大小；
-    第四项通常是把系数或字节数重复乘了一次（例如既按 fp32 算又乘了额外的 2）。
-    两个要点：GQA / MQA 会按 KV 头数除以组数，是省显存的主要手段；
-    PagedAttention 只是减少碎片，不改变总量的数量级。
+    第四项一般是把系数或字节数重复乘了一次（比如既按 fp32 算，又乘了额外的 2）。
+    两个要点：GQA / MQA 按 KV 头数除以组数，是省显存的主要手段；
+    PagedAttention 只减少碎片，不改总量的数量级。
   </p>
 </div>
 
@@ -22025,8 +22030,8 @@ COURSE.register({
     算式：embedding \(= 50000 \times 512 = 2.56\times10^{7} \approx 26\)M；
     每层 \(= 4d^2 + 8d^2 = 12d^2 = 12 \times 512^2 \approx 3.1\)M，6 层 \(\approx 19\)M；
     合计 \(\approx 45\)M（若输出层不与 embedding 共享，再加 26M）。
-    第一项少了一个数量级；第三、四项相当于把 \(d^2\) 当成了 \(d^3\)，或把词表乘错了量级。
-    要点：小模型里 embedding 往往占总参数的一半以上，不能只数 Transformer 层。
+    第一项少了一个数量级；第三、四项相当于把 \(d^2\) 当成 \(d^3\)，或者把词表的量级乘错了。
+    要点：小模型里 embedding 常常占总参数的一半以上，别只数 Transformer 层。
   </p>
 </div>
 
@@ -22041,10 +22046,10 @@ COURSE.register({
   </ul>
   <p class="why">
     FlashAttention 是<strong>IO 感知的精确注意力</strong>：把 Q、K、V 分块搬进片上 SRAM，
-    在块内完成 softmax 并累加，从而不把 \(S \times S\) 的注意力矩阵写回显存。
-    节省的是显存与显存读写，FLOPs 的数量级不变，因此第二项错；
-    第三项描述的是 Linformer / Performer 那一类近似方法（结果不再精确）；
-    第四项与因果掩码的作用相反：掩码保证训练可并行，只有生成必须串行。
+    在块内算完 softmax 再累加，于是不用把 \(S \times S\) 的注意力矩阵写回显存。
+    省下的是显存和显存读写，FLOPs 的数量级没变，所以第二项错；
+    第三项说的是 Linformer / Performer 那一类近似方法（结果不再精确）；
+    第四项与因果掩码的作用正好相反：掩码让训练可以并行，只有生成必须串行。
   </p>
 </div>
 
@@ -22063,9 +22068,9 @@ COURSE.register({
     单卡有效算力 \(= 0.4 \times 3.1\times10^{14} = 1.24\times10^{14}\) FLOP/s，
     于是 \(t = 4.2\times10^{22} / 1.24\times10^{14} \approx 3.4\times10^{8}\) 秒 \(\approx 11\) 年。
     换算成卡·日：\(3.4\times10^{8} / 86400 \approx 3900\) 卡日，也就是 1000 张卡还要约 4 天——
-    这与公开文献里 7B / 1T 量级模型报告的数万 GPU 小时一致。
-    第三项正是最容易犯的错：把 \(10^{14}\) 当成了 \(10^{17}\) 一类的算力，结论就少了三个数量级。
-    第一、二项分别是少乘 \(10^{3}\) 与用了 \(C \approx ND\) 的粗略写法。
+    这和公开文献里 7B / 1T 量级模型报告的数万 GPU 小时对得上。
+    第三项是最容易踩的坑：把 \(10^{14}\) 当成 \(10^{17}\) 一类的算力，结论就少三个数量级。
+    第一、二项分别少乘了 \(10^{3}\)，以及用了 \(C \approx ND\) 的粗略写法。
   </p>
 </div>
 
@@ -22082,9 +22087,9 @@ COURSE.register({
     算式一：全局批 \(= \text{micro-batch} \times \text{accum steps} \times \text{DP degree} = 4 \times 8 \times 8 = 256\)。
     算式二：\(8 \times 1024 \times 12 \times 10 \times 768 \times 2\) B \(\approx 1.5\times10^{9}\) B \(\approx 1.4\) GiB。
     第一项把累加当成了乘法；第二项漏乘数据并行度；第四项少了一个数量级。
-    两个要点：<strong>梯度累积把峰值激活拉回微批尺度</strong>（代价是同样的数据量下更多串行的前反向步），
-    要再降就得靠激活重计算；混合精度方面，bf16 数值范围大、通常不需要 loss scaling，
-    fp16 则需要，这是两者最容易踩坑的区别。
+    两个要点：<strong>梯度累积把峰值激活拉回微批尺度</strong>（代价是同样的数据量要更多串行的前反向步），
+    再想降就得靠激活重计算；混合精度上，bf16 数值范围大，通常不用 loss scaling，
+    fp16 则要用，这是两者最容易踩坑的区别。
   </p>
 </div>
 
@@ -22098,11 +22103,11 @@ COURSE.register({
     <li>用梯度累积代替并行：把 batch 变小就不需要多卡</li>
   </ul>
   <p class="why">
-    70B 的 bf16 权重约 140 GB，加上 Adam 的优化器状态（一阶、二阶矩与 fp32 主权重）会远超任何单卡，
-    所以第一项不可行。FSDP / ZeRO-3 把参数、梯度、优化器状态分片，需要时再 all-gather，
-    代码改动小、扩展性好，是首选。只有当<strong>单层本身</strong>放不进一张卡时才需要张量并行——
+    70B 的 bf16 权重约 140 GB，再加 Adam 的优化器状态（一阶、二阶矩与 fp32 主权重），任何单卡都装不下，
+    所以第一项不可行。FSDP / ZeRO-3 把参数、梯度、优化器状态分片，用到时再 all-gather，
+    代码改动小、扩展性好，是首选。只有<strong>单层本身</strong>放不进一张卡时，才轮到张量并行——
     它把层内计算切开，每层都要通信，对带宽最敏感。流水线并行适合层数多的跨节点场景，
-    但有气泡与调度复杂度，因此第三项错；第四项与显存无关，梯度累积解决的是批大小，不是模型大小。
+    但有气泡和调度复杂度，所以第三项错；第四项与显存无关，梯度累积解决的是批大小，不是模型大小。
   </p>
 </div>
 
@@ -22116,11 +22121,11 @@ COURSE.register({
     <li data-ok>数据并行每步只同步一次梯度；张量并行在每一层内部都要通信，对卡间带宽最敏感；流水线并行只在阶段边界传激活，但需要处理气泡</li>
   </ul>
   <p class="why">
-    数据并行每步一次梯度 all-reduce，还能与计算重叠，梯度累积更可以摊薄频率；
-    张量并行把每层的 GEMM 切开，前向与反向都要 all-reduce 或 all-gather，通信频繁、延迟敏感，
-    因此通常限制在 NVLink 域内；流水线并行只在阶段边界传激活，字节数不大，
+    数据并行每步一次梯度 all-reduce，还能和计算重叠，梯度累积又能摊薄频率；
+    张量并行把每层的 GEMM 切开，前向反向都要 all-reduce 或 all-gather，通信频繁、延迟敏感，
+    所以通常限制在 NVLink 域内；流水线并行只在阶段边界传激活，字节数不大，
     但要靠足够多的微批与交错调度把气泡填满。
-    第一项说反了（切分不等于无通信）；第二项的后半句错；第三项忽略了通信的<strong>频率与延迟敏感性</strong>远比总字节数重要。
+    第一项说反了（切开不等于没有通信）；第二项后半句错；第三项忽略了通信的<strong>频率与延迟敏感性</strong>远比总字节数重要。
   </p>
 </div>
 
@@ -22138,8 +22143,8 @@ COURSE.register({
     q 与 v 两个模块合计约 \(1.3\times10^{5}\)。
     被替换的全量参数是 \(2d^2 = 2 \times 4096^2 \approx 3.4\times10^{7}\)，比值约 \(0.4\%\)。
     第二项只算了一个模块；第三项是完全微调；第四项把秩或模块数放大了。
-    要点：LoRA 冻结原权重、只学低秩增量，因此可训练参数、梯度与优化器状态一起缩小——
-    这也是它能在单卡上微调大模型的原因。
+    要点：LoRA 冻结原权重、只学低秩增量，可训练参数、梯度与优化器状态一起缩小——
+    这就是它能在单卡上微调大模型的原因。
   </p>
 </div>
 
@@ -22154,10 +22159,10 @@ COURSE.register({
   </ul>
   <p class="why">
     DPO 把「带 KL 约束的奖励最大化」重写成只依赖偏好对与参考策略的对比损失，
-    因此不需要显式奖励模型，也省去在线采样，工程上更简单稳定；
+    于是不需要显式奖励模型，也省掉在线采样，工程上更简单、更稳；
     代价是它只学到相对偏好，对偏好数据的覆盖与质量很敏感。
-    PPO 保留在线采样，可以插入奖励模型、可验证奖励（RLVR）或过程奖励，
-    因此在数学、代码这类能自动判对错的任务上更常用。
+    PPO 保留在线采样，能接奖励模型、可验证奖励（RLVR）或过程奖励，
+    所以在数学、代码这类能自动判对错的任务上更常用。
     第一项说反了；第二项错在 DPO 的损失里仍有与参考策略的比值项（隐式 KL），分布漂移照样存在；
     第四项正好相反。
   </p>
@@ -22173,10 +22178,10 @@ COURSE.register({
     <li>GRPO 与 DPO 本质等价，只是实现细节不同</li>
   </ul>
   <p class="why">
-    GRPO 用组内归一化的奖励作为优势估计，省掉 critic（价值网络），显存与工程复杂度都降下来。
-    RLVR 指奖励可由规则自动判定——答案与标准答案一致、代码通过单元测试——
-    因此不需要训练奖励模型，也不容易被「讨好奖励模型」的伪解钻空子，这是它在数学与代码任务上流行的原因。
-    第一项与事实相反；第三项把它与 RLHF 混为一谈；第四项错在 DPO 是离线偏好方法，
+    GRPO 拿组内归一化的奖励当优势估计，省掉 critic（价值网络），显存和工程复杂度都降下来。
+    RLVR 指奖励能由规则自动判定——答案与标准答案一致、代码通过单元测试——
+    所以不用训练奖励模型，也不容易被「讨好奖励模型」的伪解钻空子，这在数学与代码任务上很流行。
+    第一项与事实相反；第三项把它和 RLHF 混为一谈；第四项错在 DPO 是离线偏好方法，
     没有在线采样，也没有组内相对比较。
   </p>
 </div>
@@ -22194,9 +22199,9 @@ COURSE.register({
     算式：\(7\times10^{9}\) 个参数 \(\times\) 4 bit \(= 28\times10^{9}\) bit \(= 3.5\) GB，
     相比 bf16 的 14 GB 恰好是 4 倍（16 bit → 4 bit），另加分组量化的 scale 与 zero 点开销。
     第一项少了一半；第二项把 4 倍当成了 16 倍；第三项错在权重-only 量化确实省显存，
-    也顺带降低显存带宽压力。
-    要点：量化省的是权重显存与带宽，而高并发、长上下文场景下<strong>KV cache 往往比权重更吃显存</strong>，
-    这时的瓶颈通常在调度与缓存管理，而不在权重精度。
+    顺带还降低显存带宽压力。
+    要点：量化省的是权重显存与带宽；高并发、长上下文场景下<strong>KV cache 往往比权重更吃显存</strong>，
+    这时的瓶颈通常在调度与缓存管理，而不是权重精度。
   </p>
 </div>
 
@@ -22206,15 +22211,15 @@ COURSE.register({
   <ul class="opts">
     <li data-ok>让完成的序列立刻退出、新请求立刻进入，从而在相同显存下提升吞吐，代价是尾延迟更不稳定，可用分块预填充与调度策略缓解</li>
     <li>它把所有序列截断到同一长度，从而提升吞吐</li>
-    <li>它降低吞吐，但显著改善延迟</li>
+    <li>它降低吞吐，但延迟明显改善</li>
     <li>它的收益与序列长度、输出长度分布无关</li>
   </ul>
   <p class="why">
     静态批处理必须等最长的序列结束，GPU 大量空转；
-    连续批处理让批在运行中不断重组（配合分页 KV 管理），吞吐可以提升数倍。
+    连续批处理让批在运行中不断重组（配合分页 KV 管理），吞吐能提升数倍。
     代价是调度更复杂、P95 延迟波动更大，长 prompt 的 prefill 还会抢占 decode。
-    缓解手段是分块预填充、优先级调度，以及把 prefill 与 decode 分离。
-    第二项描述的是截断或 padding，不是连续批处理；第三项方向错了；
+    缓解手段是分块预填充、优先级调度，以及把 prefill 与 decode 拆开。
+    第二项说的是截断或 padding，不是连续批处理；第三项方向反了；
     第四项错在收益恰恰强烈依赖长度分布的离散程度——输出长度越参差，收益越大。
   </p>
 </div>
@@ -22229,12 +22234,12 @@ COURSE.register({
     <li>只要测试集有 50 条样本，交叉验证就没有必要</li>
   </ul>
   <p class="why">
-    同一艺人的多个片段高度相关。随机划分会把同源样本同时放进训练与测试，
+    同一艺人的多个片段高度相关。随机划分会把同源样本同时放进训练和测试，
     模型只要学到「这位艺人的制作特征」就能刷分，分数会系统性高估跨艺人泛化能力——
-    这就是数据泄露。分组交叉验证让整组同进同出，留一艺人则是最贴近应用场景的协议。
+    这就是数据泄露。分组交叉验证让整组同进同出，留一艺人是最贴近应用场景的协议。
     第一项恰好是泄露的来源；第三项把最坏情况上界当成了预测：
     VC 界形如 误差 \(\le\) 经验误差 \(+ O(\sqrt{h/n})\)，
-    在 \(n \approx 250\) 时界的数值通常远大于实际误差，它的价值在于解释「为什么容量必须小」；
+    \(n \approx 250\) 时界的数值通常远大于实际误差，它的价值在于解释「为什么容量必须小」；
     第四项错在 50 条样本连一个像样的置信区间都撑不起（二项比例的 95% 区间宽度约 \(\pm 14\) 个百分点）。
   </p>
 </div>
@@ -22254,7 +22259,7 @@ COURSE.register({
     解释：\(p \approx 0.21\) 意味着「在无效应的零假设下，约 21% 的随机置换都能给出不弱于观测的结果」，
     所以这份数据不支持该效应。
     两个补充：置换次数决定 p 的分辨率（1000 次约到 \(10^{-3}\)），报告时要写出置换次数与统计量的定义；
-    p 值不是效应大小，也不是「假设为真的概率」，所以要同时给出效应量与置信区间。
+    p 值既不是效应大小，也不是「假设为真的概率」，所以要同时给出效应量与置信区间。
   </p>
 </div>
 
@@ -22269,9 +22274,9 @@ COURSE.register({
   </ul>
   <p class="why">
     算式分三步：每月 \(2200 \times 4.3 \approx 9500\) 万 token；按 10 美元/百万折算 \(\approx 950\) 美元；
-    \(950 / 200 \approx 4.75\)。第一项把一周当成了一个月；第二项是单周总上限、不是月度用量；
+    \(950 / 200 \approx 4.75\)。第一项把一周当成了一个月；第二项是单周总上限，不是月度用量；
     第三项错在订阅额度始终受「窗口 \(\times\) 上限」与并发约束。
-    更重要的结论：<strong>订阅额度是推理额度，它无法替代训练算力</strong>——
+    更要紧的结论：<strong>订阅额度是推理额度，替代不了训练算力</strong>——
     训练是持续数小时占满加速器的前反向循环，不是按 token 计费的推理调用。
   </p>
 </div>
@@ -22286,18 +22291,18 @@ COURSE.register({
     <li>多账号随机轮换使用，摊薄单账号风险，账号亲和不重要</li>
   </ul>
   <p class="why">
-    缓存亲和：把固定前缀（系统提示、工具定义、长文档）放在请求最前面并在多轮之间保持不变，
+    缓存亲和：把固定前缀（系统提示、工具定义、长文档）放在请求最前面，并在多轮之间保持不变，
     才能命中前缀缓存，命中的 token 通常按很低的折扣计费——<strong>它同时降低成本与首 token 延迟</strong>，
     所以第三项错。会话亲和：让多轮对话粘在同一实例与同一份 KV 上，避免重复 prefill。
-    第二、四项都涉及多账号/出口轮换以规避检测：这违反多数平台服务条款，且与附录 D 的合规立场直接冲突——
-    稳定性应该来自缓存与会话设计，而不是和风控捉迷藏。
+    第二、四项都涉及多账号/出口轮换以规避检测：这违反多数平台的服务条款，也与附录 D 的合规立场冲突——
+    稳定性该来自缓存与会话设计，而不是和风控捉迷藏。
   </p>
 </div>
 
 <h3>第二部分 · 开放题（3 题）</h3>
 <p>
   开放题没有唯一答案。按「机制 — 证据 — 判据」三层自评：
-  先说清机制，再给出你会用什么证据检验它，最后写下事先定好的判据。
+  先说清机制，再给出你打算用什么证据检验它，最后写下事先定好的判据。
   先写出你的版本，再展开参考要点。
 </p>
 
@@ -22313,14 +22318,14 @@ COURSE.register({
 <div class="acc" data-t="开放题 1 · 参考要点与评分标准" data-badge="写完再看">
   <div class="acc-body">
     <p>
-      <strong>参考要点。</strong>样本量决定可达的模型容量。\(n \approx 250\)、目标又是低维参数时，
-      岭回归的 \(L_2\) 正则等价于一个很强的先验，而且有闭式解、方差小。
-      深度网络动辄 \(10^{6}\) 以上参数，偏差—方差分解与 VC 一类的容量界都指向同一件事：
+      <strong>参考要点。</strong>样本量决定你能负担的模型容量。\(n \approx 250\)、目标又是低维参数时，
+      岭回归的 \(L_2\) 正则就是一个很强的先验，而且有闭式解、方差小。
+      深度网络动辄 \(10^{6}\) 以上参数，偏差—方差分解和 VC 一类的容量界都指向同一件事：
       容量远大于样本量时，泛化误差由<strong>方差</strong>主导；要学到「过渡机制」的不变性，
-      需要覆盖足够多的艺人、录音条件与技法组合，250 条通常只覆盖了少数几种。
-      随机划分还会让同源片段同时进入训练与测试，进一步高估成绩。
-      因此正确的立场是：把深度模型当作<strong>待检验的假设</strong>，
-      用分组交叉验证与置换检验去比较它与岭回归，而不是默认它更强。
+      就得覆盖足够多的艺人、录音条件与技法组合，而 250 条通常只覆盖了少数几种。
+      随机划分还会让同源片段同时进入训练与测试，把成绩进一步抬高。
+      所以正确的立场是：把深度模型当成<strong>待检验的假设</strong>，
+      用分组交叉验证与置换检验去和岭回归比，而不是默认它更强。
     </p>
     <table class="tbl small">
       <thead><tr><th>得分</th><th>标准</th></tr></thead>
@@ -22345,7 +22350,7 @@ COURSE.register({
 <div class="acc" data-t="开放题 2 · 参考要点与评分标准" data-badge="写完再看">
   <div class="acc-body">
     <p>
-      <strong>参考要点。</strong>核心是把「艺人」从训练与测试之间彻底隔开，并制造只在机制上变化的反事实。
+      <strong>参考要点。</strong>核心是把「艺人」从训练与测试之间彻底隔开，再制造只在机制上变化的反事实。
       (1) 按艺人 / 专辑 / 录音批次分组做 GroupKFold，并单独报告留一艺人（leave-one-artist-out）结果：
       跨艺人的增益若消失，说明学到的主要是艺人特征。
       (2) 用艺人标签做探针或对抗验证：若内部表示能高精度预测艺人，就存在混入。
@@ -22353,8 +22358,8 @@ COURSE.register({
       机制可学，在合成数据上也应成立。
       (4) 反事实编辑：保持过渡参数不变，替换人声、母带处理与编码格式，观察预测是否漂移。
       (5) 用置换检验给出显著性，并事先写好统计量与阈值。
-      判据：只有在<strong>跨艺人、跨制作条件</strong>下仍然稳定，并且能恢复合成数据里的已知参数，
-      才支持「学到了机制」这一主张。
+      判据：只有在<strong>跨艺人、跨制作条件</strong>下仍然稳定，又能恢复合成数据里的已知参数，
+      「学到了机制」这个说法才站得住。
     </p>
     <table class="tbl small">
       <thead><tr><th>得分</th><th>标准</th></tr></thead>
@@ -22385,7 +22390,7 @@ COURSE.register({
       第三段给一个具体例子：哪一步最难、你怎么解决、AI 在哪里被你否决
       （例如它给出一个看起来合理但边界条件错误的推导，你用数值实验推翻了它）。
       最后一句表明你愿意在面试中解释任何一行代码或任何一个公式。
-      常见失分是笼统表态「AI 只用于辅助」，却没有边界、没有证据、没有具体例子。
+      常见的失分是笼统表一句「AI 只用于辅助」，却没有边界、没有证据、也没有具体例子。
     </p>
     <table class="tbl small">
       <thead><tr><th>得分</th><th>标准</th></tr></thead>
@@ -22422,12 +22427,12 @@ COURSE.register({
         <tr><td>16</td><td>A</td><td>连续批处理提升吞吐，代价是尾延迟波动更大</td></tr>
         <tr><td>17</td><td>B</td><td>同源样本整组划分；VC 界在 \(n \approx 250\) 时只是定性提示</td></tr>
         <tr><td>18</td><td>C</td><td>\(p \approx (210+1)/(1000+1) \approx 0.21\)</td></tr>
-        <tr><td>19</td><td>D</td><td>11 个可用窗口 \(\times 200\) 万 \(\approx 2200\) 万 token \(\approx 220\) 美元</td></tr>
+        <tr><td>19</td><td>D</td><td>每月 \(2200 \times 4.3 \approx 9500\) 万 token \(\approx 950\) 美元，约为月费的 4.75 倍</td></tr>
         <tr><td>20</td><td>A</td><td>账号、缓存、会话三种亲和都要固定</td></tr>
       </tbody>
     </table>
     <p>
-      如果错题集中在第 5、6、8、9、12、15、18、19 题，说明<strong>单位与量级</strong>是主要问题——
+      如果错题集中在第 1、5、6、8、9、12、15、18、19 题，说明<strong>单位与量级</strong>是主要问题——
       回到对应模块，把公式按「元素数 × 字节数 × 数量」的顺序重推一遍，比多做十道题有效。
     </p>
   </div>
@@ -22448,8 +22453,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   前面十几讲是<strong>用来读一遍的</strong>；这一页是<strong>用来反复查的</strong>。
-  它把全课程最常被回查的东西压成七张表：公式、数字、超参、模型选型、额度窗口、命令、排错决策。
-  你不需要背它——只需要记住「这里有一张表」。
+  全课程最常被回查的东西都收在这里，按 11 节排开：公式、数字、TRL 对照、超参、选型决策、硬件显存、命令、排错、项目检查点、术语索引与高阶主题。
+  你不用背它，只要记住「这里有一张表」。
 </p>
 
 <section class="blk blk-tip">
@@ -22465,7 +22470,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>公式</th><th>含义 / 什么时候用</th><th>出处</th><th>常见误用</th></tr></thead>
   <tbody>
-    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{< t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
+    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{< t})\)</td><td>语言模型的链式分解，推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
     <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{< t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
     <tr><td>\(\text{PPL} = e^{\mathcal{L}}\)</td><td>困惑度；跨数据集<strong>不可直接比较</strong></td><td>01</td><td>用不同 tokenizer 的 PPL 比模型</td></tr>
     <tr><td>\(\text{softmax}(z)_i = e^{z_i}/\sum_j e^{z_j}\)</td><td>把 logits 变概率；温度即 \(z/T\)</td><td>01 / 08</td><td>忘了先减去最大值（数值溢出）</td></tr>
@@ -22480,8 +22485,8 @@ COURSE.register({
     <tr><td>\(\mathcal{L}_{\text{DPO}} = -\log\sigma\!\big(\beta[\log\tfrac{p_\theta(y_w)}{p_{\text{ref}}(y_w)} - \log\tfrac{p_\theta(y_l)}{p_{\text{ref}}(y_l)}]\big)\)</td><td>偏好优化（无需奖励模型）</td><td>07</td><td>跳过 SFT 直接 DPO</td></tr>
     <tr><td>\(\hat A_i = \dfrac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)}\)</td><td>GRPO 的组内相对优势（替代 critic）</td><td>07</td><td>组太小导致优势估计噪声大</td></tr>
     <tr><td>\(\hat w = (X^\top X + \lambda I)^{-1}X^\top y\)</td><td>岭回归闭式解；\(N\) 小时的首选模型</td><td>09</td><td>忘了在划分后拟合标准化</td></tr>
-    <tr><td>\(\text{RMSE}_{\text{LOOCV}}^2 = \frac1N\sum_i\big(\tfrac{y_i-\hat y_i}{1-h_{ii}}\big)^2\)</td><td>留一交叉验证的 \(O(Nd^2)\) 捷径</td><td>09 / 16</td><td>真的跑 N 次重训</td></tr>
-    <tr><td>\(R(f) \le R_{\text{emp}} + \sqrt{\tfrac{h(\ln(2N/h)+1)-\ln(\eta/4)}{N}}\)</td><td>VC 泛化界；\(N=250\) 时是空的</td><td>09</td><td>拿它当精确误差估计</td></tr>
+    <tr><td>\(\text{RMSE}_{\text{LOOCV}}^2 = \frac1N\sum_i\big(\tfrac{y_i-\hat y_i}{1-h_{ii}}\big)^2\)</td><td>留一交叉验证的 \(O(Nd^2)\) 捷径</td><td>09</td><td>真的跑 N 次重训</td></tr>
+    <tr><td>\(R(f) \le R_{\text{emp}} + \sqrt{\tfrac{h(\ln(2N/h)+1)-\ln(\eta/4)}{N}}\)</td><td>VC 泛化界；\(N=250\) 时只剩定性提示</td><td>09</td><td>拿它当精确误差估计</td></tr>
     <tr><td>\(t_{\text{step}} \approx \dfrac{\text{model bytes}}{\text{memory bandwidth}}\)</td><td>解码速度上限（带宽受限）</td><td>03 / 08</td><td>以为提速要靠更多算力</td></tr>
     <tr><td>\(\mathrm{SE} = \sigma/\sqrt{N}\)</td><td>均值的不确定度；做实验前先算它，判断「多大的差别才测得出来」</td><td>09</td><td>拿小于 1 SE 的改进当结论</td></tr>
     <tr><td>\(\mathrm{df}(\lambda) = \sum_j \frac{\sigma_j^2}{\sigma_j^2+\lambda}\)</td><td>岭回归的有效自由度（\(\sigma_j\) 为 \(X\) 的奇异值）</td><td>09</td><td>以为「加了特征」就等于「增加了有效容量」</td></tr>
@@ -22497,7 +22502,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>要估的东西</th><th>口诀</th><th>例子</th></tr></thead>
   <tbody>
-    <tr><td>权重显存</td><td>参数量 × 每参数字节</td><td>7B @ bf16 ≈ 14 GB；@ int4 ≈ 3.5 GB</td></tr>
+    <tr><td>权重显存</td><td>参数量 × 每参数字节</td><td>7B @ bf16 ≈ 14 GB；@ int4 ≈ 3.85 GB</td></tr>
     <tr><td>训练显存（单卡下限）</td><td>16 字节/参数 + 激活（AdamW + bf16）</td><td>7B ≈ 112 GB → 单卡不可能</td></tr>
     <tr><td>激活显存</td><td>\(c\cdot B S L d\)，\(c\approx10\text{–}20\)</td><td>7B、\(BS=16\text{k}\) ≈ 数十 GB</td></tr>
     <tr><td>参数量</td><td>\(12Ld^2\)</td><td>\(L=32,d=4096\) → 6.4B（+词表 ≈ 7B）</td></tr>
@@ -22576,13 +22581,13 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>显存规格</th><th>硬件平台</th><th>从零预训练（从 Scratch）</th><th>开源基座微调（QLoRA）</th></tr></thead>
   <tbody>
-    <tr><td><strong>16 GB</strong></td><td>Kaggle（单卡 T4 16GB / 双卡 32GB）</td><td>15M ~ 45M miniGPT（极速收敛，&lt;15分钟）</td><td>0.5B ~ 1.5B（4-bit QLoRA，显存占用 &lt;4GB）</td></tr>
+    <tr><td><strong>16 GB</strong></td><td>Kaggle（单卡 T4 16GB / 双卡 32GB）</td><td>15M ~ 45M miniGPT（收敛快，&lt;15分钟）</td><td>0.5B ~ 1.5B（4-bit QLoRA，显存占用 &lt;4GB）</td></tr>
     <tr><td><strong>2 × 16 GB</strong></td><td>Kaggle（T4 ×2）</td><td>45M ~ 125M miniGPT（小规模语料探索）</td><td>3B ~ 7B（QLoRA，需配合梯度检查点）</td></tr>
     <tr><td><strong>8 ~ 12 GB</strong></td><td>本地显卡（RTX 3060/4060）</td><td>5M ~ 15M miniGPT（本地单步调试与验证）</td><td>0.5B（4-bit QLoRA，本地快速训练）</td></tr>
   </tbody>
 </table>
 <p class="cm">
-  <strong>核心原则</strong>：在云端训练时，务必将 Checkpoint 外存到 Google Drive 或 Hugging Face Hub，详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
+  <strong>核心原则</strong>：在云端训练，Checkpoint 一定要外存到 Google Drive 或 Hugging Face Hub，别只留在实例里；详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
 </p>
 <h3>7. 命令速查</h3>
 <pre><code><span class="cm"># git（实验管理）</span>
@@ -22630,8 +22635,8 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <tr><td>CP4 预测对音频</td><td>客观指标 + 听测对照</td><td><a href="#m9">09</a></td></tr>
     <tr><td>CP5 成对适配</td><td>特征提取（你的「tokenizer」）</td><td><a href="#m2">02</a></td></tr>
     <tr><td>CP6 证据与局限</td><td>分组 CV、效应量、盲测</td><td><a href="#m9">09</a></td></tr>
-    <tr><td>CP7 学习实验</td><td>只学一个低维参数并严格比较</td><td><a href="#m9">09</a>、<a href="#m16">16</a>、<a href="#appB">附录 B · E7</a></td></tr>
-    <tr><td>CP8 成品与辩护</td><td>一键复现 + 答辩稿</td><td><a href="#m14">14</a>、<a href="#m16">16</a></td></tr>
+    <tr><td>CP7 学习实验</td><td>只学一个低维参数并严格比较</td><td><a href="#m9">09</a>、<a href="#appB">附录 B · E7</a></td></tr>
+    <tr><td>CP8 成品与辩护</td><td>一键复现 + 答辩稿</td><td><a href="#m25">25</a>、<a href="#m29">29</a></td></tr>
   </tbody>
 </table>
 
@@ -22736,7 +22741,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <ol>
       <li><strong>每做一次实验，就往「数字速查」里加一行你实测到的数字</strong>（例如「0.5B + LoRA r=16，T4 上 24 分钟，峰值 9.8 GB」）。
           三个月后，这一页会比任何教程都贴合你。</li>
-      <li><strong>把踩过的坑写进「排错决策表」</strong>，注明症状 → 原因 → 修法。你的报错日志是最独特的知识资产。</li>
+      <li><strong>把踩过的坑写进「排错决策表」</strong>，注明症状 → 原因 → 修法；报错日志是你最独特的资产。</li>
       <li><strong>用浏览器打印成 PDF</strong>（右上角「打印」按钮会自动展开折叠内容），放进手机随时查。</li>
       <li>如果需要分享，直接把这个 <code>ai-course</code> 文件夹压缩发给对方即可——它不依赖网络。</li>
     </ol>
@@ -22769,7 +22774,7 @@ COURSE.register({
   <h4><span class="ic">◆</span>先说结论：课值得上，但别只会上某一家的产品</h4>
   <p>
     这些官方课确实<strong>免费、成体系、有练习</strong>，比绝大多数二手教程可靠：
-    它们背后是模型的原厂团队，讲的工具定义、上下文管理、评估思路通常比社区转述更准确。
+    它们出自模型原厂团队，讲工具定义、上下文管理与评估思路，比社区转述准得多。
     所以「值不值得上」的答案是<strong>值得</strong>。
   </p>
   <p>
@@ -22841,14 +22846,14 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>读表的三个约定（很重要，关系到你能不能信这张表）</h4>
+  <h4><span class="ic">✓</span>读表前先说清三个约定（关系到你能不能信这张表）</h4>
   <ol>
     <li><strong>课名与链接</strong>：中文名是本课程的中文译名；括号里的英文名按课程页 URL 的 slug 还原，
       可能与页面上的显示名略有差异，<strong>以课程页为准</strong>。链接照抄官方课程页。</li>
     <li><strong>「适合谁」与「学完应该能做什么」是编者按课名与定位给的预期，不是官方承诺</strong>，
       也不代表课程一定覆盖到那个深度。请把它当成「上完之后你应该能自己回答的问题」。</li>
     <li><strong>学时一律写「以课程页标注为准」</strong>。只有 13 号课因为多份二手资料引用同一组数字，
-      我们把它单独标出来（官方页标注 14 lessons / 4 hr / 1 quiz）。学时是最容易过期的一类信息，
+      这里把它单独标出来（官方页标注 14 lessons / 4 hr / 1 quiz）。学时是最容易过期的一类信息，
       本附录不复制其余课程的具体数字。</li>
   </ol>
 </section>
@@ -22870,7 +22875,7 @@ COURSE.register({
     <tr><td><strong>02</strong> Claude 协作入门（Introduction to Claude Cowork）</td><td><a href="https://academy.claude.com/courses/introduction-to-claude-cowork" target="_blank" rel="noopener">introduction-to-claude-cowork</a></td><td>已经会一问一答，但还没把 AI 编进日常工作流的人</td>
       <td>以课程页标注为准</td>      <td>能把一个任务拆成「我做什么 + 它做什么」的两栏分工表，并写出交接时需要的输入</td><td>25、00</td></tr>
     <tr><td><strong>03</strong> Claude Code 101（Claude Code 101）</td><td><a href="https://academy.claude.com/courses/claude-code-101" target="_blank" rel="noopener">claude-code-101</a></td><td>要在终端或编辑器里让智能体改代码的人</td>
-      <td>以课程页标注为准</td>      <td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的闭环</td><td>25、29</td></tr>
+      <td>以课程页标注为准</td>      <td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的完整流程</td><td>25、29</td></tr>
     <tr><td><strong>04</strong> Claude Code 实战（Claude Code in Action）</td><td><a href="https://academy.claude.com/courses/claude-code-in-action" target="_blank" rel="noopener">claude-code-in-action</a></td><td>已能跑通编码智能体，想把它放进真实项目流程的人</td>
       <td>以课程页标注为准</td>      <td>能把测试、审查、提交拆成可复用的步骤，而不是每次从零描述需求</td><td>25、29</td></tr>
   </tbody>
@@ -22937,8 +22942,8 @@ COURSE.register({
   <h4><span class="ic">⚠</span>这张表的三个已知边界（别把预期当事实）</h4>
   <p>
     <strong>一、学时只对 13 号课写了具体数字</strong>，因为只有它有多份来源相互印证；
-    其余 21 门一律写「以课程页标注为准」。这不是偷懒，而是纪律：学时、课名、模块数都是易过期信息，
-    抄进笔记不写日期，半年后就会误导你自己。
+    其余 21 门一律写「以课程页标注为准」。这不是偷懒，而是纪律：学时、课名、模块数都容易过期，
+    抄进笔记却不写日期，半年后就会把你带偏。
   </p>
   <p>
     <strong>二、「适合谁 / 学完能做什么」是编者预期</strong>。判断是否达成，
@@ -22971,14 +22976,14 @@ COURSE.register({
       <td>先决定<strong>哪些活不该交给模型</strong>，再决定交给它多少</td>
       <td>一张两栏分工表，外加一条「绝不外发」清单</td>
       <td>「先让它全做一遍，我再改」——把判断也一起交出去了</td>
-      <td>00、21</td>
+      <td>19、附录 D</td>
     </tr>
     <tr>
       <td><strong>Description</strong><br />描述</td>
       <td>把需求说到<strong>可验收</strong>：输入、输出格式、判据、反例</td>
       <td>一份 5 条的验收条件，别人拿它也能判断对错</td>
       <td>「帮我优化一下」——写完连自己都无法判定是否达成</td>
-      <td>14、16</td>
+      <td>25、19</td>
     </tr>
     <tr>
       <td><strong>Discernment</strong><br />辨识</td>
@@ -22992,7 +22997,7 @@ COURSE.register({
       <td>写清楚<strong>谁签字负责</strong>、留什么记录、出错怎么回滚</td>
       <td>台账四字段：日期、命令、数字、验证状态</td>
       <td>「是模型说的」——一出事就没有责任人，也无法复现</td>
-      <td>16、附录 C</td>
+      <td>25、附录 C</td>
     </tr>
   </tbody>
 </table>
@@ -23108,7 +23113,7 @@ COURSE.register({
         <td>Discernment</td>
         <td>先跑 Level 0 规则基线；再跑脚本；算 SE 与置换检验</td>
         <td>「RMSE 1.92 ± 0.31（5 折，按艺人分组），p = ___」</td>
-        <td>\(N=250\)，\(\mathrm{SE}\approx0.15\) 秒，可检测下限约 0.3 秒，\(B=500\)</td>
+        <td>\(N=250\)，\(\mathrm{SE}\approx0.12\) 秒，可检测下限约 0.24 秒，\(B=500\)</td>
       </tr>
       <tr>
         <td>Diligence</td>

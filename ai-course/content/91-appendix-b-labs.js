@@ -1,4 +1,4 @@
-/* content/91-appendix-b-labs.js — 附录 B：Colab 实验手册 */
+/* content/91-appendix-b-labs.js — 附录 B：Kaggle 实验手册 */
 COURSE.register({
   id: "appB",
   part: 9,
@@ -9,24 +9,24 @@ COURSE.register({
   tags: ["动手", "实验", "Kaggle", "PyTorch", "JAX", "1.5B实战", "CUDA排错"],
   body: String.raw`
 <p class="lead">
-  本附录提供 8 个在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）即可完整跑通的教科书级实操实验。
-  每个实验均配备<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>与<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>，
-  使你在点下运行前即建立清晰的物理资源账本与冒烟验收基准。
-  特别地，实验 E4 深度呼应<strong>模块 28（1.5B 开源大模型实战训练与部署）</strong>，
-  系统细化为涵盖输入检验（Input Validation & ChatML Integrity）、超参调节（Hyperparameter Tuning Guide）与推理验证（Inference Verification & Export）的工业级闭环指引；
-  并在前置底座中系统总结了导致深度学习工程中断的<strong>三大常见 CUDA 底层故障</strong>（显存碎片化、数据对齐溢出与梯度检查点冲突）。
+  本附录有 8 个实验，都能在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）里完整跑通。
+  每个实验都配一份<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>和一份<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>：
+  点运行之前先算清资源账，再用最小代价确认流程走得通。
+  其中实验 E4 呼应<strong>模块 28（1.5B 开源大模型实战训练与部署）</strong>，
+  并把输入检验（Input Validation & ChatML Integrity）、超参调节（Hyperparameter Tuning Guide）与推理验证（Inference Verification & Export）拆成可照做的步骤；
+  第 3 节先讲清<strong>三大常见 CUDA 底层故障</strong>（显存碎片化、数据对齐溢出与梯度检查点冲突）——它们才是训练中断的主要原因。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>实验守则：如何让实验变成你的能力证据</h4>
-  <p>做实验最忌讳的是「跑完了、输出了几个数字、关闭标签页」。这样的实验没有任何留存价值。请遵守以下六条守则：</p>
+  <p>最忌讳的做法是跑完、看到几个数字、关掉标签页——这样的实验留不下任何东西。六条守则：</p>
   <ol>
-    <li><strong>先做显存手算预估，再按运行键</strong>：根据模型参数量、激活值公式与批大小，算清显存是否在硬件上限以内。拒绝盲目尝试导致的 CUDA OOM。</li>
-    <li><strong>严格执行 30 分钟最小跑通检查单</strong>：在大规模训练前，必须用单批次、极小迭代步数（1–3 步）验证计算图、形状、损失非 NaN 与权重更新，避免将宝贵算力浪费在低级语法或维度错误上。</li>
-    <li><strong>每做一次改动，记录在一个独立的表格行里</strong>：改超参、改结构、改数据，必须单变量控制。</li>
-    <li><strong>保留完整的可复现脚手架</strong>：记录随机种子（seed）、Python/PyTorch 库版本号、显卡型号与驱动版本。</li>
-    <li><strong>认真对待负面结果</strong>：消融实验中「加上某模块反而变差」的发现，其学术与工程价值往往高于单纯的涨点。</li>
-    <li><strong>必须有推理验证与产物留存</strong>：不仅看训练损失曲线下降，更要通过确定性采样检查模型生成文本的质量与闭合性，并留存权重或 GGUF 导出物。</li>
+    <li><strong>先做显存手算预估，再按运行键</strong>：按参数量、激活值公式与批大小算清显存有没有超硬件上限，别一上来就盲跑撞 CUDA OOM。</li>
+    <li><strong>先跑 30 分钟最小跑通检查单</strong>：正式训练前用单批次、1–3 步验证计算图、张量形状、损失非 NaN 与权重确实更新，别把算力浪费在语法或维度错误上。</li>
+    <li><strong>每改一次就记一行</strong>：超参、结构、数据分开改，一次只动一个变量。</li>
+    <li><strong>留下可复现的全部信息</strong>：随机种子（seed）、Python/PyTorch 版本号、显卡型号与驱动版本。</li>
+    <li><strong>认真对待负面结果</strong>：消融里「加上某个模块反而更差」这种发现，价值往往高于一次单纯的涨点。</li>
+    <li><strong>推理验证与产物留存</strong>：不能只看训练损失曲线往下走，还要用确定性采样检查生成文本的质量与句子闭合，并把权重或 GGUF 导出物存下来。</li>
   </ol>
 </section>
 
@@ -68,88 +68,88 @@ COURSE.register({
     <tr><td><strong>E1</strong></td><td>从 bigram 到神经语言模型</td><td>CPU 即可</td><td>10–20 分钟</td><td>无</td><td>01</td></tr>
     <tr><td><strong>E2</strong></td><td>Tokenizer 解剖与生育率</td><td>CPU 即可</td><td>10–15 分钟</td><td>E1</td><td>02</td></tr>
     <tr><td><strong>E3</strong></td><td>从零实现迷你 Transformer</td><td>T4 / CPU</td><td>30–50 分钟</td><td>E1、E2</td><td>03、04</td></tr>
-    <tr><td><strong>E4</strong></td><td>Colab 1.5B 开源大模型实战（SFT + 量化导出）</td><td>T4 16GB / A100</td><td>30–60 分钟</td><td>E3</td><td>07、25</td></tr>
+    <tr><td><strong>E4</strong></td><td>Kaggle 1.5B 开源大模型实战（SFT + 量化导出）</td><td>T4 16GB / A100</td><td>30–60 分钟</td><td>E3</td><td>28</td></tr>
     <tr><td><strong>E5</strong></td><td>偏好优化（DPO）</td><td>T4 16GB</td><td>25–45 分钟</td><td>E4</td><td>07</td></tr>
     <tr><td><strong>E6</strong></td><td>JAX 版 miniGPT（Flax NNX + Optax + Grain）</td><td>TPU v5e-1 / CPU</td><td>30–60 分钟</td><td>E3</td><td>06</td></tr>
-    <tr><td><strong>E7</strong></td><td>模型阶梯 + 分组交叉验证 + 置换检验</td><td>CPU 即可</td><td>15–30 分钟</td><td>E1</td><td>09</td></tr>
+    <tr><td><strong>E7</strong></td><td>模型阶梯 + 分组交叉验证 + 置换检验</td><td>CPU 即可</td><td>15–30 分钟（含阅读与记录）</td><td>E1</td><td>09</td></tr>
     <tr><td><strong>E8</strong></td><td>量化与部署基准</td><td>T4 16GB（vLLM 部分需 A100/L4）</td><td>30–60 分钟</td><td>E3、E4</td><td>08、10</td></tr>
   </tbody>
 </table>
 <p>
   <strong>顺序建议</strong>：E1 → E2 → E3 → E7 是一条完整的科学主线（从概率建模到严格统计评估），
-  E4 → E5 → E8 是端到端工程落地主线（从工业级微调、偏好对齐到端侧量化部署），E6 是跨生态横向对照（PyTorch vs JAX 系统级差异）。
-  如果你时间紧张，优先选择 <strong>E3、E4、E7</strong>。
+  E4 → E5 → E8 是工程落地主线（从微调、偏好对齐到端侧量化部署），E6 是跨生态横向对照（PyTorch vs JAX 的系统级差异）。
+  时间不够就优先做 <strong>E3、E4、E7</strong>。
 </p>
 
 
-<h3>3. 工业级 GPU 训练底座：三大 CUDA 故障根因与排查清单</h3>
+<h3>3. GPU 训练底座：三大 CUDA 故障的根因与排查清单</h3>
 <p>
-  在云端（Google Kaggle T4 / A100）或本地多卡集群上执行深度学习与大模型微调时，90% 的工程中断并非算法逻辑错误，
-  而是源自 CUDA 运行时底层的隐性故障。以下三大故障在 Python 表面往往表现为模糊的 OOM、静默卡死（Hang）或维度报错，
-  必须建立系统级的硬件机制归因与工程防御体系：
+  在云端（Kaggle T4 / A100）或本地多卡集群上跑深度学习与大模型微调，90% 的工程中断不是算法写错，
+  而是 CUDA 运行时的底层故障。这三大故障在 Python 层面往往只表现为含糊的 OOM、静默卡死（Hang）或维度报错，
+  所以得先弄清硬件机制，再谈怎么防：
 </p>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">!</span>三大 CUDA 常见底层故障机制与工程解法</h4>
+  <h4><span class="ic">!</span>三大 CUDA 底层故障：现象、根因、解法</h4>
   <ol>
     <li>
       <strong>故障一：显存碎片化（Memory Fragmentation）导致的「伪 OOM」</strong>
       <p>
         <strong>典型现象</strong>：终端抛出 <code>torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 256.00 MiB (GPU 0; 14.75 GiB total capacity; 4.12 GiB already allocated; 120.00 MiB free; 4.80 GiB reserved in total by PyTorch)</code>。
-        学员常常困惑：显卡明明有 15 GB 显存，当前 <code>allocated</code> 仅用了 4.12 GB，为什么连 256 MB 都申请不出来？
+        你可能会纳闷：显卡明明有 15 GB 显存，<code>allocated</code> 才用了 4.12 GB，怎么连 256 MB 都申请不出来？
       </p>
       <p>
-        <strong>根因剖析</strong>：PyTorch 采用 Caching Allocator 内存池管理显存。当训练中存在变长序列输入（动态 Padding）、频繁创建销毁未合并的小张量时，
-        物理显存被切碎为大量不连续的小块。数学上，总预留显存满足：
+        <strong>根因剖析</strong>：PyTorch 用 Caching Allocator 内存池管理显存。训练中一旦出现变长序列输入（动态 Padding），或者频繁创建销毁没合并的小张量，
+        物理显存就会碎成大量不连续的小块。数学上，总预留显存满足：
       </p>
       \[ M_{\text{reserved}} - M_{\text{allocated}} = M_{\text{fragmented}} + M_{\text{inactive}} \]
       <p>
-        当新算子请求一段 256 MB 的<strong>连续物理内存页</strong>时，虽然所有散碎空闲块加起来远超 256 MB，但没有任何一个单块能容纳它，从而触发虚假 OOM。
+        新算子要一段 256 MB 的<strong>连续物理内存页</strong>时，所有碎块加起来远超 256 MB，却没有哪一块单独装得下，于是报出这个假 OOM。
       </p>
       <p>
-        <strong>工业级治本三策</strong>：
-        <br>① <strong>环境变量配置（首选）</strong>：在代码最顶部或运行前执行 <code>export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"</code>（PyTorch 2.1+ 核心特性）。它利用底层虚拟内存地址映射，将物理不连续的内存页动态拼接为连续虚拟段，从根本上消除了碎片化。
-        <br>② <strong>样本长度聚类</strong>：在 DataLoader 或 Trainer 中开启 <code>group_by_length=True</code>，将长度相近的样本拼进同一个 Batch，避免长短样本剧烈交替导致显存池频繁拆分重组。
-        <br>③ <strong>内存生命周期回收</strong>：在评估或迭代分界点，显式 <code>del</code> 大张量并调用 <code>torch.cuda.empty_cache()</code> 归还缓存池；在张量计算中优先使用预分配 <code>out=</code> 参数或原地操作（in-place）。
+        <strong>三个解法</strong>：
+        <br>① <strong>环境变量（首选）</strong>：在代码最顶部或运行前执行 <code>export PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True"</code>（PyTorch 2.1+）。它借底层虚拟内存地址映射，把物理上不连续的页动态拼成连续虚拟段，碎片化问题就此消失。
+        <br>② <strong>样本长度聚类</strong>：在 DataLoader 或 Trainer 里开启 <code>group_by_length=True</code>，把长度相近的样本拼进同一个 Batch，免得长短样本反复交替、显存池不停拆分重组。
+        <br>③ <strong>及时回收</strong>：在评估或迭代的分界点显式 <code>del</code> 大张量，再调用 <code>torch.cuda.empty_cache()</code> 把显存还给缓存池；张量计算优先用预分配 <code>out=</code> 参数或原地操作（in-place）。
       </p>
     </li>
     <li>
       <strong>故障二：数据对齐与 Tensor Core MMA 填充溢出（Data Misalignment & Overflow）</strong>
       <p>
-        <strong>典型现象</strong>：矩阵乘法（GEMM）吞吐暴跌（仅达到理论峰值 TFLOPs 的 15%~20%），
+        <strong>典型现象</strong>：矩阵乘法（GEMM）吞吐掉到只有理论峰值 TFLOPs 的 15%~20%，
         或者在张量切片与变换后执行 <code>view()</code> 时抛出 <code>RuntimeError: view size is not compatible with input tensor's shape and stride (at least one dimension spans across two contiguous subspaces)</code>，
         极端情况下触发底层 <code>CUDA error: misaligned address</code>。
       </p>
       <p>
-        <strong>根因剖析</strong>：现代 NVIDIA GPU Tensor Core（Turing、Ampere、Hopper）执行半精度（FP16/BF16）与 4-bit（NF4/INT4）矩阵乘法时，
-        硬件调度依赖 Warp 级矩阵乘加指令（MMA）。硬件要求内存起始地址与矩阵维度（序列长度 \(T\)、隐藏维度 \(d\)）严格满足 <strong>8 字节或 16 字节对齐</strong>（即能被 8 或 16 整除）。
-        若序列 Padding 后的长度为奇数或不是 8 的倍数，cuBLAS 无法调度高效的 <code>LDG.E.128</code> 向量化访存指令，只能退化为慢速标量读取；
-        此外，多头注意力中 <code>transpose(1, 2)</code> 操作仅修改张量的步长元数据（stride）而未改变物理内存排列，直接调用 <code>view()</code> 必然导致步长不兼容崩溃。
+        <strong>根因剖析</strong>：现代 NVIDIA GPU Tensor Core（Turing、Ampere、Hopper）做半精度（FP16/BF16）与 4-bit（NF4/INT4）矩阵乘法时，
+        靠 Warp 级的矩阵乘加指令（MMA）调度。硬件要求内存起始地址与矩阵维度（序列长度 \(T\)、隐藏维度 \(d\)）满足 <strong>8 字节或 16 字节对齐</strong>（即能被 8 或 16 整除）。
+        序列 Padding 后的长度只要是奇数或不是 8 的倍数，cuBLAS 就调度不了高效的 <code>LDG.E.128</code> 向量化访存指令，只能退回慢速标量读取；
+        另外，多头注意力里的 <code>transpose(1, 2)</code> 只改了张量的步长元数据（stride），没动物理内存排列，此时直接调 <code>view()</code> 必然因步长不兼容而崩。
       </p>
       <p>
-        <strong>工业级排查方案</strong>：
-        <br>① <strong>分词器边界填充</strong>：初始化 DataCollator 或填充张量时，务必指定 <code>tokenizer.pad_to_multiple_of = 8</code>（或 16），确保每个 Batch 的最大序列长度整除硬件对齐边界。
-        <br>② <strong>步长连续化</strong>：在调用 <code>view()</code>、<code>reshape()</code> 或执行矩阵乘法 <code>@</code> 前，对转置/切片张量显式调用 <code>.contiguous()</code>，强制触发物理内存连续化拷贝。
-        <br>③ <strong>词表与投影维度校准</strong>：扩展词表或设计投影矩阵时，确保词表大小 \(V\) 向上补齐到 64 或 128 的整数倍（例如 Qwen 词表设为 151936，正是 64 的整数倍）。
+        <strong>排查方案</strong>：
+        <br>① <strong>分词器边界填充</strong>：初始化 DataCollator 或填充张量时指定 <code>tokenizer.pad_to_multiple_of = 8</code>（或 16），让每个 Batch 的最大序列长度能整除硬件对齐边界。
+        <br>② <strong>步长连续化</strong>：在调用 <code>view()</code>、<code>reshape()</code> 或做矩阵乘法 <code>@</code> 之前，先对转置/切片张量调用 <code>.contiguous()</code>，强制拷成连续内存。
+        <br>③ <strong>词表与投影维度校准</strong>：扩展词表或设计投影矩阵时，把词表大小 \(V\) 向上补齐到 64 或 128 的整数倍（例如 Qwen 词表设为 151936，正是 64 的整数倍）。
       </p>
     </li>
     <li>
       <strong>故障三：动态图死锁与重入式梯度检查点冲突（Gradient Checkpointing Reentrant Bug）</strong>
       <p>
-        <strong>典型现象</strong>：模型在训练第 0 步的反向传播 <code>loss.backward()</code> 处永久卡死（Hang），或者抛出 <code>RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn</code>，或者开启检查点后显存不降反升。
+        <strong>典型现象</strong>：模型刚开训就卡在第 0 步的 <code>loss.backward()</code>（Hang），或者抛出 <code>RuntimeError: element 0 of tensors does not require grad and does not have a grad_fn</code>，或者开了梯度检查点后显存不降反升。
       </p>
       <p>
         <strong>根因剖析</strong>：
-        <br>① PyTorch 早期 <code>torch.utils.checkpoint.checkpoint</code> 默认开启 <code>use_reentrant=True</code>。重入机制会在反向传播重算时另行建立 Autograd 引擎执行前向，
-        当模型与 Hugging Face 的 <code>model.config.use_cache = True</code>（推理自回归 KV 缓存）共存时，动态图的依赖上下文被缓存截断，导致反向传播找不到梯度的上游锚点；
-        <br>② 在 QLoRA 微调中，基座模型的所有权重参数被冻结为 <code>requires_grad = False</code>。如果未对嵌入层（Embedding Layer）与归一化层激活输入梯度保留钩子（<code>enable_input_require_grads()</code>），
-        Autograd 引擎在反向回溯到输入端时发现无梯度链条，将直接判定整张图断裂。
+        <br>① PyTorch 早期的 <code>torch.utils.checkpoint.checkpoint</code> 默认 <code>use_reentrant=True</code>。重入机制会在反向重算时另起一套 Autograd 引擎跑前向，
+        一旦和 Hugging Face 的 <code>model.config.use_cache = True</code>（推理自回归 KV 缓存）同时开着，动态图的依赖上下文就会被缓存截断，反向传播于是找不到梯度的上游锚点；
+        <br>② QLoRA 微调把基座的所有权重冻结成 <code>requires_grad = False</code>。如果没给嵌入层（Embedding Layer）与归一化层的输入挂上梯度钩子（<code>enable_input_require_grads()</code>），
+        Autograd 反传到输入端就会发现链条上没有梯度，直接判定整张图断裂。
       </p>
       <p>
-        <strong>工业级排查方案</strong>：
-        <br>① <strong>声明非重入参数</strong>：在 TrainingArguments 中强制配置 <code>gradient_checkpointing_kwargs={"use_reentrant": False}</code>（现代大模型训练的绝对标准规范）。
-        <br>② <strong>关闭推理缓存</strong>：在启动训练循环前，必须显式执行 <code>model.config.use_cache = False</code>。
-        <br>③ <strong>量化适配器准备</strong>：加载 4-bit 量化基座后，必须立即调用 <code>peft.prepare_model_for_kbit_training(model)</code>，该函数会自动保持 LayerNorm 的 FP32 精度，并在模型输入端挂载梯度传递钩子。
+        <strong>排查方案</strong>：
+        <br>① <strong>声明非重入</strong>：在 TrainingArguments 中配置 <code>gradient_checkpointing_kwargs={"use_reentrant": False}</code>（现在的大模型训练基本都这么写）。
+        <br>② <strong>关掉推理缓存</strong>：启动训练循环前先执行 <code>model.config.use_cache = False</code>。
+        <br>③ <strong>量化适配器准备</strong>：加载 4-bit 量化基座后立刻调用 <code>peft.prepare_model_for_kbit_training(model)</code>，它会保持 LayerNorm 的 FP32 精度，并在模型输入端挂好梯度传递钩子。
       </p>
     </li>
   </ol>
@@ -170,7 +170,7 @@ COURSE.register({
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>显存与内存手算预估（Analytical Memory Breakdown）</h4>
     <p>
-      本实验纯 CPU 即可顺畅运行，也可选择 GPU 加速。各模型在内存中的物理账本手算如下：
+      本实验纯 CPU 就能顺畅跑，也可以选 GPU 加速。各模型在内存里的账本手算如下：
     </p>
     <ol>
       <li><strong>计数转移矩阵</strong>：字符词表大小 \(V \approx 97\)。频次矩阵 \(N \in \mathbb{Z}^{V \times V}\) 与概率矩阵 \(P \in \mathbb{R}^{V \times V}\)：
@@ -188,7 +188,7 @@ COURSE.register({
         \[ M_{\text{act}} = B \times (\text{ctx} \cdot d + h + V) \times 4 \approx 64 \times (1024 + 256 + 97) \times 4 \approx 352.5 \text{ KB} \]
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总物理内存（RSS）恒定在 <strong>120 MB 以内</strong>，即使在 0 显存的纯 CPU 笔记本或免费 Colab 上亦能在 15 分钟内彻底跑通。</p>
+    <p><strong>实测结论</strong>：总物理内存（RSS）稳定在 <strong>120 MB 以内</strong>，即使在 0 显存的纯 CPU 笔记本或 Kaggle 免费实例上，15 分钟内也能跑通。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -277,7 +277,7 @@ P_bigram = (counts + 1.0) / (counts + 1.0).sum(dim=1, keepdim=True)</code></pre>
   <p>完整脚本的训练循环里，每一步都有两行关键行：先用 <code>loss = F.cross_entropy(logits, y)</code> 算出当前这批数据的扣分，再用 <code>opt.zero_grad(set_to_none=True)</code> 清掉上次的旧账然后倒着算。旧账不清就会重复累加，这是正文强调过的坏掉的样子。这两行必须写在循环里面，单独抄出来跑不了，所以这里只指位置，不单独成段。训练与验证的完整数字见文末完整脚本跑完后的预期输出。</p>
 <pre><code>位置记熟（循环内先算扣分，再清旧账，顺序不能反）</code></pre>
 
-  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，逐格粘进 Colab 即可跑。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
+  <p><strong>完整可运行脚本（参考对照用，上面 10 步的拼装结果）</strong>：下面是按上面顺序拼好的单文件，逐格粘进 Kaggle Notebook 即可跑。先跟着上面的步骤读懂，再跑这一整份，输出应与后文预期输出一致。</p>
 <pre><code><span class="cm"># E1 · 从计数式 bigram 到神经语言模型（CPU 可跑，约 10–20 分钟）</span>
 !pip -q install datasets torch matplotlib
 
@@ -462,7 +462,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>内存手算预估与常驻结构分析（Analytical Memory Breakdown）</h4>
     <p>
-      分词器评估属于纯 CPU 字符操作，核心资源消耗在于词表 Trie 树与 BPE 合并哈希表在系统内存（RAM）中的常驻尺寸：
+      分词器评估是纯 CPU 字符操作，吃内存的主要是词表 Trie 树与 BPE 合并哈希表在系统内存（RAM）里的常驻尺寸：
     </p>
     <ol>
       <li><strong>分词表常驻内存</strong>：
@@ -477,7 +477,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
         \[ M_{\text{tokens}} = N_{\text{tokens}} \times 4 \text{ bytes} \approx 4000 \times 4 = 16 \text{ KB} \]
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总 RAM 开销约 <strong>220 MB</strong>，GPU 显存占用严格为 <strong>0 MB</strong>。</p>
+    <p><strong>实测结论</strong>：总 RAM 开销约 <strong>220 MB</strong>，GPU 显存占用为 <strong>0 MB</strong>。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -706,7 +706,7 @@ Qwen2.5 (152k)  : 需要  59,459 tokens | 8k 上下文: 超标 51267 tok</code><
         <br>⑤ CUDA 上下文底噪：约 \(600 \text{ MB}\)
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总峰值显存约 <strong>680 MB</strong>，在 Kaggle T4（16GB）上显存占用率仅为 <strong>4.2%</strong>，绝无 OOM 风险。</p>
+    <p><strong>实测结论</strong>：总峰值显存约 <strong>680 MB</strong>，在 Kaggle T4（16GB）上占用率只有 <strong>4.2%</strong>，不会 OOM。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -1043,9 +1043,9 @@ Step 2000 | Train Loss: 1.4120 (PPL: 4.10)
 Once upon a time, there was a little boy named Tim. He had a big dog. The dog liked to play with a ball...</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
-    最终困惑度降到了 <strong>4.1 左右</strong>，显著低于 E1 的上下文 MLP（5.4）。
-    更关键的是：生成的故事<strong>已经具备了句法结构、角色名称与标点符号闭合</strong>。
-    你在 62 万参数的极小规模下，亲眼见证了自注意力与因果掩码如何把字符序列组织成连贯的自然语言。
+    最终困惑度降到 <strong>4.1 左右</strong>，低于 E1 的上下文 MLP（5.4）。
+    更关键的是：生成的故事<strong>已经具备句法结构、角色名称与标点符号闭合</strong>。
+    你在 62 万参数的极小规模下，就能看到自注意力与因果掩码如何把字符序列组织成连贯的自然语言。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -1075,26 +1075,26 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
       <li><strong><code>RuntimeError: view size is not compatible with input tensor's shape and stride</code></strong>：
           多头注意力的 <code>transpose(1, 2)</code> 使得张量在物理内存中不再连续。
           必须在 <code>view()</code> 前显式加上 <code>.contiguous()</code>（参考三大 CUDA 故障清单之二）。</li>
-      <li><strong>损失完全不下降，一直在 <code>log(V) ≈ 4.57</code> 徘徊</strong>：因果掩码方向反了！
+      <li><strong>损失完全不下降，一直在 <code>log(V) ≈ 4.57</code> 徘徊</strong>：因果掩码方向反了。
           检查掩码是否为 <code>torch.tril</code>（下三角保留，上三角置为 <code>-inf</code>）。
           如果写成了 <code>torch.triu</code>，模型将只能看到未来而看不到过去。</li>
       <li><strong>文本生成陷入死循环（如不断重复 <code>"the the the..."</code>）</strong>：
           采样时的 <code>temperature</code> 设得太低，或者模型步数不够。将温度调至 0.8–1.0，或检查是否加入了 Top-p 截断。</li>
       <li><strong>显存碎片化 OOM</strong>：在训练循环中不断调用 <code>history.append(loss)</code>（保存了整个计算图）。
-          必须使用 <code>loss.item()</code> 提取纯标量数字！</li>
+          必须用 <code>loss.item()</code> 取出纯标量数字。</li>
     </ul>
   </div>
 </div>
 
 
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 28）</h4>
+  <h4><span class="ic">🧪</span>E4 · Kaggle 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 28）</h4>
 
-  <p><strong>目标</strong>：面向工业界真实大模型落地场景，以 <strong>Qwen2.5-1.5B</strong>（支持 0.5B 快速验证）为基座，
-    在 Google Colab（T4 16GB 或 A100）上完成<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>的端到端工程闭环。
-    与模块 28 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
+  <p><strong>目标</strong>：以 <strong>Qwen2.5-1.5B</strong>（也支持 0.5B 快速验证）为基座，
+    在 Kaggle（T4 16GB 或 A100）上走完<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>这条端到端链路。
+    实验内容与模块 28 呼应，把显存手算、输入断言与端侧落地串起来。</p>
 
-  <p><strong>前置</strong>：E3。拥有 Hugging Face 账户及 Kaggle 实例（免费 T4 即可流畅运行，A100 可启用原生 bf16 加速）。</p>
+  <p><strong>前置</strong>：E3。需要 Hugging Face 账户与 Kaggle 实例（免费 T4 就能流畅跑，A100 可启用原生 bf16 加速）。</p>
 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>显存手算预估与双卡账本对比（Analytical VRAM Breakdown）</h4>
@@ -1119,8 +1119,8 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
         \[ M_{\text{opt, lora\_8bit}} = \frac{18.46 \times 10^6 \times 6}{1024^2} \approx 105.6 \text{ MB} \]
       </li>
       <li><strong>前向激活值显存（批大小 \(B=2\)，序列长度 \(T=512\)）</strong>：
-        未开启检查点时 28 层激活值堆积超 \(3800 \text{ MB}\)。开启梯度检查点（Gradient Checkpointing）后仅保留 Block 边界，
-        反向重算，激活显存骤降至约 <strong>350 MB</strong>。
+        不开梯度检查点时，28 层激活值会堆到 \(3800 \text{ MB}\) 以上；开启后只保留 Block 边界的激活，
+        反向时重算，激活显存降到约 <strong>350 MB</strong>。
       </li>
       <li><strong>运行时底噪与总峰值对照</strong>：
         CUDA 运行时上下文与 PyTorch 预分配底噪约 \(650 \text{ MB}\)。
@@ -1130,12 +1130,12 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
 
     <table class="tbl small">
       <thead>
-        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存（含 650 MB 底噪，GiB 口径）</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
+        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存（含 650 MB 底噪，GiB 口径）</th><th>Kaggle T4 (16GB)</th><th>A100 (40GB) 实例</th></tr>
       </thead>
       <tbody>
-        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>26.7 GiB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
-        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.13 GiB</strong></td><td>✅ 极度流畅 (占 26%)</td><td>✅ 极度富余 (可扩大 batch)</td></tr>
-        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GiB</strong></td><td>✅ <strong>极致轻量 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
+        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>26.7 GiB</strong></td><td>❌ <strong>直接 OOM</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
+        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.13 GiB</strong></td><td>✅ 流畅 (占 26%)</td><td>✅ 余量充足 (可加大 batch)</td></tr>
+        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GiB</strong></td><td>✅ <strong>占用很低 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
       </tbody>
     </table>
   </section>
@@ -1151,22 +1151,22 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     </ol>
   </section>
 
-  <p><strong>三大细化工业级指引（呼应模块 28 体系）</strong>：</p>
+  <p><strong>三条细化指引（呼应模块 28）</strong>：</p>
   <div class="grid2">
     <div class="card">
       <h5>指引 1：输入检验（Input Validation）</h5>
       <p class="small">
-        ① <strong>数据协议校验</strong>：严格检验每条样本必须为 <code>messages</code> 格式，且角色由 <code>system</code>、<code>user</code>、<code>assistant</code> 严格交替构成；<br>
+        ① <strong>数据协议校验</strong>：每条样本必须是 <code>messages</code> 格式，角色由 <code>system</code>、<code>user</code>、<code>assistant</code> 依次交替；<br>
         ② <strong>分词器边界防护</strong>：微调阶段设置 <code>tokenizer.padding_side = "right"</code> 并绑定 <code>tokenizer.pad_token = tokenizer.eos_token</code>；<br>
-        ③ <strong>标签掩码断言（Label Masking）</strong>：防止对 Prompt 计算交叉熵，杜绝模型浪费参数记忆提问语气。
+        ③ <strong>标签掩码断言（Label Masking）</strong>：别对 Prompt 算交叉熵，否则模型会把参数浪费在记忆提问语气上。
       </p>
     </div>
     <div class="card">
       <h5>指引 2：超参调节（Hyperparameter Tuning）</h5>
       <p class="small">
         ① <strong>LoRA 秩与缩放</strong>：固定 \(\alpha = 2r\)（如 \(r=16, \alpha=32\)），保证切换秩大小时梯度步长尺度稳定；<br>
-        ② <strong>等效批大小控制</strong>：设置单卡 <code>batch_size=2</code>，搭配 <code>gradient_accumulation_steps=8</code>，等效 Batch Size 达到 16；<br>
-        ③ <strong>学习率与优化器</strong>：学习率设为 \(2 \times 10^{-4}\)，配合 Cosine 衰减与 3% 步数 Warmup；优化器选用 <code>paged_adamw_8bit</code> 预防瞬时显存尖峰。
+        ② <strong>等效批大小控制</strong>：设置单卡 <code>batch_size=2</code>，搭配 <code>gradient_accumulation_steps=8</code>，等效 Batch Size 就是 16；<br>
+        ③ <strong>学习率与优化器</strong>：学习率设为 \(2 \times 10^{-4}\)，配合 Cosine 衰减与 3% 步数 Warmup；优化器选用 <code>paged_adamw_8bit</code> 预防显存尖峰。
       </p>
     </div>
   </div>
@@ -1174,15 +1174,15 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
   <div class="card">
     <h5>指引 3：推理验证与权重合并（Inference Verification & Export Guide）</h5>
     <p class="small">
-      微调完成后，适配器处于外挂状态 \(\Delta W = \frac{\alpha}{r} (B \cdot A)\)。在生产部署时，必须执行原地合并消除二次访存开销：
+      微调完成后适配器是外挂的：\(\Delta W = \frac{\alpha}{r} (B \cdot A)\)。部署前要合并回基座，省掉多一次访存：
       \[ W_{\text{merged}} = W_0 + \frac{\alpha}{r} (B \cdot A) \]
-      调用 <code>model = model.merge_and_unload()</code> 后，模型退化为纯净的原生单体结构，可直接一键导出为标准 HuggingFace 格式，
-      或配合 <code>llama.cpp</code> 导出为 GGUF 格式实现端侧离线秒级推理。
+      调用 <code>model = model.merge_and_unload()</code> 后，模型回到普通的单体结构，可以直接导出成标准 HuggingFace 格式，
+      或配合 <code>llama.cpp</code> 转成 GGUF，做端侧离线推理。
     </p>
   </div>
 
   <p><strong>可运行代码</strong>（支持 Qwen2.5-1.5B，具备自动回退与完整检验机制）：</p>
-<pre><code><span class="cm"># E4 · Colab 1.5B 开源大模型实战训练（适配 T4 16GB / A100，约 30–60 分钟）</span>
+<pre><code><span class="cm"># E4 · Kaggle 1.5B 开源大模型实战训练（适配 T4 16GB / A100，约 30–60 分钟）</span>
 !pip -q install transformers datasets peft trl bitsandbytes accelerate
 
 import os, torch
@@ -1376,7 +1376,7 @@ Step 30 | Loss: 0.1840
   <ol>
     <li>如果把 <code>target_modules</code> 缩减为仅 <code>["q_proj", "v_proj"]</code>，可训练参数量降到多少？对复杂长逻辑遵循能力有何影响？</li>
     <li>为什么在训练推理结合阶段，<code>tokenizer.padding_side</code> 训练时设为 <code>right</code>，而批量推理生成时必须改为 <code>left</code>？</li>
-    <li>结合模块 28，如何用单行命令将导出的 <code>./qwen_1.5b_merged</code> 转换为 <code>qwen1.5b-q4_k_m.gguf</code> 并在 CPU 本地极速秒开？</li>
+    <li>结合模块 28，怎么用一行命令把导出的 <code>./qwen_1.5b_merged</code> 转成 <code>qwen1.5b-q4_k_m.gguf</code>，再在 CPU 本地直接跑起来？</li>
   </ol>
 </section>
 
@@ -1399,8 +1399,8 @@ Step 30 | Loss: 0.1840
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E5 · 用 TRL 做偏好优化（DPO）：观察 margin 与 β 的作用</h4>
 
-  <p><strong>目标</strong>：在跳过复杂强化学习（PPO）环境与奖励模型的前提下，直接用<strong>对数几率比</strong>做偏好对齐。
-    手算 DPO 隐式奖励公式，扫描不同 \(\beta\) 值（0.01、0.1、0.5），亲眼看到选优概率（margin）是如何被逐步拉开的。</p>
+  <p><strong>目标</strong>：不搭强化学习（PPO）那一套环境，也不训奖励模型，直接用<strong>对数几率比</strong>做偏好对齐。
+    手算 DPO 的隐式奖励公式，把 \(\beta\) 扫一遍（0.01、0.1、0.5），看选优概率（margin）是怎样一步步拉开的。</p>
 
   <p><strong>前置</strong>：E4。使用微调后的轻量基座（如 Qwen2.5-0.5B 或 1.5B 4-bit），在 Kaggle T4 16GB 上约需 25–45 分钟。</p>
 
@@ -1414,7 +1414,7 @@ Step 30 | Loss: 0.1840
     <ol>
       <li><strong>基座复用架构（<code>ref_model = None</code>）</strong>：TRL 的 DPOTrainer 允许不显式传入 <code>ref_model</code>，
           而是将同一个模型挂载 LoRA。计算 \(\pi_\theta\) 时启用 LoRA，计算 \(\pi_{\text{ref}}\) 时临时禁用 LoRA（<code>with model.disable_adapter():</code>），
-          <strong>彻底省去了一整份基座模型的物理显存（立省 1.0 ~ 3.0 GB）</strong>！
+          <strong>省掉了一整份基座模型的显存（1.0 ~ 3.0 GB）</strong>。
       </li>
       <li><strong>双路前向显存（Chosen + Rejected，批大小 \(B=2\)，序列长度 \(T=512\)）</strong>：
         每个样本需同时拼接优选回复 \(y_w\) 与劣选回复 \(y_l\) 执行前向计算，有效序列批次等效为 \(2B = 4\)。
@@ -1423,7 +1423,7 @@ Step 30 | Loss: 0.1840
       <li><strong>隐式奖励提取开销</strong>：在 GPU 上调用 <code>torch.gather</code> 提取 completion 区域的 token 对数概率并求和，显存开销小于 \(40 \text{ MB}\)。</li>
       <li><strong>峰值显存总和（0.5B BF16 或 1.5B 4-bit）</strong>：
         \[ M_{\text{peak, DPO}} \approx \underbrace{980 \text{ MB}}_{\text{weights}} + \underbrace{600 \text{ MB}}_{\text{dual act}} + \underbrace{120 \text{ MB}}_{\text{lora+opt}} + \underbrace{650 \text{ MB}}_{\text{cuda}} \approx 2350 \text{ MB} \approx 2.30 \text{ GB} \]
-        在 16GB T4 上仅占 <strong>14.5%</strong>，安全边际极高。
+        在 16GB T4 上只占 <strong>14.5%</strong>，余量很大。
       </li>
     </ol>
   </section>
@@ -1547,8 +1547,8 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
     初始阶段 Loss 位于 0.69（即 \(\ln 2\)），代表模型在 chosen 与 rejected 之间难以区分（准确率 0.5）。
-    随着步数推进，隐式奖励差值（Margin）从 0.08 飙升至 2.18，
-    优选回复的相对似然对数几率被显著抬高，劣选回复的生成概率被彻底压制。
+    随步数推进，隐式奖励差值（Margin）从 0.08 涨到 2.18：
+    优选回复的相对似然被抬高，劣选回复的生成概率被压低。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -1577,7 +1577,7 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
           DPOTrainer 强制要求左填充。在分词器配置中显式加上 <code>tokenizer.padding_side = "left"</code>。</li>
       <li><strong>显存瞬间翻倍 OOM</strong>：误将 <code>ref_model = AutoModelForCausalLM.from_pretrained(...)</code> 显式传入。
           在单卡上必须使用 <code>ref_model = None</code> 搭配 LoRA 适配器禁用机制。</li>
-      <li><strong><code>rewards/margins</code> 一直为负数或不增长</strong>：检查数据集中 <code>chosen</code> 与 <code>rejected</code> 字段是否填反！</li>
+      <li><strong><code>rewards/margins</code> 一直为负数或不增长</strong>：检查数据集中 <code>chosen</code> 与 <code>rejected</code> 字段是否填反了。</li>
     </ul>
   </div>
 </div>
@@ -1587,10 +1587,10 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
   <h4><span class="ic">🧪</span>E6 · JAX 版 miniGPT（Flax NNX + Optax + Grain）：单设备改写与逐项对照</h4>
 
   <p><strong>目标</strong>：在单个设备（Colab 免费的 TPU v5e-1 或 CPU）上，
-    把 E3 的 PyTorch miniGPT 逐行改写为现代 JAX 生态的写法。
+    用现代 JAX 生态把 E3 的 PyTorch miniGPT 重写一遍。
     <strong>核心考核点</strong>：体会纯函数式变换（<code>jax.jit</code>、<code>jax.grad</code>）、
-    显式 PRNG 密钥流动与静态编译期图优化的工业威力，
-    亲手对比 JAX 与 PyTorch 在单步吞吐、显存/HBM 开销与计算图编译上的本质差异。</p>
+    显式 PRNG 密钥流动与静态编译期图优化带来的好处，
+    亲手对比 JAX 与 PyTorch 在单步吞吐、显存/HBM 开销与编译开销上的差异。</p>
 
   <p><strong>前置</strong>：E3。环境建议选用 Colab TPU v5e-1（或在 CPU 上以极小批次跑通）。适配约 30–60 分钟。</p>
 
@@ -1623,7 +1623,7 @@ Step 20 | Loss: 0.1450 | Margin: 2.1800 | Acc: 1.00</code></pre>
       <li><strong>[JAX 设备嗅探]</strong> 运行 <code>jax.devices()</code>，断言检测到 TPU 或 CPU 后端。</li>
       <li><strong>[PRNG 密钥派生]</strong> 验证 <code>jax.random.split(key)</code> 成功产生独立子密钥，杜绝状态全局隐式污染。</li>
       <li><strong>[NNX 状态切分]</strong> 实例化 <code>nnx.Linear</code>，使用 <code>nnx.split(model)</code> 成功分离静态图（GraphDef）与动态状态（State）。</li>
-      <li><strong>[首步 JIT 编译计时]</strong> 测量第 1 步耗时（包含 XLA 编译，约 3–8 秒），第 2 步耗时暴跌至 2 毫秒以内（加速千倍以上）。</li>
+      <li><strong>[首步 JIT 编译计时]</strong> 测量第 1 步耗时（含 XLA 编译，约 3–8 秒）与第 2 步耗时（应降到 2 毫秒以内，加速千倍以上）。</li>
       <li><strong>[损失单调收敛]</strong> 训练 200 步，验证损失自 4.5 降至 2.5 以下，无 <code>NaN</code> 溢出。</li>
     </ol>
   </section>
@@ -1773,7 +1773,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     <tbody>
       <tr><td>第 1 步编译耗时 vs 稳态单步耗时</td><td>测量 XLA 编译器的开销与收益</td><td>编译 4.8s vs 稳态 1.45ms</td></tr>
       <tr><td>相同超参下与 PyTorch 的损失曲线对照</td><td>验证数学等价性</td><td>每 200 步 loss 误差小于 0.05</td></tr>
-      <tr><td>TPU / GPU 设备显存利用</td><td>对比 XLA 静态显存规划能力</td><td>显存分配平直，绝无碎片化抖动</td></tr>
+      <tr><td>TPU / GPU 设备显存利用</td><td>对比 XLA 静态显存规划能力</td><td>显存分配平直，没有碎片化抖动</td></tr>
     </tbody>
   </table>
 
@@ -1806,10 +1806,10 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     启发式基准（L0）→ 线性/Ridge（L1）→ 浅层 MLP（L2）的三级模型阶梯，
     配合<strong>分组交叉验证（GroupKFold）</strong>防数据泄漏，
     最后用 <strong>200 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
-    <strong>核心考核点</strong>：体会「高容量模型完全可能跑输线性模型」的严谨科研洗礼，
-    学会写出令顶尖学者信服的负面消融报告。</p>
+    <strong>核心考核点</strong>：接受「高容量模型完全可能跑输线性模型」这个结论，
+    并把负面消融写成一份可信的报告。</p>
 
-  <p><strong>前置</strong>：E1。纯 CPU 即可运行，耗时仅需 3–5 分钟。合成数据自包含在代码内。</p>
+  <p><strong>前置</strong>：E1。纯 CPU 即可运行，脚本跑完只要 3–5 分钟（总览里的 15–30 分钟含阅读与记录的时间）。合成数据都在代码里。</p>
 
   <section class="blk blk-m">
     <h4><span class="ic">∑</span>分层噪声模型与内存开销手算（Analytical Memory Breakdown）</h4>
@@ -1827,10 +1827,10 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       </li>
       <li><strong>统计估计量保守 \(p\) 值定义公式</strong>：
         \[ p = \frac{1 + \sum_{b=1}^B \mathbb{I}\big(\text{RMSE}_{\text{perm}}^{(b)} \le \text{RMSE}_{\text{obs}}\big)}{1 + B} \]
-        分子加 1 与分母加 1 是严格的非参数置换检验准则，彻底避免极端情况下宣称 \(p = 0\) 的统计学谬误。
+        分子加 1 与分母加 1 是严格的非参数置换检验准则，从而避免极端情况下宣称 \(p = 0\) 的统计学谬误。
       </li>
     </ol>
-    <p><strong>实测结论</strong>：总内存占用严格 <strong>&lt; 150 MB</strong>，运行耗时低于 180 秒。</p>
+    <p><strong>实测结论</strong>：总内存占用 <strong>&lt; 150 MB</strong>，运行耗时低于 180 秒。</p>
   </section>
 
   <section class="blk blk-tip">
@@ -1838,7 +1838,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
     <ol>
       <li><strong>[分组泄漏防护断言]</strong> 检查 GroupKFold 切分，断言训练集分组与测试集分组的交集严格为 \(\emptyset\)（空集）。</li>
       <li><strong>[L0 常数基准冒烟]</strong> 计算 L0 均值基准，断言其 RMSE 等于目标变量的样本标准差。</li>
-      <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言无数值奇异警告且 RMSE 显著低于 L0。</li>
+      <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言没有数值奇异警告且 RMSE 低于 L0。</li>
       <li><strong>[L2 浅层拟合与过拟合观察]</strong> 运行 MLPRegressor，观察在跨艺术家泛化测试集上的 RMSE 表现。</li>
       <li><strong>[置换分布直方图绘制]</strong> 提取 200 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
     </ol>
@@ -1859,7 +1859,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
-<pre><code><span class="cm"># E7 · 模型阶梯 + 分组交叉验证 + 置换检验（CPU，约 2–5 分钟）</span>
+<pre><code><span class="cm"># E7 · 模型阶梯 + 分组交叉验证 + 置换检验（CPU，约 3–5 分钟）</span>
 !pip -q install scikit-learn numpy scipy matplotlib tabulate
 
 import numpy as np
@@ -1966,16 +1966,16 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <section class="blk blk-warn">
     <h4><span class="ic">!</span>结论深度解析：为什么 L2 浅层神经网络输给了 L1 岭回归？</h4>
     <p>
-      看上面的实测表格：<strong>L2 的 RMSE（3.58）比 L1（3.42）更差</strong>！
-      在平庸的课程里，这会被当作「训练没调好」而掩盖过去；
-      而在严谨的统计学习框架下，<strong>这是一个极其优美且必然的科学发现</strong>：
+      看上面的实测表格：<strong>L2 的 RMSE（3.58）比 L1（3.42）更差</strong>。
+      随便一个教程可能会把它当成「训练没调好」糊过去；
+      但在严谨的统计学习框架下，<strong>这个结果是有必然性的</strong>：
     </p>
     <ul>
       <li>真实数据生成过程是线性的加上未见过的组效应。特征维度仅 12 维，样本量仅 1000。</li>
-      <li>MLP 拥有更多自由参数，在没有足够数据支撑非线性特征交叉时，<strong>它在训练集上过度拟合了具体的样本噪声</strong>。</li>
-      <li>在跨艺术家的 GroupKFold 测试中，这种过拟合立刻在未见过的艺术家身上遭到惨重惩罚！</li>
-      <li><strong>学术与工程价值</strong>：在申请材料或项目报告中呈现这一组结果，并准确指出「对于此类低信噪比表格任务，Ridge 凭借严格的凸优化范式击败了深度网络」，
-          比生硬地宣称「神经网络天下第一」更能体现你扎实的统计学素养。</li>
+      <li>MLP 的自由参数更多，在数据不足以支撑非线性特征交叉时，<strong>它会把训练集里的样本噪声也拟合进去</strong>。</li>
+      <li>在跨艺术家的 GroupKFold 测试里，这份过拟合立刻在没见过的艺术家身上付出代价。</li>
+      <li><strong>学术与工程价值</strong>：把这一组结果写进申请材料或项目报告，并指出「在这类低信噪比表格任务上，Ridge 靠凸优化击败了深度网络」，
+          比一句「神经网络天下第一」更能体现统计学素养。</li>
     </ul>
   </section>
 
@@ -1991,7 +1991,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
 
   <p><strong>延伸问题</strong>：</p>
   <ol>
-    <li>如果把数据切分方式改成普通随机切分（普通 KFold），L0 的 RMSE 会发生什么戏剧性变化？为什么？</li>
+    <li>如果把切分方式改成普通随机切分（普通 KFold），L0 的 RMSE 会变成什么样？为什么？</li>
     <li>置换检验为什么必须要加 1（即 \(\frac{1 + \text{count}}{1 + B}\)）？如果不加 1，宣称 \(p = 0.000\) 会在统计学评审中受到什么质询？</li>
     <li>在工业界风控或医疗诊断模型中，类似的「分组变量」通常是什么？（提示：患者 ID、设备指纹）</li>
   </ol>
@@ -2005,7 +2005,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
       <li><strong>置换检验中打乱了特征而不是标签</strong>：置换检验的标准做法是打乱目标变量 \(y\)，破坏 \(X\) 与 \(y\) 之间的条件依从关系，
           同时保留 \(X\) 自身的边际协方差结构。</li>
       <li><strong>过早调参引入信息穿越</strong>：在整个数据集上做特征标准化（StandardScaler）然后再切分 Fold。
-          <strong>必须在每一个 Fold 内部只用训练集拟合 Scaler</strong>！</li>
+          <strong>必须在每个 Fold 内部只用训练集拟合 Scaler</strong>。</li>
     </ul>
   </div>
 </div>
@@ -2014,10 +2014,10 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>E8 · 量化与部署基准：显存、延迟、吞吐的三方权衡</h4>
 
-  <p><strong>目标</strong>：在真实推理引擎视角下，对同一个开源小模型（Qwen2.5-0.5B 或 1.5B），
+  <p><strong>目标</strong>：站在推理引擎的视角，对同一个开源小模型（Qwen2.5-0.5B 或 1.5B），
     对比三种精度下的<strong>显存占用、首字延迟（TTFT）、每 token 延迟（TPOT）与批量吞吐</strong>；
-    用 Python 编写单设备基准测试脚本，画出吞吐与并发数（Concurrency）的关系曲线，
-    亲手找到吞吐达到饱和的最优并发拐点。</p>
+    用 Python 写一个单设备基准测试脚本，画出吞吐与并发数（Concurrency）的关系曲线，
+    亲手找到吞吐饱和的拐点。</p>
 
   <p><strong>前置</strong>：E3、E4。T4 16GB 即可跑通本地基准测试部分；vLLM 生产级压测部分建议在 Colab A100 / L4 实例上体验完整流水线。</p>
 
@@ -2065,7 +2065,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <ol>
     <li><strong>第一部分：本地精度对比</strong>（T4 可跑）。加载 Qwen2.5-0.5B，分别在 BF16/FP16 与 4-bit（bitsandbytes NF4）下测量静态显存与单请求延迟。</li>
     <li><strong>第二部分：并发与吞吐扫频</strong>。编写多线程并发压测脚本，以并发数 \(c \in \{1, 2, 4, 8\}\) 发送生成请求，记录总吞吐（tokens/s）与 P95 尾部延迟。</li>
-    <li>观察并解释：为什么 4-bit 量化显存省了 70%，但在 T4 单并发下的推理延迟不仅没有变快，反而可能略微变慢？（提示：解量化反向计算的算力开销 vs 带宽节省）。</li>
+    <li>观察并解释：为什么 4-bit 量化省下 70% 显存，T4 单并发下的推理延迟却没变快，甚至略微变慢？（提示：解量化的算力开销 vs 带宽节省）。</li>
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
@@ -2173,12 +2173,12 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 | 4          | 1.05s  | 128           | 121.9               |</code></pre>
   <p>
     <strong>怎么读这个结果</strong>：
-    <br>① <strong>NF4 显存暴降 70%（942MB → 284MB）</strong>，但单请求延迟略微增加了约 2.6 ms。
-    因为 bitsandbytes 的 4-bit 计算在每次 GEMM 前需要先将权重解量化为 FP16，增加了一道轻微的计算开销。
-    但在显存受限的端侧或单卡承载大模型时，这种空间换时间的收益是决定性的。
-    <br>② <strong>并发度从 1 扩展到 4 时，整体吞吐从 44 tokens/s 暴增至 122 tokens/s</strong>，
-    说明在小并发时 GPU 的计算核心大部分处于空转（Memory Bandwidth Bound）。
-    真正的工业级部署必须通过高并发批处理（Continuous Batching）把 Tensor Core 完全喂饱。
+    <br>① <strong>NF4 让显存降了 70%（942MB → 284MB）</strong>，代价是单请求延迟多了约 2.6 ms。
+    因为 bitsandbytes 的 4-bit 计算在每次 GEMM 前要先把权重解量化成 FP16，多了一道开销。
+    但在显存受限的端侧或单卡上跑大模型时，这种拿时间换空间的收益是决定性的。
+    <br>② <strong>并发从 1 提到 4，整体吞吐从 44 tokens/s 涨到 122 tokens/s</strong>，
+    说明小并发时 GPU 的计算核心大部分在空转（Memory Bandwidth Bound）。
+    线上部署要靠高并发批处理（Continuous Batching）把 Tensor Core 喂饱。
   </p>
 
   <p><strong>要记录什么</strong>：</p>
@@ -2202,10 +2202,10 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 <div class="acc" data-t="E8 常见错误" data-badge="排错">
   <div class="acc-body">
     <ul>
-      <li><strong>延迟测量不准，前几步奇慢无比</strong>：没有执行预热（Warmup）。
-          PyTorch 与 CUDA 在首次调用算子时需要分配内存池并编译内核，必须在正式计时前预先跑 1–2 次。</li>
-      <li><strong>使用 <code>time.time()</code> 测 GPU 耗时出现 0 毫秒</strong>：CUDA 是异步执行的！
-          在 Python 计时前后必须显式调用 <code>torch.cuda.synchronize()</code>，否则测出的只是 CPU 发送指令的时间。</li>
+      <li><strong>延迟测量不准，前几步奇慢无比</strong>：没有预热（Warmup）。
+          PyTorch 与 CUDA 首次调用算子时要分配内存池并编译内核，正式计时前先跑 1–2 次。</li>
+      <li><strong>使用 <code>time.time()</code> 测 GPU 耗时出现 0 毫秒</strong>：CUDA 是异步执行的。
+          计时前后要显式调用 <code>torch.cuda.synchronize()</code>，否则测到的只是 CPU 发指令的时间。</li>
       <li><strong>多线程压测时显存暴涨 OOM</strong>：每个线程独立维护了庞大的输入张量。
           在生产测试中应使用异步异步请求（<code>asyncio</code> + <code>httpx</code>）压测独立部署的服务，而不是在同一 Python 进程内开线程。</li>
     </ul>
@@ -2214,29 +2214,29 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
 
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎓</span>把 8 个实验变成申请材料：4 个可落地的呈现策略</h4>
+  <h4><span class="ic">🎓</span>把 8 个实验写成申请材料：4 种可以直接用的写法</h4>
   <p>
-    如果你正在申请顶尖学府的研究生（尤其是数学、计算机、统计学方向）或准备技术面试，
-    不要把实验代码仅仅放在一个私有仓库里。以下是 4 个可以直接写进个人陈述（Personal Statement）或简历的项目呈现策略：
+    如果你在申请研究生（数学、计算机、统计学方向）或准备技术面试，
+    别把实验代码只放在一个私有仓库里。下面 4 条可以直接写进个人陈述（Personal Statement）或简历：
   </p>
   <ol>
     <li>
       <strong>能力证据链（Proof of Competence）</strong>：
-      不要写「我熟悉 Transformer 原理」，写「在字符级 TinyStories 上从零实现 CausalSelfAttention 与 Pre-LayerNorm GPT，手算 623,872 参数量与 PyTorch <code>numel()</code> 严格匹配至个位数，2000 步训练困惑度自 13.9 降至 4.10，产出可复现代码与损失曲线」。
+      不要写「我熟悉 Transformer 原理」，写「在字符级 TinyStories 上从零实现 CausalSelfAttention 与 Pre-LayerNorm GPT，手算 623,872 参数量与 PyTorch <code>numel()</code> 严格匹配至个位数，2000 步训练困惑度自 13.91 降至 5.42，产出可复现代码与损失曲线」。
     </li>
     <li>
       <strong>方法论证据（Methodological Rigor）</strong>：
-      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 200 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
+      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 200 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的假设检验结论」。
     </li>
     <li>
-      <strong>工业级全流程交付（Engineering Closed Loop）</strong>：
-      呼应模块 28，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
+      <strong>工程全流程交付（Engineering Closed Loop）</strong>：
+      呼应模块 28，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上用 1.89 GB 显存跑完全流程；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现离线自回归推理」。
     </li>
     <li>
       <strong>诚实的负面结果清单（Honest Negative Results）</strong>：
       单设一小节「消融与踩坑复盘」，列出你经历的真实失败：
       例如重入式梯度检查点导致的死锁、多头注意力转置未连续化导致的 view 崩溃、以及显存碎片化伪 OOM 的物理排查过程。
-      真正打动资深学者与面试官的，往往正是你在这些底层硬件故障中展现的系统级归因深度与科学治愈方案。
+      真正打动面试官的，往往是你把这些底层故障查清楚的过程。
     </li>
   </ol>
 </section>

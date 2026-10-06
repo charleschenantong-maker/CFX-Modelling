@@ -9,15 +9,15 @@ COURSE.register({
   tags: ["权重合并", "Ollama导出", "GGUF", "Crossfade实战", "项目毕业"],
   body: String.raw`
 <p class="lead">
-  在完成了 Kaggle 云端对 Qwen-2.5 的领域微调后，我们迎来了<strong>整个大模型课程的工程最终章</strong>：
-  <strong>将云端微调产物无损转化为你电脑上随时随地可调用的离线生产力工具</strong>！
-  我们将手把手执行<strong>权重物理合并（Merge and Unload）</strong>，将其打包并导入到你个人电脑上的 <strong>Ollama</strong> 运行时中，
-  打造出一个具备专属领域常识、0 API 费用、离线极速响应的 <strong>Crossfade 算法工程超级智能助手</strong>！
+  在 Kaggle 上把 Qwen-2.5 微调完之后，剩下<strong>整个大模型课程的最后一步工程</strong>：
+  <strong>把云端的微调产物搬到你自己电脑上，变成随时能离线调用的工具</strong>。
+  做法是先用<strong>权重物理合并（Merge and Unload）</strong>把 LoRA 增量加回主干，再导入本机的 <strong>Ollama</strong> 运行时，
+  得到一个懂 Crossfade 领域、不花 API 费用、断网也能跑的<strong>本地专属助手</strong>。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>工程实战闭环：从云端训练到本地常驻</h4>
-  <p>现代大模型工业落地的黄金标准路径：</p>
+  <h4><span class="ic">✓</span>工程实战路线：从云端训练到本地常驻</h4>
+  <p>从云端到本地要走四步：</p>
   <div class="flow">
     <div class="nd hi">1. Kaggle 免费微调</div>
     <div class="ar">→</div>
@@ -29,20 +29,20 @@ COURSE.register({
   </div>
 </section>
 
-<h3>1. 为什么必须执行权重合并（Merge and Unload）？</h3>
+<h3>1. 为什么要把 LoRA 权重合并回主干（Merge and Unload）？</h3>
 <p>
-  在第 28 讲中，我们保存的产物只是几兆字节的 LoRA 增量矩阵（\(\mathbf{A}\) 与 \(\mathbf{B}\)）。
-  如果在推理服务中每次都动态挂载 LoRA，计算时必须分别执行主干矩阵乘法与旁路矩阵乘法再相加，会带来额外的显存访存开销与推理延迟。
-  工业生产中最优雅的方案是<strong>将低秩增量直接物理相加并写回原权重矩阵</strong>：
+  第 28 讲最后保存下来的，只是几兆字节的 LoRA 增量矩阵（\(\mathbf{A}\) 与 \(\mathbf{B}\)）。
+  如果推理时每次都动态挂载 LoRA，就得分别算主干矩阵乘法和旁路矩阵乘法再相加，多出一份显存访存开销和推理延迟。
+  常见做法是<strong>把低秩增量直接加回原权重矩阵</strong>：
 </p>
 \[ \mathbf{W}_{\text{merged}} = \mathbf{W}_0 + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \]
 <p>
-  合并后，适配器被彻底吸收，模型重新变为一个<strong>完全独立的单体标准 Transformer</strong>，可以直接使用任何通用推理引擎（如 Ollama、vLLM、TensorRT-LLM）高速加载，无任何额外开销！
+  合并后适配器被吸收掉，模型又变成一个<strong>标准的单体 Transformer</strong>，任何通用推理引擎（Ollama、vLLM、TensorRT-LLM）都能直接加载，没有额外开销。
 </p>
 
 <h3>2. 逐行手写权重物理合并与导出代码</h3>
 <p>
-  在 Kaggle Notebook 中紧接微调步骤，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，执行合并与写出。
+  接着第 28 讲的微调，在 Kaggle Notebook 里按“<strong>1~2 行代码 + 一段解析</strong>”的节奏完成合并与导出。
 </p>
 
 <h4>第一步：加载底座模型与微调后的 LoRA 适配器</h4>
@@ -52,40 +52,40 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 base_model_id = "Qwen/Qwen2.5-1.5B-Instruct"
 lora_dir = "/kaggle/working/qwen-crossfade-lora"
 </code></pre>
-<p><strong>代码解析</strong>：指定原开源底座 ID 与第 28 讲生成的 LoRA 权重本地路径。</p>
+<p><strong>代码解析</strong>：指定原开源底座的 ID 和第 28 讲生成的 LoRA 权重路径。</p>
 
 <pre><code>tokenizer = AutoTokenizer.from_pretrained(lora_dir)
 base_model = AutoModelForCausalLM.from_pretrained(base_model_id, torch_dtype=torch.float16, device_map="cpu")
 </code></pre>
-<p><strong>代码解析</strong>：加载微调保存的分词器；为了防止 GPU 显存不够存放两份完整模型，直接使用 <code>device_map="cpu"</code> 将底座模型以 FP16 精度加载至宿主机的 30GB 内存中。</p>
+<p><strong>代码解析</strong>：加载微调时保存的分词器；合并要同时装下底座和结果两份模型，GPU 显存放不下，所以用 <code>device_map="cpu"</code> 把底座以 FP16 加载到宿主机的 30GB 内存里。</p>
 
 <pre><code>model = PeftModel.from_pretrained(base_model, lora_dir)
 print("✅ 成功将 LoRA 适配器装载到底座模型拓扑结构中。")
 </code></pre>
-<p><strong>代码解析</strong>：调用 <code>PeftModel.from_pretrained</code>，将保存的旁路矩阵动态挂载到底座模型的主干上。</p>
+<p><strong>代码解析</strong>：用 <code>PeftModel.from_pretrained</code> 把保存的旁路矩阵挂到底座主干上。</p>
 
 <h4>第二步：执行物理权重融合并卸载旁路</h4>
 
 <pre><code>merged_model = model.merge_and_unload()
 print("🎉 物理融合完毕！已将 LoRA 低秩矩阵严格按数学公式加回主干权重矩阵。")
 </code></pre>
-<p><strong>代码解析</strong>：<strong>关键核心算子</strong>：调用 <code>merge_and_unload()</code> 执行 \(\mathbf{W}_0 + \Delta \mathbf{W}\) 矩阵加法运算，随后彻底销毁低秩侧枝结构，恢复为纯净的原生 <code>Qwen2ForCausalLM</code> 类单体对象。</p>
+<p><strong>代码解析</strong>：<strong>关键一步</strong>：<code>merge_and_unload()</code> 把 \(\mathbf{W}_0 + \Delta \mathbf{W}\) 加回去，然后删掉低秩侧枝，对象重新变回干净的 <code>Qwen2ForCausalLM</code>。</p>
 
 <pre><code>save_path = "/kaggle/working/qwen2.5-crossfade-merged"
 merged_model.save_pretrained(save_path)
 tokenizer.save_pretrained(save_path)
 print(f"💾 合并后的完整独立大模型已成功持久化保存至: {save_path}")
 </code></pre>
-<p><strong>代码解析</strong>：将合并后的自包含模型与分词器整体导出；生成的文件夹内包含完整的 <code>model.safetensors</code> 权重与配置文件，可直接打包下载。</p>
+<p><strong>代码解析</strong>：把合并后的模型和分词器一起导出；文件夹里是完整的 <code>model.safetensors</code> 权重和配置文件，可以直接打包下载。</p>
 
 <h3>3. 将改造后的模型导入本地 Ollama 运行时</h3>
 <p>
-  下载合并后的模型权重到你自己的个人电脑（笔记本或工作站）后，借助 <strong>Ollama</strong>（本地大模型轻量运行时），只需三步即可将其注册为常驻服务：
+  把合并后的权重下载到本机（笔记本或工作站）之后，用 <strong>Ollama</strong>（本地大模型运行时）分三步把它注册成一个常驻服务：
 </p>
 
 <dl class="kv">
   <dt>第一步：编写轻量定制 Modelfile</dt>
-  <dd>在保存权重的目录下新建一个名为 <code>Modelfile</code> 的文本文件，填入定制系统提示词与超参数：
+  <dd>在权重目录下新建一个名为 <code>Modelfile</code> 的文本文件，填入系统提示词和采样超参数：
 <pre><code>FROM ./qwen2.5-crossfade-merged
 
 # 设置自回归推理采样温度
@@ -103,19 +103,19 @@ SYSTEM """
   <dd>在本地电脑终端（Terminal 或 PowerShell）中执行一条命令：
 <pre><code>ollama create qwen-crossfade -f ./Modelfile
 </code></pre>
-  Ollama 会自动解析模型结构并将其注册进本地模型库中。
+  Ollama 会自动读取目录里的 safetensors 权重，在内部转换成 GGUF 格式，再注册进本地模型库。流程图里写的“导出 GGUF / Ollama”指的就是这一步：本讲没有单独跑 GGUF 转换命令，转换由 <code>ollama create</code> 一并完成（前提是 Ollama 支持该模型架构，Qwen2 在支持范围内）。
   </dd>
   <dt>第三步：在终端启动交互式对话</dt>
   <dd>
 <pre><code>ollama run qwen-crossfade "分析两首 128 BPM 电子音乐在交叉过渡时的 EQ 衰减坡度。"
 </code></pre>
-  模型将在本地 CPU / 显卡上以极高速度流式输出专业分析，彻底摆脱网络依赖与任何商业 API 计费！
+  模型会在本地 CPU 或显卡上流式输出分析结果，不依赖网络，也没有 API 费用。
   </dd>
 </dl>
 
 <h3>4. 怎么在真实 Crossfade 项目代码中调用该模型？</h3>
 <p>
-  在你的 Crossfade 音频处理流水线（Python 项目）中，无需复杂网络依赖，直接通过本地 REST 接口进行自动化调用：
+  在你的 Crossfade 音频处理流水线（Python 项目）里，不用装额外依赖，直接调本地 REST 接口就行：
 </p>
 
 <pre><code># =====================================================================
@@ -149,8 +149,8 @@ if __name__ == "__main__":
 
 <h3>5. 🎓 大模型项目毕业设计：如何写进你的 CV 与学术成果？</h3>
 <p>
-  至此，你已经走完了现代大模型全栈研发的最硬核闭环：
-  <strong>第一性原理源码研读（Karpathy 哲学） \(\to\) 云端免费 GPU 算力调配（Kaggle） \(\to\) 真实开源底座改造（Qwen-2.5 + LoRA） \(\to\) 物理权重合并与 Ollama 边缘部署 \(\to\) 赋能 Crossfade 跨学科科研工程</strong>。
+  到这里，现代大模型从原理到落地这条线你已经走完了一遍：
+  <strong>读 Karpathy 源码打底 \(\to\) 用 Kaggle 的免费 GPU \(\to\) 改造开源底座（Qwen-2.5 + LoRA） \(\to\) 合并权重并部署到 Ollama \(\to\) 接到 Crossfade 项目里</strong>。
 </p>
 
 <section class="blk blk-tip">
@@ -160,17 +160,17 @@ if __name__ == "__main__":
       <strong>背景（Situation）</strong>：针对跨学科音频数学建模（Crossfade）中通用大模型缺乏音频 DSP、时频能量守恒及等功率算法专业常识的问题；
     </li>
     <li>
-      <strong>任务（Task）</strong>：在零硬件购买成本（仅利用云端 16GB 免费 T4 算力）约束下，实现顶尖开源大模型的高效微调与端侧低延迟部署闭环；
+      <strong>任务（Task）</strong>：在不买任何硬件（只用云端 16GB 免费 T4）的前提下，完成开源大模型的微调与端侧低延迟部署；
     </li>
     <li>
       <strong>行动（Action）</strong>：
        以开源 Qwen-2.5 为底座，利用 LoRA 低秩分解将可训练参数压缩至约 0.07%（约 109 万参数）；
-      构建专属音频过渡数学指令集执行 SFT 监督微调；
-      推导矩阵加法完成权重物理融合（Merge and Unload），并通过 Ollama 运行时实现本地端侧私有化流式推理；
+      整理一套专属的音频过渡数学指令集，做 SFT 监督微调；
+      用矩阵加法完成权重物理融合（Merge and Unload），再通过 Ollama 做本地流式推理；
     </li>
     <li>
       <strong>结果（Result）</strong>：
-      单次推理成本直接降为 0，端侧响应延迟低于 200ms，在针对交叉过渡声压塌陷及能量守恒问题的问答准度达 100%，完全贯通“大模型底座微调-边缘交付-工业算法联动”的全栈技术闭环。
+      单次推理成本降到 0，端侧响应延迟低于 200ms，交叉过渡声压塌陷与能量守恒问题的问答准度达 100%，把“底座微调—边缘交付—算法联动”这条链路走通了。
     </li>
   </ul>
 </section>
@@ -180,12 +180,12 @@ if __name__ == "__main__":
   <p class="q">在微调完成后执行 <code>model.merge_and_unload()</code> 将 LoRA 权重与底座物理合并的最主要优势是：</p>
   <ul class="opts">
     <li>能够让模型参数量变成原来的两倍</li>
-    <li data-ok>彻底消除推理时双路并行矩阵乘法与显存访存开销，使模型还原为标准的单体自包含架构，能够无缝兼容 Ollama、vLLM 等所有通用高性能推理引擎</li>
+    <li data-ok>省掉推理时双路并行矩阵乘法与显存访存开销，模型还原成标准的单体自包含架构，Ollama、vLLM 等通用推理引擎都能直接跑</li>
     <li>能够让模型不需要分词器直接识别人类语言</li>
     <li>可以将模型精度自动提升到 64-bit 浮点</li>
   </ul>
   <p class="why">
-    合并前模型是“主干 + 旁路”的复杂组合结构；合并后增量直接融入主干权重，不再需要 PEFT 运行库，任何通用推理框架都能以最高效率单体加载。
+    合并前是“主干 + 旁路”的组合结构；合并后增量融进主干权重，不再需要 PEFT 运行库，任何通用推理框架都能直接加载。
   </p>
 </div>
 
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     <li>用来清空电脑显卡的全部缓存</li>
   </ul>
   <p class="why">
-    Ollama 的 Modelfile 类似于 Dockerfile，它将底层权重路径、系统预设（System Prompt）和采样超参数统一打成一个标准模型镜像，供本地随时秒级拉起。
+    Ollama 的 Modelfile 类似 Dockerfile，把权重路径、系统提示词（System Prompt）和采样超参数打成一份标准模型定义，本地随时能拉起来跑。
   </p>
 </div>
 `

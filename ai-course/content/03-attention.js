@@ -9,29 +9,30 @@ COURSE.register({
   tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
-  如果把 Transformer 比作一台精密发动机，<strong>注意力机制（Attention）</strong>就是它的核心燃烧室。
-  这一讲我们抛开所有浮夸概念，从最接地气的「图书馆查资料」生活比喻出发，
-  层层拆解单头注意力、多头注意力（MHA）、因果掩码（Causal Mask）与现代大模型标配的旋转位置编码（RoPE）。
-  配合 STEP 级别的方差守恒定理证明与逐行解构的纯 PyTorch 代码，让你彻底看透点积注意力为什么能统治深度学习。
+  <strong>注意力机制（Attention）</strong>是 Transformer 里真正干活的那一层。
+  这一讲从「去图书馆查资料」讲起，
+  依次拆开单头注意力、多头注意力（MHA）、因果掩码（Causal Mask），以及现在几乎所有大模型都在用的旋转位置编码（RoPE）。
+  缩放因子为什么要开平方根，这里给了逐步证明；代码部分逐行拆解纯 PyTorch 实现。
+  读完你能自己写出一层因果多头注意力，并说清每一维在干什么。
 </p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>生活比喻：图书馆查书卡（Q, K, V 的本质）</h4>
   <p>
-    初学者最容易被 \(Q, K, V\) 三个矩阵绕晕。其实它们的现实原型极其平易近人：
-    <strong>想象你走进一个巨大的大学图书馆查资料：</strong>
+    初学者常被 \(Q, K, V\) 三个矩阵绕晕。其实它们各自对应一件很具体的东西：
+    <strong>想象你走进一间图书馆查资料：</strong>
   </p>
   <ul>
-    <li><strong>Query（查询向量 \(q\)）</strong>：是你脑子里的<strong>搜索关键词</strong>（比如“微积分链式法则”）；</li>
-    <li><strong>Key（键向量 \(k\)）</strong>：是书架上每一本书的书脊<strong>索书条目与标签</strong>；</li>
-    <li><strong>Value（值向量 \(v\)）</strong>：是每一本书里面<strong>真正承载的正文知识</strong>。</li>
+    <li><strong>Query（查询向量 \(q\)）</strong>：你脑子里的<strong>搜索关键词</strong>（比如“微积分链式法则”）；</li>
+    <li><strong>Key（键向量 \(k\)）</strong>：书架上每一本书的书脊<strong>索书条目与标签</strong>；</li>
+    <li><strong>Value（值向量 \(v\)）</strong>：每本书里面<strong>真正承载的正文知识</strong>。</li>
   </ul>
   <p>
-    <strong>你做的事情分为三步：</strong>
+    <strong>整个过程分三步：</strong>
     第一步，拿你的问题 \(q\) 和书脊标签 \(k\) 挨个比对相似度（点积 \(q \cdot k\)）；
     第二步，按匹配程度算出该在每本书上分配多少注意力权重（Softmax 归一化）；
-    第三步，按照权重把各本书里的知识 \(v\) 汇总带走（加权求和 \(\sum a_i v_i\)）。
-    这三步在数学上，就凝聚成了大名鼎鼎的注意力公式！
+    第三步，按权重把各本书里的知识 \(v\) 汇总带走（加权求和 \(\sum a_i v_i\)）。
+    这三步写成数学式，就是注意力公式。
   </p>
 </section>
 
@@ -40,7 +41,7 @@ COURSE.register({
   <p>
     <strong>一句话直觉</strong>：注意力输出是各 value 的加权平均，权重非负且和为 1——
     就像按配方调漆：8 勺红漆加 4 勺黄漆，你只能调出两者之间的颜色，调不出配方之外的第三种颜色。
-    取最小数字例子：两个标量值 \(v_1 = 8\)、\(v_2 = 4\)，权重 \([0.75, 0.25]\)，
+    取一个最小的数字例子：两个标量值 \(v_1 = 8\)、\(v_2 = 4\)，权重 \([0.75, 0.25]\)，
     输出为 \(0.75 \times 8 + 0.25 \times 4 = 6 + 1 = 7\)——结果永远落在 4 与 8 之间。
   </p>
   <p>
@@ -51,7 +52,7 @@ COURSE.register({
   </p>
 </section>
 
-<h3>1. 核心数学基石：缩放点积注意力 (Scaled Dot-Product Attention)</h3>
+<h3>1. 缩放点积注意力 (Scaled Dot-Product Attention)</h3>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：Q、K、V 的生活直觉）</h4>
@@ -62,13 +63,13 @@ COURSE.register({
     <li><strong>\(Q\)（Query，查询向量）</strong>：「我想找什么」——当前 Token 发出的提问关键词；</li>
     <li><strong>\(K\)（Key，键向量）</strong>：「每本书的索引标签」——库中每个 Token 具备的身份标签，用来与 \(Q\) 做点积匹配相似度；</li>
     <li><strong>\(V\)（Value，值向量）</strong>：「每本书的真实正文」——匹配成功后，真正被提取并加权融合成新表征的实际内容；</li>
-    <li><strong>矩阵乘法 \(QK^T\)</strong>：\(K^T\) 是高中学过的矩阵转置（行变列，使得 \((T 	imes d_k) 	imes (d_k 	imes T) = T 	imes T\) 维度对齐）。相乘的物理意义，是一次性算出整个序列中所有 Token 之间的<strong>两两相关性打分表</strong>；</li>
+    <li><strong>矩阵乘法 \(QK^T\)</strong>：\(K^T\) 是高中学过的矩阵转置（行变列，使得 \((T \times d_k) \times (d_k \times T) = T \times T\) 维度对齐）。相乘的物理意义，是一次性算出整个序列中所有 Token 之间的<strong>两两相关性打分表</strong>；</li>
     <li><strong>\(\mathrm{softmax}(\cdot)\)</strong>：将每一行任意大小的打分转化为相加严格等于 \(100\%\) 的概率分布；最后乘上 \(V\)，就是在按相似度高低对正文内容做<strong>加权平均融合</strong>。</li>
   </ul>
 </section>
 
 <p>
-  有了上述直觉，Vaswani 等人在 2017 年写下的划时代公式就一清二楚了：
+  有了上面的直觉，Vaswani 等人在 2017 年写下的那个公式就好读了：
 </p>
 \[ \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\left( \frac{QK^T}{\sqrt{d_k}} \right) V \]
 <p>
@@ -98,9 +99,9 @@ COURSE.register({
   <p><strong>第三步：独立随机变量求和的方差线性可加性</strong></p>
   \[ \mathrm{Var}(S) = \mathrm{Var}\left( \sum_{i=1}^{d_k} q_i k_i \right) = \sum_{i=1}^{d_k} \mathrm{Var}(q_i k_i) = \sum_{i=1}^{d_k} 1 = d_k \]
   <p>
-    <strong>结论与灾难揭示</strong>：点积 \(q \cdot k\) 的标准差为 \(\sqrt{d_k}\)！
+    <strong>结论</strong>：点积 \(q \cdot k\) 的标准差为 \(\sqrt{d_k}\)。
     在现代大模型中，维度 \(d_k\) 常为 64 或 128。如果不做缩放，点积数值的绝对值会轻易冲到 20 到 30 以上。
-    当这些巨大的数值喂给 Softmax 函数时：
+    这些数值喂给 Softmax 函数时：
   </p>
   \[ \mathrm{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}} \implies p_{\max} \to 1.0, \quad p_{j \ne \max} \to 0.0 \]
   <p>
@@ -110,8 +111,8 @@ COURSE.register({
     不要把它和最后词表输出层的 Softmax 加交叉熵搞混（那里的梯度 \(\mathbf{p} - \mathbf{y}\) 形式上永远有信号）。
     注意力权重的导数矩阵为 \(A_i(\delta_{ij} - A_j)\)（记 \(A = \mathrm{softmax}(S)\) 为归一化后的注意力权重）。一旦进入极端极化状态，所有偏导数几乎完全等于零，
     查询与键的梯度（\(\partial \mathcal{L} / \partial Q\)、\(\partial \mathcal{L} / \partial K\)）瞬间在注意力层
-    <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习！
-    因此，必须严格除以缩放因子 \(\sqrt{d_k}\)，使输入 Softmax 前的方差精确锚定回 \(1.0\)。
+    <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习。
+    因此必须除以缩放因子 \(\sqrt{d_k}\)，把输入 Softmax 前的方差锚回 \(1.0\)。
   </p>
 </section>
   </div>
@@ -185,8 +186,8 @@ COURSE.register({
   <p><strong>第 4 步：加权汇总 Value 矩阵</strong></p>
   \[ \mathrm{Out} = AV = \begin{bmatrix} 0.67 & 0.33 \\ 0.50 & 0.50 \end{bmatrix} \begin{bmatrix} 10 & 0 \\ 0 & 20 \end{bmatrix} = \begin{bmatrix} 6.7 & 6.6 \\ 5.0 & 10.0 \end{bmatrix} \]
   <p>
-    第一行 Token 明显更关注第一个 Value（权重 0.67）；第二行 Token 则平权吸收了两个 Value 的信息。
-    没有黑盒，全是最直白的线性代数。
+    第一行 Token 明显更关注第一个 Value（权重 0.67）；第二行 Token 则平权吸收两个 Value。
+    整个过程没有黑盒，就是最直白的线性代数。
   </p>
   <p>
     术语对齐（防坑）：\(QK^{T}\) 是 <strong>Gram 矩阵</strong>——“query 与 key 的两两内积表”，
@@ -230,8 +231,8 @@ COURSE.register({
 
 <h3>3. 自回归语言模型的铁律：因果掩码 (Causal Mask)</h3>
 <p>
-  在文本生成任务中，模型必须遵守<strong>时间因果箭头</strong>：第 \(t\) 个词在预测时，绝对不能偷看第 \(t+1\) 个词及之后的信息。
-  为了在 GPU 批量矩阵乘法中优雅地切断未来信息，引入了<strong>下三角因果掩码（Lower-triangular Causal Mask）</strong>：
+  文本生成时，模型必须守一条<strong>时间因果箭头</strong>：预测第 \(t\) 个词时，不能看到第 \(t+1\) 个词及之后的信息。
+  要在 GPU 的批量矩阵乘法里一次性切断未来信息，就用<strong>下三角因果掩码（Lower-triangular Causal Mask）</strong>：
 </p>
 \[ M_{ij} = \begin{cases} 0, & i \ge j \\ -\infty, & i < j \end{cases} \]
 <p>
@@ -241,8 +242,8 @@ COURSE.register({
 
 <h3>4. 多头自注意力 (MHA) 的数学全景与四维张量流向</h3>
 <p>
-  在现代大语言模型中，多头注意力（Multi-Head Attention）本质上是一个<strong>将输入序列在多个正交子空间中分别进行相似度检索与信息聚合</strong>的高阶代数算子。
-  设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。其四维张量变换流向遵循严格的代数法则：
+  多头注意力（Multi-Head Attention）本质上是在做一件事：<strong>把输入序列在多个正交子空间中分别做相似度检索与信息聚合</strong>。
+  设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。四维张量的变换流向如下：
 </p>
 
 <table class="tbl">
@@ -266,7 +267,7 @@ COURSE.register({
   <strong>Head 0</strong> 可以专门捕捉语法依附关系（如主谓一致）；
   <strong>Head 1</strong> 可以专门追踪代词指代（如「它」指向前文哪一名词）；
   <strong>Head 2</strong> 可以专门关注标点与段落边界。
-  多头机制赋予了模型同时从多个正交视角审视同一段文本的非凡能力。
+  这样模型就能同时从几个不同角度看同一段文本。
 </p>
 
 <section class="blk blk-eco">
@@ -278,7 +279,7 @@ COURSE.register({
   <p>
     在凸分析中，这对应于高维欧氏空间中的<strong>标准概率单纯形（Probability Simplex \(\Delta^{T-1}\)）</strong>。
     输出向量 \(y_t = \sum_{\tau=1}^t A_{t,\tau} v_\tau\) 是先前所有 Value 向量的<strong>严格凸组合（Convex Combination）</strong>。
-    自注意力并不创造超越值向量张成子空间的新外推方向，它所做的，是在语义子空间中根据查询条件进行精密的内插寻址与聚焦。
+    自注意力不会造出值向量张成子空间之外的新方向，它只是在语义子空间里按查询条件做内插与聚焦。
   </p>
 </section>
 
@@ -415,7 +416,7 @@ COURSE.register({
 <p class="cm">Hint：矩阵乘法看最后两维；softmax 看最后一维；RoPE 看 \(R_m^\top R_n\)。</p>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 4</div>
+  <div class="qlabel">自测 · 1</div>
   <p class="q">当 \(B=2,T=5,C=12,h=3\) 时，分数矩阵的形状是什么？</p>
   <ul class="opts">
     <li>\((2,5,12,3)\)</li>
@@ -427,7 +428,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 5</div>
+  <div class="qlabel">自测 · 2</div>
   <p class="q">哪一个条件额外成立时，行随机的 \(A\) 才能称为正交投影？</p>
   <ul class="opts">
     <li>只要每行和为 1</li>
@@ -439,7 +440,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 6</div>
+  <div class="qlabel">自测 · 3</div>
   <p class="q">为什么 \(d_k=128\) 时缩放因子是 \(1/\sqrt{128}\)，而不是 \(1/128\)？</p>
   <ul class="opts">
     <li>因为 softmax 只接受整数</li>
@@ -451,7 +452,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 7</div>
+  <div class="qlabel">自测 · 4</div>
   <p class="q">以 Crossfade 这类任务为例，注意力最稳妥的落点是什么？</p>
   <ul class="opts">
     <li>直接把每行 attention 权重当左右声道增益</li>
@@ -462,11 +463,11 @@ COURSE.register({
   <p class="why">注意力适合内容检索，音频增益还需要单调、连续和能量约束；两者分层能保留可解释性并减少过拟合自由度。</p>
 </div>
 
-<h3>9. 现代前沿：旋转位置编码 (RoPE) 的复数几何</h3>
+<h3>9. 旋转位置编码 (RoPE) 的复数几何</h3>
 <p>
-  早期的 Transformer 使用绝对位置正余弦编码直接加在 Token 嵌入上。
-  现代最强开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍采用 <strong>RoPE（Rotary Position Embedding）</strong>。
-  它的核心灵感极其优雅：<strong>用复数平面上的旋转矩阵对向量进行相乘，从而使内积天然携带相对位置距离</strong>。
+  早期的 Transformer 把绝对位置的正余弦编码直接加在 Token 嵌入上。
+  现在的开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍改用 <strong>RoPE（Rotary Position Embedding）</strong>。
+  它的做法很干净：<strong>用复数平面上的旋转矩阵去乘向量，内积就天然带上相对位置</strong>。
 </p>
 <p>
   结论先行：给 \(q\)、\(k\) 按位置各转一个角度后，内积只剩相对距离 \(n - m\)，绝对位置被消掉；
@@ -491,7 +492,7 @@ COURSE.register({
   </p>
   \[ \langle R_m q, \; R_n k \rangle = q^T R_{n-m} k \]
   <p>
-    内积只依赖于相对距离 \(n - m\)，与绝对位置无关！高维向量只需两两配对切成二维平面，分别乘以不同频率的旋转矩阵即可。
+    内积只依赖相对距离 \(n - m\)，与绝对位置无关。高维向量只要两两配对切成二维平面，各自乘以不同频率的旋转矩阵即可。
   </p>
   <p>
     若把相对位移记作 \(\Delta=m-n\)，则可定义 \(g(q,k,\Delta)=q^\top R_{-\Delta}k\)，于是 \(\langle R_mq,R_nk\rangle=g(q,k,m-n)\)。负号只来自旋转方向的约定，不改变“只依赖相对位置”的结论。
@@ -529,7 +530,7 @@ COURSE.register({
 </section>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 1</div>
+  <div class="qlabel">自测 · 5</div>
   <p class="q">序列长度从 2k 增加到 8k，朴素自注意力的核心点积计算量变为原来的几倍？</p>
   <ul class="opts">
     <li>2 倍</li>
@@ -544,7 +545,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 2</div>
+  <div class="qlabel">自测 · 6</div>
   <p class="q">在缩放点积注意力中，若取消除以 \(\sqrt{d_k}\) 的操作，随着特征维度 \(d_k\) 的增大，最可能导致什么训练问题？</p>
   <ul class="opts">
     <li>模型发生严重的内存泄漏</li>
@@ -558,7 +559,7 @@ COURSE.register({
 </div>
 
 <div class="quiz">
-  <div class="qlabel">自测 · 3</div>
+  <div class="qlabel">自测 · 7</div>
   <p class="q">旋转位置编码 (RoPE) 相比于在词嵌入上直接加上绝对位置编码的最大数学优势是什么？</p>
   <ul class="opts">
     <li>计算量为零</li>

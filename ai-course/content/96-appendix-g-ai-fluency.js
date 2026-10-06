@@ -21,7 +21,7 @@ COURSE.register({
   <h4><span class="ic">◆</span>先说结论：课值得上，但别只会上某一家的产品</h4>
   <p>
     这些官方课确实<strong>免费、成体系、有练习</strong>，比绝大多数二手教程可靠：
-    它们背后是模型的原厂团队，讲的工具定义、上下文管理、评估思路通常比社区转述更准确。
+    它们出自模型原厂团队，讲工具定义、上下文管理与评估思路，比社区转述准得多。
     所以「值不值得上」的答案是<strong>值得</strong>。
   </p>
   <p>
@@ -93,14 +93,14 @@ COURSE.register({
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">✓</span>读表的三个约定（很重要，关系到你能不能信这张表）</h4>
+  <h4><span class="ic">✓</span>读表前先说清三个约定（关系到你能不能信这张表）</h4>
   <ol>
     <li><strong>课名与链接</strong>：中文名是本课程的中文译名；括号里的英文名按课程页 URL 的 slug 还原，
       可能与页面上的显示名略有差异，<strong>以课程页为准</strong>。链接照抄官方课程页。</li>
     <li><strong>「适合谁」与「学完应该能做什么」是编者按课名与定位给的预期，不是官方承诺</strong>，
       也不代表课程一定覆盖到那个深度。请把它当成「上完之后你应该能自己回答的问题」。</li>
     <li><strong>学时一律写「以课程页标注为准」</strong>。只有 13 号课因为多份二手资料引用同一组数字，
-      我们把它单独标出来（官方页标注 14 lessons / 4 hr / 1 quiz）。学时是最容易过期的一类信息，
+      这里把它单独标出来（官方页标注 14 lessons / 4 hr / 1 quiz）。学时是最容易过期的一类信息，
       本附录不复制其余课程的具体数字。</li>
   </ol>
 </section>
@@ -122,7 +122,7 @@ COURSE.register({
     <tr><td><strong>02</strong> Claude 协作入门（Introduction to Claude Cowork）</td><td><a href="https://academy.claude.com/courses/introduction-to-claude-cowork" target="_blank" rel="noopener">introduction-to-claude-cowork</a></td><td>已经会一问一答，但还没把 AI 编进日常工作流的人</td>
       <td>以课程页标注为准</td>      <td>能把一个任务拆成「我做什么 + 它做什么」的两栏分工表，并写出交接时需要的输入</td><td>25、00</td></tr>
     <tr><td><strong>03</strong> Claude Code 101（Claude Code 101）</td><td><a href="https://academy.claude.com/courses/claude-code-101" target="_blank" rel="noopener">claude-code-101</a></td><td>要在终端或编辑器里让智能体改代码的人</td>
-      <td>以课程页标注为准</td>      <td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的闭环</td><td>25、29</td></tr>
+      <td>以课程页标注为准</td>      <td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的完整流程</td><td>25、29</td></tr>
     <tr><td><strong>04</strong> Claude Code 实战（Claude Code in Action）</td><td><a href="https://academy.claude.com/courses/claude-code-in-action" target="_blank" rel="noopener">claude-code-in-action</a></td><td>已能跑通编码智能体，想把它放进真实项目流程的人</td>
       <td>以课程页标注为准</td>      <td>能把测试、审查、提交拆成可复用的步骤，而不是每次从零描述需求</td><td>25、29</td></tr>
   </tbody>
@@ -189,8 +189,8 @@ COURSE.register({
   <h4><span class="ic">⚠</span>这张表的三个已知边界（别把预期当事实）</h4>
   <p>
     <strong>一、学时只对 13 号课写了具体数字</strong>，因为只有它有多份来源相互印证；
-    其余 21 门一律写「以课程页标注为准」。这不是偷懒，而是纪律：学时、课名、模块数都是易过期信息，
-    抄进笔记不写日期，半年后就会误导你自己。
+    其余 21 门一律写「以课程页标注为准」。这不是偷懒，而是纪律：学时、课名、模块数都容易过期，
+    抄进笔记却不写日期，半年后就会把你带偏。
   </p>
   <p>
     <strong>二、「适合谁 / 学完能做什么」是编者预期</strong>。判断是否达成，
@@ -223,14 +223,14 @@ COURSE.register({
       <td>先决定<strong>哪些活不该交给模型</strong>，再决定交给它多少</td>
       <td>一张两栏分工表，外加一条「绝不外发」清单</td>
       <td>「先让它全做一遍，我再改」——把判断也一起交出去了</td>
-      <td>00、21</td>
+      <td>19、附录 D</td>
     </tr>
     <tr>
       <td><strong>Description</strong><br />描述</td>
       <td>把需求说到<strong>可验收</strong>：输入、输出格式、判据、反例</td>
       <td>一份 5 条的验收条件，别人拿它也能判断对错</td>
       <td>「帮我优化一下」——写完连自己都无法判定是否达成</td>
-      <td>14、16</td>
+      <td>25、19</td>
     </tr>
     <tr>
       <td><strong>Discernment</strong><br />辨识</td>
@@ -244,7 +244,7 @@ COURSE.register({
       <td>写清楚<strong>谁签字负责</strong>、留什么记录、出错怎么回滚</td>
       <td>台账四字段：日期、命令、数字、验证状态</td>
       <td>「是模型说的」——一出事就没有责任人，也无法复现</td>
-      <td>16、附录 C</td>
+      <td>25、附录 C</td>
     </tr>
   </tbody>
 </table>
@@ -360,7 +360,7 @@ COURSE.register({
         <td>Discernment</td>
         <td>先跑 Level 0 规则基线；再跑脚本；算 SE 与置换检验</td>
         <td>「RMSE 1.92 ± 0.31（5 折，按艺人分组），p = ___」</td>
-        <td>\(N=250\)，\(\mathrm{SE}\approx0.15\) 秒，可检测下限约 0.3 秒，\(B=500\)</td>
+        <td>\(N=250\)，\(\mathrm{SE}\approx0.12\) 秒，可检测下限约 0.24 秒，\(B=500\)</td>
       </tr>
       <tr>
         <td>Diligence</td>

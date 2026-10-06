@@ -9,10 +9,10 @@ COURSE.register({
   tags: ["核心", "数学", "必做"],
   body: String.raw`
 <p class="lead">
-  当工程师谈论「7B、14B 或 70B 模型」时，这些数字究竟指的是哪些张量？
-  为什么同样是 7B 参数的模型，有的能塞进单张 16 GB 消费级显卡，有的微调时却连 80 GB A100 都会瞬间报 OOM（Out Of Memory）？
-  本讲追随 Andrej Karpathy 的 <code>nanoGPT</code> 极简哲学，彻底拆解现代自回归 Transformer 的每一个矩阵与张量算子，
-  给出参数量、计算 FLOPs、显存四大件（权重、梯度、优化器、激活值）以及 Pre-norm 恒等残差流的 STEP 级代数推导与工程账本。
+  当工程师说「7B、14B 或 70B 模型」时，这些数字到底指哪些张量？
+  同样标称 7B，为什么有的能塞进单张 16 GB 消费级显卡，有的微调时连 80 GB A100 都会立刻报 OOM（Out Of Memory）？
+  这一讲沿用 Andrej Karpathy 的 <code>nanoGPT</code> 风格，把现代自回归 Transformer 的每个矩阵与算子逐个拆开，
+  算清参数量、训练 FLOPs 和显存四大件（权重、梯度、优化器、激活值），顺带给出 Pre-norm 恒等残差流的代数推导。
 </p>
 
 <section class="blk blk-tip">
@@ -33,11 +33,11 @@ COURSE.register({
 </table>
   <h4><span class="ic">✓</span>学习目标：建立硬件算力与模型架构的解析直觉</h4>
   <p>
-    阅读完本讲后，你将能够做到：
-    <strong>①</strong> 仅凭纸笔在 5 分钟内准确推算出任意未知 Transformer 模型的参数总量（精确度达 95% 以上）；
-    <strong>②</strong> 严密推导为什么单 Token 矩阵乘法前向需要 \(2N\) FLOPs、反向需要 \(4N\) FLOPs；
-    <strong>③</strong> 从全微分角度证明 Pre-norm 为何比经典 Post-norm 具有更卓越的深度可训练性（恒等梯度直通项）；
-    <strong>④</strong> 逐行解构包含 RMSNorm、SwiGLU 与 Pre-norm 残差流的 Karpathy 风格极简 nanoGPT 代码。
+    读完这一讲，你应该能做到：
+    <strong>①</strong> 只拿纸笔，在 5 分钟内估算出任意 Transformer 模型的参数总量（精确度达 95% 以上）；
+    <strong>②</strong> 推导为什么单 Token 前向需要 \(2N\) FLOPs、反向需要 \(4N\) FLOPs；
+    <strong>③</strong> 从全微分角度看清 Pre-norm 的恒等梯度直通项，理解它为什么比 Post-norm 好训；
+    <strong>④</strong> 逐行读懂 Karpathy 风格 nanoGPT 里的 RMSNorm、SwiGLU 与 Pre-norm 残差流。
   </p>
 </section>
 
@@ -46,10 +46,10 @@ COURSE.register({
   <p>
     你打算在本地或云端训练一个轻量级的专属 Transformer 模块（如 1.5B 级别），
     或者在云端微调一个 8B 的多任务模型。
-    在启动训练前，你必须向自己清晰交代：
+    开训之前，先向自己交代清楚：
     <strong>这个模型每前向一个 Token 消耗多少次浮点运算？训练需要多少 GB 显存？
     权重占多少？AdamW 动量占多少？反向传播的中间激活值占多少？</strong>
-    如果答案是模糊的估算，你将陷入无休止的爆显存试错中。
+    如果只能给出模糊的估算，接下来就是反复爆显存试错。
   </p>
 </section>
 
@@ -140,7 +140,7 @@ COURSE.register({
   <p>门控支路决定每个通道放大或压低多少，上升支路提供待筛选的特征，最后由下降矩阵投回残差流维度。</p>
 </section>
 
-<h3>2. 核心参数量法则：\(12 L d^2 + |\mathcal{V}| d\)</h3>
+<h3>2. 参数量公式：\(12 L d^2 + |\mathcal{V}| d\)</h3>
 <p>
   记模型隐藏层维度为 \(d\)、层数为 \(L\)、词表大小为 \(|\mathcal{V}|\)、前馈层（FFN）中间隐藏维度为 \(d_{ff}\)。
   我们逐个矩阵核算单个 Block 内的参数量：
@@ -171,12 +171,12 @@ COURSE.register({
     </li>
   </ol>
   <p>
-    叠加全网 \(L\) 个层级，并加上词表嵌入矩阵（Embedding 矩阵 \(|\mathcal{V}| \times d\)），便得到了著名的估算公理：
+    把 \(L\) 层加起来，再加上词表嵌入矩阵（Embedding 矩阵 \(|\mathcal{V}| \times d\)），就得到常用的估算公式：
   </p>
   \[ N \approx 12 L d^2 + |\mathcal{V}| d \]
   <p>
-    <strong>几何与缩放洞见</strong>：参数量关于模型宽度 \(d\) 呈二次方增长（\(d^2\)），而关于深度 \(L\) 仅呈一次方线性增长。
-    这意味着增加模型宽度比增加深度更为昂贵，但更宽的模型具备更高的矩阵并行度。
+    <strong>缩放洞见</strong>：参数量随模型宽度 \(d\) 平方增长（\(d^2\)），随深度 \(L\) 只线性增长。
+    所以加宽度比加深度更贵，但更宽的模型矩阵并行度更高。
   </p>
 </section>
 
@@ -206,7 +206,7 @@ COURSE.register({
     <li>对权重矩阵的偏导：\(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\)，同样等价于一次相同尺度的 GEMM（\(2N\) FLOPs）。</li>
   </ol>
   <p>
-    两者相加，反向传播恰好需要 \(4N\) FLOPs！加上前向的 \(2N\)，完成一个 Token 的完整梯度迭代所需算力为：
+    两者相加，反向传播需要 \(4N\) FLOPs；加上前向的 \(2N\)，一个 Token 走完一次完整梯度迭代的算力是：
   </p>
   \[ C_{\text{train}} \approx 6 N D \qquad (\text{FLOPs}) \]
   <p>其中 \(D\) 是训练消耗的总 Token 数。这就是大模型 Scaling Law（如 Chinchilla）的核心计算基底。</p>
@@ -248,7 +248,7 @@ COURSE.register({
       <td><strong>静态显存小计</strong></td>
       <td><strong>16 字节 / 参数</strong></td>
       <td><strong>112 GB</strong></td>
-      <td><strong>尚未包含任何批次前向激活值显存！</strong></td>
+      <td><strong>尚未包含任何批次前向激活值显存</strong></td>
     </tr>
     <tr>
       <td>前向激活值 (Activations)</td>
@@ -260,21 +260,21 @@ COURSE.register({
 </table>
 <p>
   <strong>残酷的现实结论</strong>：
-  单张 24 GB 显存的显卡（如 RTX 4090 或 3090），连 7B 模型的静态权重和梯度都无法完整载入，更不用说高达 84 GB 的 AdamW 优化器状态！
-  这也是为什么 <span class="t" data-tterm="LoRA" data-d="Low-Rank Adaptation：冻结基座权重，仅微调低秩分解增量矩阵，将可训练参数压缩 1000 倍。">LoRA</span>
+  单张 24 GB 显卡（如 RTX 4090 或 3090）连 7B 模型的静态权重加梯度都装不下，更不用说高达 84 GB 的 AdamW 优化器状态。
+  这也是 <span class="t" data-tterm="LoRA" data-d="Low-Rank Adaptation：冻结基座权重，仅微调低秩分解增量矩阵，将可训练参数压缩 1000 倍。">LoRA</span>
   与 <span class="t" data-tterm="QLoRA" data-d="将基座权重 4-bit 量化，使得消费级显卡可微调 7B 级别大模型。">QLoRA</span>
-  能够彻底重塑开源社区生态的根本原因——它们将可训练参数量压缩了上千倍，从而移除了庞大的优化器显存山峦。
+  能改变开源社区玩法的根本原因——可训练参数量压缩了上千倍，那座优化器显存的大山就没了。
 </p>
 
-<h3>5. 教科书级实现：Karpathy nanoGPT 极简架构逐行剖析</h3>
+<h3>5. 逐行读一遍 nanoGPT 的架构</h3>
 <p>
-  在现代大模型主干网络中，整个 Transformer Block 的运算由两个核心算子主导：<strong>RMSNorm 预归一化</strong> 与 <strong>SwiGLU 门控前馈网络</strong>。以下通过单行微核心代码展示其运算本质：
+  现代大模型的一个 Transformer Block 里，主导运算的是两个算子：<strong>RMSNorm 预归一化</strong> 与 <strong>SwiGLU 门控前馈网络</strong>。下面用最少的代码把它们的运算本质写出来：
 </p>
 
 <p><strong>1. RMSNorm 算子核心演示：</strong></p>
 <p>\[ \text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon}} \odot \gamma \]</p>
 <p>
-  <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方和的均值；<code>torch.rsqrt</code> 计算均方根的倒数，跳过了传统 LayerNorm 中减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。在现代大模型（LLaMA-3、Qwen-2.5）中被全量采用，硬件吞吐提升约 7%~15%。
+  <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方的均值；<code>torch.rsqrt</code> 算均方根的倒数，省掉了传统 LayerNorm 里减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。LLaMA-3、Qwen-2.5 这些模型全都用它，硬件吞吐提升约 7%~15%。
 </p>
 
 <p><strong>2. SwiGLU 门控前馈网络（FFN）核心演示：</strong></p>
@@ -286,13 +286,13 @@ COURSE.register({
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>怎么连通工业级部署：1.5B 模型的本地端侧推理显存预算</h4>
   <p>
-    当你训练完一个约 1.5B 的轻量大模型后，如何在消费级硬件或普通笔记本上实现流畅推理？
+    训练完一个约 1.5B 的模型后，怎么在消费级硬件或普通笔记本上把它跑流畅？
   </p>
   <p>
     <strong>量化与显存账本</strong>：
     全精度 FP16 / BF16 下，1.5B 权重占用约 \(1.5 \times 10^9 \times 2 \approx 3.0\) GB 显存。
-    通过现代成熟的 4-bit 权重量化（如 AWQ、GPTQ 或 GGUF Q4_K_M），权重体积可直接压缩至 <strong>1.0 GB 左右</strong>！
-    配合 llama.cpp 或 ONNX Runtime，在无独立显卡的普通笔记本 CPU 上也能以数十 Token/s 的速度毫秒级流式输出。
+    换成 4-bit 权重量化（如 AWQ、GPTQ 或 GGUF Q4_K_M），权重体积能压到 <strong>1.0 GB 左右</strong>。
+    配合 llama.cpp 或 ONNX Runtime，没有独立显卡的普通笔记本 CPU 也能以数十 Token/s 的速度流式输出。
   </p>
 </section>
 
@@ -383,7 +383,7 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>几何推演：Transformer 残差流的三大维度不变量</h4>
   <p>
-    在 Transformer 的深层堆叠网络中，整个主干信息流可以视为一条穿透所有层的<strong>残差高速公路（Residual Highway）</strong>。在数学推演中必须满足以下守恒：
+    Transformer 堆叠很深，主干信息流可以看成一条穿过所有层的<strong>残差高速公路（Residual Highway）</strong>。它必须满足下面几条守恒：
   </p>
   <table class="tbl">
     <thead>
@@ -433,7 +433,7 @@ COURSE.register({
         </ul>
       </li>
     </ol>
-    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.4%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
+    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用只有 <strong>1.4%</strong>。剩下 15GB 以上的空间可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
   </div>
 </div>
 

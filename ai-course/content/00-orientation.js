@@ -20,11 +20,11 @@ COURSE.register({
 
 <p class="lead">
 
-  这是一门专为<strong>从早期就接触 AI、如今重度使用，且渴望搞清大模型底层原理的高中生与探索者</strong>量身打造的底座课程。
+  这是一门为<strong>早早接触 AI、如今天天在用、又想搞清大模型底层原理的高中生与探索者</strong>写的底座课程。
 
-  你可能天天在用 ChatGPT / Claude 写作业、改代码或探讨题目，但我们这次不再只做 prompt 调优，
+  你可能天天用 ChatGPT / Claude 写作业、改代码、讨论题目，但这次不停在 prompt 调优上，
 
-  而是要彻底拆开黑盒：<strong>理解注意力机制与自回归生成的数学第一性原理，掌握真实显存心算法，并在云端单张免费 T4 芯片上跑通属于你自己的模型训练。</strong>
+  而要把黑盒拆开：<strong>理解注意力机制与自回归生成的数学第一性原理，掌握真实的显存心算法，并在云端单张免费 T4 上跑通你自己的模型训练。</strong>
 
 </p>
 
@@ -32,21 +32,21 @@ COURSE.register({
 
 <section class="blk blk-q">
 
-  <h4><span class="ic">◆</span>核心学习目标：追求真实理解与动手能力，拒绝浮躁炫耀</h4>
+  <h4><span class="ic">◆</span>核心学习目标：真懂原理，也真能动手</h4>
 
-  <p>把目标界定清晰，后面的学习路径才扎实有效：</p>
+  <p>把目标写清楚，后面的路径才走得踏实：</p>
 
   <ol>
 
-    <li><strong>搞透底座机制</strong>：从条件概率的链式法则到自注意力矩阵乘法，搞懂因果掩码、位置编码与交叉熵损失，真正看懂模型在每一步计算什么。</li>
+    <li><strong>搞透底座机制</strong>：从条件概率的链式法则到自注意力矩阵乘法，弄清因果掩码、位置编码与交叉熵损失，看懂模型每一步在算什么。</li>
 
-    <li><strong>落地 T4 模型训练</strong>：掌握准确的显存与计算量估算（参数量、精度、优化器状态与激活值），在 Google Colab / Kaggle 免费分配的 16GB T4 GPU 上完成小模型（10M~45M）的从零预训练以及开源小底座（如 Qwen2.5-0.5B）的 LoRA 微调。</li>
+    <li><strong>落地 T4 模型训练</strong>：学会估准显存与计算量（参数量、精度、优化器状态与激活值），在 Google Colab / Kaggle 免费分配的 16GB T4 GPU 上跑完小模型（10M~45M）的从零预训练，以及开源小底座（如 Qwen2.5-0.5B）的 LoRA 微调。</li>
 
-    <li><strong>数学工具严格锚定 A-Level Further Maths</strong>：运用线性代数（矩阵乘法、向量内积）、微积分（导数与多元链式法则）、复数欧拉旋转（理解 RoPE 本质）和离散概率。复杂公式由浅入深铺垫，杜绝大学高阶测度论等不必要的抽象堆砌。</li>
+    <li><strong>数学工具严格锚定 A-Level Further Maths</strong>：线性代数（矩阵乘法、向量内积）、微积分（导数与多元链式法则）、复数欧拉旋转（用来理解 RoPE 的本质）和离散概率。公式由浅入深，不堆测度论这类大学高阶抽象。</li>
 
-    <li><strong>关于跨界数学建模项目（作为小参考而非前提）</strong>：本仓库虽附带了 <em>Mathematical Crossfade Modelling</em>（音频连续交叉淡入淡出建模）项目文档，但这仅作为未来探索如何将深度学习技术与传统工程问题进行 <strong>Merge</strong> 的一个小参考案例，绝非本课程的前置依赖，主线始终是通用的 LLM 底座与训练。</li>
+    <li><strong>关于跨界数学建模项目（作为小参考而非前提）</strong>：本仓库里附了一份 <em>Mathematical Crossfade Modelling</em>（音频连续交叉淡入淡出建模）项目文档，它只是「把深度学习技术与传统工程问题 <strong>Merge</strong> 起来」的一个小参考案例，不是本课程的前置依赖，主线始终是通用的 LLM 底座与训练。</li>
 
-    <li><strong>题型与学习方式</strong>：精简死记硬背的选择题，多进行<strong>纸笔手算推演（草稿纸走一遍数值）</strong>，培养对张量维度与数值流动的第一手直觉。</li>
+    <li><strong>题型与学习方式</strong>：少出死记硬背的选择题，多动手——<strong>纸笔手算推演（在草稿纸上走一遍数值）</strong>，养出对张量维度与数值流动的第一手直觉。</li>
 
   </ol>
 
@@ -88,9 +88,9 @@ COURSE.register({
 
 <p>
 
-  主线是<strong>通用大模型的第一性原理与单卡 T4 训练实践</strong>：每个模块聚焦原理机制与数值验证，带你一步步建立模型训练的直觉。
+  主线是<strong>通用大模型的第一性原理与单卡 T4 训练实践</strong>：每个模块都盯着原理机制与数值验证，帮你一步步建立模型训练的直觉。
 
-  涉及未来工程建模（如 crossfade 项目）的内容仅作为跨界拓展参考；轨道 C 则教你如何最大化利用手头的免费算力（如 Colab T4）与开发工具，把时间真正用在刀刃上。
+  涉及未来工程建模（比如 crossfade 项目）的内容只当跨界拓展；轨道 C 讲怎么用足手头的免费算力（Colab T4 之类）与开发工具，把时间花在真正出结果的地方。
 
 </p>
 
@@ -104,7 +104,7 @@ COURSE.register({
     <tr><td><strong>Kaggle Notebooks（核心主训平台）</strong></td><td>每周 30 小时免费 GPU，提供双卡 T4 ×2 与单卡 T4，支持持久化输出</td><td><strong>从零预训练 miniGPT、0.5B/1.5B 开源基座 QLoRA 4-bit 微调</strong></td><td>使用「Save Version → Save & Run All」后台静默运行，产出直接写入 <code>/kaggle/working</code>，无需担心断线丢失</td></tr>
     <tr><td><strong>Hugging Face Hub</strong></td><td>全球开源模型权重与开源语料库</td><td>下载开源基座（如 Qwen2.5-0.5B）、Tokenizer 与清洗后的微调数据集</td><td>通过标准 <code>transformers</code> 与 <code>peft</code> 库加载，安全可靠</td></tr>
     <tr><td><strong>PyTorch & Transformers 生态</strong></td><td>工业标准深度学习底层</td><td>编写 Tensor 运算、前向传播、因果掩码与自定义训练循环</td><td>配合本课程手写极简训练脚本，拒绝不透明的黑盒封装</td></tr>
-    <tr><td><strong>草稿纸与纸笔手算</strong></td><td>第一性原理直觉工具</td><td><strong>手算点积注意力、Softmax 概率换算、参数量与显存预算</strong></td><td>凡是看不懂的代码，在草稿纸上走一遍标量或 2D 玩具数值即可彻底看透</td></tr>
+    <tr><td><strong>草稿纸与纸笔手算</strong></td><td>第一性原理直觉工具</td><td><strong>手算点积注意力、Softmax 概率换算、参数量与显存预算</strong></td><td>凡是看不懂的代码，在草稿纸上走一遍标量或 2D 玩具数值，基本就能看透</td></tr>
   </tbody>
 </table>
 
@@ -118,17 +118,19 @@ COURSE.register({
 
   <tbody>
 
-    <tr><td><strong>I 底座</strong></td><td>01–05</td><td>语言模型的概率本质、tokenizer、注意力、Transformer 结构、预训练全流程与显存/算力公式</td></tr>
+    <tr><td><strong>0 导读与心法</strong></td><td>00、P</td><td>课程为谁写、怎么用、三条轨道与 12 周节奏；零基础先读 <strong>P 预备课</strong>，用大白话把「打分 → 概率 → 扣分 → 倒着算」串成一条线</td></tr>
 
-    <tr><td><strong>II 训练与推理</strong></td><td>06–09</td><td>数据并行/FSDP/张量并行（含 JAX 版）、SFT→DPO→GRPO 全谱系、量化与 vLLM、评估的科研方法</td></tr>
+    <tr><td><strong>I 底座原理</strong></td><td>01–05</td><td>语言模型的概率本质（条件概率、交叉熵、困惑度）、tokenizer 与数据、注意力机制、Transformer 结构与参数量/显存算法、预训练全流程</td></tr>
 
-    <tr><td><strong>III 算力</strong></td><td>10</td><td>Colab / Kaggle / HF Jobs 上能跑什么、怎么不浪费额度</td></tr>
+    <tr><td><strong>II 训练与推理原理</strong></td><td>06–09</td><td>数据并行/FSDP/张量并行（含 JAX 版）、SFT→DPO→GRPO 全谱系、采样参数与部署成本、评估的科研方法</td></tr>
 
-    <tr><td><strong>IV 算力与系统</strong></td><td>11–15</td><td>计算规模法则（Scaling Laws & Chinchilla 定律）、MoE 专家架构、长上下文 RoPE 外推与任务调度</td></tr>
+    <tr><td><strong>III 真实大模型架构与系统工程</strong></td><td>10–15</td><td>Roofline 与 6N FLOPs 算力法则、工业级数据工程与集群容灾、MoE 稀疏门控、长上下文 RoPE 外推、压缩与量化、PagedAttention 与动态批处理</td></tr>
 
-    <tr><td><strong>V 收束</strong></td><td>16</td><td>把上面全部映射回 8 个检查点，给出可执行的 12 周计划</td></tr>
+    <tr><td><strong>IV 能力拓展、前沿方向与研讨</strong></td><td>16–22</td><td>蒸馏全谱系、推理模型与测试时计算、RAG 与上下文工程、智能体系统、安全对齐与可解释性、注意力之外的前沿架构、机器意识研讨</td></tr>
 
-    <tr><td><strong>附录</strong></td><td>A–G</td><td>术语表、Colab 实验手册、资源地图、合规提示、综合自测、速查手册、<strong>AI 素养课地图</strong></td></tr>
+    <tr><td><strong>V 个人算力、工程实战与项目收束</strong></td><td>23–29</td><td>单卡算力预算与耗时演算、网络代理与断点续训、工程流水线与多线程舰队、Kaggle 免费 T4 起步、LoRA 微调实战，最后把前面全部映射回 8 个检查点并给出可执行的 12 周计划</td></tr>
+
+    <tr><td><strong>附录</strong></td><td>A–G</td><td>术语表、实验手册、资源地图、合规提示、综合自测、速查手册、<strong>AI 素养课地图</strong></td></tr>
 
   </tbody>
 
@@ -154,11 +156,11 @@ COURSE.register({
 
       <td><strong>第一次：通读</strong><br />（约 6–10 小时）</td>
 
-      <td>按顺序读 00 → P → 01 → … → 16，每讲结束做自测；折叠的「深入」可以先跳过，
+      <td>按顺序读 00 → P → 01 → … → 29，每讲结束做自测；折叠的「深入」可以先跳过，
 
           等真正用到时再回来</td>
 
-      <td>正文 24 讲；每讲 20–60 分钟。零基础务必先读 <strong>P 预备课</strong></td>
+      <td>正文 31 讲；每讲 20–60 分钟。零基础务必先读 <strong>P 预备课</strong></td>
 
     </tr>
 
@@ -170,7 +172,7 @@ COURSE.register({
 
           公式、数字、超参、命令、排错决策都在 <a href="#appF">附录 F 速查手册</a>，
 
-          术语在 <a href="#appA">附录 A 术语表</a>（355 条，按 14 类分好）</td>
+          术语在 <a href="#appA">附录 A 术语表</a>（366 条，分 16 节）</td>
 
       <td>附录 A（术语）、附录 F（七张速查表）、附录 G（22 门 AI 素养官方课怎么用）、每讲顶部的「本讲速查」</td>
 
@@ -200,11 +202,11 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>高阶章（17–24）怎么读：三层读法</h4>
+  <h4><span class="ic">✓</span>高阶章（16–22）怎么读：三层读法</h4>
 
   <p>
 
-    v1.2 把这八章按「能算、能跑、能验证」加厚了一遍。它们比前面几章长，但<strong>不需要一次读完</strong>——
+    v1.2 把这七章按「能算、能跑、能验证」加厚了一遍。它们比前面几章长，但<strong>不需要一次读完</strong>——
 
     每章都是同样的五段结构，按你的目的挑着读：
 
@@ -212,9 +214,9 @@ COURSE.register({
 
   <ol>
 
-    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章与 crossfade 这类未来题目有没有关系。没关系就跳过，这不丢人——
+    <li><strong>先读「零基础入口 + 问题」</strong>（约 5 分钟）：判断这一章跟 crossfade 这类未来题目有没有关系。没关系就跳过，这不丢人——
 
-        八章里有四章对 crossfade 这类任务只需「知道就好」。</li>
+        七章里有四章对这类任务只需「知道就好」。</li>
 
     <li><strong>再读手算例子与查表</strong>：每章都有带具体数字的算例和「症状 → 原因 → 一行验证 → 对策」的失败模式表。
 

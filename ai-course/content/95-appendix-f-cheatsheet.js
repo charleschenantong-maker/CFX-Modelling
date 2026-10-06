@@ -10,8 +10,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   前面十几讲是<strong>用来读一遍的</strong>；这一页是<strong>用来反复查的</strong>。
-  它把全课程最常被回查的东西压成七张表：公式、数字、超参、模型选型、额度窗口、命令、排错决策。
-  你不需要背它——只需要记住「这里有一张表」。
+  全课程最常被回查的东西都收在这里，按 11 节排开：公式、数字、TRL 对照、超参、选型决策、硬件显存、命令、排错、项目检查点、术语索引与高阶主题。
+  你不用背它，只要记住「这里有一张表」。
 </p>
 
 <section class="blk blk-tip">
@@ -27,7 +27,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>公式</th><th>含义 / 什么时候用</th><th>出处</th><th>常见误用</th></tr></thead>
   <tbody>
-    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{< t})\)</td><td>语言模型的链式分解，一切推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
+    <tr><td>\(P(x_{1:T}) = \prod_t p_\theta(x_t \mid x_{< t})\)</td><td>语言模型的链式分解，推理与训练的起点</td><td>01</td><td>以为模型一次直接输出整句</td></tr>
     <tr><td>\(\mathcal{L} = -\frac{1}{T}\sum_t \log p_\theta(x_t\mid x_{< t})\)</td><td>交叉熵损失（= 平均负对数概率）</td><td>01</td><td>把 loss 与准确率混为一谈</td></tr>
     <tr><td>\(\text{PPL} = e^{\mathcal{L}}\)</td><td>困惑度；跨数据集<strong>不可直接比较</strong></td><td>01</td><td>用不同 tokenizer 的 PPL 比模型</td></tr>
     <tr><td>\(\text{softmax}(z)_i = e^{z_i}/\sum_j e^{z_j}\)</td><td>把 logits 变概率；温度即 \(z/T\)</td><td>01 / 08</td><td>忘了先减去最大值（数值溢出）</td></tr>
@@ -42,8 +42,8 @@ COURSE.register({
     <tr><td>\(\mathcal{L}_{\text{DPO}} = -\log\sigma\!\big(\beta[\log\tfrac{p_\theta(y_w)}{p_{\text{ref}}(y_w)} - \log\tfrac{p_\theta(y_l)}{p_{\text{ref}}(y_l)}]\big)\)</td><td>偏好优化（无需奖励模型）</td><td>07</td><td>跳过 SFT 直接 DPO</td></tr>
     <tr><td>\(\hat A_i = \dfrac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)}\)</td><td>GRPO 的组内相对优势（替代 critic）</td><td>07</td><td>组太小导致优势估计噪声大</td></tr>
     <tr><td>\(\hat w = (X^\top X + \lambda I)^{-1}X^\top y\)</td><td>岭回归闭式解；\(N\) 小时的首选模型</td><td>09</td><td>忘了在划分后拟合标准化</td></tr>
-    <tr><td>\(\text{RMSE}_{\text{LOOCV}}^2 = \frac1N\sum_i\big(\tfrac{y_i-\hat y_i}{1-h_{ii}}\big)^2\)</td><td>留一交叉验证的 \(O(Nd^2)\) 捷径</td><td>09 / 16</td><td>真的跑 N 次重训</td></tr>
-    <tr><td>\(R(f) \le R_{\text{emp}} + \sqrt{\tfrac{h(\ln(2N/h)+1)-\ln(\eta/4)}{N}}\)</td><td>VC 泛化界；\(N=250\) 时是空的</td><td>09</td><td>拿它当精确误差估计</td></tr>
+    <tr><td>\(\text{RMSE}_{\text{LOOCV}}^2 = \frac1N\sum_i\big(\tfrac{y_i-\hat y_i}{1-h_{ii}}\big)^2\)</td><td>留一交叉验证的 \(O(Nd^2)\) 捷径</td><td>09</td><td>真的跑 N 次重训</td></tr>
+    <tr><td>\(R(f) \le R_{\text{emp}} + \sqrt{\tfrac{h(\ln(2N/h)+1)-\ln(\eta/4)}{N}}\)</td><td>VC 泛化界；\(N=250\) 时只剩定性提示</td><td>09</td><td>拿它当精确误差估计</td></tr>
     <tr><td>\(t_{\text{step}} \approx \dfrac{\text{model bytes}}{\text{memory bandwidth}}\)</td><td>解码速度上限（带宽受限）</td><td>03 / 08</td><td>以为提速要靠更多算力</td></tr>
     <tr><td>\(\mathrm{SE} = \sigma/\sqrt{N}\)</td><td>均值的不确定度；做实验前先算它，判断「多大的差别才测得出来」</td><td>09</td><td>拿小于 1 SE 的改进当结论</td></tr>
     <tr><td>\(\mathrm{df}(\lambda) = \sum_j \frac{\sigma_j^2}{\sigma_j^2+\lambda}\)</td><td>岭回归的有效自由度（\(\sigma_j\) 为 \(X\) 的奇异值）</td><td>09</td><td>以为「加了特征」就等于「增加了有效容量」</td></tr>
@@ -59,7 +59,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>要估的东西</th><th>口诀</th><th>例子</th></tr></thead>
   <tbody>
-    <tr><td>权重显存</td><td>参数量 × 每参数字节</td><td>7B @ bf16 ≈ 14 GB；@ int4 ≈ 3.5 GB</td></tr>
+    <tr><td>权重显存</td><td>参数量 × 每参数字节</td><td>7B @ bf16 ≈ 14 GB；@ int4 ≈ 3.85 GB</td></tr>
     <tr><td>训练显存（单卡下限）</td><td>16 字节/参数 + 激活（AdamW + bf16）</td><td>7B ≈ 112 GB → 单卡不可能</td></tr>
     <tr><td>激活显存</td><td>\(c\cdot B S L d\)，\(c\approx10\text{–}20\)</td><td>7B、\(BS=16\text{k}\) ≈ 数十 GB</td></tr>
     <tr><td>参数量</td><td>\(12Ld^2\)</td><td>\(L=32,d=4096\) → 6.4B（+词表 ≈ 7B）</td></tr>
@@ -138,13 +138,13 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>显存规格</th><th>硬件平台</th><th>从零预训练（从 Scratch）</th><th>开源基座微调（QLoRA）</th></tr></thead>
   <tbody>
-    <tr><td><strong>16 GB</strong></td><td>Kaggle（单卡 T4 16GB / 双卡 32GB）</td><td>15M ~ 45M miniGPT（极速收敛，&lt;15分钟）</td><td>0.5B ~ 1.5B（4-bit QLoRA，显存占用 &lt;4GB）</td></tr>
+    <tr><td><strong>16 GB</strong></td><td>Kaggle（单卡 T4 16GB / 双卡 32GB）</td><td>15M ~ 45M miniGPT（收敛快，&lt;15分钟）</td><td>0.5B ~ 1.5B（4-bit QLoRA，显存占用 &lt;4GB）</td></tr>
     <tr><td><strong>2 × 16 GB</strong></td><td>Kaggle（T4 ×2）</td><td>45M ~ 125M miniGPT（小规模语料探索）</td><td>3B ~ 7B（QLoRA，需配合梯度检查点）</td></tr>
     <tr><td><strong>8 ~ 12 GB</strong></td><td>本地显卡（RTX 3060/4060）</td><td>5M ~ 15M miniGPT（本地单步调试与验证）</td><td>0.5B（4-bit QLoRA，本地快速训练）</td></tr>
   </tbody>
 </table>
 <p class="cm">
-  <strong>核心原则</strong>：在云端训练时，务必将 Checkpoint 外存到 Google Drive 或 Hugging Face Hub，详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
+  <strong>核心原则</strong>：在云端训练，Checkpoint 一定要外存到 Google Drive 或 Hugging Face Hub，别只留在实例里；详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
 </p>
 <h3>7. 命令速查</h3>
 <pre><code><span class="cm"># git（实验管理）</span>
@@ -192,8 +192,8 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <tr><td>CP4 预测对音频</td><td>客观指标 + 听测对照</td><td><a href="#m9">09</a></td></tr>
     <tr><td>CP5 成对适配</td><td>特征提取（你的「tokenizer」）</td><td><a href="#m2">02</a></td></tr>
     <tr><td>CP6 证据与局限</td><td>分组 CV、效应量、盲测</td><td><a href="#m9">09</a></td></tr>
-    <tr><td>CP7 学习实验</td><td>只学一个低维参数并严格比较</td><td><a href="#m9">09</a>、<a href="#m16">16</a>、<a href="#appB">附录 B · E7</a></td></tr>
-    <tr><td>CP8 成品与辩护</td><td>一键复现 + 答辩稿</td><td><a href="#m14">14</a>、<a href="#m16">16</a></td></tr>
+    <tr><td>CP7 学习实验</td><td>只学一个低维参数并严格比较</td><td><a href="#m9">09</a>、<a href="#appB">附录 B · E7</a></td></tr>
+    <tr><td>CP8 成品与辩护</td><td>一键复现 + 答辩稿</td><td><a href="#m25">25</a>、<a href="#m29">29</a></td></tr>
   </tbody>
 </table>
 
@@ -298,7 +298,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <ol>
       <li><strong>每做一次实验，就往「数字速查」里加一行你实测到的数字</strong>（例如「0.5B + LoRA r=16，T4 上 24 分钟，峰值 9.8 GB」）。
           三个月后，这一页会比任何教程都贴合你。</li>
-      <li><strong>把踩过的坑写进「排错决策表」</strong>，注明症状 → 原因 → 修法。你的报错日志是最独特的知识资产。</li>
+      <li><strong>把踩过的坑写进「排错决策表」</strong>，注明症状 → 原因 → 修法；报错日志是你最独特的资产。</li>
       <li><strong>用浏览器打印成 PDF</strong>（右上角「打印」按钮会自动展开折叠内容），放进手机随时查。</li>
       <li>如果需要分享，直接把这个 <code>ai-course</code> 文件夹压缩发给对方即可——它不依赖网络。</li>
     </ol>

@@ -10,8 +10,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   预训练是整条流水线里最贵、最不神秘、也最容易失败的一步。
-  它的全部内容是：<strong>一个损失函数、一个优化器、一份数据、一条学习率曲线，跑很久</strong>。
-  这一模块讲清楚每一步的选择与失败模式。
+  它做的事就四样：<strong>一个损失函数、一个优化器、一份数据、一条学习率曲线，然后跑很久</strong>。
+  这一模块把每一步该怎么选、会在哪里炸讲清楚。
 </p>
 
 <section class="blk blk-tip">
@@ -58,7 +58,7 @@ COURSE.register({
 </div>
 <dl class="kv">
   <dt>质量过滤</dt><dd>启发式规则（长度、符号比例、重复率）+ 分类器打分；这一步通常决定模型上限</dd>
-  <dt>去重</dt><dd>近似去重能显著减少背诵现象，并让有限算力见到更多不同内容</dd>
+  <dt>去重</dt><dd>近似去重能明显减少模型背诵原文的现象，也让有限算力见到更多不同内容</dd>
   <dt>打包</dt><dd>把多条文档拼成固定长度序列；必须用注意力掩码隔离不同文档，否则会学到跨文档的虚假关联</dd>
   <dt>退火</dt><dd>训练末期用高质量数据（代码、数学、精选网页）并压低学习率，这是提升下游表现最划算的一招</dd>
 </dl>
@@ -140,7 +140,7 @@ COURSE.register({
 </p>
 
 <h4>2.3 梯度累积：用小显存模拟大批量</h4>
-<p>显存不够时，我们不做一次大批量的前向，而是分几次做、把梯度攒起来再更新：</p>
+<p>显存不够时，不做一次大批量的前向，而是分几次做，把梯度攒起来再更新：</p>
 \[ B_{\text{global}} = B_{\text{micro}} \times N_{\text{accum}} \times N_{\text{DP}} \]
 <p>
   例如「微批 4 × 累积 8 × 数据并行 8 卡 = 全局批 256」。
@@ -186,7 +186,7 @@ COURSE.register({
     <li><strong>\(t\) 与 \(T\)</strong>：\(t\) 为当前训练步数，\(T\) 为全流程计划的总训练步数（如 100,000 步）；</li>
     <li><strong>\(t_{\text{warm}}\)</strong>：预热步数，通常设定为总步数的 1% ~ 2%（如前 2,000 步）；</li>
     <li><strong>\(\eta_{\max}\) 与 \(\eta_{\min}\)</strong>：峰值最大学习率（如 \(3 \times 10^{-4}\)）与退火下限最小学习率（通常为峰值的 10%，如 \(3 \times 10^{-5}\)）；</li>
-    <li><strong>为什么是 \(\frac{1}{2}(1 + \cos(\dots))\)</strong>：余弦函数在 \(\theta = 0\) 时值为 1，\(\frac{1}{2}(1+1) = 1\) 刚好从峰值平滑启程；在 \(\theta = \pi\) 时值为 \(-1\)，\(\frac{1}{2}(1-1) = 0\) 刚好平滑降至最低点，形成完美的 S 型缓降。</li>
+    <li><strong>为什么是 \(\frac{1}{2}(1 + \cos(\dots))\)</strong>：余弦函数在 \(\theta = 0\) 时值为 1，\(\frac{1}{2}(1+1) = 1\) 刚好从峰值平滑起步；在 \(\theta = \pi\) 时值为 \(-1\)，\(\frac{1}{2}(1-1) = 0\) 平滑降到最低点，整段是一条平滑的 S 型缓降。</li>
   </ul>
 </section>
 
@@ -243,7 +243,7 @@ COURSE.register({
   <h4><span class="ic">∑</span>参数量最优配比与 6ND 物理来源</h4>
   <p>
     <strong>为什么训练总算力是 \(C \approx 6ND\)？</strong><br />
-    每个 Token 在模型前向传播时，每个参数发生 1 次乘法和 1 次加法，耗费 <strong>\(2ND\) FLOPs</strong>；而在反向传播计算梯度时，既要求对权重的梯度、又要求对上一层激活的梯度，计算量是前向的 2 倍，即 <strong>\(4ND\) FLOPs</strong>。前向与反向相加，单步完整迭代恰好是 \(2ND + 4ND = \mathbf{6ND}\) FLOPs！
+    每个 Token 在模型前向传播时，每个参数发生 1 次乘法和 1 次加法，耗费 <strong>\(2ND\) FLOPs</strong>；反向传播算梯度时，既要对权重求梯度，又要求对上一层激活的梯度，计算量是前向的 2 倍，即 <strong>\(4ND\) FLOPs</strong>。前向与反向相加，一步完整迭代恰好是 \(2ND + 4ND = \mathbf{6ND}\) FLOPs。
   </p>
   <p>Chinchilla 的核心结论：在固定算力预算下，最优的参数量与数据量满足</p>
   \[ N_{\text{opt}} \approx \frac{D}{20} \qquad\Longleftrightarrow\qquad D_{\text{opt}} \approx 20\,N \]
@@ -348,7 +348,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 <section class="blk blk-lab">
   <h4><span class="ic">∑</span>预训练单步迭代核心算子：交叉熵损失与梯度截断</h4>
   <p>
-    在预训练工程底层中，单步迭代的计算本质可以提炼为两道极简的核心代数算子（注：Kaggle 平台的端到端完整显存实战位于第 V 板块模块 28）：
+    在预训练工程里，单步迭代的底层就是两道算子（Kaggle 平台的端到端显存实战见第 V 板块模块 28）：
   </p>
 
 <p><strong>1. 自回归交叉熵损失算子：</strong></p>
@@ -364,7 +364,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   <ul>
     <li><strong>\(\nabla_\theta \mathcal{L}\)</strong>：倒三角记号 \(\nabla\)（读作 nabla）是多变量微积分中的<strong>梯度算子</strong>，代表对所有模型参数求偏导数拼成的大向量；</li>
     <li><strong>\(\|g\|_2\)</strong>：双竖线表示 <strong>\(L_2\) 范数（模长）</strong>，就是高一空间向量的几何长度公式 \(\|g\|_2 = \sqrt{\sum g_i^2}\)；</li>
-    <li><strong>\(\min\left(1, \frac{M}{\|g\|_2}\right)\)</strong>：这是一座天然的<strong>限速器</strong>——若总梯度长度 \(\|g\|_2 \le M\)（未超速），比值 \(\ge 1\)，\(\min\) 返回 1，梯度原封不动；一旦梯度由于异常数据爆炸使 \(\|g\|_2 > M\)（超速），比值 \(< 1\)，乘以该比例恰好把总长度等比例压缩回上限 \(M\)，彻底消除了梯度爆炸导致模型参数变 NaN 的风险！</li>
+    <li><strong>\(\min\left(1, \frac{M}{\|g\|_2}\right)\)</strong>：这是一座天然的<strong>限速器</strong>——若总梯度长度 \(\|g\|_2 \le M\)（未超速），比值 \(\ge 1\)，\(\min\) 返回 1，梯度原封不动；一旦梯度因为异常数据爆炸使 \(\|g\|_2 > M\)（超速），比值 \(< 1\)，乘以该比例就把总长度等比例压回上限 \(M\)，梯度爆炸导致参数变 NaN 的风险就没了。</li>
   </ul>
 </section>
 <p>
@@ -457,7 +457,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
     <span class="blank-feedback"></span>
   </div>
   <p class="why">
-    根据公式 \(M_{\text{static}} \approx 16 \times N\) 字节，\(16 \times 10^7 \text{ bytes} = 1.6 \times 10^8 \text{ bytes} \approx 160\text{ MB}\)。在单张 16GB 显存的 T4 GPU 上仅占约 1% 的显存空间，极其轻量！
+    根据公式 \(M_{\text{static}} \approx 16 \times N\) 字节，\(16 \times 10^7 \text{ bytes} = 1.6 \times 10^8 \text{ bytes} \approx 160\text{ MB}\)。在单张 16GB 显存的 T4 上只占约 1% 的显存。
   </p>
 </div>
 

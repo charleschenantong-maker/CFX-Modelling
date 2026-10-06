@@ -10,8 +10,8 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   预训练给你一个「会续写」的模型，微调与对齐把它变成一个「听话」的模型。
-  这条路线原则上有四个台阶：监督微调、参数高效微调、偏好优化、可验证奖励的强化学习。
-  这一模块把每个台阶的<strong>数据形态、目标函数、适用条件</strong>列清楚，并对应到 TRL 的具体 trainer。
+  整条路线按顺序有四个台阶：监督微调、参数高效微调、偏好优化、可验证奖励的强化学习。
+  这一模块把每个台阶的<strong>数据形态、目标函数、适用条件</strong>讲清楚，再对应到 TRL 的具体 trainer。
 </p>
 
 <section class="blk blk-tip">
@@ -38,7 +38,7 @@ COURSE.register({
   <tbody>
     <tr><td>模型不知道某些事实</td><td>检索（RAG）</td><td>知识更新快、可溯源，微调记事实既贵又易错</td></tr>
     <tr><td>输出格式/风格不对</td><td>提示词 + few-shot</td><td>零成本，先试 20 个提示模板</td></tr>
-    <tr><td>需要稳定遵循复杂指令</td><td>SFT（可配 LoRA）</td><td>用几百条到几万条示范即可显著改善</td></tr>
+    <tr><td>需要稳定遵循复杂指令</td><td>SFT（可配 LoRA）</td><td>用几百条到几万条示范就能改过来</td></tr>
     <tr><td>有「更好/更差」的偏好但对不齐</td><td>DPO / KTO</td><td>不需要训练奖励模型，直接用偏好对</td></tr>
     <tr><td>答案可以被自动验证（数学、代码）</td><td>GRPO / RLVR</td><td>用规则型奖励替代人类偏好，信号干净且可扩展</td></tr>
     <tr><td>要复现人类反馈的细粒度偏好</td><td>RLHF（奖励模型 + PPO）</td><td>最贵、最不稳，通常只在有大量标注时值得</td></tr>
@@ -46,7 +46,7 @@ COURSE.register({
 </table>
 
 <h3>2. 台阶一：监督微调（SFT）</h3>
-<p>数据是「提问 → 理想回答」的示范。目标函数仍然是交叉熵，只是只在回答部分计算：</p>
+<p>数据是「提问 → 理想回答」的示范。目标函数仍是交叉熵，但只在回答片段上计算：</p>
 \[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{< t}) \]
 <dl class="kv">
   <dt>数据量</dt><dd>格式对齐：200–2000 条即可见效；能力注入：数万到数十万条</dd>
@@ -91,7 +91,7 @@ COURSE.register({
   看前 8 个奇异值占了多少能量。<em>这是一个很好的「小成本、真结论」实验。</em>
 </p>
 
-<h4>3.2 一个 7B 模型的 LoRA 参数量实算</h4>
+<h4>3.2 一个 8B 模型的 LoRA 参数量实算</h4>
 <p>以 Llama-3-8B 的维度（\(d = 4096\)、\(d_{ff} = 14336\)、\(h_{kv} = 8\)、\(d_{\text{head}} = 128\)、32 层）为例，取 \(r = 16\)：</p>
 <table class="tbl small">
   <thead><tr><th>目标模块</th><th>原矩阵形状</th><th>LoRA 参数量 \(r(d+k)\)</th><th>× 32 层</th></tr></thead>
@@ -120,7 +120,7 @@ COURSE.register({
 </p>
 <p>
   另外两个常被忽略的细节：<strong>(1) \(B\) 初始化为 0</strong>，所以训练开始时 \(\Delta W = 0\)，
-  模型精确等于原模型——这让 LoRA 的起步非常安全；
+  模型精确等于原模型——这让 LoRA 的起步很安全；
   <strong>(2) \(\alpha/r\) 只是缩放</strong>，它不改变参数量，但会改变有效学习率，
   所以调 \(r\) 时通常同时按比例调 \(\alpha\)（常见做法是固定 \(\alpha = 2r\)）。
 </p>
@@ -154,7 +154,7 @@ COURSE.register({
     <li>参数量压缩比：原矩阵参数量为 \(dk\)，分解后参数量为 \(r(d+k)\)。当 \(d=k=4096, r=16\) 时，参数量由 \(16{,}777{,}216\) 骤降至 \(16 \times 8192 = 131{,}072\)，占比仅为：
       \[ \frac{r(d+k)}{dk} = \frac{131{,}072}{16{,}777{,}216} = \frac{1}{128} \approx 0.78\% \]
     </li>
-    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (AB) = (xA) B\)：先算 \(xA \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xA)B \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
+    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (AB) = (xA) B\)：先算 \(xA \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xA)B \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降到原来的 \(0.78\%\)。</li>
     <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (A \cdot 0) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
   </ul>
   </section>
@@ -176,41 +176,41 @@ COURSE.register({
   <p>
     <strong>一个直观例子</strong>：问「用一句话解释光合作用」。回答 A 准确简洁（被选中 \(y_w\)），回答 B 编造了细节（被拒绝 \(y_l\)）。
     训练前基座模型给 A 的概率是 \(0.10\)、给 B 的是 \(0.40\)——它倾向于吐出错误的废话。
-    DPO 要做的物理动作，就是把 \(A\) 的生成概率推高、把 \(B\) 的生成概率狠狠压下去。
+    DPO 要做的事，就是把 \(A\) 的生成概率推高、把 \(B\) 的生成概率压下去。
   </p>
 </section>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>数学记号平稳铺垫（Notation Bridge：这几个符号你其实全都学过）</h4>
   <p>
-    在翻开 DPO 原始论文或公式时，很多同学会立刻被几个陌生的数学记号吓住。其实只要把它们翻译成你在前六章学过的内容，全都是初等数学：
+    翻开 DPO 原始论文时，几个陌生的数学记号很容易让人卡住。其实把它们翻译成前六章学过的内容，全都是初等数学：
   </p>
   <ul>
     <li>
-      <strong>为什么语言模型突然变成了希腊字母 \(\pi_	heta\)？</strong><br>
-      在前六章中，我们一直用条件概率 \(p_	heta(y \mid x)\) 来表示大模型。
+      <strong>为什么语言模型突然变成了希腊字母 \(\pi_\theta\)？</strong><br>
+      前六章里你一直用条件概率 \(p_\theta(y \mid x)\) 表示大模型。
       而在强化学习（RL）领域，学者习惯把大模型看作一个做决定的智能体（Agent），输入 \(x\) 是环境状态，输出词是动作。
       在控制论和强化学习文献中，智能体的行动规则统称为<strong>策略（Policy）</strong>，按惯例一律记作希腊字母 \(\pi\)（念作 pi，不要误会成圆周率 3.14）：
-      \[ \pi_	heta(y \mid x) \equiv p_	heta(y \mid x) \]
-      <strong>它就是你手头那个完全相同的 Transformer 自回归大模型，没有任何新增结构！</strong>
+      \[ \pi_\theta(y \mid x) \equiv p_\theta(y \mid x) \]
+      <strong>它就是你手头那个完全相同的 Transformer 自回归大模型，没有任何新增结构。</strong>
     </li>
     <li>
-      <strong>参考模型 \(\pi_{	ext{ref}}\) 是什么？</strong><br>
-      \(	ext{ref}\) 是 Reference（参考基准）的缩写。
-      它就是你刚完成 SFT 之后、<strong>被彻底冻结参数、永远不更新</strong>的原始基座模型备份！
-      它立在原地作为一把“安全锚（Anchor）”，随时提醒正在训练的 \(\pi_	heta\)：你可以根据人类偏好微调输出倾向，但绝不能彻底把原来的语言组织能力训飞或模式崩溃。
+      <strong>参考模型 \(\pi_{\text{ref}}\) 是什么？</strong><br>
+      \(\text{ref}\) 是 Reference（参考基准）的缩写。
+      它就是你刚完成 SFT 之后、<strong>被彻底冻结参数、永远不更新</strong>的原始基座模型备份。
+      它立在原地作为一把“安全锚（Anchor）”，随时提醒正在训练的 \(\pi_\theta\)：你可以根据人类偏好微调输出倾向，但绝不能彻底把原来的语言组织能力训飞或模式崩溃。
     </li>
     <li>
-      <strong>记号 \(	riangleq\) 是什么意思？</strong><br>
-      \(	riangleq\) 纯粹是数学与工程中「定义为（Defined as）」的通用简写，等价于口语里的「令左边等于右边」，无需任何高深理解。
+      <strong>记号 \(\triangleq\) 是什么意思？</strong><br>
+      \(\triangleq\) 纯粹是数学与工程中「定义为（Defined as）」的通用简写，等价于口语里的「令左边等于右边」，无需任何高深理解。
     </li>
     <li>
       <strong>为什么整句概率比会变成逐词对数求和 \(\sum_{t=1}^T\)？</strong><br>
-      在第 01 章我们学过自回归的<strong>联合概率链式法则</strong>：一个由 \(T\) 个词组成的完整句子 \(y=(y_1, y_2, \dots, y_T)\)，其联合概率是每一步条件概率的连续累乘：
-      \[ \pi_	heta(y \mid x) = \prod_{t=1}^T \pi_	heta(y_t \mid x, y_{< t}) \]
-      初等代数告诉我们「对数把连乘化为累加」：\(\log(a \cdot b) = \log a + \log b\)。两边取对数后：
-      \[ \log \pi_	heta(y \mid x) = \sum_{t=1}^T \log \pi_	heta(y_t \mid x, y_{< t}) \]
-      因此，新策略与基准模型的概率除法 \(\log \frac{\pi_	heta}{\pi_{	ext{ref}}} = \log \pi_	heta - \log \pi_{	ext{ref}}\)，自然就变成了每一步词概率对数之差的求和！
+      第 01 章讲过自回归的<strong>联合概率链式法则</strong>：一个由 \(T\) 个词组成的完整句子 \(y=(y_1, y_2, \dots, y_T)\)，其联合概率是每一步条件概率的连续累乘：
+      \[ \pi_\theta(y \mid x) = \prod_{t=1}^T \pi_\theta(y_t \mid x, y_{< t}) \]
+      初等代数里就有「对数把连乘化为累加」：\(\log(a \cdot b) = \log a + \log b\)。两边取对数后：
+      \[ \log \pi_\theta(y \mid x) = \sum_{t=1}^T \log \pi_\theta(y_t \mid x, y_{< t}) \]
+      因此，新策略与基准模型的概率除法 \(\log \frac{\pi_\theta}{\pi_{\text{ref}}} = \log \pi_\theta - \log \pi_{\text{ref}}\)，自然就变成了每一步词概率对数之差的求和。
     </li>
   </ul>
 </section>
@@ -218,28 +218,28 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>DPO 相对概率比与隐式奖励定义（数学形式化）</h4>
   <p>
-    有了前面的记号铺垫，我们现在写出严谨的数学形式。
+    记号铺垫完了，下面写出严谨的数学形式。
     设输入提问为 \(x\)，生成回答为 \(y = (y_1, y_2, \dots, y_T)\)。
-    训练中的策略模型为 \(\pi_	heta(y \mid x)\)，冻结的基准模型为 \(\pi_{	ext{ref}}(y \mid x)\)。
+    训练中的策略模型为 \(\pi_\theta(y \mid x)\)，冻结的基准模型为 \(\pi_{\text{ref}}(y \mid x)\)。
     两者之间的<strong>对数相对概率比（Log Probability Ratio）</strong>定义为：
   </p>
-  \[ \Delta \log \pi(x, y) 	riangleq \log \frac{\pi_	heta(y \mid x)}{\pi_{	ext{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_	heta(y_t \mid x, y_{< t}) - \log \pi_{	ext{ref}}(y_t \mid x, y_{< t}) \Big) \]
+  \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{< t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{< t}) \Big) \]
   <p>
     <strong>为什么这个比值可以直接充当奖励？</strong><br>
     乘以一个恒正的温度调节超参数 \(\beta > 0\)（通常取 \(0.1 \sim 0.5\)）后，定义模型在该回答上的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
-  \[ \hat{r}_	heta(x, y) 	riangleq \beta \log \frac{\pi_	heta(y \mid x)}{\pi_{	ext{ref}}(y \mid x)} \]
+  \[ \hat{r}_\theta(x, y) \triangleq \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \]
   <p>
-    <strong>直觉物理含义一眼看穿</strong>：
+    <strong>直觉上怎么读这个奖励</strong>：
   </p>
   <ul>
-    <li>当 \(\pi_	heta(y \mid x) > \pi_{	ext{ref}}(y \mid x)\) 时，比值大于 1，其对数大于 0，即 \(\hat{r}_	heta > 0\)：说明新模型比原来的冻结基座<strong>更愿意</strong>说出回答 \(y\)，系统自动视为获得了<strong>正向奖励</strong>；</li>
-    <li>当 \(\pi_	heta(y \mid x) < \pi_{	ext{ref}}(y \mid x)\) 时，比值小于 1，其对数小于 0，即 \(\hat{r}_	heta < 0\)：说明新模型在刻意压低回答 \(y\) 的出现频率，系统自动视为获得了<strong>负向惩罚</strong>；</li>
+    <li>当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，比值大于 1，其对数大于 0，即 \(\hat{r}_\theta > 0\)：说明新模型比原来的冻结基座<strong>更愿意</strong>说出回答 \(y\)，系统自动视为获得了<strong>正向奖励</strong>；</li>
+    <li>当 \(\pi_\theta(y \mid x) < \pi_{\text{ref}}(y \mid x)\) 时，比值小于 1，其对数小于 0，即 \(\hat{r}_\theta < 0\)：说明新模型在刻意压低回答 \(y\) 的出现频率，系统自动视为获得了<strong>负向惩罚</strong>；</li>
     <li>温度系数 \(\beta\) 就像灵敏度旋钮：\(\beta\) 越大，模型偏离基准所换来的奖惩幅度越剧烈。</li>
   </ul>
   <p>
-    <strong>这正是 DPO 最震撼业界的洞察</strong>：
-    不需要单独花成本去训练和维护一个额外的打分模型（Reward Model），当前语言模型自身相对于冻结基准的对数比，就已经在数学上等价于一个天然的打分器！
+    <strong>这就是 DPO 的关键洞察</strong>：
+    不需要再花成本训练和维护一个额外的打分模型（Reward Model）：当前语言模型自身相对于冻结基准的对数比，在数学上就等价于一个天然的打分器。
   </p>
 </section>
 
@@ -268,7 +268,7 @@ COURSE.register({
 </p>
 \[ p^*(y|x) = \frac{1}{Z(x)}\,p_{\text{ref}}(y|x)\,\exp\!\Big(\frac{r(x,y)}{\beta}\Big) \]
 <p>
-  <strong>第二步</strong>：把上式反解出奖励。这一步给出了一个非常有用的视角——
+  <strong>第二步</strong>：把上式反解出奖励。这一步给出一个很有用的视角——
   奖励可以用「策略与参考模型的对数概率比」表示：
 </p>
 \[ r(x,y) = \beta\,\log\frac{p^*(y|x)}{p_{\text{ref}}(y|x)} + \beta\,\log Z(x) \]
@@ -299,7 +299,7 @@ COURSE.register({
   <li><strong>只能用离线数据</strong>：它优化的是「这份数据里被选中的回答」，
       但真正想要的是「模型自己采样出来的回答里更好的那些」。数据分布与策略分布会逐渐错位。</li>
   <li><strong>没有探索</strong>：PPO/GRPO 会不断采样新回答并从奖励里学习，DPO 只是拟合固定的偏好对。</li>
-  <li><strong>对数据质量极其敏感</strong>：偏好对里的标注噪声会被直接学成「这就是好的」。</li>
+  <li><strong>对数据质量很敏感</strong>：偏好对里的标注噪声会被直接学成「这就是好的」。</li>
 </ol>
 <p>所以实践中的顺序通常是：<strong>先用 SFT 把行为对齐 → 有偏好对就用 DPO 微调 → 若答案可自动验证（数学、代码）则改用 GRPO。</strong></p>
 <table class="tbl small">
@@ -370,7 +370,7 @@ COURSE.register({
   </p>
   \[ r(x, y) = \beta \log \frac{\pi^*(y \mid x)}{\pi_{\text{ref}}(y \mid x)} + \beta \log Z(x) \]
   <p>
-    <strong>关键观察：</strong>第二项 \(\beta \log Z(x)\) 仅仅是关于输入 prompt \(x\) 的标量，完全与生成的候选回答序列 \(y\) 无关！
+    <strong>关键观察：</strong>第二项 \(\beta \log Z(x)\) 只是关于输入 prompt \(x\) 的标量，与生成的候选回答序列 \(y\) 完全无关。
   </p>
   <p><strong>第 4 步：代入 Bradley–Terry 偏好模型，配分项精确对消</strong></p>
   <p>
@@ -387,7 +387,7 @@ COURSE.register({
   &= \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}
   \end{aligned} \]
   <p>
-    <strong>数学奇迹：</strong>两个极其难算的配分项 \(\beta \log Z(x)\) 严格相减对消为 0！
+    <strong>关键一步：</strong>两个本来很难算的配分项 \(\beta \log Z(x)\) 相减后对消为 0。
     由此，偏好概率被纯粹表达为策略与参考模型的相对概率比：
   </p>
   \[ P(y_w \succ y_l \mid x) = \sigma\left( \beta \left[ \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right] \right) \]
@@ -397,7 +397,7 @@ COURSE.register({
   </p>
   \[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = - \mathbb{E}_{(x, y_w, y_l) \sim \mathcal{D}} \left[ \log \sigma\left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \right) \right] \]
   <p>
-    至此，我们用纯粹的代数变换，<strong>彻底消除了独立的奖励模型 \(r(x, y)\) 和 PPO 的在线环境采样循环</strong>！
+    走到这里，纯代数变换就<strong>消掉了独立的奖励模型 \(r(x, y)\) 和 PPO 的在线环境采样循环</strong>。
   </p>
 </section>
   </div>
@@ -463,7 +463,7 @@ COURSE.register({
   </p>
   \[ -\nabla_\theta \mathcal{L}_{\text{DPO}} = +\frac{1}{3} \nabla_\theta \log \pi_\theta(y_w \mid x) - \frac{1}{3} \nabla_\theta \log \pi_\theta(y_l \mid x) \]
   <p>
-    <strong>动力学直觉：</strong>参数更新以 \(+\frac{1}{3}\) 的梯度动力<strong>强力推高</strong>获胜回答 \(y_w\) 的生成对数概率，同时以 \(-\frac{1}{3}\) 的反向动力<strong>压低</strong>落败回答 \(y_l\) 的生成概率！
+    <strong>动力学直觉：</strong>参数更新以 \(+\frac{1}{3}\) 的梯度动力<strong>强力推高</strong>获胜回答 \(y_w\) 的生成对数概率，同时以 \(-\frac{1}{3}\) 的反向动力<strong>压低</strong>落败回答 \(y_l\) 的生成概率。
     一旦模型学好使得 \(u \gg 0\) 时，\(\sigma(u) \to 1\)，动态权重 \(1 - \sigma(u) \to 0\)，梯度推力平滑归零，杜绝过调。
   </p>
   </div>
@@ -502,7 +502,6 @@ COURSE.register({
   </ul>
 </section>
 <p>
-  裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。
   裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。它并不是给概率本身设硬上限，也不保证参数更新会在阈值处停住；
   \(\beta D_{\mathrm{KL}}\) 把新策略拴在参考模型附近。
 </p>
@@ -522,7 +521,7 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：最小可用的 SFT + DPO 流水线（完整版见附录 B · E4、E5）</h4>
 <p>
-  在后训练（Post-Training）阶段，两大核心技术 LoRA 与 DPO 的计算内核可以通过微核心算子直接展现：
+  后训练（Post-Training）阶段的两大核心技术 LoRA 与 DPO，计算内核可以直接写成两个微核心算子：
 </p>
 
 <p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
@@ -534,7 +533,7 @@ COURSE.register({
 <p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>
 <p>\[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right] \]</p>
 <p>
-  <strong>逐行代数解析</strong>：计算人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）之间的隐式奖励对数几率差；经由超参数 \(\beta\) 调节后输入 Sigmoid 函数并求负对数似然，无需显式训练独立的奖励模型。
+  <strong>逐行代数解析</strong>：把人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）的隐式奖励取对数几率差，经超参数 \(\beta\) 缩放后送进 Sigmoid 再求负对数似然，全程不需要单独训练奖励模型。
 </p>
   <p><strong>要观察的指标</strong>：DPO 日志里的 <code>rewards/chosen</code> 与 <code>rewards/rejected</code> 的差（margin）应逐步拉开；
   若两者同时下降，说明你在把模型推离参考分布太远，需要减小学习率或增大 \(\beta\)。</p>
@@ -617,7 +616,7 @@ COURSE.register({
     <li>因为使用蒙特卡洛采样近似计算了 \(Z(x)\)</li>
   </ul>
   <p class="why">
-    推导的核心精髓就在于配分函数 \(Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp(r(x, y)/\beta)\) 只依赖于条件 \(x\)，完全与候选回答 \(y\) 无关。在计算胜出回答与落败回答的奖励差时，\(\beta \log Z(x) - \beta \log Z(x) \equiv 0\)，从而奇迹般避开了对整个词表生成空间的难解配分求和！
+    推导的核心精髓就在于配分函数 \(Z(x) = \sum_y \pi_{\text{ref}}(y \mid x) \exp(r(x, y)/\beta)\) 只依赖于条件 \(x\)，完全与候选回答 \(y\) 无关。在计算胜出回答与落败回答的奖励差时，\(\beta \log Z(x) - \beta \log Z(x) \equiv 0\)，从而避开了对整个词表生成空间的难解配分求和。
   </p>
 </div>
 

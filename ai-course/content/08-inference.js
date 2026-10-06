@@ -10,7 +10,7 @@ COURSE.register({
   body: String.raw`
 <p class="lead">
   训练一次，推理无数次。推理阶段决定了你的产品体验、账单，以及能不能在本地跑起来。
-  这一模块讲采样、量化、批处理，以及一个对第 12 模块至关重要的机制：<strong>前缀缓存</strong>。
+  这一模块讲采样、量化、批处理，还有一个对第 24 模块至关重要的机制：<strong>前缀缓存</strong>。
 </p>
 
 <section class="blk blk-tip">
@@ -64,7 +64,7 @@ COURSE.register({
 <p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
 <p>\[ P(w_{t} = i \mid w_{< t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
+  <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，再由 <code>torch.multinomial</code> 按概率权重随机采样，避免贪心解码一路重复同一句话。
 </p>
 <p><strong>一个常见误解</strong>：贪心解码（\(T=0\)）不等于「最正确答案」，它只是「最高概率路径」。
 在需要多样性的任务（写诗、生成候选）上贪心会退化；在需要确定性的任务（抽取、分类）上它是最佳选择。</p>
@@ -179,10 +179,10 @@ COURSE.register({
   <span class="t" data-tterm="Prefix caching / prompt caching" data-d="缓存共享前缀的 KV，使重复前缀的计算与计费大幅降低；通常有几分钟的存活时间，且与具体账号/实例绑定。">前缀缓存 / 提示缓存</span>。
 </p>
 <ul>
-  <li><strong>收益</strong>：长系统提示 + 多轮对话场景下，延迟可降数倍，费用可显著下降。</li>
+  <li><strong>收益</strong>：长系统提示 + 多轮对话场景下，延迟能降数倍，费用也跟着降。</li>
   <li><strong>失效条件</strong>：前缀中任何位置变化（哪怕改一个字）都会让缓存失效；请求被路由到<strong>另一个实例或另一个账号</strong>也会失效。</li>
-  <li><strong>对你的意义</strong>：这正是第 12 模块里「账号亲和」的量化理由——如果代理在中途切换账号，
-      缓存全部失效，可能要重新写入 80 万 token 的前缀。</li>
+  <li><strong>对你的意义</strong>：这正是第 24 模块里「账号亲和」的量化理由——代理中途换了账号，
+      缓存就全部失效，可能要重新写入 80 万 token 的前缀。</li>
 </ul>
 
 <h3>5. 成本估算</h3>
@@ -238,8 +238,8 @@ COURSE.register({
 \[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{< t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
 <p>
   <strong>记号直觉小桥</strong>：\(\sim\) 读作「服从……采样」，\(\mathrm{Cat}\) 是 <strong>Categorical Distribution（分类分布）</strong>的缩写。
-  这句公式的物理动作极度直观：把模型最后一层输出除以温度 \(T\) 并经过 Softmax 变成总和为 \(100\%\) 的词表概率，
-  然后拿着这个概率分布去<strong>掷一枚拥有 \(V\) 个面的不均匀骰子</strong>，掷出的那个面就是下一个吐出的 Token \(x_t\)！
+  这句公式的物理动作很直观：把模型最后一层输出除以温度 \(T\) 并经过 Softmax 变成总和为 \(100\%\) 的词表概率，
+  然后拿着这个概率分布去<strong>掷一枚拥有 \(V\) 个面的不均匀骰子</strong>，掷出的那个面就是下一个吐出的 Token \(x_t\)。
 </p>
 <p>
   其中 \(x_{< t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
@@ -255,7 +255,7 @@ COURSE.register({
 <p><strong>KV Cache 缓存追加算子微核心演示：</strong></p>
 <p>\[ K_{1:t} = [K_{1:t-1} \parallel k_t], \quad V_{1:t} = [V_{1:t-1} \parallel v_t] \]</p>
 <p>
-  <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 骤降为 \(O(T)\)。
+  <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 降到 \(O(T)\)。
 </p>
 
 <section class="blk blk-m">
@@ -515,7 +515,7 @@ COURSE.register({
 <p><strong>4-bit NF4 低显存量化加载算子微核心演示：</strong></p>
 <p>\[ W_{\text{FP16}} \xrightarrow{\text{NF4 Quant}} W_{\text{4-bit}} + \text{absmax} \cdot c, \quad \text{Memory} \approx \frac{1}{4} \text{Memory}_{\text{FP16}} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，使 1.5B 乃至 7B 级别大模型得以平稳驻留在消费级或免费 T4 显卡（16GB）显存内。
+  <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，让 1.5B 到 7B 这一档模型能稳稳装进消费级显卡或免费 T4（16GB）的显存里。
 </p>
   <p>记录四件事：显存、tokens/s、输出质量是否肉眼可辨、以及首次加载时间。然后回答：
   <em>如果你要部署一个每天 10 万次调用的服务，量化省下的钱和掉的质量哪个更值？</em></p>
@@ -547,7 +547,7 @@ COURSE.register({
   </ul>
   <p class="why">
     前缀缓存以「逐 token 完全相同的前缀」为键。前缀任何位置的变化都会使其失效；
-    缓存通常还与实例（甚至账号）绑定，因此负载均衡与账号切换会直接击穿缓存——这是第 12 模块的核心工程约束。
+    缓存通常还与实例（甚至账号）绑定，因此负载均衡与账号切换会直接击穿缓存——这是第 24 模块的核心工程约束。
   </p>
 </div>
 
@@ -556,7 +556,7 @@ COURSE.register({
   <p class="q">为什么主流做法把权重量化到 4-bit，而激活值通常只到 8-bit？</p>
   <ul class="opts">
     <li>因为激活值数量更少</li>
-    <li data-ok>激活值中存在离群值（outliers），低位宽会显著破坏它们，导致质量骤降</li>
+    <li data-ok>激活值中存在离群值（outliers），低位宽会把它们压坏，导致质量明显下降</li>
     <li>因为硬件不支持低位宽激活</li>
     <li>因为量化权重更容易实现</li>
   </ul>
@@ -600,7 +600,7 @@ COURSE.register({
   <p class="why">
     加速比是「每轮产出」除以「每轮成本」：\(\mathbb{E}[n_{\text{tok}}] = (1-\alpha^{k+1})/(1-\alpha) = 1.9375\)，
     成本 \(= \gamma k + 1 = 1.4\)，比值 \(1.9375/1.4 = 1.384\)。10.00 是把上限误当实测；
-    2.00 忽略了草稿侧那 \(\gamma k = 0.4\) 的成本；1.00 是低估——因为保本接受率只有约 0.23，
+    2.00 忽略了草稿侧那 \(\gamma k = 0.4\) 的成本；1.00 是低估——因为保本接受率只有约 0.29，
     \(\alpha = 0.5\) 仍然明显高于保本线。<strong>结论</strong>：投机解码的加速比要先算后用，不要凭「快了十倍」的说法配参数。
   </p>
 </div>

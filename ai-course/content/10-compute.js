@@ -19,7 +19,8 @@ COURSE.register({
   body: String.raw`
 
 <p class="lead">
-  在真实的现代大语言模型系统工程中，算力不再是一个抽象的数字，而是由硬件极限（Memory Wall）、浮点计算密度（FLOPs）、以及集群利用率（MFU）严格决定的物理系统。本章彻底剥离个人小实验工具，带你建立起工业级真实大模型的“算力物理底座”：从 Roofline 模型与算术强度推演，到标准 Transformer 经典 6N FLOPs/token 的严格矩阵微积分推导，再到 8×A100 / H100 训练集群的 MFU 真实工程手算。
+  训练一个大模型到底要烧多少算力？这不是拍脑袋估的数字，而是被三件事卡死：显存带宽（Memory Wall）、浮点运算量（FLOPs）和集群利用率（MFU）。
+  这一章把这本账算清楚：先用 Roofline 模型和算术强度判断一个算子卡在带宽上还是卡在算力上，再用矩阵微积分把经典 Transformer 的 6N FLOPs/token 严格推出来，然后拿 8×A100 / H100 训练集群的真实数字手算一遍 MFU。
 </p>
 
 <h3>1. 工业级真实大模型算力阶梯与集群规模</h3>
@@ -32,7 +33,7 @@ COURSE.register({
   </tbody>
 </table>
 <p>
-  <strong>工业级工程直觉</strong>：为什么前沿大模型从来不是单卡能跑的？因为哪怕用一张当今最强规格的 H100 SXM5（半精度 Tensor Core 峰值每秒近 \(10^{15}\) 次浮点运算），训练 70B 模型也需要<strong>单卡不吃不喝连续计算 200 年</strong>！因此，大规模分布式集群并行、网络拓扑互联、以及避免访存瓶颈的极致算子优化，是大模型系统工程的绝对核心。
+  <strong>先建立量级感</strong>：前沿大模型为什么从来不是单卡跑的？拿一张 H100 SXM5 来说，半精度 Tensor Core 峰值已经接近每秒 \(10^{15}\) 次浮点运算，训练 70B 模型仍然要<strong>单卡不停机连算 200 年</strong>。所以真实工程里要解决的就三件事：把集群铺开做并行、把卡间网络接好、把访存瓶颈用算子优化压下去。
 </p>
 
 <h3>2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演</h3>
@@ -43,15 +44,15 @@ COURSE.register({
 
   <ul>
 
-    <li><strong>浮点运算次数（FLOPs, Floating Point Operations）</strong>：衡量计算工作量的无量纲次数。注意末尾小写 <code>s</code> 代表复数（操作数），以区别于算力速率单位 <code>FLOPS</code>（FLOP/s, 每秒浮点操作次数）。</li>
+    <li><strong>浮点运算次数（FLOPs, Floating Point Operations）</strong>：一项计算一共要做多少次浮点运算，只是个次数，不带单位。末尾的小写 <code>s</code> 是复数（operations），用来跟算力速率单位 <code>FLOPS</code>（FLOP/s，每秒浮点操作次数）区分。</li>
 
-    <li><strong>乘加运算（MACs, Multiply-Accumulate）</strong>：计算机底层执行 \( a \leftarrow a + (b \times c) \)。包含 1 次乘法与 1 次加法，因此在算力理论与硬件基准中定义：
+    <li><strong>乘加运算（MACs, Multiply-Accumulate）</strong>：硬件底层执行的就是 \( a \leftarrow a + (b \times c) \)，1 次乘法加 1 次加法，所以算力理论和硬件基准里统一规定：
 
       \[ 1 \text{ MAC} = 2 \text{ FLOPs} \]
 
     </li>
 
-    <li><strong>矩阵乘法复杂度通用定理</strong>：设矩阵 \( A \in \mathbb{R}^{m \times k} \) 与 \( B \in \mathbb{R}^{k \times n} \) 相乘，结果矩阵 \( C = AB \in \mathbb{R}^{m \times n} \)。输出矩阵共有 \( m \times n \) 个元素，每个元素是 \( k \) 维向量点积（需 \( k \) 次乘法和 \( k \) 次累加，即 \( k \) 次 MACs）。因此稠密矩阵乘法的精确浮点运算量为：
+    <li><strong>矩阵乘法复杂度通用定理</strong>：设矩阵 \( A \in \mathbb{R}^{m \times k} \) 与 \( B \in \mathbb{R}^{k \times n} \) 相乘，结果矩阵 \( C = AB \in \mathbb{R}^{m \times n} \)。输出矩阵有 \( m \times n \) 个元素，每个元素是一次 \( k \) 维向量点积（\( k \) 次乘法加 \( k \) 次累加，即 \( k \) 次 MACs）。于是稠密矩阵乘法的浮点运算量精确为：
 
       \[ \text{FLOPs}_{\text{GEMM}} = 2 \cdot m \cdot n \cdot k \]
 
@@ -59,7 +60,7 @@ COURSE.register({
 
     <li><strong>访存量（Memory Traffic, \( M \)）与算术强度（Arithmetic Intensity, \( I \)）</strong>：
 
-      算术强度定义为算法执行的总运算量与在芯片计算核心与显存（HBM/DRAM）之间搬运的字节总量之比：
+      算术强度就是总运算量除以计算核心与显存（HBM/DRAM）之间搬运的字节数：
 
       \[ I = \frac{\text{Total FLOPs}}{M} \quad (\text{FLOP/Byte}) \]
 
@@ -67,15 +68,15 @@ COURSE.register({
 
     <li><strong>Roofline 模型</strong>：
 
-      加速卡上的理论最大可达成运算性能 \( P_{\text{attainable}} \)（单位 \( \text{FLOP/s} \)）受到芯片理论算力峰值 \( P_{\text{peak}} \)（\( \text{FLOP/s} \)）与显存带宽 \( B_{\text{mem}} \)（\( \text{Byte/s} \)）的双重截断约束：
+      一张卡实际能跑到多快，由两个上限共同截断：芯片理论算力峰值 \( P_{\text{peak}} \)（单位 \( \text{FLOP/s} \)）与显存带宽 \( B_{\text{mem}} \)（单位 \( \text{Byte/s} \)）。两者中较小的那个就是可达成性能 \( P_{\text{attainable}} \)：
 
       \[ P_{\text{attainable}} = \min(P_{\text{peak}}, \; I \cdot B_{\text{mem}}) \]
 
-      硬件本身的拐点强度（Turning Point Intensity）为：
+      两个上限的交点叫拐点强度（Turning Point Intensity）：
 
       \[ I^* = \frac{P_{\text{peak}}}{B_{\text{mem}}} \]
 
-      若 \( I < I^* \)，算法落入<strong>访存瓶颈区（Memory-bound）</strong>，算力利用率由显存带宽死死卡住；若 \( I \ge I^* \)，算法落入<strong>算力瓶颈区（Compute-bound）</strong>，此时才有可能逼近硬件算力上限。
+      \( I < I^* \) 说明算法落在<strong>访存瓶颈区（Memory-bound）</strong>，能跑多快由显存带宽说了算；\( I \ge I^* \) 才进<strong>算力瓶颈区（Compute-bound）</strong>，这时才有机会逼近硬件算力上限。
 
     </li>
 
@@ -87,15 +88,15 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>极简小数字草稿纸演算（Scratchpad 1）</h4>
+  <h4><span class="ic">✓</span>小数字草稿纸演算（Scratchpad 1）</h4>
 
-  <p>在草稿纸上设定一块易于心算的虚拟加速卡：算力峰值 \( P_{\text{peak}} = 100 \text{ TFLOPS} = 10^{14} \text{ FLOP/s} \)，显存带宽 \( B_{\text{mem}} = 1000 \text{ GB/s} = 10^{12} \text{ Byte/s} \)。</p>
+  <p>在草稿纸上造一块好算的虚拟卡：算力峰值 \( P_{\text{peak}} = 100 \text{ TFLOPS} = 10^{14} \text{ FLOP/s} \)，显存带宽 \( B_{\text{mem}} = 1000 \text{ GB/s} = 10^{12} \text{ Byte/s} \)。</p>
 
-  <p>首先计算该硬件的拐点算术强度：</p>
+  <p>它的拐点算术强度是：</p>
 
   \[ I^* = \frac{10^{14} \text{ FLOP/s}}{10^{12} \text{ Byte/s}} = 100 \text{ FLOP/Byte} \]
 
-  <p>现在我们在草稿纸上对比两种典型的真实深度学习执行场景：</p>
+  <p>下面比两个真实场景：</p>
 
   <ol>
 
@@ -115,7 +116,7 @@ COURSE.register({
 
       \[ P_{\text{attainable}} = \min(10^{14}, \; 1 \times 10^{12}) = 10^{12} \text{ FLOP/s} = 1 \text{ TFLOPS} \]
 
-      <strong>惊人结论</strong>：此时硬件利用率只有 \( \frac{1 \text{ TFLOPS}}{100 \text{ TFLOPS}} = 1\% \)！算力核心 99% 的时间都在饥饿地等待显存把参数搬过来。这就是单批次自回归推理极慢的数学本质。
+      <strong>结论</strong>：此时硬件利用率只有 \( \frac{1 \text{ TFLOPS}}{100 \text{ TFLOPS}} = 1\% \)，算力核心 99% 的时间都在等显存把参数搬过来。这就是单条自回归推理慢的数学原因。
 
     </li>
 
@@ -131,9 +132,9 @@ COURSE.register({
 
       \[ I_B = \frac{2 \times 4096^3}{6 \times 4096^2} = \frac{4096}{3} \approx 1365.3 \text{ FLOP/Byte} \]
 
-      - 可达性能：因为 \( 1365.3 \text{ FLOP/Byte} \gg I^* = 100 \text{ FLOP/Byte} \)，算法稳居算力瓶颈区，\( P_{\text{attainable}} = 100 \text{ TFLOPS} \)。<br />
+      - 可达性能：因为 \( 1365.3 \text{ FLOP/Byte} \gg I^* = 100 \text{ FLOP/Byte} \)，早就越过拐点，落在算力瓶颈区，\( P_{\text{attainable}} = 100 \text{ TFLOPS} \)。<br />
 
-      <strong>核心洞察</strong>：相同的权重参数，被 4096 个 Token 深度复用，算力利用率从 1% 跃升至理论峰值！
+      <strong>关键差别</strong>：同一份权重被 4096 个 Token 共用，每读一次显存就摊给整批 Token，算力利用率从 1% 一路拉到理论峰值。
 
     </li>
 
@@ -143,7 +144,7 @@ COURSE.register({
 
 
 
-<h3>3. 经典 6N 推导：标准 Transformer 单层与整网 6N FLOPs/token 严格数学证明</h3>
+<h3>3. 经典 6N 推导：单层 Transformer 到整网的 6N FLOPs/token 严格证明</h3>
 
 <section class="blk blk-m">
 
@@ -153,7 +154,7 @@ COURSE.register({
 
     设标准 Transformer 块的隐藏维度为 \( d \)，注意力头数为 \( h \)，每个头维度 \( d_k = d/h \)，MLP 中间前馈维度扩展为 \( d_{\text{ff}} = 4d \)。
 
-    我们将计算拆解到<strong>单个 Token</strong>（输入行向量 \( x \in \mathbb{R}^{1 \times d} \)）上：
+    下面把所有计算都摊到<strong>单个 Token</strong>上看（输入是行向量 \( x \in \mathbb{R}^{1 \times d} \)）：
 
   </p>
 
@@ -183,7 +184,7 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>极简小数字草稿纸演算（Scratchpad 2：令 \( d=2 \)）</h4>
+  <h4><span class="ic">✓</span>小数字草稿纸演算（Scratchpad 2：令 \( d=2 \)）</h4>
 
   <p>在草稿纸上代入最微型数字验证代数恒等性：取隐藏维度 \( d = 2 \)，MLP 扩展维度 \( d_{\text{ff}} = 4 \times 2 = 8 \)。输入单 Token 向量 \( x \in \mathbb{R}^{1 \times 2} \)。</p>
 
@@ -209,7 +210,7 @@ COURSE.register({
 
       \[ \frac{\text{FLOPs}_{\text{fwd}}}{N_{\text{layer}}} = \frac{96}{48} = 2 \]
 
-      <strong>草稿验证通过</strong>：前向传播每 Token 恰好严格消耗 \( 2N \) FLOPs！
+      <strong>验算通过</strong>：前向每个 Token 正好消耗 \( 2N \) FLOPs。
 
     </li>
 
@@ -235,7 +236,7 @@ COURSE.register({
 
   <h4><span class="ic">∑</span>为什么反向传播严格是 \( 4N \) FLOPs？——矩阵微积分严格证明</h4>
 
-  <p>许多初学者直觉上认为反向传播应该与前向对称（以为也是 2N）。这里给出数学系标准的多元微积分链式法则推导：</p>
+  <p>不少人凭直觉以为反向应该跟前向对称，也是 2N。下面用标准的多元微积分链式法则推一遍：</p>
 
   <p>考虑通用全连接层的前向计算：</p>
 
@@ -249,13 +250,13 @@ COURSE.register({
 
   \[ G = \frac{\partial \mathcal{L}}{\partial Y} \in \mathbb{R}^{B \times d_{\text{out}}} \]
 
-  <p>为了完成整个网络梯度的继续反向传递与权重参数更新，计算图必须执行<strong>两个完全独立的矩阵乘法</strong>：</p>
+  <p>要让梯度继续往浅层传、同时算出权重的更新量，计算图必须做<strong>两个互不相干的矩阵乘法</strong>：</p>
 
   <ol>
 
     <li><strong>第一步：对输入激活求梯度（用于向网络浅层继续反向传递）</strong><br />
 
-      根据矩阵微分全导数公式：
+      矩阵微分给出：
 
       \[ \frac{\partial \mathcal{L}}{\partial X} = G W^T \]
 
@@ -269,7 +270,7 @@ COURSE.register({
 
     <li><strong>第二步：对权重矩阵求梯度（用于优化器更新模型权重）</strong><br />
 
-      根据矩阵微分全导数公式：
+      同样由矩阵微分：
 
       \[ \frac{\partial \mathcal{L}}{\partial W} = X^T G \]
 
@@ -283,27 +284,27 @@ COURSE.register({
 
   </ol>
 
-  <p><strong>反向传播总计算量</strong>：</p>
+  <p><strong>反向合计</strong>：</p>
 
   \[ \text{FLOPs}_{\text{bwd}} = \text{FLOPs}_{\text{grad\_input}} + \text{FLOPs}_{\text{grad\_weight}} = 2 B N_{\text{param}} + 2 B N_{\text{param}} = 4 B N_{\text{param}} \]
 
-  <p>单 Token（\( B=1 \)）的反向计算量<strong>严格等于 \( 4N \) FLOPs</strong>！</p>
+  <p>单 Token（\( B=1 \)）的反向计算量<strong>正好是 \( 4N \) FLOPs</strong>。</p>
 
   <p><strong>单 Token 训练总计算量（前向 + 反向）</strong>：</p>
 
   \[ \text{FLOPs}_{\text{train}} = \text{FLOPs}_{\text{fwd}} + \text{FLOPs}_{\text{bwd}} = 2N + 4N = 6N \quad (\text{FLOPs/token}) \]
 
-  <p>对于含有 \( N \) 个参数的 Transformer 模型，训练 \( D \) 个 Token 所需的总浮点运算量精确公式为：</p>
+  <p>于是参数量为 \( N \) 的 Transformer 训练 \( D \) 个 Token，总浮点运算量就是：</p>
 
   \[ \text{Total FLOPs} = 6 \cdot N \cdot D \]
 
   <p class="small">
 
-    注：(1) 若开启激活重计算（Activation Checkpointing / Gradient Checkpointing）以显存换计算，在反向时需要把前向重新计算一遍，总计算量上升为 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
+    注：(1) 开了激活重计算（Activation Checkpointing / Gradient Checkpointing）就是拿显存换计算：反向时要把前向重跑一遍，总计算量变成 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
 
-     (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \) 与层数 \( L \)，单 Token 平摊计算量为 \( 4LTd\)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
+     (2) 注意力里的 \( Q K^T \) 与 \( A V \) 跟序列长度 \( T \)、层数 \( L \) 有关，单 Token 平摊计算量为 \( 4LTd\)。当隐藏维度 \( d \gg T \) 时，它占整网总计算量的比例通常不到 5%~8%，Kaplan / Chinchilla 标度律推导里当次要项处理，主导项就是严谨的 \( 6N \)。<br />
 
-    (3) 长上下文守卫：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
+    (3) 长上下文提醒：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形要按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
 
   </p>
 
@@ -311,17 +312,17 @@ COURSE.register({
 
 
 
-<h3>4. MFU 实战演算：工业级集群训练利用率（8×A100 训练 7B 模型）</h3>
+<h3>4. MFU 实战：8×A100 训练 7B 的利用率手算</h3>
 
 <section class="blk blk-m">
 
   <h4><span class="ic">∑</span>前置定义与公式</h4>
 
-  <p>模型浮点利用率（Model FLOPs Utilization, MFU）定义为模型有效计算产出速率与硬件理论密集算力峰值之比：</p>
+  <p>模型浮点利用率（Model FLOPs Utilization, MFU）就是模型的有效计算速率除以硬件理论密集算力峰值：</p>
 
   \[ \text{MFU} = \frac{\text{Effective FLOP/s}}{\text{Total Hardware Peak FLOPS}} = \frac{\text{Throughput (tokens/s)} \times 6N}{\sum_{i=1}^M P_{\text{peak}}^{(i)}} \]
 
-  <p>其中 \( N \) 为模型参数量，\( \text{Throughput} \) 为集群端到端实测吞吐速率（Tokens/s），分母为所有加速卡理论半精度稠密峰值之和。</p>
+  <p>其中 \( N \) 是模型参数量，\( \text{Throughput} \) 是集群端到端实测吞吐（Tokens/s），分母把所有加速卡的理论半精度稠密峰值加起来。</p>
 
 </section>
 
@@ -329,9 +330,9 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>真实工程场景草稿纸手算：8×A100 训练 7B 模型</h4>
+  <h4><span class="ic">✓</span>8×A100 训练 7B：一步一步手算</h4>
 
-  <p>在草稿纸上记录真实生产集群参数：</p>
+  <p>先把生产集群的参数记在草稿纸上：</p>
 
   <ol>
 
@@ -371,7 +372,7 @@ COURSE.register({
 
   </ol>
 
-  <p><strong>工业达标基线解读</strong>：</p>
+  <p><strong>多少算达标</strong>：</p>
 
   <table class="tbl small">
 
@@ -379,11 +380,11 @@ COURSE.register({
 
     <tbody>
 
-      <tr><td>较低</td><td>\( < 30\% \)</td><td>存在严重访存瓶颈（未用 FlashAttention）、小 Batch 导致 GEMM 算力未跑满、或数据加载/通信阻塞</td></tr>
+      <tr><td>偏低</td><td>\( < 30\% \)</td><td>访存瓶颈没解决（比如没上 FlashAttention）、Batch 太小导致 GEMM 跑不满，或者卡在数据加载与通信上</td></tr>
 
-      <tr><td>达标（优秀）</td><td>\( 35\% \sim 48\% \)</td><td>主流 Megatron-LM、DeepSpeed、JAX 工业级调优标准区间，计算与通信良好重叠</td></tr>
+      <tr><td>达标</td><td>\( 35\% \sim 48\% \)</td><td>Megatron-LM、DeepSpeed、JAX 调优到位的常见区间，计算和通信重叠得不错</td></tr>
 
-      <tr><td>极限顶尖</td><td>\( > 50\% \)</td><td>高度定制化的全异步流水通信重叠、算子深度融合（Kernel Fusion）与微架构协同调优</td></tr>
+      <tr><td>天花板</td><td>\( > 50\% \)</td><td>全异步流水线把通信彻底藏起来、算子深度融合（Kernel Fusion），再往上就要抠微架构细节了</td></tr>
 
     </tbody>
 
@@ -399,17 +400,17 @@ COURSE.register({
 
 <section class="blk blk-tip">
 
-  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
+  <h4><span class="ic">✓</span>回到你自己的项目：以后该怎么迁移</h4>
 
   <p>
 
-    Checkpoint 5/6 这类任务需要「成对歌曲的适配」与「配对失败模式的统计」。这两件事都是<strong>特征工程 + 统计</strong>，
+    Checkpoint 5/6 这类任务要的是「成对歌曲的适配」和「配对失败模式的统计」，本质是<strong>特征工程加统计</strong>，
 
-    不需要大算力；而 Checkpoint 7 这类学习实验甚至可以用 CPU 完成（250 条样本、4 维特征）。
+    不吃算力；Checkpoint 7 那种学习实验用 CPU 就能跑完（250 条样本、4 维特征）。
 
-    <em>换句话说：以后做 crossfade 这类项目时，瓶颈通常不是算力，而是模型设计、评估协议与听测组织。</em>
+    <em>换句话说：以后做 crossfade 这类项目，瓶颈通常不在算力，而在模型设计、评估协议和听测组织。</em>
 
-    把算力省下来做数据标注与多轮听测，比多训一个大模型更划算。
+    把算力省下来做数据标注和多轮听测，比多训一个大模型划算。
 
   </p>
 
@@ -421,24 +422,24 @@ COURSE.register({
 
   <div class="qlabel">自测 · 1</div>
 
-  <p class="q">8 台设备的 SPMD 网格记作 \(t \times p \times d\)（张量 / 流水 / 数据）。要跑「4 路张量 × 2 路流水」的混合并行，网格与数据并行度是？</p>
+  <p class="q">在草稿纸那块卡上（峰值 100 TFLOPS、带宽 1000 GB/s），单个 Token 乘以 \(4096 \times 4096\) 的 FP16 权重矩阵，它的算术强度与瓶颈类型是？</p>
 
   <ul class="opts">
 
-    <li>单设备上直接跑 4×2，SPMD 会自动切分</li>
+    <li>约 1365 FLOP/Byte，落在算力瓶颈区</li>
 
-    <li data-ok>\(t=4, p=2, d=1\)：乘积正好 8 台设备，全局批全进 micro-batch</li>
+    <li data-ok>约 1 FLOP/Byte，远低于拐点 \(I^* = 100 \text{ FLOP/Byte}\)，落在访存瓶颈区</li>
 
-    <li>\(t=8, p=2, d=2\)：张量越多越快</li>
+    <li>正好 100 FLOP/Byte，卡在拐点上</li>
 
-    <li>\(t=2, p=4, d=2\)：对称配置最稳</li>
+    <li>约 0.5 FLOP/Byte，属于显存容量不足</li>
 
   </ul>
 
   <p class="why">
 
-    网格乘积必须等于设备数：\(4 \times 2 \times 1 = 8\)，此时 \(d = 1\) 意味着没有数据并行，全局批全靠 micro-batch 堆。
-    第三项要 32 台设备；第四项要 16 台；单核上 reshape(4,2) 会直接报错——设备数是硬约束，不是偏好。
+    单 Token 的运算量是 \(2 \times 4096^2\) FLOPs，却要把整个 \(4096^2 \times 2\) Bytes 的权重从 HBM 搬进来，两者一除恰好是 1 FLOP/Byte。
+    拐点 \(I^* = 10^{14} / 10^{12} = 100 \text{ FLOP/Byte}\)，1 远小于 100，所以算力核心只能跑到 1 TFLOPS，利用率 1%。
 
   </p>
 
@@ -450,25 +451,23 @@ COURSE.register({
 
   <div class="qlabel">自测 · 2</div>
 
-  <p class="q">在 Colab 上做一次 90 分钟的训练，最不应该省略的一步是？</p>
+  <p class="q">同一层 \(4096 \times 4096\) 的权重，输入从 1 个 Token 换成 4096 个 Token 之后，可达性能为什么能从 1 TFLOPS 拉回 100 TFLOPS？</p>
 
   <ul class="opts">
 
-    <li>把学习率调到最优</li>
+    <li>因为权重变小了，显存搬运量随之下降</li>
 
-    <li data-ok>把检查点定期写到 Google Drive / HF Hub</li>
+    <li data-ok>因为权重只读一次就被 4096 个 Token 复用，搬运量约为 \(3 \times 4096^2 \times 2\) Bytes，算术强度升到约 1365.3 FLOP/Byte，越过拐点进入算力瓶颈区</li>
 
-    <li>使用更大的批大小</li>
+    <li>因为 GPU 会自动提高核心频率</li>
 
-    <li>打开 tqdm 进度条</li>
+    <li>因为 Softmax 的浮点运算量占了主导</li>
 
   </ul>
 
   <p class="why">
 
-    Colab 会话随时可能断开且本地磁盘不持久。没有外存检查点，一次断线就等于全部重来。
-
-    这是「工程纪律」在免费算力环境下最重要的一条。
+    访存瓶颈下拼的不是算得多快，而是搬得多少。这一场景的算术强度是 \(I_B = \frac{2 \times 4096^3}{6 \times 4096^2} = \frac{4096}{3} \approx 1365.3 \text{ FLOP/Byte}\)，远高于 \(I^* = 100\)，于是 \(P_{\text{attainable}}\) 由算力峰值 100 TFLOPS 决定，而不是显存带宽。
 
   </p>
 
@@ -480,25 +479,23 @@ COURSE.register({
 
   <div class="qlabel">自测 · 3</div>
 
-  <p class="q">只有 16 GB 显存时，下面哪种计划最合理？</p>
+  <p class="q">开启激活重计算（Activation Checkpointing）之后，训练每个 Token 实际执行的浮点运算量会变成多少？</p>
 
   <ul class="opts">
 
-    <li>全参数微调 7B 模型</li>
+    <li>仍然是 \(6N\)，重计算只省显存，不增加计算</li>
 
-    <li data-ok>用 0.5B–1.5B 模型跑通全部流程（SFT → DPO → 评估），必要时再加 QLoRA 升到 7B</li>
+    <li data-ok>\(8N\)：前向 \(2N\)、反向 \(4N\)，再加重算前向的 \(2N\)，合计 \(2N + 2N + 4N = 8N\)</li>
 
-    <li>放弃微调，只写提示词</li>
+    <li>\(4N\)，因为前向那部分可以忽略不计</li>
 
-    <li>直接租 8 张 H100</li>
+    <li>\(12N\)，重计算会把反向也算两遍</li>
 
   </ul>
 
   <p class="why">
 
-    方法论与规模无关。用 0.5B 把数据格式、训练循环、评估协议全部走通，
-
-    再决定是否需要更大的模型；直接上 7B 全参数微调在 16 GB 上是数学上不可能的（模块 04）。
+    重计算是拿计算换显存：反向时每一层都要重跑一次前向，所以每个 Token 的实算量从 \(6N\) 涨到 \(8N\)。代价就是同一批 Token 要多花计算时间。
 
   </p>
 
@@ -562,26 +559,26 @@ COURSE.register({
 
 
 
-<div class="acc" data-t="深入：把「每次实验」变成可复现的资产" data-badge="工程">
+<div class="acc" data-t="深入：把你的算力账本记成一张可复现的表" data-badge="工程">
 
   <div class="acc-body">
 
-    <p>建议的目录结构（可以直接套用在本项目）：</p>
+    <p>建议每次训练都记下这三行（换成你自己的卡型和卡数）：</p>
 
 <table class="tbl">
   <thead>
-    <tr><th>路径目录</th><th>主要作用</th><th>持久化属性</th></tr>
+    <tr><th>记录项</th><th>怎么得到</th><th>用来判断什么</th></tr>
   </thead>
   <tbody>
-    <tr><td><code>/kaggle/working/</code></td><td>模型输出与微调权重（如 LoRA 适配器、GGUF）</td><td>训练结束后自动保存并支持直接下载</td></tr>
-    <tr><td><code>/kaggle/input/</code></td><td>预置数据集与开源基础模型只读目录</td><td>系统只读挂载，不可直接写入修改</td></tr>
-    <tr><td><code>/kaggle/temp/</code></td><td>临时缓存与分词中间文件</td><td>实例重启后自动清空，不占用配额</td></tr>
+    <tr><td><code>P_peak</code>：理论算力峰值</td><td>查型号规格（如 A100 的 BF16 稠密峰值 312 TFLOPS），再乘以卡数</td><td>MFU 的分母，也就是这次训练的算力上限</td></tr>
+    <tr><td><code>B_mem</code>：显存带宽</td><td>查型号规格，换算成 GB/s</td><td>算出拐点 \( I^* = P_{\text{peak}} / B_{\text{mem}} \)，判断算子是卡在带宽还是算力上</td></tr>
+    <tr><td><code>Throughput</code>：实测吞吐</td><td>训练日志里的 tokens/s</td><td>乘 \( 6N \) 得有效算力，再除以 \( P_{\text{peak}} \) 就是 MFU</td></tr>
   </tbody>
 </table>
 
-    <p>判断标准：<strong>一个陌生人 clone 这个仓库、运行一条命令，能否得到与你相同的图和数字？</strong>
+    <p>判断标准：<strong>把这三行交给一个陌生人，他能不能复现出同一个 MFU 数字？</strong>
 
-    如果答案是「能」，你就达到了 Vandewalle 等人所说的可复现研究标准。</p>
+    如果答案是「能」，这次训练到底花了多少算力才算说清楚了。</p>
 
   </div>
 
