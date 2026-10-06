@@ -234,10 +234,13 @@ COURSE.register({
   </p>
 </section>
 
-<p><strong>先看结论再看推导</strong>：下面这块草稿纸只证明一件事——在 \(C = 6ND\) 的预算下，最优配比是 \(D \approx 20N\)（7B 配约 140B token）。
+<p><strong>先看结论再看推导</strong>：在 \(C = 6ND\) 的预算下，最优配比是 \(D \approx 20N\)（7B 配约 140B token）。
 拉格朗日乘子 \(\lambda\) 在这里只是一个记账工具：它把约束 \(ND = K\) 折进目标函数，让你能对 \(N\) 与 \(D\) 分别求导找极值；消去 \(\lambda\) 后剩下的就是配比公式。
+记住这个结论和 5.1 节的预算算账即可；下面的完整推导是选读，第一遍可跳过。
 LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多少卡一眼就有数。</p>
 
+<div class="acc" data-t="选读·第二遍：Chinchilla 最优配比的拉格朗日推导" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-lab">
   <h4><span class="ic">✎</span>草稿纸演算：Chinchilla 的解析极值点</h4>
   <p><strong>前置定义。</strong>幂律表示损失随参数量 \(N\) 和数据量 \(D\) 按幂次下降；固定 FLOPs 预算 \(C=6ND\) 时，\(N\) 与 \(D\) 不能同时任意增加。用一个常数 \(K=C/6\)，约束写成 \(ND=K\)。</p>
@@ -252,6 +255,8 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   <p>若经验上 \(a=b\) 且系数使最优比值为 \(D/N\approx20\)，就得到 Chinchilla 规则 \(D_{\text{opt}}\approx20N\)。再与 \(C=6ND\) 联立：</p>
   \[ C\approx120N^2\Longrightarrow N_{\text{opt}}\approx\sqrt{C/120},\qquad D_{\text{opt}}\approx20\sqrt{C/120} \]
 </section>
+  </div>
+</div>
 
 <h4>5.1 论文原话与「怎么用」</h4>
 <p>
