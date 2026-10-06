@@ -1,231 +1,205 @@
-/* content/29-project.js — 模块 29：自制大模型 Gen-1（四）：自回归文本生成、模型评估与毕业设计收束 */
+/* content/29-project.js — 模块 29：模型工业交付与项目收束：Qwen 权重合并、Ollama 本地导出与 Crossfade 跨学科项目落地 */
 COURSE.register({
   id: "m29",
   part: 5,
   num: "29",
-  title: "自制大模型 Gen-1（四）：自回归文本生成、模型评估与毕业设计收束",
-  en: "Building Gen-1 LLM (Part 4): Text Generation, Evaluation, and Project Synthesis",
+  title: "模型工业交付与项目收束：Qwen 权重合并、Ollama 本地导出与 Crossfade 跨学科项目落地",
+  en: "Model Delivery & Capstone: Qwen Weight Merging, Ollama Local Export, and Crossfade Project Integration",
   minutes: 45,
-  tags: ["Gen-1自制大模型", "自回归生成", "Top-k采样", "PPL评估", "项目收束"],
+  tags: ["权重合并", "Ollama导出", "GGUF", "Crossfade实战", "项目毕业"],
   body: String.raw`
 <p class="lead">
-  在完成了分词器构建、神经网络搭建与 GPU 预训练循环之后，我们迎来了<strong>自制大模型 Gen-1 旅程的最终高潮</strong>：
-  让模型“开口说话”！我们将<strong>从零手写带温度（Temperature）与 Top-k 截断的自回归采样生成引擎</strong>，
-  计算模型的困惑度（Perplexity）量化评估指标，
-  并最终将这一套从最底层数学物理演算到代码完整交付的硬核硬实力，<strong>无缝映射至数学建模、Crossfade 产研工程与顶尖升学求职材料中</strong>！
+  在完成了 Kaggle 云端对 Qwen-2.5 的领域微调后，我们迎来了<strong>整个大模型课程的工程最终章</strong>：
+  <strong>将云端微调产物无损转化为你电脑上随时随地可调用的离线生产力工具</strong>！
+  我们将手把手执行<strong>权重物理合并（Merge and Unload）</strong>，将其打包并导入到你个人电脑上的 <strong>Ollama</strong> 运行时中，
+  打造出一个具备专属领域常识、0 API 费用、离线极速响应的 <strong>Crossfade 算法工程超级智能助手</strong>！
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在编写推理生成引擎与准备项目交付前，强烈建议研读以下权威指南：</p>
-  <ul>
-    <li>
-      <strong>核心科普与洞察视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g" target="_blank" rel="noopener">《[1hr Talk] Intro to Large Language Models》</a>
-      （时长：1小时00分钟）。<br>
-      <em>重点时间戳</em>：<code>0:18:00</code> 为什么大模型本质是概率预测游戏；<code>0:32:00</code> 温度系数（Temperature）与创造力调控；<code>0:45:00</code> 从预训练底座到后训练（Post-Training）。
-    </li>
-    <li>
-      <strong>官方开源推理脚本</strong>：
-      <a href="https://github.com/karpathy/nanoGPT/blob/master/sample.py" target="_blank" rel="noopener"><code>karpathy/nanoGPT (sample.py)</code></a> 
-      — 生产级自回归采样与条件提示词填充的标准代码模板。
-    </li>
-    <li>
-      <strong>经典视觉交互博客</strong>：Jay Alammar — 
-      <a href="https://jalammar.github.io/illustrated-gpt2/" target="_blank" rel="noopener">《The Illustrated GPT-2 (Visualizing Transformer Language Models)》</a>。<br>
-      <em>推荐理由</em>：全球公认最清晰的 GPT-2 自回归推理动画解析，深入浅出展现自回归时间步逐 Token 生成的全过程。
-    </li>
-  </ul>
+  <h4><span class="ic">✓</span>工程实战闭环：从云端训练到本地常驻</h4>
+  <p>现代大模型工业落地的黄金标准路径：</p>
+  <div class="flow">
+    <div class="nd hi">1. Kaggle 免费微调</div>
+    <div class="ar">→</div>
+    <div class="nd">2. 物理权重合并</div>
+    <div class="ar">→</div>
+    <div class="nd">3. 导出 GGUF / Ollama</div>
+    <div class="ar">→</div>
+    <div class="nd hi">4. 驱动 Crossfade 工程</div>
+  </div>
 </section>
 
-<h3>1. 为什么“贪心搜索”会导致模型胡言乱语或无限死循环？</h3>
+<h3>1. 为什么必须执行权重合并（Merge and Unload）？</h3>
 <p>
-  在每一步生成时，如果始终机械地挑出概率最高的那一个 Token（即贪心搜索 Greedy Search：\(\arg\max P(w)\)），模型极易陷入<strong>退化循环（Degeneration Loop）</strong>，反复机械重复同一个单词或短语（例如：“the model the model the model...”）。
-  大模型能够展现出丰富多样的文学与逻辑创造力，根源在于<strong>按概率分布进行随机多项式采样（Stochastic Sampling）</strong>，并引入温度（Temperature）与 Top-k 截断。
+  在第 28 讲中，我们保存的产物只是几兆字节的 LoRA 增量矩阵（\(\mathbf{A}\) 与 \(\mathbf{B}\)）。
+  如果在推理服务中每次都动态挂载 LoRA，计算时必须分别执行主干矩阵乘法与旁路矩阵乘法再相加，会带来额外的显存访存开销与推理延迟。
+  工业生产中最优雅的方案是<strong>将低秩增量直接物理相加并写回原权重矩阵</strong>：
+</p>
+\[ \mathbf{W}_{\text{merged}} = \mathbf{W}_0 + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \]
+<p>
+  合并后，适配器被彻底吸收，模型重新变为一个<strong>完全独立的单体标准 Transformer</strong>，可以直接使用任何通用推理引擎（如 Ollama、vLLM、TensorRT-LLM）高速加载，无任何额外开销！
 </p>
 
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：采样调控数学公式）</h4>
-  <p>设模型对下一个 Token 的未归一化分值向量为 \(\mathbf{z} \in \mathbb{R}^V\)，引入温度系数 \(\tau > 0\) 与截断阈值 \(k\)：</p>
-  \[ P(w_i) = \frac{\exp\left(z_i / \tau\right)}{\sum_{j \in \mathcal{K}} \exp\left(z_j / \tau\right)}, \qquad \mathcal{K} = \text{Top-}k(\mathbf{z}) \]
-  <ul>
-    <li>\(\tau \to 0\)：分布无限趋近于 One-Hot 冲激响应，退化为确定性的贪心搜索；</li>
-    <li>\(\tau = 1.0\)：保留预训练学习到的原始物理概率分布；</li>
-    <li>\(\tau > 1.0\)：平滑对数几率，增加长尾词被选中的机会，带来更高多样性（但也可能增加胡言乱语风险）；</li>
-    <li>Top-\(k\)：将概率排名在 \(k\) 名以外的长尾噪声词强行置为 \(-\infty\)，彻底杜绝低质荒谬词的出现。</li>
-  </ul>
-</section>
-
-<h3>2. 逐行手写自回归生成引擎（generate）</h3>
+<h3>2. 逐行手写权重物理合并与导出代码</h3>
 <p>
-  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，实现生产级生成函数。
+  在 Kaggle Notebook 中紧接微调步骤，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，执行合并与写出。
 </p>
 
-<h4>第一步：裁剪输入上下文与获取最新步分值</h4>
+<h4>第一步：加载底座模型与微调后的 LoRA 适配器</h4>
 
-<pre><code>def generate(model, idx, max_new_tokens, block_size, temperature=1.0, top_k=None):
-    for _ in range(max_new_tokens):
+<pre><code>from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+base_model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+lora_dir = "/kaggle/working/qwen-crossfade-lora"
 </code></pre>
-<p><strong>代码解析</strong>：定义生成函数，接收预训练模型 <code>model</code>、当前已有的提示词索引序列 <code>idx</code>（形状为 <code>(B, T)</code>）、期望生成的后续 Token 数量 <code>max_new_tokens</code>、模型窗口上限 <code>block_size</code>、温度与 Top-k 阈值；启动循环逐步自回归拓展。</p>
+<p><strong>代码解析</strong>：指定原开源底座 ID 与第 28 讲生成的 LoRA 权重本地路径。</p>
 
-<pre><code>        idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
-        logits, _ = model(idx_cond)
+<pre><code>tokenizer = AutoTokenizer.from_pretrained(lora_dir)
+base_model = AutoModelForCausalLM.from_pretrained(base_model_id, torch_dtype=torch.float16, device_map="cpu")
 </code></pre>
-<p><strong>代码解析</strong>：<strong>滑动窗口保护</strong>：若当前累积的 Token 长度超过了模型的位置嵌入上限 <code>block_size</code>，严格截取最近的 <code>-block_size</code> 个 Token 作为输入（防止位置嵌入越界崩溃）；将裁剪后的序列送入模型前向传播。</p>
+<p><strong>代码解析</strong>：加载微调保存的分词器；为了防止 GPU 显存不够存放两份完整模型，直接使用 <code>device_map="cpu"</code> 将底座模型以 FP16 精度加载至宿主机的 30GB 内存中。</p>
 
-<pre><code>        logits = logits[:, -1, :] / temperature
+<pre><code>model = PeftModel.from_pretrained(base_model, lora_dir)
+print("✅ 成功将 LoRA 适配器装载到底座模型拓扑结构中。")
 </code></pre>
-<p><strong>代码解析</strong>：取出序列最新生成的最后一个时间步的分值向量 <code>logits[:, -1, :]</code>（形状为 <code>(B, vocab_size)</code>）；将其除以温度系数 <code>temperature</code> 进行平滑或陡峭缩放。</p>
+<p><strong>代码解析</strong>：调用 <code>PeftModel.from_pretrained</code>，将保存的旁路矩阵动态挂载到底座模型的主干上。</p>
 
-<h4>第二步：执行 Top-k 截断过滤</h4>
+<h4>第二步：执行物理权重融合并卸载旁路</h4>
 
-<pre><code>        if top_k is not None:
-            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-            logits[logits < v[:, [-1]]] = -float('Inf')
+<pre><code>merged_model = model.merge_and_unload()
+print("🎉 物理融合完毕！已将 LoRA 低秩矩阵严格按数学公式加回主干权重矩阵。")
 </code></pre>
-<p><strong>代码解析</strong>：使用 <code>torch.topk</code> 找出排名前 \(k\) 个最大的分值；将所有严格小于第 \(k\) 名分值的候选词强行用 <code>-float('Inf')</code> 覆写遮蔽，使得它们在后续计算 Softmax 后的概率严格归零。</p>
+<p><strong>代码解析</strong>：<strong>关键核心算子</strong>：调用 <code>merge_and_unload()</code> 执行 \(\mathbf{W}_0 + \Delta \mathbf{W}\) 矩阵加法运算，随后彻底销毁低秩侧枝结构，恢复为纯净的原生 <code>Qwen2ForCausalLM</code> 类单体对象。</p>
 
-<h4>第三步：概率归一化与多项式分布采样</h4>
-
-<pre><code>        probs = F.softmax(logits, dim=-1)
-        idx_next = torch.multinomial(probs, num_samples=1)
+<pre><code>save_path = "/kaggle/working/qwen2.5-crossfade-merged"
+merged_model.save_pretrained(save_path)
+tokenizer.save_pretrained(save_path)
+print(f"💾 合并后的完整独立大模型已成功持久化保存至: {save_path}")
 </code></pre>
-<p><strong>代码解析</strong>：对缩放与截断后的分值应用 Softmax 归一化为标准的概率分布；调用 <code>torch.multinomial</code> 按照概率权重进行随机投骰子采样，抽取下一个最具表现力的 Token 索引 <code>idx_next</code>（形状为 <code>(B, 1)</code>）。</p>
+<p><strong>代码解析</strong>：将合并后的自包含模型与分词器整体导出；生成的文件夹内包含完整的 <code>model.safetensors</code> 权重与配置文件，可直接打包下载。</p>
 
-<pre><code>        idx = torch.cat((idx, idx_next), dim=1)
-    return idx
-</code></pre>
-<p><strong>代码解析</strong>：将新采样的 Token 追加拼接到原有上下文的尾部（时间步维度 <code>dim=1</code>），作为下一次前向传播的输入条件；循环执行直至达到预设的最大生成长度，返回完整序列。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<h3>3. 将改造后的模型导入本地 Ollama 运行时</h3>
 <p>
-  下面是完整的自回归生成与采样推理脚本（<code>generate.py</code>），加载第 28 讲训练生成的模型权重，输入 Prompt 进行流畅生成：
+  下载合并后的模型权重到你自己的个人电脑（笔记本或工作站）后，借助 <strong>Ollama</strong>（本地大模型轻量运行时），只需三步即可将其注册为常驻服务：
+</p>
+
+<dl class="kv">
+  <dt>第一步：编写轻量定制 Modelfile</dt>
+  <dd>在保存权重的目录下新建一个名为 <code>Modelfile</code> 的文本文件，填入定制系统提示词与超参数：
+<pre><code>FROM ./qwen2.5-crossfade-merged
+
+# 设置自回归推理采样温度
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+
+# 注入专属系统人设
+SYSTEM """
+你是专门为 Glass Player 与 Crossfade 音频渐变算法工程定制的数学与代码专家。
+你熟知等功率曲线（Equal Power Fade）、重叠相加（Overlap-Add）、多相滤波与时频连续性推导，请给出数学严格且工程可落地的建议。
+"""
+</code></pre>
+  </dd>
+  <dt>第二步：使用 Ollama 编译构建本地模型</dt>
+  <dd>在本地电脑终端（Terminal 或 PowerShell）中执行一条命令：
+<pre><code>ollama create qwen-crossfade -f ./Modelfile
+</code></pre>
+  Ollama 会自动解析模型结构并将其注册进本地模型库中。
+  </dd>
+  <dt>第三步：在终端启动交互式对话</dt>
+  <dd>
+<pre><code>ollama run qwen-crossfade "分析两首 128 BPM 电子音乐在交叉过渡时的 EQ 衰减坡度。"
+</code></pre>
+  模型将在本地 CPU / 显卡上以极高速度流式输出专业分析，彻底摆脱网络依赖与任何商业 API 计费！
+  </dd>
+</dl>
+
+<h3>4. 怎么在真实 Crossfade 项目代码中调用该模型？</h3>
+<p>
+  在你的 Crossfade 音频处理流水线（Python 项目）中，无需复杂网络依赖，直接通过本地 REST 接口进行自动化调用：
 </p>
 
 <pre><code># =====================================================================
-# Gen-1 LLM: Autoregressive Text Generation & Sampling Engine
-# Directly aligned with Andrej Karpathy's nanoGPT (sample.py)
+# Crossfade DSP Pipeline: Autonomous Parameter Generation via Local Qwen
 # =====================================================================
 
-import torch
-import torch.nn.functional as F
-from model import NanoGPTLanguageModel
+import json
+import requests
 
-@torch.no_grad()
-def generate(model, idx, max_new_tokens, block_size, temperature=0.8, top_k=20):
-    """自制大模型核心自回归生成函数"""
-    model.eval()
-    for _ in range(max_new_tokens):
-        # 截取窗口不超过模型上限
-        idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
-        logits, _ = model(idx_cond)
-        
-        # 只关注最后一步预测，并施加温度调节
-        logits = logits[:, -1, :] / max(temperature, 1e-5)
-        
-        # Top-k 截断
-        if top_k is not None:
-            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-            logits[logits < v[:, [-1]]] = -float('Inf')
-            
-        probs = F.softmax(logits, dim=-1)
-        idx_next = torch.multinomial(probs, num_samples=1)
-        idx = torch.cat((idx, idx_next), dim=1)
-    return idx
+def get_crossfade_dsp_params(track_a_bpm, track_b_bpm, genre="House"):
+    """向本地 Ollama 微调模型请求最优过渡算法参数"""
+    prompt = f"请为 Track A (BPM={track_a_bpm}) 与 Track B (BPM={track_b_bpm}) 推荐 Crossfade 时长、过渡窗函数类型与低频削减切点。"
+    
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "qwen-crossfade",
+            "prompt": prompt,
+            "stream": False
+        }
+    )
+    result = response.json()
+    return result.get("response", "")
 
-# ----------------- 加载训练好的权重并生成文本 -----------------
 if __name__ == "__main__":
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    # 模拟从已保存的检查点恢复（若有真实 pt 文件则 torch.load）
-    sample_text = "First Citizen: Before we proceed any further, hear me speak."
-    chars = sorted(list(set(sample_text + " \n\rabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:,.?!'")))
-    vocab_size = len(chars)
-    stoi = {ch: i for i, ch in enumerate(chars)}
-    itos = {i: ch for i, ch in enumerate(chars)}
-
-    model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4).to(device)
-    
-    prompt = "First Citizen:"
-    context = torch.tensor([stoi.get(c, 0) for c in prompt], dtype=torch.long, device=device).unsqueeze(0)
-    
-    print(f"📖 提示词 Prompt: \"{prompt}\"")
-    print("⏳ 正在自回归采样生成中...\n")
-    
-    output_tokens = generate(model, context, max_new_tokens=200, block_size=64, temperature=0.8, top_k=15)
-    generated_text = ''.join([itos.get(int(i), '') for i in output_tokens[0].cpu().numpy()])
-    
-    print("=================== 生成结果展示 ===================")
-    print(generated_text)
-    print("====================================================")
-    print("🎉 恭喜！你已完整走通了自制大模型 Gen-1 的所有核心环节！")
+    print("🎵 正在向本地定制 Qwen 专家模型请求音频过渡策略...")
+    dsp_advice = get_crossfade_dsp_params(124.0, 128.0)
+    print("\n[AI 专家过渡策略建议]:")
+    print(dsp_advice)
 </code></pre>
 
-<h3>4. 困惑度（Perplexity, PPL）：大模型的核心质检尺</h3>
+<h3>5. 🎓 大模型项目毕业设计：如何写进你的 CV 与学术成果？</h3>
 <p>
-  在评测大模型的生成能力时，肉眼观察主观性极高。工业界统一采用<strong>困惑度（Perplexity）</strong>作为核心数学量化标准。
-  困惑度的物理意义是：<strong>模型在每个时间步预测下一个词时，平均在犹豫“几个备选词”</strong>：
-</p>
-\[ \text{PPL} = \exp\left( \mathcal{L}_{\text{CE}} \right) = \exp\left( -\frac{1}{N} \sum_{i=1}^N \ln P(w_i \mid w_{< i}) \right) \]
-<table class="tbl">
-  <thead><tr><th>测试集交叉熵 Loss</th><th>对应的困惑度（PPL）</th><th>模型生成能力实际表现</th></tr></thead>
-  <tbody>
-    <tr><td><strong>5.60</strong>（初始冷启动）</td><td><strong>≈ 270</strong></td><td>完全随机猜测，输出为不可读的乱码字符组合</td></tr>
-    <tr><td><strong>2.30</strong>（中途阶段）</td><td><strong>≈ 10.0</strong></td><td>开始学会基础英文单词拼写、空格与常用标点，但句子缺乏长程逻辑</td></tr>
-    <tr><td><strong>1.38</strong>（充分收敛）</td><td><strong>≈ 4.0</strong></td><td>在极少数最符合语法的词汇中精准选择，能够生成结构完整、角色分明的连贯剧本</td></tr>
-  </tbody>
-</table>
-
-<h3>5. 🎓 大模型全流程毕业设计：映射至 Crossfade 与科研/求职材料</h3>
-<p>
-  学完本板块（第 23~29 讲），你已经脱胎换骨。你不再是一个只会调用 <code>import openai</code> 的 API 搬运工，
-  而是一个<strong>亲手实现过 BPE 分词算法、自注意力掩码、Pre-LN 残差连接、AdamW 权重衰减分组、梯度裁剪与 Top-k 自回归采样</strong>的全栈大模型架构理解者。
+  至此，你已经走完了现代大模型全栈研发的最硬核闭环：
+  <strong>第一性原理源码研读（Karpathy 哲学） \(\to\) 云端免费 GPU 算力调配（Kaggle） \(\to\) 真实开源底座改造（Qwen-2.5 + LoRA） \(\to\) 物理权重合并与 Ollama 边缘部署 \(\to\) 赋能 Crossfade 跨学科科研工程</strong>。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🌟</span>如何将本实战经历写进你的 CV、数模论文或个人陈述（PS）？</h4>
-  <p>在描述此类跨学科大模型工程（例如 Crossfade 课题或大模型科研）时，推荐采用经典的 STAR 法则进行专业叙述：</p>
+  <h4><span class="ic">🌟</span>学术竞赛 / 升学文书 / 招聘面试量化描述模板（STAR 原则）</h4>
   <ul>
     <li>
-      <strong>情境（Situation）与目标（Task）</strong>：<br>
-      <em>“针对受限个人算力（单卡 NVIDIA T4 16GB）场景下大模型预训练成本高昂且不稳定的难题，旨在从底层纯手工实现一套轻量级高鲁棒性自回归大语言模型架构（NanoLM-Gen1）。”</em>
+      <strong>背景（Situation）</strong>：针对跨学科音频数学建模（Crossfade）中通用大模型缺乏音频 DSP、时频能量守恒及等功率算法专业常识的问题；
     </li>
     <li>
-      <strong>行动（Action：突出第一性原理与数学深度）</strong>：<br>
-      <em>“独立设计并手写基于 UTF-8 字节对频次合并的 BPE 分词器，消除 OOV 溢出；使用 PyTorch 逐行构建 Pre-LayerNorm Transformer 解码器结构；解耦 AdamW 优化器参数组并实施 \(6ND\) 算力物理演算与带线性预热的余弦退火学习率调度；在自建断点流水线与梯度裁剪防护下，完成 5000 步稳定收敛预训练。”</em>
+      <strong>任务（Task）</strong>：在零硬件购买成本（仅利用云端 16GB 免费 T4 算力）约束下，实现顶尖开源大模型的高效微调与端侧低延迟部署闭环；
     </li>
     <li>
-      <strong>结果（Result：量化指标交付）</strong>：<br>
-      <em>“模型验证集交叉熵损失由初始的 5.58 平滑收敛至 1.35，测试集困惑度（PPL）降至 3.86，成功实现受控温度与 Top-k 采样下长程连贯语义文本的零崩溃自回归生成，代码经原子化解耦完全开源。”</em>
+      <strong>行动（Action）</strong>：
+      以开源 Qwen-2.5 为底座，利用 LoRA 低秩分解将可训练参数压缩至 0.1%（150 万参数）；
+      构建专属音频过渡数学指令集执行 SFT 监督微调；
+      推导矩阵加法完成权重物理融合（Merge and Unload），并通过 Ollama 运行时实现本地端侧私有化流式推理；
+    </li>
+    <li>
+      <strong>结果（Result）</strong>：
+      单次推理成本直接降为 0，端侧响应延迟低于 200ms，在针对交叉过渡声压塌陷及能量守恒问题的问答准度达 100%，完全贯通“大模型底座微调-边缘交付-工业算法联动”的全栈技术闭环。
     </li>
   </ul>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在自回归生成函数中，如果将温度系数 <code>temperature</code> 设定为极小值（例如 <code>0.01</code>），模型的输出行为会表现为：</p>
+  <p class="q">在微调完成后执行 <code>model.merge_and_unload()</code> 将 LoRA 权重与底座物理合并的最主要优势是：</p>
   <ul class="opts">
-    <li>模型会随机挑选最冷门的生僻词生成</li>
-    <li data-ok>概率分布被极度拉大差距，无限接近于贪心搜索（Greedy Search），模型每一步几乎 100% 挑选预测分值最高的那个词，生成结果完全确定且保守</li>
-    <li>模型由于除以接近 0 的数字直接导致显存爆炸崩溃</li>
-    <li>模型的输出长度会缩短为 1 个 Token</li>
+    <li>能够让模型参数量变成原来的两倍</li>
+    <li data-ok>彻底消除推理时双路并行矩阵乘法与显存访存开销，使模型还原为标准的单体自包含架构，能够无缝兼容 Ollama、vLLM 等所有通用高性能推理引擎</li>
+    <li>能够让模型不需要分词器直接识别人类语言</li>
+    <li>可以将模型精度自动提升到 64-bit 浮点</li>
   </ul>
   <p class="why">
-    当温度 \(\tau \to 0\) 时，\(\frac{z_i - z_j}{\tau} \to \infty\)，最大的那个 Logit 在 Softmax 归一化后占据 99.99% 的概率权重，退化为确定性的贪心选择。
+    合并前模型是“主干 + 旁路”的复杂组合结构；合并后增量直接融入主干权重，不再需要 PEFT 运行库，任何通用推理框架都能以最高效率单体加载。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">语言模型测试集困惑度（Perplexity, PPL）与交叉熵损失（Cross-Entropy Loss, \(L\)）之间的严格数学关系是：</p>
+  <p class="q">在将微调后的 Qwen 模型导入本地 Ollama 运行时过程中，<code>Modelfile</code> 文件的核心作用是：</p>
   <ul class="opts">
-    <li>\(\text{PPL} = L^2\)</li>
-    <li data-ok>\(\text{PPL} = e^L\)</li>
-    <li>\(\text{PPL} = \ln(L)\)</li>
-    <li>\(\text{PPL} = 1 - L\)</li>
+    <li>用来向 Ollama 平台支付软件授权使用费</li>
+    <li data-ok>声明基底模型权重的存储路径，并配置推理采样超参数（如 Temperature、Top-p）以及专属于项目的 System 人设提示词，将模型固化为一个独立可调用的本地服务</li>
+    <li>用来自动联网下载 Python 解释器</li>
+    <li>用来清空电脑显卡的全部缓存</li>
   </ul>
   <p class="why">
-    交叉熵损失衡量的是模型预测概率的负对数似然 \(-\ln P\)。取指数 \(\exp(L)\) 即得到困惑度，直观反映了模型每步预测时等价于在多少个同等概率的候选词中做选择。
+    Ollama 的 Modelfile 类似于 Dockerfile，它将底层权重路径、系统预设（System Prompt）和采样超参数统一打成一个标准模型镜像，供本地随时秒级拉起。
   </p>
 </div>
 `

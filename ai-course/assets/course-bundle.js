@@ -15888,1244 +15888,867 @@ git worktree remove ../workspace-agent-flash
 });
 
 /* --- content/26-workflow.js --- */
-/* content/26-workflow.js — 模块 26：自制大模型 Gen-1（一）：微观基石与手写 BPE 分词器 */
+/* content/26-workflow.js — 模块 26：自制大模型全景资源站：Karpathy《Zero to Hero》与 nanoGPT 第一性原理全景导读 */
 COURSE.register({
   id: "m26",
   part: 5,
   num: "26",
-  title: "自制大模型 Gen-1（一）：微观基石与手写 BPE 分词器",
-  en: "Building Gen-1 LLM (Part 1): Byte Pair Encoding (BPE) Tokenizer from Scratch",
-  minutes: 40,
-  tags: ["Gen-1自制大模型", "分词器", "BPE", "Karpathy源码", "从零手写"],
+  title: "自制大模型全景资源站：Karpathy《Zero to Hero》与 nanoGPT 第一性原理全景导读",
+  en: "Complete LLM Resources Hub: Karpathy's Zero-to-Hero & nanoGPT First Principles Guide",
+  minutes: 35,
+  tags: ["Karpathy全集", "nanoGPT", "第一性原理", "资源矩阵", "导读索引"],
   body: String.raw`
 <p class="lead">
-  欢迎进入<strong>【自制大模型 Gen-1】实战营</strong>！从本讲（第 26 讲）到第 29 讲，我们将彻底告别黑盒与第三方高级封装库，
-  紧随世界顶尖 AI 科学家 <strong>Andrej Karpathy</strong>（前 OpenAI 创始成员兼特斯拉 AI 总监）的《Zero to Hero》教学哲学，
-  从最底层的<strong>字节频次统计与合并规则</strong>开始，逐行纯手工编写属于你自己的第一代自回归大语言模型（<strong>NanoLM-Gen1</strong>）！
+  在真正进入现代开源大模型微调与工程改造之前，每一个严肃的 AI 工程师都必须经历一次<strong>第一性原理（First Principles）的思想洗礼</strong>。
+  世界顶尖 AI 科学家、前 OpenAI 创始成员兼特斯拉 AI 总监 <strong>Andrej Karpathy</strong> 的《Neural Networks: Zero to Hero》系列，
+  是全球公认最纯粹、最透彻的大模型底层教学典范。
+  本模块为你系统梳理 Karpathy 经典课程全集矩阵、核心时间戳、官方开源仓库与理论跃迁路径，作为你随时查阅与复现的终极资源站。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在阅读与手写本章代码前，强烈建议同步观看以下权威公开资源：</p>
+  <h4><span class="ic">✓</span>实战认知分流：从零造轮子 vs 真实项目开发</h4>
+  <p>
+    在开启本讲前，必须建立清晰的工程工程认知：
+  </p>
   <ul>
-    <li>
-      <strong>核心精讲视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=zduSFxRajkE" target="_blank" rel="noopener">《Let's build the GPT Tokenizer》</a>
-      （时长：2小时13分钟）。<br>
-      <em>重点时间戳</em>：<code>0:00:00</code> 为什么分词器是 LLM 奇怪行为的万恶之源；<code>0:26:00</code> BPE 算法工作机制；<code>0:48:00</code> 逐行手写训练 BPE；<code>1:12:00</code> GPT-2 与 GPT-4 正则切割规则。
-    </li>
-    <li>
-      <strong>官方开源代码库</strong>：
-      <a href="https://github.com/karpathy/minbpe" target="_blank" rel="noopener"><code>karpathy/minbpe</code></a> 
-      — 极简、清爽的纯 Python BPE 分词器实现，无任何重型依赖。
-    </li>
-    <li>
-      <strong>奠基性论文</strong>：Sennrich et al. (2016) — 
-      <a href="https://arxiv.org/abs/1508.07909" target="_blank" rel="noopener">《Neural Machine Translation of Rare Words with Subword Units》</a>。<br>
-      <em>推荐理由</em>：首次将数据压缩领域的 BPE 算法引入神经网络 NLP，彻底解决了固定大词表带来的 OOV（Out-Of-Vocabulary 词表外溢出）问题。
-    </li>
+    <li><strong>从零手写 nanoGPT（学心法）</strong>：让你彻底理解因果注意力掩码、前向反向传播、权重衰减与优化器步长计算，打破大模型的神秘感；</li>
+    <li><strong>微调开源 Qwen-2.5（做项目）</strong>：在真实的 Crossfade、科研建模或企业级业务中，没有人会从零训练一个 1MB 语料的玩具模型，而是直接站在顶级开源底座（如阿里开源的 Qwen-2.5）肩膀上做领域微调与工程交付。</li>
   </ul>
 </section>
 
-<h3>1. 为什么不能直接使用字符或整词？</h3>
+<h3>1. Karpathy《Zero to Hero》全景课程资源矩阵</h3>
 <p>
-  大模型本质是数学矩阵计算器，它无法直接识别字符串 <code>"Hello, world!"</code>。在输入神经网络前，文本必须被映射为离散的整数索引（Token IDs）。
+  Karpathy 的系列视频按照从微观梯度到完整大语言模型的演进逻辑编排，建议收藏并在遇到底层概念困惑时随时定点回看：
 </p>
 <table class="tbl">
-  <thead><tr><th>切分级别</th><th>词表大小（Vocab Size）</th><th>序列长度（Sequence Length）</th><th>致命短板</th></tr></thead>
+  <thead><tr><th>序号 / 主题</th><th>核心教学目标</th><th>官方视频与源码仓库</th><th>推荐必看时间戳</th></tr></thead>
   <tbody>
     <tr>
-      <td><strong>字符级（Character）</strong></td>
-      <td>极小（约 100~256）</td>
-      <td><strong>极大（极度冗长）</strong></td>
-      <td>每个汉字或复杂单词由多个字符构成，自注意力机制的计算复杂度为 \(O(T^2)\)，序列过长会导致计算量与显存爆炸。</td>
+      <td><strong>1. micrograd</strong><br>标量反向传播引擎</td>
+      <td>从零手写 Python 自动求导（Autograd），理解标量梯度计算与链式法则</td>
+      <td>
+        <a href="https://www.youtube.com/watch?v=VMj-3S1tku0" target="_blank" rel="noopener">YouTube (2h 25m)</a><br>
+        <a href="https://github.com/karpathy/micrograd" target="_blank" rel="noopener"><code>karpathy/micrograd</code></a>
+      </td>
+      <td>
+        <code>0:14:00</code> 导数的几何直觉；<br>
+        <code>0:38:00</code> 搭建 Value 表达式图；<br>
+        <code>1:15:00</code> 手写 backward 递归拓扑排序
+      </td>
     </tr>
     <tr>
-      <td><strong>整词级（Word）</strong></td>
-      <td><strong>极大（数百万且开放）</strong></td>
-      <td>极短</td>
-      <td>词表随着新词无限膨胀，模型词嵌入矩阵占满显存；面对生僻词或错别字直接报错（OOV）。</td>
+      <td><strong>2. makemore (1~5)</strong><br>自回归字符语言模型</td>
+      <td>从 Bigram 统计模型、Bengio 2003 MLP、BatchNorm 到 WaveNet 层次化生成</td>
+      <td>
+        <a href="https://www.youtube.com/watch?v=PaCmpygFfXo" target="_blank" rel="noopener">YouTube (系列共 5 讲)</a><br>
+        <a href="https://github.com/karpathy/makemore" target="_blank" rel="noopener"><code>karpathy/makemore</code></a>
+      </td>
+      <td>
+        <code>Part 2 - 0:25:00</code> 嵌入层查表；<br>
+        <code>Part 3 - 0:40:00</code> 权重初始化与饱和神经元；<br>
+        <code>Part 4 - 0:50:00</code> 纯手动手算张量梯度
+      </td>
     </tr>
     <tr>
-      <td><strong>子词级（Subword / BPE）</strong></td>
-      <td><strong>可控（如 256~50,000）</strong></td>
-      <td><strong>均衡</strong></td>
-      <td>高频词作为一个整体，生僻词拆解为子词或基础字节，兼具计算紧凑性与 100% 无 OOV 的全字符覆盖率。</td>
+      <td><strong>3. Let's build GPT</strong><br>nanoGPT 从零构建</td>
+      <td>从注意力机制数学矩阵推导开始，纯 PyTorch 逐行手写 Decoder-Only Transformer</td>
+      <td>
+        <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">YouTube (1h 56m)</a><br>
+        <a href="https://github.com/karpathy/nanoGPT" target="_blank" rel="noopener"><code>karpathy/nanoGPT</code></a>
+      </td>
+      <td>
+        <code>0:38:00</code> 自注意力矩阵相乘直觉；<br>
+        <code>1:04:00</code> 因果下三角掩码 (tril)；<br>
+        <code>1:24:00</code> 残差连接与 Pre-LayerNorm
+      </td>
+    </tr>
+    <tr>
+      <td><strong>4. GPT Tokenizer</strong><br>字节级 BPE 分词器</td>
+      <td>深入 Unicode 与 UTF-8，纯手工编写无 OOV 溢出的 Byte-Pair Encoding 分词器</td>
+      <td>
+        <a href="https://www.youtube.com/watch?v=zduSFxRajkE" target="_blank" rel="noopener">YouTube (2h 13m)</a><br>
+        <a href="https://github.com/karpathy/minbpe" target="_blank" rel="noopener"><code>karpathy/minbpe</code></a>
+      </td>
+      <td>
+        <code>0:26:00</code> BPE 相邻频次统计算法；<br>
+        <code>0:48:00</code> 迭代训练与合并规则表；<br>
+        <code>1:12:00</code> GPT-2 与 GPT-4 正则切割对比
+      </td>
+    </tr>
+    <tr>
+      <td><strong>5. build-nanogpt</strong><br>复现 GPT-2 (124M)</td>
+      <td>极致硬件加速：从单卡 PyTorch 循环演进至 FlashAttention、BF16 混合精度与 DDP 分布式</td>
+      <td>
+        <a href="https://www.youtube.com/watch?v=l8pRSuU81PU" target="_blank" rel="noopener">YouTube (4h 01m)</a><br>
+        <a href="https://github.com/karpathy/build-nanogpt" target="_blank" rel="noopener"><code>karpathy/build-nanogpt</code></a>
+      </td>
+      <td>
+        <code>0:30:00</code> 高效 DataLoader 批次切片；<br>
+        <code>1:32:00</code> 接入 FlashAttention 内核；<br>
+        <code>1:58:00</code> AdamW 权重衰减分组
+      </td>
     </tr>
   </tbody>
 </table>
 
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：BPE 合并状态元组）</h4>
-  <p>在 BPE 算法中，文本初始被转换为 UTF-8 原始字节序列（数值区间为 \(0 \sim 255\)）。设当前词表大小为 \(V\)，每轮迭代执行：</p>
-  \[ \text{pair}^* = \arg\max_{(p_1, p_2)} \text{Count}(p_1, p_2), \qquad \text{NewID} = V \leftarrow (p_1, p_2) \]
-  <ul>
-    <li>\((p_1, p_2)\)：当前序列中相邻出现的连续双字符/字节对（Bigram Pair）；</li>
-    <li>\(\text{pair}^*\)：全语料中出现频率最高的双字节组合；</li>
-    <li>\(\text{NewID}\)：分配给该新组合的合并索引（从 256 开始递增）。</li>
-  </ul>
+<h3>2. 从 nanoGPT 到现代大模型（Qwen-2.5）的架构演化</h3>
+<p>
+  当你看懂了 Karpathy 的手写 nanoGPT，你其实已经掌握了目前全球顶尖大模型 90% 的骨架。现代主流开源模型（以阿里开源的 <strong>Qwen-2.5</strong> 为代表）在经典 Transformer 基础上只做了四项关键微创新：
+</p>
+<table class="tbl small">
+  <thead><tr><th>结构模块</th><th>经典 nanoGPT（GPT-2 标准）</th><th>现代工业大模型（Qwen-2.5 / LLaMA-3）</th><th>升级原因与物理收益</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>位置编码</strong></td>
+      <td>绝对位置嵌入（Learned Absolute PE）</td>
+      <td><strong>旋转位置编码（RoPE, Rotary Position Embedding）</strong></td>
+      <td>赋予相对距离感知能力，能够通过插值算法实现超长上下文（如 128k）外推</td>
+    </tr>
+    <tr>
+      <td><strong>归一化层</strong></td>
+      <td>层归一化（LayerNorm：减均值除方差）</td>
+      <td><strong>均方根归一化（RMSNorm：不减均值）</strong></td>
+      <td>省略均值计算步骤，减少内存访存开销，计算吞吐量提升约 7%~10%</td>
+    </tr>
+    <tr>
+      <td><strong>激活函数</strong></td>
+      <td>GELU 激活函数</td>
+      <td><strong>SwiGLU 门控单元（Gated Linear Unit）</strong></td>
+      <td>引入可学习的双路线性门控相乘机制，显著提升非线性特征拟合容量</td>
+    </tr>
+    <tr>
+      <td><strong>注意力机制</strong></td>
+      <td>多头自注意力（MHA, Multi-Head Attention）</td>
+      <td><strong>分组查询注意力（GQA, Grouped-Query Attention）</strong></td>
+      <td>多组 Query 共享单组 Key/Value，大幅压缩推理自回归时的 KV Cache 显存消耗</td>
+    </tr>
+  </tbody>
+</table>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>通往真实项目的分水岭</h4>
+  <p>
+    阅读完上述资源后，你已具备了鉴别与改造模型代码的底层内功。
+    从<strong>第 27 讲</strong>开始，我们将正式进入<strong>全流程保姆级云端实操</strong>：
+    在 Kaggle 上免费开辟 GPU 容器、下载真正的 Qwen-2.5 开源模型，并使用工业级 LoRA 技术将其改造为专属于 Crossfade 项目的高能智能体！
+  </p>
 </section>
-
-<h3>2. 逐行手写极简 BPE 分词器（NanoTokenizer）</h3>
-<p>
-  以下我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，从零编写完整的 BPE 分词器类。
-</p>
-
-<h4>第一步：统计连续双字节频次</h4>
-
-<pre><code>def get_stats(ids):
-    counts = {}
-</code></pre>
-<p><strong>代码解析</strong>：定义辅助函数 <code>get_stats</code>，输入为一个由整数构成的序列 <code>ids</code>（初始为 UTF-8 字节列表），初始化一个字典 <code>counts</code> 用于累加每个相邻双元组出现的总次数。</p>
-
-<pre><code>    for pair in zip(ids, ids[1:]):
-        counts[pair] = counts.get(pair, 0) + 1
-</code></pre>
-<p><strong>代码解析</strong>：使用 Python 内置的 <code>zip(ids, ids[1:])</code> 将相邻位置的元素两两配对（例如 <code>[1, 2, 3]</code> 配成 <code>(1, 2)</code> 和 <code>(2, 3)</code>），遍历并自增统计各个配对出现的频次。</p>
-
-<pre><code>    return counts
-</code></pre>
-<p><strong>代码解析</strong>：返回统计字典，键为双元组 <code>(p0, p1)</code>，值为该双元组在输入序列中出现的总次数。</p>
-
-<h4>第二步：执行双字节原子合并</h4>
-
-<pre><code>def merge(ids, pair, idx):
-    newids = []
-</code></pre>
-<p><strong>代码解析</strong>：定义替换函数 <code>merge</code>，接收当前序列 <code>ids</code>、待合并的目标双元组 <code>pair</code> 以及分配给该组合的新编号 <code>idx</code>；初始化空列表 <code>newids</code> 存储合并后的新序列。</p>
-
-<pre><code>    i = 0
-    while i &lt; len(ids):
-</code></pre>
-<p><strong>代码解析</strong>：初始化遍历指针 <code>i = 0</code>，采用 <code>while</code> 循环进行顺序扫描，以便在遇到连续匹配时一次性跳跃 2 个位置。</p>
-
-<pre><code>        if i &lt; len(ids) - 1 and ids[i] == pair[0] and ids[i+1] == pair[1]:
-            newids.append(idx)
-            i += 2
-</code></pre>
-<p><strong>代码解析</strong>：检查当前位置 <code>i</code> 与下一个位置 <code>i+1</code> 是否正好匹配目标双元组；若匹配成功，将合并后的新索引 <code>idx</code> 追加至输出列表，并将指针前移 2 步跳过这对组合。</p>
-
-<pre><code>        else:
-            newids.append(ids[i])
-            i += 1
-</code></pre>
-<p><strong>代码解析</strong>：如果不匹配，原样保留当前位置元素 <code>ids[i]</code> 并前进一步。</p>
-
-<pre><code>    return newids
-</code></pre>
-<p><strong>代码解析</strong>：返回合并后的紧凑序列。原序列长度缩短，高频组合被压缩为单一的抽象 Token ID。</p>
-
-<h4>第三步：构建面向对象的分词器（NanoTokenizer）</h4>
-
-<pre><code>class NanoTokenizer:
-    def __init__(self):
-        self.merges = {}
-        self.vocab = {}
-</code></pre>
-<p><strong>代码解析</strong>：定义分词器主类，<code>self.merges</code> 用于保存训练得到的合并规则表 <code>{(p0, p1): new_id}</code>，<code>self.vocab</code> 用于保存反向解码词表 <code>{token_id: bytes}</code>。</p>
-
-<pre><code>    def train(self, text, vocab_size, verbose=False):
-        assert vocab_size &gt;= 256
-        num_merges = vocab_size - 256
-</code></pre>
-<p><strong>代码解析</strong>：训练函数接收原始文本 <code>text</code> 与目标词表大小 <code>vocab_size</code>；因为单字节共有 256 种可能（0~255），因此目标词表必须大于等于 256，需要执行的合并迭代轮数恰好为 <code>vocab_size - 256</code>。</p>
-
-<pre><code>        tokens = list(text.encode("utf-8"))
-        ids = list(tokens)
-</code></pre>
-<p><strong>代码解析</strong>：将输入字符串直接转换为 UTF-8 原始字节序列，每个字节自然落在 <code>0 ~ 255</code> 的数值范围内，彻底消灭任何未知字符的可能。</p>
-
-<pre><code>        for i in range(num_merges):
-            stats = get_stats(ids)
-            if not stats: break
-            pair = max(stats, key=stats.get)
-</code></pre>
-<p><strong>代码解析</strong>：启动迭代循环，在每轮中调用 <code>get_stats</code> 统计当前序列中最常出现的双字节组合，通过 <code>max(stats, key=stats.get)</code> 贪心挑出出现次数最多的那个 <code>pair</code>。</p>
-
-<pre><code>            idx = 256 + i
-            ids = merge(ids, pair, idx)
-            self.merges[pair] = idx
-</code></pre>
-<p><strong>代码解析</strong>：从 256 开始为该高频组合分配新编号 <code>idx</code>，调用 <code>merge</code> 将全序列中的该配对替换为 <code>idx</code>，并记录进合并规则表 <code>self.merges</code>。</p>
-
-<pre><code>        self.vocab = {idx: bytes([idx]) for idx in range(256)}
-        for (p0, p1), idx in self.merges.items():
-            self.vocab[idx] = self.vocab[p0] + self.vocab[p1]
-</code></pre>
-<p><strong>代码解析</strong>：构建全局解码词表：前 256 个 ID 对应单字节本身；后续的新 ID 则由其合并来源的双元组对应的字节串拼接而成。</p>
-
-<h4>第四步：文本编码（Encode）与解码（Decode）</h4>
-
-<pre><code>    def encode(self, text):
-        tokens = list(text.encode("utf-8"))
-        while len(tokens) &gt;= 2:
-</code></pre>
-<p><strong>代码解析</strong>：编码函数将任意输入字符串先转换为原始字节序列；进入循环，只要序列长度不少于 2，就不断寻找是否还有可执行的合并规则。</p>
-
-<pre><code>            stats = get_stats(tokens)
-            pair = min(stats, key=lambda p: self.merges.get(p, float("inf")))
-            if pair not in self.merges: break
-            tokens = merge(tokens, pair, self.merges[pair])
-</code></pre>
-<p><strong>代码解析</strong>：寻找当前序列中在 <code>self.merges</code> 规则表里最早被训练出来的那个 <code>pair</code>（即合并优先级最高）；如果当前序列中已无任何可合并组合则退出循环，返回最终 Token ID 序列。</p>
-
-<pre><code>    def decode(self, ids):
-        tokens = b"".join(self.vocab[idx] for idx in ids)
-        return tokens.decode("utf-8", errors="replace")
-</code></pre>
-<p><strong>代码解析</strong>：解码函数极为优雅纯粹：直接遍历每个 <code>idx</code>，从 <code>self.vocab</code> 中取出其所代表的原始字节串进行二进制拼接，最后以 UTF-8 还原为人类可读的字符串。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
-<p>
-  下面是上述所有分步解析代码的<strong>完整、无删减整合版</strong>，可直接复制到本地 Python 3.10+ 环境或 Kaggle Notebook 中独立运行验证：
-</p>
-
-<pre><code># =====================================================================
-# Gen-1 LLM: Minimal Byte Pair Encoding (BPE) Tokenizer
-# Inspired by Andrej Karpathy's minbpe & Zero to Hero Series
-# =====================================================================
-
-def get_stats(ids):
-    """统计整数序列中相邻双元组的出现频次"""
-    counts = {}
-    for pair in zip(ids, ids[1:]):
-        counts[pair] = counts.get(pair, 0) + 1
-    return counts
-
-def merge(ids, pair, idx):
-    """将序列中的目标 pair 原子替换为新的 token id"""
-    newids = []
-    i = 0
-    while i &lt; len(ids):
-        if i &lt; len(ids) - 1 and ids[i] == pair[0] and ids[i+1] == pair[1]:
-            newids.append(idx)
-            i += 2
-        else:
-            newids.append(ids[i])
-            i += 1
-    return newids
-
-class NanoTokenizer:
-    """自制大模型 Gen-1 极简 BPE 分词器"""
-    def __init__(self):
-        self.merges = {}  # (int, int) -> int
-        self.vocab = {}   # int -> bytes
-
-    def train(self, text, vocab_size, verbose=False):
-        assert vocab_size &gt;= 256, "词表大小必须至少为 256（覆盖全部单个字节）"
-        num_merges = vocab_size - 256
-        tokens = list(text.encode("utf-8"))
-        ids = list(tokens)
-
-        for i in range(num_merges):
-            stats = get_stats(ids)
-            if not stats:
-                break
-            pair = max(stats, key=stats.get)
-            idx = 256 + i
-            ids = merge(ids, pair, idx)
-            self.merges[pair] = idx
-            if verbose:
-                print(f"Merge {i+1}/{num_merges}: {pair} -> {idx} (出现频次: {stats[pair]})")
-
-        # 构建反向映射词表
-        self.vocab = {idx: bytes([idx]) for idx in range(256)}
-        for (p0, p1), idx in self.merges.items():
-            self.vocab[idx] = self.vocab[p0] + self.vocab[p1]
-
-    def encode(self, text):
-        """将任意文本编码为整数 Token ID 列表"""
-        tokens = list(text.encode("utf-8"))
-        while len(tokens) &gt;= 2:
-            stats = get_stats(tokens)
-            pair = min(stats, key=lambda p: self.merges.get(p, float("inf")))
-            if pair not in self.merges:
-                break
-            tokens = merge(tokens, pair, self.merges[pair])
-        return tokens
-
-    def decode(self, ids):
-        """将 Token ID 列表还原为自然文本"""
-        tokens = b"".join(self.vocab[idx] for idx in ids)
-        return tokens.decode("utf-8", errors="replace")
-
-# ----------------- 单元测试与直观验证 -----------------
-if __name__ == "__main__":
-    sample_text = "aaabdaaabac — Hello Large Language Models! 欢迎来到自制大模型实战营。"
-    print(f"原始文本长度: {len(sample_text)} 字符, UTF-8 原始字节数: {len(sample_text.encode('utf-8'))}")
-    
-    tokenizer = NanoTokenizer()
-    tokenizer.train(sample_text, vocab_size=270, verbose=True)
-    
-    encoded = tokenizer.encode(sample_text)
-    decoded = tokenizer.decode(encoded)
-    
-    print("\n编码后的 Token IDs:", encoded)
-    print(f"压缩后序列长度: {len(encoded)} (压缩率: {len(encoded) / len(sample_text.encode('utf-8')):.1%})")
-    print("解码还原文本:", decoded)
-    assert decoded == sample_text, "自测失败：解码文本与原始文本不一致！"
-    print("🎉 单元测试 100% 通过！分词器编解码完全无损。")
-</code></pre>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在 Karpathy 的 BPE 分词器设计中，为什么初始基础词表（Base Vocabulary）的大小严格设定为 256？</p>
+  <p class="q">在 Andrej Karpathy 的 minbpe 教程中，构建分词器时为什么必须采用字节级（Byte-level）作为算法底座？</p>
   <ul class="opts">
-    <li>因为 256 是 2 的 8 次方，能让 GPU 矩阵乘法刚好对齐张量核心（Tensor Core）</li>
-    <li data-ok>现代计算机的 UTF-8 编码以字节（Byte）为基本物理单元，一个字节有 256 种不同的状态（0~255）。以 256 为底能确保任何文本（含所有语言、标点与Emoji）均可无损拆解，彻底杜绝 OOV 溢出</li>
-    <li>因为早期 ASCII 编码只有 256 个汉字</li>
-    <li>这是由 Python 循环解析器的最大栈深度决定的</li>
+    <li>因为单字节计算速度比多字节快 10 倍</li>
+    <li data-ok>现代计算机 UTF-8 编码由 256 种不同的基础字节（0~255）构成；以字节为底座能确保任何文本（包括未登录词、生僻语言和 Emoji）都能被无损表示，彻底消除 OOV（词表外）异常</li>
+    <li>因为 GPU 的 CUDA 核只支持读取 8 位整数</li>
+    <li>这样可以使模型词表大小永远固定为 256</li>
   </ul>
   <p class="why">
-    字节级 BPE（Byte-level BPE）的核心创新在于用最底层的 256 个原始字节兜底。无论遇到怎样古怪的生僻符号，最多退化为多个原始单字节，而绝不会抛出未定义异常。
+    字节级 BPE（Byte-level BPE）彻底消除了传统 NLP 中未登录词标记（如 <code>&lt;unk&gt;</code>）的尴尬，是现代大模型全语言泛化能力的基石。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">当使用 <code>NanoTokenizer.train()</code> 训练语料时，若给定的 <code>vocab_size</code> 过小（例如只比 256 多 10），对下游大模型训练产生的主要负面影响是什么？</p>
+  <p class="q">在实际跨学科建模（如 Crossfade）与工业级项目开发中，为什么通常不推荐从零完全自训一个大模型，而是推荐基于 Qwen 等开源基座做微调？</p>
   <ul class="opts">
-    <li>模型权重文件体积会变得极大，显存无法放下</li>
-    <li data-ok>词表合并次数过少，导致常见单词无法被有效压缩为单一子词，下游模型的上下文序列长度（Sequence Length）过长，引发自注意力计算开销急剧增加</li>
-    <li>模型在反向传播时无法计算交叉熵损失</li>
-    <li>分词器解码时会抛出编码异常崩溃</li>
+    <li>因为开源社区禁止个人用户从零编写 Transformer 架构</li>
+    <li data-ok>从零预训练一个具备常识、逻辑和专业语法的及格大模型需要数万亿 Token 与数百万美元算力，个人算力训练的微型模型仅具备玩具教学价值；而微调成熟底座能够以极低算力成本将顶尖通识能力迅速迁移至特定专业领域</li>
+    <li>因为 Python 解释器无法承受超过 1000 万参数的运算</li>
+    <li>从零训练的模型无法保存权重至硬盘</li>
   </ul>
   <p class="why">
-    BPE 词表过小意味着缺乏高阶子词抽象，文本几乎以单字节或双字节形态存在，使得原本需要 1000 Token 表达的段落膨胀至 3000 Token，严重浪费模型的有限上下文窗口。
+    预训练是注入通识知识（吞吐海量公网数据），成本极其高昂；微调是规范行为与注入专业技能（几百条高质量领域样本），个人完全可以在免费 GPU 上高效搞定。
   </p>
 </div>
 `
 });
 
 /* --- content/27-hardware.js --- */
-/* content/27-hardware.js — 模块 27：自制大模型 Gen-1（二）：从零搭建 nanoGPT 核心模型架构 */
+/* content/27-hardware.js — 模块 27：Kaggle 保姆级实操起步：账号激活、免费 T4 算力申请与首个云端 Notebook 交互 */
 COURSE.register({
   id: "m27",
   part: 5,
   num: "27",
-  title: "自制大模型 Gen-1（二）：从零搭建 nanoGPT 核心模型架构",
-  en: "Building Gen-1 LLM (Part 2): Pure nanoGPT Model Architecture from Scratch",
-  minutes: 45,
-  tags: ["Gen-1自制大模型", "nanoGPT", "注意力机制", "Transformer", "从零手写"],
+  title: "Kaggle 保姆级实操起步：账号激活、免费 T4 算力申请与首个云端 Notebook 交互",
+  en: "Kaggle Step-by-Step Starter: Account Setup, Free T4 GPU Allocation, and First Notebook Interaction",
+  minutes: 40,
+  tags: ["Kaggle起步", "免费GPU", "Jupyter", "保姆级教程", "云端环境"],
   body: String.raw`
 <p class="lead">
-  在掌握了分词器底层原理之后，我们正式进入<strong>【自制大模型 Gen-1】的核心引擎部分</strong>：
-  使用纯 PyTorch 逐行手写一个经典的<strong>自回归 Transformer 解码器（Decoder-Only nanoGPT）</strong>。
-  我们将抛开 Hugging Face 等高级封装黑盒，
-  用最清晰直观的数学算子，实现因果自注意力掩码、多头注意力机制（Multi-Head Attention）、残差连接（Residual Connections）、层归一化（LayerNorm）与输出投影头。
+  要开始真正改造与微调现代大模型，你不需要购买昂贵的数万元专业显卡。
+  <strong>Kaggle</strong>（Google 旗下全球最大的数据科学平台）为全球注册开发者提供<strong>每周 30 小时完全免费的 NVIDIA T4 GPU 算力</strong>（具备 16GB 显存，足以为 15 亿到 70 亿参数模型进行高效微调）。
+  本讲将以<strong>保姆级（Babysitting）的细致度</strong>，手把手带你完成从账号激活、申请免费 GPU、新建第一个云端 Notebook 到敲下第一行交互代码的全流程。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在编写本讲神经网络架构前，极力推荐反复研读以下世界级导师的公开杰作：</p>
+  <h4><span class="ic">✓</span>实操前准备清单</h4>
+  <p>在开始前，你只需要准备两样东西：</p>
   <ul>
-    <li>
-      <strong>核心精讲视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">《Let's build GPT: from scratch, in code, spelled out.》</a>
-      （时长：1小时56分钟）。<br>
-      <em>重点时间戳</em>：<code>0:38:00</code> 注意力机制的核心数学技巧（加权平均）；<code>1:04:00</code> 单头因果注意力；<code>1:15:00</code> 多头注意力与并行；<code>1:24:00</code> 前馈网络与残差连接；<code>1:44:00</code> 完整组装 Transformer。
-    </li>
-    <li>
-      <strong>官方开源代码库</strong>：
-      <a href="https://github.com/karpathy/nanoGPT" target="_blank" rel="noopener"><code>karpathy/nanoGPT</code></a> 
-      — 世界上最精简、优雅的 GPT 训练与微调仓库（仅 2 个核心 Python 文件完成全部工作）。
-    </li>
-    <li>
-      <strong>核心论文</strong>：Vaswani et al. (2017) — 
-      <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">《Attention Is All You Need》</a> 
-      与 Radford et al. (2019) — 
-      <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener">《Language Models are Unsupervised Multitask Learners》（GPT-2）</a>。<br>
-      <em>推荐理由</em>：确立现代 Decoder-Only 架构的行业标准，现代所有大模型（GPT-4、LLaMA、DeepSeek）的祖师爷爷。
-    </li>
+    <li>一个现代网页浏览器（Chrome / Edge / Firefox / Safari 均可）；</li>
+    <li>一个能接收短信的真实手机号码（用于完成 Kaggle 免费 GPU 的实名短信激活验证）。</li>
   </ul>
 </section>
 
-<h3>1. nanoGPT 张量几何流向与物理架构</h3>
+<h3>1. Kaggle 账号注册与免费 GPU 权限解锁</h3>
 <p>
-  一个自回归因果语言模型本质上是一个<strong>下一个 Token 分类器</strong>。其输入为批次形状为 <code>(B, T)</code> 的整数索引，经过多层堆叠后输出形状为 <code>(B, T, vocab_size)</code> 的非归一化对数几率（Logits）：
+  许多新手直接注册账号后发现无法开启 GPU 加速器，原因在于<strong>未完成手机号验证</strong>。请严格按照以下步骤操作：
 </p>
 
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：张量形状维度速查）</h4>
-  <p>在接下来的手写算子中，我们严格遵守业界统一的标准张量维度符号：</p>
-  \[ \mathbf{X} \in \mathbb{R}^{B \times T \times C} \]
-  <ul>
-    <li>\(B\)（Batch Size）：批次大小，即一次并行计算的独立句子数量；</li>
-    <li>\(T\)（Block Size / Sequence Length）：序列长度，模型单次能观察的上下文时间步窗口；</li>
-    <li>\(C\)（Embedding Dimension / \(n_{\text{embd}}\)）：隐层特征通道维度（如 64、128 或 768）；</li>
-    <li>\(H\)（Num Heads）：多头注意力的并行头数；每个头的维度为 \(d_{\text{head}} = C / H\)。</li>
-  </ul>
-</section>
+<div class="flow">
+  <div class="nd hi">1. 访问 Kaggle 官网注册</div>
+  <div class="ar">→</div>
+  <div class="nd">2. 绑定手机号激活 GPU</div>
+  <div class="ar">→</div>
+  <div class="nd">3. 新建 Notebook</div>
+  <div class="ar">→</div>
+  <div class="nd hi">4. 开启 T4 与 Internet</div>
+</div>
 
-<h3>2. 逐行手写 nanoGPT 核心算子</h3>
+<dl class="kv">
+  <dt>第一步：创建账号</dt>
+  <dd>在浏览器打开 <a href="https://www.kaggle.com" target="_blank" rel="noopener">https://www.kaggle.com</a>，点击右上角 <strong>"Register"</strong>。推荐选择 "Register with Google"（一键登录）或使用常用邮箱完成注册。</dd>
+  <dt>第二步：手机号实名短信验证（核心关键步）</dt>
+  <dd>登录后，点击右上角个人头像 → 选择 <strong>"Settings"</strong>（设置）→ 页面向下拉到 <strong>"Phone Verification"</strong>（手机验证）区域 → 点击 "Verify Account" → 选择你所在的国家区号并输入手机号码 → 输入收到的 6 位短信验证码。<strong>一旦验证成功，你的账号将永久解锁每周 30 小时免费 GPU 配额</strong>！</dd>
+</dl>
+
+<h3>2. 新建首个云端 Notebook 与必开设置</h3>
 <p>
-  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，纯手工实现各层子模块。
+  进入 Kaggle 首页，点击左侧导航栏的 <strong>"+ Create"</strong> 按钮，在下拉菜单中点击 <strong>"New Notebook"</strong>。一个崭新的 Jupyter 云端交互式界面将在浏览器中呈现。
+</p>
+<p>
+  在敲写任何代码之前，<strong>必须首先检查并开启右侧侧边栏（Settings 面板）的三个关键开关</strong>：
+</p>
+<table class="tbl">
+  <thead><tr><th>设置项（Settings）</th><th>默认值</th><th>必须调整的目标值</th><th>为什么至关重要？</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Accelerator（加速器）</strong></td>
+      <td>None（纯 CPU）</td>
+      <td><strong>GPU T4 x2 或 GPU T4</strong></td>
+      <td>将计算引擎从孱弱的双核 CPU 切换至专业级 NVIDIA T4 GPU（16GB 独立显存），这是运行与微调大模型的算力源泉。</td>
+    </tr>
+    <tr>
+      <td><strong>Internet（外网访问权限）</strong></td>
+      <td>OFF（关闭）</td>
+      <td><strong>ON（开启）</strong></td>
+      <td><strong>初学者最常踩的坑！</strong>若不开启此项，Notebook 将无法从 Hugging Face、GitHub 或 Pip 下载任何模型权重与依赖包。</td>
+    </tr>
+    <tr>
+      <td><strong>Environment（环境镜像）</strong></td>
+      <td>Pin to original</td>
+      <td><strong>Always use latest environment</strong></td>
+      <td>确保系统自动预装最新版本的 PyTorch、CUDA 驱动与常用数据科学依赖库。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>3. Kaggle 云端文件系统物理拓扑</h3>
+<p>
+  在编写代码前，必须建立清晰的磁盘物理空间认知：
+</p>
+<table class="tbl small">
+  <thead><tr><th>目录路径</th><th>访问权限</th><th>生命周期与用途</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>/kaggle/input/</code></td>
+      <td><strong>只读（Read-Only）</strong></td>
+      <td>挂载的数据集或外部模型权重所在路径，严禁尝试在此目录下写入或保存任何文件（会抛出 PermissionError）。</td>
+    </tr>
+    <tr>
+      <td><code>/kaggle/working/</code></td>
+      <td><strong>可读可写（Read-Write）</strong></td>
+      <td>当前 Notebook 的主工作区。所有微调后的模型权重、生成的日志与图表<strong>必须保存到该目录下</strong>；在右侧面板点击 "Save Version" 后可将该目录打包持久化。</td>
+    </tr>
+    <tr>
+      <td><code>/tmp/</code></td>
+      <td>临时可读写</td>
+      <td>系统高速临时盘，容器重启或会话断开后内容立即蒸发，仅用于存储瞬时中间缓存。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>4. 逐行敲下你的第一行交互式测试代码</h3>
+<p>
+  在 Notebook 中新建一个代码单元格（Cell），我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，验证 GPU 的健康状态。
 </p>
 
-<h4>第一步：因果单头注意力（Causal Self-Attention Head）</h4>
+<h4>第一步：通过系统终端命令探测物理显卡</h4>
 
-<pre><code>class Head(nn.Module):
-    def __init__(self, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
+<pre><code>!nvidia-smi
 </code></pre>
-<p><strong>代码解析</strong>：继承 <code>nn.Module</code> 创建单注意力头类。传入单个头的特征维度 <code>head_size</code>、输入特征维度 <code>n_embd</code>、最大时间步长度 <code>block_size</code> 与 Dropout 丢弃率。</p>
+<p><strong>代码解析</strong>：在 Jupyter 中以感叹号 <code>!</code> 开头表示执行底层的 Linux Shell 终端命令；<code>nvidia-smi</code> 是 NVIDIA 驱动自带的系统管理接口，用于输出当前显卡型号、驱动版本、CUDA 版本以及 16GB 显存的当前空闲状态。</p>
 
-<pre><code>        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
+<h4>第二步：在 PyTorch 中验证 CUDA 运算环境</h4>
+
+<pre><code>import torch
+print("CUDA 是否可用:", torch.cuda.is_available())
 </code></pre>
-<p><strong>代码解析</strong>：定义查询（Query）、键（Key）与值（Value）三个线性投影矩阵，不使用偏置项（bias=False），将输入向量映射到该注意头所在的子空间。</p>
+<p><strong>代码解析</strong>：导入核心深度学习框架 <code>torch</code>；调用 <code>torch.cuda.is_available()</code> 检测底层 CUDA 运行时是否已成功与当前 Python 环境握手（正常应输出 <code>True</code>）。</p>
 
-<pre><code>        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.dropout = nn.Dropout(dropout)
+<pre><code>device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("当前默认计算设备:", torch.cuda.get_device_name(0))
 </code></pre>
-<p><strong>代码解析</strong>：注册一个下三角全 1 掩码矩阵 <code>tril</code> 为 Buffer（不参与反向传播梯度更新，但随模型保存）；初始化 Dropout 层用于注意力权重随机失活以防过拟合。</p>
+<p><strong>代码解析</strong>：构建动态设备对象 <code>device</code>（优先使用 <code>cuda</code>）；调用 <code>get_device_name(0)</code> 打印 0 号 GPU 的物理名称（正常输出类似 <code>Tesla T4</code>）。</p>
 
-<pre><code>    def forward(self, x):
-        B, T, C = x.shape
-        k = self.key(x)   # (B, T, head_size)
-        q = self.query(x) # (B, T, head_size)
+<h4>第三步：执行张量矩阵运算基准测试（GPU Warmup）</h4>
+
+<pre><code>x = torch.randn(4096, 4096, device=device)
+y = torch.randn(4096, 4096, device=device)
 </code></pre>
-<p><strong>代码解析</strong>：前向传播获取输入张量的批次大小 \(B\)、当前时间步长 \(T\) 与特征维度 \(C\)；分别计算每个位置的 Key 和 Query 向量。</p>
+<p><strong>代码解析</strong>：直接在 GPU 显存上生成两个 \(4096 \times 4096\) 的单精度（FP32）随机矩阵，每个张量占用约 64MB 显存。</p>
 
-<pre><code>        wei = q @ k.transpose(-2, -1) * (k.shape[-1] ** -0.5)
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+<pre><code>start_event = torch.cuda.Event(enable_timing=True)
+end_event = torch.cuda.Event(enable_timing=True)
 </code></pre>
-<p><strong>代码解析</strong>：计算注意力亲和度矩阵 \(Q K^T / \sqrt{d_k}\)；利用 <code>masked_fill</code> 将未来的时间步（掩码为 0 的右上三角区域）全部填充为负无穷大（\(-\infty\)），<strong>这是自回归模型不能“偷看未来”的核心物理保证</strong>！</p>
+<p><strong>代码解析</strong>：创建两个带时间记录功能的 CUDA 硬件事件对象，用于精确测量 GPU 内核执行的物理耗时（毫秒级）。</p>
 
-<pre><code>        wei = F.softmax(wei, dim=-1)
-        wei = self.dropout(wei)
-        v = self.value(x)
-        return wei @ v
+<pre><code>start_event.record()
+z = torch.matmul(x, y)
+end_event.record()
 </code></pre>
-<p><strong>代码解析</strong>：对最后一维做 Softmax 归一化为注意力概率分布（\(-\infty\) 变为 0）；乘以 Value 向量矩阵完成上下文特征加权聚合，输出形状为 <code>(B, T, head_size)</code>。</p>
+<p><strong>代码解析</strong>：记录起点时间，调用底层高度优化的 cuBLAS 矩阵乘法算子执行 \(O(N^3)\) 级运算，并在计算图末尾记录终点时间。</p>
 
-<h4>第二步：多头注意力（Multi-Head Attention）</h4>
-
-<pre><code>class MultiHeadAttention(nn.Module):
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
-        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
+<pre><code>torch.cuda.synchronize()
+print(f"4096阶稠密矩阵乘法物理耗时: {start_event.elapsed_time(end_event):.2f} ms")
 </code></pre>
-<p><strong>代码解析</strong>：初始化多头注意力容器，创建 <code>num_heads</code> 个并行的 <code>Head</code> 实例，让网络能在不同表示子空间中同时捕捉语法、语义等多元依赖关系。</p>
+<p><strong>代码解析</strong>：调用 <code>synchronize()</code> 阻塞等待异步流运算执行完毕；打印两点之间的精确物理用时（在 T4 上通常只需几毫秒，比 CPU 快 50 倍以上）。</p>
 
-<pre><code>        self.proj = nn.Linear(head_size * num_heads, n_embd)
-        self.dropout = nn.Dropout(dropout)
+<h4>第四步：检查显存占用与释放</h4>
+
+<pre><code>allocated_mb = torch.cuda.memory_allocated() / (1024 ** 2)
+print(f"当前已占用显存: {allocated_mb:.1f} MB / 16384 MB")
 </code></pre>
-<p><strong>代码解析</strong>：定义一个输出线性投影层 <code>proj</code>，将所有头拼接起来的特征向量统一投影回模型的隐层主通道维度 <code>n_embd</code>。</p>
+<p><strong>代码解析</strong>：调用 <code>memory_allocated()</code> 查看当前 Python 进程真实持有的活动张量显存，验证显存监控机制运行正常。</p>
 
-<pre><code>    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
-        return out
-</code></pre>
-<p><strong>代码解析</strong>：遍历执行每一个注意力头，在特征维度（<code>dim=-1</code>）上将多头输出拼接（Concatenate），经由线性投影与 Dropout 后输出。</p>
-
-<h4>第三步：前馈感知网络（FeedForward / MLP）</h4>
-
-<pre><code>class FeedForward(nn.Module):
-    def __init__(self, n_embd, dropout=0.1):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.GELU(),
-            nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout)
-        )
-</code></pre>
-<p><strong>代码解析</strong>：按照 GPT-2 标准结构，将隐层特征升维 4 倍（\(4 \times n_{\text{embd}}\)），经过平滑非线性的高斯误差线性单元 <code>nn.GELU()</code> 激活函数，再降维投影回 \(n_{\text{embd}}\)，赋予网络强大的逐 Token 记忆与特征变换能力。</p>
-
-<pre><code>    def forward(self, x):
-        return self.net(x)
-</code></pre>
-<p><strong>代码解析</strong>：前向执行两层 MLP 变换，输入输出张量形状保持 <code>(B, T, C)</code> 完全不变。</p>
-
-<h4>第四步：Transformer 残差块（Block 与 Pre-LayerNorm）</h4>
-
-<pre><code>class Block(nn.Module):
-    def __init__(self, n_embd, n_head, block_size, dropout=0.1):
-        super().__init__()
-        head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
-        self.ffwd = FeedForward(n_embd, dropout)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
-</code></pre>
-<p><strong>代码解析</strong>：定义单个 Transformer 块。包含一个多头自注意力模块 <code>self.sa</code>、一个前馈网络 <code>self.ffwd</code> 以及两个层归一化模块 <code>self.ln1</code> 和 <code>self.ln2</code>。</p>
-
-<pre><code>    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
-        x = x + self.ffwd(self.ln2(x))
-        return x
-</code></pre>
-<p><strong>代码解析</strong>：采用现代大模型普遍遵循的 <strong>Pre-LayerNorm</strong> 残差结构：在进入注意力与 MLP 之前先做归一化，输出再通过加法残差跳接（Residual Skip Connection）相加，<strong>确保极深网络的梯度能够无衰减地直通底层</strong>。</p>
-
-<h4>第五步：组装顶层自回归大语言模型（NanoGPTLanguageModel）</h4>
-
-<pre><code>class NanoGPTLanguageModel(nn.Module):
-    def __init__(self, vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4, dropout=0.1):
-        super().__init__()
-        self.block_size = block_size
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-</code></pre>
-<p><strong>代码解析</strong>：定义大模型类。初始化词嵌入表 <code>token_embedding_table</code>（将离散词表索引转为向量）与位置嵌入表 <code>position_embedding_table</code>（为序列每个时间步赋予空间绝对位置感知）。</p>
-
-<pre><code>        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
-</code></pre>
-<p><strong>代码解析</strong>：使用 <code>nn.Sequential</code> 堆叠 <code>n_layer</code> 层 Transformer 块；经过最终层归一化 <code>ln_f</code> 后，由无偏置的线性分类头 <code>lm_head</code> 将向量映射回词表大小 <code>vocab_size</code>。</p>
-
-<pre><code>    def forward(self, idx, targets=None):
-        B, T = idx.shape
-        tok_emb = self.token_embedding_table(idx) # (B, T, C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T, C)
-        x = tok_emb + pos_emb
-</code></pre>
-<p><strong>代码解析</strong>：前向计算时，将词嵌入与位置嵌入直接逐元素相加（Broadcasting），融合语义与序列时间顺序信息。</p>
-
-<pre><code>        x = self.blocks(x)
-        x = self.ln_f(x)
-        logits = self.lm_head(x) # (B, T, vocab_size)
-</code></pre>
-<p><strong>代码解析</strong>：将融合后的张量输入深层 Transformer 块进行多轮因果自注意力与 MLP 变换，最终投影为词表中各字符的预测分值（Logits）。</p>
-
-<pre><code>        if targets is None:
-            loss = None
-        else:
-            B, T, C = logits.shape
-            logits_flat = logits.view(B * T, C)
-            targets_flat = targets.view(B * T)
-            loss = F.cross_entropy(logits_flat, targets_flat)
-        return logits, loss
-</code></pre>
-<p><strong>代码解析</strong>：若提供了监督目标 <code>targets</code>（自回归下一个 Token 真实标签），将预测与标签展平为二维矩阵，计算标准的交叉熵损失（Cross Entropy Loss）；若推理生成阶段无 targets 则返回 None。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<h3>5. 🧪 模块完整整合代码清单（Complete Notebook Cell）</h3>
 <p>
-  下面是上述所有算子组件的<strong>完整无删减整合版代码（model.py）</strong>，可直接独立运行并自动打印模型参数量与单步前向校验：
+  你可以将下面整段代码直接复制到 Kaggle Notebook 的第一个单元格中，按下 <strong>Shift + Enter</strong> 组合键一键运行验证：
 </p>
 
 <pre><code># =====================================================================
-# Gen-1 LLM: Complete nanoGPT Decoder Architecture
-# Directly aligned with Andrej Karpathy's nanoGPT & Zero to Hero Lecture
+# Kaggle GPU Initialization & Environment Diagnostic Benchmark
+# Step-by-Step Babysitting Starter for Large Language Model Practice
 # =====================================================================
 
+import sys
+import os
 import torch
-import torch.nn as nn
-from torch.nn import functional as F
 
-class Head(nn.Module):
-    """单个因果自注意力头（Causal Self-Attention Head）"""
-    def __init__(self, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
-        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.dropout = nn.Dropout(dropout)
+print(f"Python 解释器版本: {sys.version.split()[0]}")
+print(f"PyTorch 核心版本: {torch.__version__}")
 
-    def forward(self, x):
-        B, T, C = x.shape
-        k = self.key(x)   # (B, T, head_size)
-        q = self.query(x) # (B, T, head_size)
-        
-        # 计算注意力得分矩阵: (B, T, head_size) @ (B, head_size, T) -> (B, T, T)
-        wei = q @ k.transpose(-2, -1) * (k.shape[-1] ** -0.5)
-        # 因果遮蔽：未来位置填 -inf
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
-        wei = F.softmax(wei, dim=-1)
-        wei = self.dropout(wei)
-        
-        v = self.value(x) # (B, T, head_size)
-        out = wei @ v     # (B, T, head_size)
-        return out
+# 1. 验证 CUDA 加速驱动
+if not torch.cuda.is_available():
+    print("❌ 警告：当前未检测到 GPU 加速器！请检查右侧面板 Settings -> Accelerator 是否已选为 GPU T4。")
+else:
+    gpu_name = torch.cuda.get_device_name(0)
+    total_mem_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    print(f"✅ GPU 激活成功！型号: {gpu_name} (独立显存: {total_mem_gb:.2f} GB)")
 
-class MultiHeadAttention(nn.Module):
-    """多头因果自注意力机制（Multi-Head Attention）"""
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
-        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
-        self.proj = nn.Linear(head_size * num_heads, n_embd)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
-        return out
-
-class FeedForward(nn.Module):
-    """两层逐位置前馈感知网络（MLP）"""
-    def __init__(self, n_embd, dropout=0.1):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.GELU(),
-            nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout)
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-class Block(nn.Module):
-    """标准 Pre-LayerNorm Transformer 结构块"""
-    def __init__(self, n_embd, n_head, block_size, dropout=0.1):
-        super().__init__()
-        head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
-        self.ffwd = FeedForward(n_embd, dropout)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
-
-    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
-        x = x + self.ffwd(self.ln2(x))
-        return x
-
-class NanoGPTLanguageModel(nn.Module):
-    """自制大模型 Gen-1 完整自回归语言模型"""
-    def __init__(self, vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4, dropout=0.1):
-        super().__init__()
-        self.block_size = block_size
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
-
-        # 权重初始化（小标准差正态分布，提升初期训练稳定性）
-        self.apply(self._init_weights)
-
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-            if module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-
-    def forward(self, idx, targets=None):
-        B, T = idx.shape
-        tok_emb = self.token_embedding_table(idx)                           # (B, T, n_embd)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T, n_embd)
-        x = tok_emb + pos_emb
-        x = self.blocks(x)
-        x = self.ln_f(x)
-        logits = self.lm_head(x)                                           # (B, T, vocab_size)
-
-        if targets is None:
-            loss = None
-        else:
-            B, T, C = logits.shape
-            logits_flat = logits.view(B * T, C)
-            targets_flat = targets.view(B * T)
-            loss = F.cross_entropy(logits_flat, targets_flat)
-
-        return logits, loss
-
-# ----------------- 形状验证与参数量测试 -----------------
-if __name__ == "__main__":
-    vocab_size = 270
-    block_size = 64
-    batch_size = 4
+    # 2. 矩阵乘法物理吞吐基准测验
+    device = torch.device("cuda")
+    a = torch.randn(4096, 4096, device=device)
+    b = torch.randn(4096, 4096, device=device)
     
-    model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=128, block_size=block_size, n_layer=4, n_head=4)
-    param_count = sum(p.numel() for p in model.parameters())
-    print(f"✅ 模型构建成功！总可学习参数量: {param_count:,} ({param_count / 1e6:.2f}M)")
+    start_evt = torch.cuda.Event(enable_timing=True)
+    end_evt = torch.cuda.Event(enable_timing=True)
+    
+    start_evt.record()
+    c = torch.matmul(a, b)
+    end_evt.record()
+    
+    torch.cuda.synchronize()
+    elapsed_ms = start_evt.elapsed_time(end_evt)
+    print(f"🚀 4096×4096 稠密矩阵乘法耗时: {elapsed_ms:.2f} 毫秒")
+    print(f"📊 当前已分配显存: {torch.cuda.memory_allocated() / 1024**2:.1f} MB")
 
-    # 随机生成一个批次的虚拟输入 [B, T]
-    dummy_input = torch.randint(0, vocab_size, (batch_size, block_size))
-    dummy_targets = torch.randint(0, vocab_size, (batch_size, block_size))
-
-    logits, loss = model(dummy_input, dummy_targets)
-    print(f"输入张量形状: {dummy_input.shape}")
-    print(f"输出 Logits 形状: {logits.shape} (符合预期 [B, T, vocab_size])")
-    print(f"初始随机前向交叉熵 Loss: {loss.item():.4f} (理论应接近 -ln(1/{vocab_size}) = {-torch.log(torch.tensor(1.0/vocab_size)).item():.4f})")
-    assert logits.shape == (batch_size, block_size, vocab_size), "形状断言失败！"
-    print("🎉 单元测试 100% 通过！nanoGPT 核心模型前向与反向传播完全就绪。")
+    # 3. 验证持久化写出路径
+    work_dir = "/kaggle/working"
+    assert os.path.exists(work_dir) and os.access(work_dir, os.W_OK), "持久化目录不可写！"
+    print(f"💾 持久化主输出目录正常就绪: {work_dir}")
+    print("🎉 恭喜！你的 Kaggle 大模型实验环境已 100% 准备就绪，可以进入下一讲实战改造开源模型！")
 </code></pre>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在 <code>Head.forward()</code> 函数中，代码执行 <code>wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))</code> 的本质目的是什么？</p>
+  <p class="q">在 Kaggle Notebook 中尝试从 Hugging Face 下载开源模型时遇到 <code>ConnectionError</code> 无法连接网络，最可能的原因是：</p>
   <ul class="opts">
-    <li>降低显卡显存占用，释放不必要的矩阵存储</li>
-    <li data-ok>实施自回归因果遮蔽（Causal Masking），使得当前位置的注意力只能汇聚过去与当前 Token 的信息，严禁“偷看未来”的信息，保证自回归预测的因果合法性</li>
-    <li>防止 Softmax 计算时发生下溢</li>
-    <li>加速张量乘法运算的速度</li>
+    <li>Kaggle 账号余额不足</li>
+    <li data-ok>未在右侧 Settings 面板中将 "Internet" 开关开启（默认为 OFF 离线状态）</li>
+    <li>Python 版本过低，不支持 HTTPS 协议</li>
+    <li>GPU 显存被占满导致网络断开</li>
   </ul>
   <p class="why">
-    语言模型的任务是根据前文预测下一个词。如果允许注意力查看后续的 Token，模型将直接“抄袭答案”而无法学到真正的序列建模与预测能力。
+    Kaggle 出于反爬虫与安全合规考量，新建 Notebook 默认将 Internet 设为关闭。只要在右侧侧边栏切换为 Internet On，即可自由下载 Hugging Face 权重与数据。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">现代大模型（如 GPT-2、LLaMA）普遍将 LayerNorm 放在残差跳接之前（Pre-LN：<code>x = x + sublayer(ln(x))</code>），相较于早期 Attention is All You Need 论文中的 Post-LN（<code>x = ln(x + sublayer(x))</code>），其最核心的数学优势是：</p>
+  <p class="q">在 Kaggle 上进行大模型微调时，训练好的 LoRA 适配器权重或微调后模型必须保存在哪个目录下，才能在生成版本后下载到本地计算机？</p>
   <ul class="opts">
-    <li>能让模型参数量减少一半</li>
-    <li data-ok>在深层网络中保持了一条完全畅通无阻的恒等残差通路（Identity Path），使得反向传播的梯度能够直达底层，杜绝深层训练初期梯度爆炸与消失，免去极其脆弱的 Warmup 依赖</li>
-    <li>能让激活函数从 GELU 替换为 ReLU</li>
-    <li>可以直接在 CPU 上极速训练</li>
+    <li><code>/kaggle/input/</code></li>
+    <li data-ok><code>/kaggle/working/</code></li>
+    <li><code>/tmp/</code></li>
+    <li><code>/root/</code></li>
   </ul>
   <p class="why">
-    Pre-LN 使得梯度可以在残差流中以类似加法的方式直接反传，极大地改善了深层网络的数值条件数，是现代大模型能稳定扩展至数百层的基石设计。
+    <code>/kaggle/input/</code> 是只读输入路径，<code>/tmp/</code> 在容器重启后会被彻底抹除，只有 <code>/kaggle/working/</code> 才是 Kaggle 的官方持久化产物输出目录。
   </p>
 </div>
 `
 });
 
 /* --- content/28-kaggle-training.js --- */
-/* content/28-kaggle-training.js — 模块 28：自制大模型 Gen-1（三）：Kaggle 免费 GPU 预训练循环与损失收敛 */
+/* content/28-kaggle-training.js — 模块 28：真实开源模型改造：在 Kaggle 免费 T4 上加载与 LoRA 微调 Qwen-2.5（千问）大模型 */
 COURSE.register({
   id: "m28",
   part: 5,
   num: "28",
-  title: "自制大模型 Gen-1（三）：Kaggle 免费 GPU 预训练循环与损失收敛",
-  en: "Building Gen-1 LLM (Part 3): Pretraining Loop & Loss Optimization on Kaggle GPU",
+  title: "真实开源模型改造：在 Kaggle 免费 T4 上加载与 LoRA 微调 Qwen-2.5（千问）大模型",
+  en: "Open-Source Model Adaptation: Loading & LoRA Fine-Tuning Qwen-2.5 on Free Kaggle T4",
   minutes: 45,
-  tags: ["Gen-1自制大模型", "预训练循环", "Kaggle实战", "AdamW", "余弦退火"],
+  tags: ["Qwen-2.5", "LoRA微调", "PEFT", "大模型实战", "Kaggle"],
   body: String.raw`
 <p class="lead">
-  在前两讲中，我们手写了 BPE 分词器与完整的 nanoGPT 神经网络架构。
-  现在，激动人心的时刻到了：我们将<strong>把数据、模型、优化器与真实 GPU 算力串联起来</strong>，
-  在 Kaggle 免费提供的 NVIDIA T4 GPU 上，从零启动你的<strong>第一代自回归大模型（NanoLM-Gen1）预训练循环</strong>！
-  你将亲眼见证模型 Loss 从初始的随机乱码状态（Loss ≈ 4.5~5.5）持续陡降至 1.5 以下，并在短短 15 分钟内彻底收敛出具备清晰语法的生成能力。
+  在真实的数学建模科研、音频工程（Crossfade）或企业级应用中，<strong>没有人会用从零训练的几兆字节玩具模型去解决复杂的现实问题</strong>。
+  我们必须站在巨人的肩膀上：以当今全球公认最强的小尺寸开源基座——<strong>阿里通义千问 Qwen-2.5（1.5B 或 7B）</strong>为底座，
+  借助<strong>低秩自适应微调技术（LoRA, Low-Rank Adaptation）</strong>，在 Kaggle 免费的 16GB T4 GPU 上，
+  将其改造为专属于我们项目的<strong>领域专家大模型</strong>！
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在编写训练引擎前，强烈建议研读 Karpathy 的预训练复现经典：</p>
+  <h4><span class="ic">✓</span>为什么选择 Qwen-2.5-1.5B-Instruct 作为首选基座？</h4>
+  <p>在千百个开源模型中，Qwen-2.5-1.5B 是当前个人算力实验的最优解：</p>
   <ul>
-    <li>
-      <strong>核心精讲视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=l8pRSuU81PU" target="_blank" rel="noopener">《Let's reproduce GPT-2 (124M)》</a>
-      （时长：4小时01分钟）。<br>
-      <em>重点时间戳</em>：<code>0:30:00</code> 批次加载器张量切片；<code>1:58:00</code> AdamW 优化器权重衰减解耦分组；<code>2:15:00</code> 带预热的余弦退火调度；<code>2:38:00</code> 梯度范数裁剪。
-    </li>
-    <li>
-      <strong>官方开源代码库</strong>：
-      <a href="https://github.com/karpathy/build-nanogpt" target="_blank" rel="noopener"><code>karpathy/build-nanogpt</code></a> 
-      — 零依赖纯 PyTorch 复现 GPT-2 完整预训练流程的标准工业代码。
-    </li>
-    <li>
-      <strong>优化器奠基论文</strong>：Loshchilov & Hutter (2019) — 
-      <a href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener">《Decoupled Weight Decay Regularization》（AdamW, ICLR 2019）</a>。<br>
-      <em>推荐理由</em>：证明了 L2 正则化在自适应梯度法中的数学缺陷，确立了 AdamW 作为大模型预训练唯一主导优化器的历史地位。
-    </li>
+    <li><strong>能力顶级</strong>：在代码生成（HumanEval）、复杂数学推理（MATH）与中文遵循上，性能甚至超越了上一代的 7B / 13B 大模型；</li>
+    <li><strong>显存极其友好</strong>：以 16-bit 浮点加载仅需约 3.2 GB 显存，以 4-bit 量化加载仅需约 1.5 GB 显存，在 Kaggle 16GB 的 T4 GPU 上运行游刃有余，留下了充裕的批次和上下文空间；</li>
+    <li><strong>生态开放</strong>：完美支持 Hugging Face 生态、vLLM、Ollama 与 llama.cpp，导出部署极其顺畅。</li>
   </ul>
 </section>
 
-<h3>1. 训练语料极速收敛设计：TinyShakespeare / TinyStories</h3>
+<h3>1. 为什么不用全量微调？LoRA 核心数学原理解析</h3>
 <p>
-  大模型预训练的底层逻辑在 1 亿参数与 1000 亿参数上是完全同构的。为了让学员在单张免费 T4 GPU 上以极低等待成本走通全流程，我们选用经典教学语料 <strong>TinyShakespeare</strong>（约 1.1MB，4万行莎士比亚戏剧对白）或 <strong>TinyStories</strong>。
-  在这类紧凑语料上，一个 1000 万参数级别的 NanoLM 只需训练 2000~5000 步（约 10~15 分钟），即可学会英文单词拼写、角色对话排版与地道的人名词汇。
+  如果对一个 15 亿参数（1.5B）的模型执行全量微调（Full Fine-Tuning），反向传播需要为每个参数保存梯度与 AdamW 优化器的一阶/二阶动量状态，需要至少 \(1.5 \times 16 = 24 \text{ GB}\) 显存，直接撑爆单张 T4 显卡。
+  <strong>LoRA（Low-Rank Adaptation）</strong>彻底颠覆了这一切：<strong>冻结大模型原本的 99.8% 预训练权重，只在旁边外挂极其轻量的低秩矩阵侧枝</strong>。
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：预训练批次切片逻辑）</h4>
-  <p>设将全量语料展平为一个一维长张量 \(\mathbf{D} \in \mathbb{N}^L\)。每次采样批次大小为 \(B\)、上下文窗口为 \(T\)：</p>
-  \[ \mathbf{x} = \mathbf{D}[i : i+T], \qquad \mathbf{y} = \mathbf{D}[i+1 : i+T+1] \]
-  <p>
-    其中输入 \(\mathbf{x}\) 与目标 \(\mathbf{y}\) 的物理关系是<strong>严格错开 1 个时间步</strong>。对于任意时间步 \(t\)，模型的任务就是在给定 \(\mathbf{x}_{1:t}\) 的条件下，最大化真实下一个 Token \(\mathbf{y}_t = \mathbf{x}_{t+1}\) 的对数似然概率。
-  </p>
+  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：LoRA 秩分解微调数学公式）</h4>
+  <p>设大模型原有的冻结权重矩阵为 \(\mathbf{W}_0 \in \mathbb{R}^{d \times k}\)。在微调时，参数物理更新量 \(\Delta \mathbf{W}\) 被显式约束为一个低秩分解乘积：</p>
+  \[ \mathbf{h} = \mathbf{W}_0 \mathbf{x} + \Delta \mathbf{W} \mathbf{x} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \mathbf{x} \]
+  <ul>
+    <li>\(\mathbf{W}_0\)：预训练大模型固有的稠密权重矩阵，在整个微调过程中<strong>完全冻结（requires_grad=False），不产生任何优化器动量开销</strong>；</li>
+    <li>\(\mathbf{A} \in \mathbb{R}^{r \times k}\)：低秩降维矩阵，使用高斯随机正态分布初始化；</li>
+    <li>\(\mathbf{B} \in \mathbb{R}^{d \times r}\)：低秩升维矩阵，初始全置为 0，<strong>确保微调启动第 0 步时 \(\mathbf{B} \cdot \mathbf{A} = \mathbf{0}\)，模型输出行为与原版底座 100% 严格一致</strong>；</li>
+    <li>\(r\)（Rank）：低秩内在维度（通常取 8 或 16）；</li>
+    <li>\(\alpha\)（Lora Alpha）：恒定缩放因子（通常取 \(2 \times r\)，如 16 或 32），用于稳定不同秩下的学习率步长。</li>
+  </ul>
 </section>
 
-<h3>2. 逐行手写预训练核心引擎（train.py）</h3>
+<h3>2. 逐行手写 Qwen-2.5 的加载与 LoRA 微调</h3>
 <p>
-  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，编写工业级预训练引擎。
+  在 Kaggle Notebook 中，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，完成大模型微调全流程。
 </p>
 
-<h4>第一步：语料批次切片加载器（get_batch）</h4>
+<h4>第一步：安装现代大模型微调依赖全家桶</h4>
 
-<pre><code>def get_batch(split, data_train, data_val, batch_size, block_size, device):
-    data = data_train if split == 'train' else data_val
+<pre><code>!pip install -q transformers peft trl accelerate bitsandbytes datasets
 </code></pre>
-<p><strong>代码解析</strong>：定义高效批次生成函数，根据入参 <code>split</code> 自动在训练集张量与验证集张量之间切换数据源。</p>
+<p><strong>代码解析</strong>：通过 pip 静默安装 Hugging Face 核心套件：<code>transformers</code>（模型核心库）、<code>peft</code>（高效参数微调库）、<code>trl</code>（Transformer 强化与监督微调库）以及 <code>accelerate</code>（底层硬件自动加速分配）。</p>
 
-<pre><code>    ix = torch.randint(len(data) - block_size, (batch_size,))
-    x = torch.stack([data[i:i+block_size] for i in ix])
+<h4>第二步：加载 Qwen-2.5 分词器与 ChatML 提示词模版</h4>
+
+<pre><code>from transformers import AutoTokenizer
+model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
 </code></pre>
-<p><strong>代码解析</strong>：生成 <code>batch_size</code> 个均匀随机的起始索引 <code>ix</code>；使用列表推导切出长度为 <code>block_size</code> 的切片，并用 <code>torch.stack</code> 沿第 0 维拼装成形状为 <code>(B, T)</code> 的输入张量 <code>x</code>。</p>
+<p><strong>代码解析</strong>：指定 Hugging Face 上官方开源的 <code>Qwen2.5-1.5B-Instruct</code> 仓库路径；自动下载并实例化分词器（内置 15 万词表的 Tiktoken BPE 实现）。</p>
 
-<pre><code>    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-    return x.to(device), y.to(device)
+<pre><code>tokenizer.pad_token = tokenizer.eos_token
+print("词表大小:", len(tokenizer), "| 填充标记 Pad Token:", tokenizer.pad_token)
 </code></pre>
-<p><strong>代码解析</strong>：将相同起始位置向后平移 1 个单位切出标签张量 <code>y</code>；直接异步搬运至目标计算设备（如 <code>cuda:0</code>），为 GPU 高速矩阵乘法做好准备。</p>
+<p><strong>代码解析</strong>：因大模型自回归默认无填充标记，将句子结束符 <code>eos_token</code>（<code>&lt;|im_end|&gt;</code>）赋给 <code>pad_token</code>，确保批量输入时长短句能够整齐对齐。</p>
 
-<h4>第二步：权重衰减（Weight Decay）参数精细分组</h4>
+<h4>第三步：以半精度加载 Qwen-2.5 真实底座模型</h4>
 
-<pre><code>def configure_optimizers(model, weight_decay=1e-1, lr=5e-4, betas=(0.9, 0.95)):
-    decay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() >= 2]
-    nodecay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() < 2]
+<pre><code>import torch
+from transformers import AutoModelForCausalLM
+model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, device_map="auto")
 </code></pre>
-<p><strong>代码解析</strong>：遍历模型的所有可学习参数，<strong>严格执行 Karpathy 的现代分组法则</strong>：所有维度大于等于 2 的张量（即线性层与注意力的二维权重矩阵）纳入衰减组；所有一维张量（偏置项 Bias 与 LayerNorm 的缩放平移参数）纳入不衰减组。</p>
+<p><strong>代码解析</strong>：以 <code>bfloat16</code> 混合精度将 Qwen-2.5 的 15 亿参数加载进显存；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
 
-<pre><code>    optim_groups = [
-        {'params': decay_params, 'weight_decay': weight_decay},
-        {'params': nodecay_params, 'weight_decay': 0.0}
-    ]
-    return torch.optim.AdamW(optim_groups, lr=lr, betas=betas)
+<h4>第四步：构建并注入 LoRA 适配器（PEFT）</h4>
+
+<pre><code>from peft import LoraConfig, get_peft_model
+peft_config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"], lora_dropout=0.05, bias="none", task_type="CAUSAL_LM")
 </code></pre>
-<p><strong>代码解析</strong>：构造参数组字典，对权重矩阵施加 0.1 的衰减系数防止模型过拟合，对 LayerNorm 施加 0 衰减保证归一化尺度稳定，最后初始化 AdamW 优化器。</p>
+<p><strong>代码解析</strong>：定义 LoRA 拓扑配置：设置内在秩 \(r=8\)，缩放系数 \(\alpha=16\)；将低秩旁路注入至自注意力机制的查询（<code>q_proj</code>）和数值（<code>v_proj</code>）投影层中。</p>
 
-<h4>第三步：带预热的余弦退火学习率调度（Cosine Decay with Warmup）</h4>
-
-<pre><code>def get_lr(it, max_iters, warmup_iters=100, max_lr=5e-4, min_lr=5e-5):
-    if it < warmup_iters:
-        return max_lr * (it + 1) / warmup_iters
+<pre><code>model = get_peft_model(model, peft_config)
+model.print_trainable_parameters()
 </code></pre>
-<p><strong>代码解析</strong>：在训练初期前 <code>warmup_iters</code> 步执行线性预热：学习率从 0 线性爬升至峰值 <code>max_lr</code>，防止随机初始化的粗糙梯度在刚开始就震毁模型。</p>
+<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15 亿陡降至仅约 150 万（占比不到 0.1%）</strong>！显存开销暴降 80% 以上！</p>
 
-<pre><code>    if it > max_iters:
-        return min_lr
-    decay_ratio = (it - warmup_iters) / (max_iters - warmup_iters)
+<h4>第五步：准备领域微调数据集（以 Crossfade 任务为例）</h4>
+
+<pre><code>from datasets import Dataset
+train_data = [
+    {"instruction": "给出音频 Crossfade 两个轨道的过渡曲线推荐参数。", "output": "建议采用等功率对数过渡曲线（Equal Power Crossfade），将轨道 A 设为 cos(t*pi/2)，轨道 B 设为 sin(t*pi/2)，保证重叠区域能量平方和守恒，消除声压凹陷。"},
+    {"instruction": "Crossfade 数学建模中采样率不匹配应如何处理？", "output": "在执行重叠相加（Overlap-Add）之前，必须调用多相滤波插值算法（Polyphase Resampling）将从属音频轨重采样至主轨相同采样率（如 44.1kHz），以杜绝相位偏移与高频混叠。"}
+] * 50
+dataset = Dataset.from_list(train_data)
 </code></pre>
-<p><strong>代码解析</strong>：若超出最大步数则维持基底学习率；否则计算当前处于退火周期的相对进度百分比 <code>decay_ratio</code>（区间为 0.0~1.0）。</p>
+<p><strong>代码解析</strong>：构造专业指令-回答训练对，模拟将通用大模型调教为精通 Crossfade 算法与音频数学建模的专用 Agent；将其包装为标准 Hugging Face <code>Dataset</code> 对象。</p>
 
-<pre><code>    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
-    return min_lr + coeff * (max_lr - min_lr)
+<h4>第六步：应用标准对话模版（ChatML Formatting）</h4>
+
+<pre><code>def format_chat(sample):
+    messages = [{"role": "user", "content": sample["instruction"]}, {"role": "assistant", "content": sample["output"]}]
+    return {"text": tokenizer.apply_chat_template(messages, tokenize=False)}
+formatted_dataset = dataset.map(format_chat)
 </code></pre>
-<p><strong>代码解析</strong>：使用 \(\frac{1}{2}(1 + \cos(\pi \cdot \text{ratio}))\) 余弦函数平滑降低学习率，在训练收敛末期微调权重，实现最细致的局部极小值收敛。</p>
+<p><strong>代码解析</strong>：调用 Qwen 官方的 <code>apply_chat_template</code> 将用户提问与助手回答自动格式化为带 <code>&lt;|im_start|&gt;user ... &lt;|im_end|&gt;&lt;|im_start|&gt;assistant ...</code> 的严密对话标记序列。</p>
 
-<h4>第四步：无梯度验证集损失评估（estimate_loss）</h4>
+<h4>第七步：启动 SFT 监督微调循环并持久化权重</h4>
 
-<pre><code>@torch.no_grad()
-def estimate_loss(model, data_train, data_val, batch_size, block_size, device, eval_iters=50):
-    out = {}
-    model.eval()
+<pre><code>from transformers import TrainingArguments
+from trl import SFTTrainer
+training_args = TrainingArguments(output_dir="/kaggle/working/qwen_lora_out", per_device_train_batch_size=4, gradient_accumulation_steps=2, learning_rate=2e-4, num_train_epochs=3, fp16=True, logging_steps=10, save_strategy="no")
 </code></pre>
-<p><strong>代码解析</strong>：使用 <code>@torch.no_grad()</code> 装饰器禁用计算图梯度记录以节省显存；将模型切入 <code>eval()</code> 评估模式，停用 Dropout 的随机丢弃行为。</p>
+<p><strong>代码解析</strong>：配置训练参数：单卡 Batch Size 为 4，结合 2 步梯度累积（等效 Batch Size = 8）；学习率设为 \(2 \times 10^{-4}\)，启用 FP16 混合精度加速。</p>
 
-<pre><code>    for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split, data_train, data_val, batch_size, block_size, device)
-            _, loss = model(X, Y)
-            losses[k] = loss.item()
-        out[split] = losses.mean().item()
+<pre><code>trainer = SFTTrainer(model=model, train_dataset=formatted_dataset, dataset_text_field="text", max_seq_length=512, args=training_args)
+trainer.train()
+model.save_pretrained("/kaggle/working/qwen-crossfade-lora")
 </code></pre>
-<p><strong>代码解析</strong>：分别在训练集和验证集上均匀抽取 <code>eval_iters</code> 个批次，累加交叉熵损失并求均值，消除单批次偶发扰动，获得客观稳健的真实泛化误差。</p>
+<p><strong>代码解析</strong>：实例化工业级微调器 <code>SFTTrainer</code> 并启动训练，在 T4 GPU 上只需 2~3 分钟即可完成！最后将训练好的 LoRA 增量权重持久化保存至 <code>/kaggle/working/qwen-crossfade-lora</code>（文件大小仅数兆字节）。</p>
 
-<pre><code>    model.train()
-    return out
-</code></pre>
-<p><strong>代码解析</strong>：评估完成后将模型重新切回 <code>train()</code> 训练模式，返回训练集与验证集的平滑损失字典。</p>
-
-<h4>第五步：梯度裁剪与单步优化更新</h4>
-
-<pre><code>        optimizer.zero_grad(set_to_none=True)
-        _, loss = model(xb, yb)
-        loss.backward()
-</code></pre>
-<p><strong>代码解析</strong>：将优化器旧梯度置为 <code>None</code>（比传 0 显著更省内存并加速下轮反向传播）；执行模型前向传播获取当前批次损失，并调用 <code>loss.backward()</code> 反向微分计算各参数梯度。</p>
-
-<pre><code>        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
-</code></pre>
-<p><strong>代码解析</strong>：<strong>大模型训练防炸核武器</strong>：使用 <code>clip_grad_norm_</code> 将全局梯度向量的 L2 范数硬截断至 1.0 上限，彻底阻断因偶发异常数据样本导致的梯度爆炸（Gradient Explosion）；随后由优化器执行参数物理更新。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<h3>3. 🧪 模块完整整合代码清单（Complete Kaggle Fine-Tuning Script）</h3>
 <p>
-  下面是预训练引擎的<strong>完整无删减脚本（train.py）</strong>。包含内置极简语料生成、模型实例化、学习率调度、定期损失打印与检查点保存，可直接在 Kaggle 或任何 PyTorch 环境中一键启动：
+  下面是完整的可运行脚本，直接在 Kaggle Notebook 中新建单元格粘贴运行即可完整走通：
 </p>
 
 <pre><code># =====================================================================
-# Gen-1 LLM: Complete Pretraining Loop on GPU
-# Directly aligned with Andrej Karpathy's build-nanogpt & Zero to Hero
+# Qwen-2.5-1.5B-Instruct LoRA Fine-Tuning on Kaggle Free T4 GPU
+# End-to-End Pipeline for Crossfade & Domain-Specific Adaptation
 # =====================================================================
 
-import math
-import time
+import os
 import torch
-import torch.nn as nn
-from torch.nn import functional as F
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
+from peft import LoraConfig, get_peft_model
+from trl import SFTTrainer
 
-# 导入第 27 讲手写的核心模型（若在同文件可直接复用）
-from model import NanoGPTLanguageModel
+# 1. 确认硬件加速状态
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"当前运行设备: {device.upper()} (GPU型号: {torch.cuda.get_device_name(0) if device=='cuda' else 'None'})")
 
-# ----------------- 超参数设定（专为 Kaggle T4 / 本地极速训练调优） -----------------
-batch_size = 32           # 批次大小
-block_size = 64           # 上下文窗口长度
-max_iters = 1500          # 训练总迭代步数
-eval_interval = 250       # 评估验证周期间隔
-learning_rate = 5e-4      # 最大学习率
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 40
-n_embd = 128
-n_head = 4
-n_layer = 4
-dropout = 0.1
+# 2. 加载 Qwen-2.5-1.5B 官方底座
+model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+print(f"⏳ 正在加载开源底座: {model_id} ...")
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+tokenizer.pad_token = tokenizer.eos_token
 
-print(f"🖥️ 当前使用的训练硬件设备: {device.upper()}")
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    torch_dtype=torch.float16,
+    device_map="auto"
+)
 
-# ----------------- 极简自包含训练数据准备 -----------------
-# 构造包含经典结构的微型训练语料（实际可替换为任意文本文件）
-sample_corpus = """
-First Citizen: Before we proceed any further, hear me speak.
-All: Speak, speak.
-First Citizen: You are all resolved rather to die than to famish?
-All: Resolved. resolved.
-First Citizen: First, you know Caius Marcius is chief enemy to the people.
-All: We know't, we know't.
-First Citizen: Let us kill him, and we'll have corn at our own price.
-Is't a verdict?
-All: No more talking on't; let it be done: away, away!
-Second Citizen: One word, good citizens.
-First Citizen: We are accounted poor citizens, the patricians good.
-What authority surfeits on would relieve us: if they would yield
-us but the superfluity, while it were wholesome, we might guess
-they relieved us humanely; but they think we are too dear.
-""" * 100  # 重复放大形成自包含玩具训练集
+# 3. 挂载 LoRA 适配层（冻结 99.8% 底座权重）
+peft_config = LoraConfig(
+    r=8,
+    lora_alpha=16,
+    target_modules=["q_proj", "v_proj"],
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM"
+)
+model = get_peft_model(model, peft_config)
+print("📊 参数微调比例如下:")
+model.print_trainable_parameters()
 
-chars = sorted(list(set(sample_corpus)))
-vocab_size = len(chars)
-stoi = {ch: i for i, ch in enumerate(chars)}
-itos = {i: ch for i, ch in enumerate(chars)}
+# 4. 构造 Crossfade 领域微调语料并应用 ChatML 模版
+raw_samples = [
+    {"q": "Crossfade 音频过渡时出现中频声压塌陷（Volume Dip），如何解决？", "a": "声压塌陷是因为采用了线性交叉渐变（Linear Fade）。应改用等功率曲线（Equal-Power Fade），满足Gain_A^2 + Gain_B^2 = 1，使得能量在中心点保持平直。"},
+    {"q": "如何用数学语言定义 Crossfade 的平滑过渡窗口？", "a": "可定义时间归一化变量 t in [0, 1]，加权衰减窗函数 w1(t) = sqrt(1 - t)，递增窗函数 w2(t) = sqrt(t)，此时输出信号 s(t) = w1(t)*s1(t) + w2(t)*s2(t)，满足恒等能量守恒。"}
+] * 40
 
-encode = lambda s: [stoi[c] for c in s]
-decode = lambda l: ''.join([itos[i] for i in l])
+dataset = Dataset.from_list([{"instruction": s["q"], "output": s["a"]} for s in raw_samples])
 
-data = torch.tensor(encode(sample_corpus), dtype=torch.long)
-n_train = int(0.9 * len(data))
-train_data = data[:n_train]
-val_data = data[n_train:]
+def apply_template(item):
+    msgs = [{"role": "user", "content": item["instruction"]}, {"role": "assistant", "content": item["output"]}]
+    return {"text": tokenizer.apply_chat_template(msgs, tokenize=False)}
 
-def get_batch(split):
-    d = train_data if split == 'train' else val_data
-    ix = torch.randint(len(d) - block_size, (batch_size,))
-    x = torch.stack([d[i:i+block_size] for i in ix])
-    y = torch.stack([d[i+1:i+block_size+1] for i in ix])
-    return x.to(device), y.to(device)
+formatted_ds = dataset.map(apply_template)
 
-@torch.no_grad()
-def estimate_loss(model):
-    out = {}
-    model.eval()
-    for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split)
-            _, loss = model(X, Y)
-            losses[k] = loss.item()
-        out[split] = losses.mean().item()
-    model.train()
-    return out
+# 5. 启动超轻量微调训练
+output_dir = "/kaggle/working/qwen-crossfade-lora"
+train_args = TrainingArguments(
+    output_dir="/tmp/lora_checkpoints",
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=2,
+    learning_rate=2e-4,
+    num_train_epochs=3,
+    fp16=True,
+    logging_steps=10,
+    save_strategy="no",
+    report_to="none"
+)
 
-def get_lr(it):
-    warmup_iters = 100
-    if it < warmup_iters:
-        return learning_rate * (it + 1) / warmup_iters
-    decay_ratio = (it - warmup_iters) / (max_iters - warmup_iters)
-    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
-    return 1e-5 + coeff * (learning_rate - 1e-5)
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=formatted_ds,
+    dataset_text_field="text",
+    max_seq_length=512,
+    args=train_args
+)
 
-# ----------------- 初始化模型与优化器 -----------------
-model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=n_embd, block_size=block_size, n_layer=n_layer, n_head=n_head, dropout=dropout).to(device)
+print("🚀 开始执行 LoRA 微调训练循环...")
+trainer.train()
 
-# 权重衰减分组
-decay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() >= 2]
-nodecay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() < 2]
-optimizer = torch.optim.AdamW([
-    {'params': decay_params, 'weight_decay': 0.1},
-    {'params': nodecay_params, 'weight_decay': 0.0}
-], lr=learning_rate, betas=(0.9, 0.95))
-
-# ----------------- 正式预训练主循环 -----------------
-print(f"🚀 开始 NanoLM-Gen1 预训练循环（总计 {max_iters} 步）...")
-start_time = time.time()
-
-for iter_step in range(max_iters):
-    # 动态调整当前步的学习率
-    lr = get_lr(iter_step)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-    # 定期无偏估计验证损失
-    if iter_step % eval_interval == 0 or iter_step == max_iters - 1:
-        losses = estimate_loss(model)
-        elapsed = time.time() - start_time
-        print(f"Step {iter_step:4d} | 耗时: {elapsed:5.1f}s | Train Loss: {losses['train']:.4f} | Val Loss: {losses['val']:.4f} | LR: {lr:.2e}")
-
-    # 获取批次并执行反向传播
-    xb, yb = get_batch('train')
-    logits, loss = model(xb, yb)
-    
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-    optimizer.step()
-
-# 保存最终训练好的模型权重元组
-torch.save({
-    'model_state': model.state_dict(),
-    'vocab': chars,
-    'config': {'n_embd': n_embd, 'n_head': n_head, 'n_layer': n_layer, 'block_size': block_size}
-}, "nanogpt_gen1.pt")
-print("🎉 恭喜！NanoLM-Gen1 预训练顺利完成，权重已安全序列化至 nanogpt_gen1.pt。")
+# 6. 保存微调权重产物
+model.save_pretrained(output_dir)
+tokenizer.save_pretrained(output_dir)
+print(f"🎉 成功！专属 Crossfade 领域的 Qwen LoRA 适配器已安全保存至: {output_dir}")
 </code></pre>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在配置 AdamW 优化器参数组时，为什么必须将二维权重矩阵（<code>p.dim() >= 2</code>）与一维偏置/LayerNorm 参数（<code>p.dim() < 2</code>）分开，并对一维参数设置 <code>weight_decay = 0.0</code>？</p>
+  <p class="q">在 LoRA 微调中，低秩升维矩阵 \(\mathbf{B}\) 为什么在初始化时必须全置为 0？</p>
   <ul class="opts">
-    <li>因为 PyTorch 的底层 C++ 算子不支持对一维张量计算梯度</li>
-    <li data-ok>Weight Decay 的本质是压制权重的 L2 模长以防过拟合。LayerNorm 的缩放平移参数（\(\gamma, \beta\)）和偏置项用于微调特征分布的均值与方差，对其施加衰减会强行扭曲激活值的统计尺度，损害模型表达能力</li>
-    <li>为了让训练占用更少的 GPU 显存</li>
-    <li>这样可以使优化器跳过反向传播计算</li>
+    <li>因为置为 0 可以节省 GPU 的运算时间</li>
+    <li data-ok>使得初始时增量矩阵 \(\Delta \mathbf{W} = \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) = \mathbf{0}\)，从而保证在微调启动的第 0 步，模型的推理行为与原本强大的开源预训练底座 100% 严格一致，防止随机权重破坏已有知识</li>
+    <li>这样可以使优化器不需要计算梯度</li>
+    <li>这是由 PyTorch 静态显存机制强制要求的</li>
   </ul>
   <p class="why">
-    绝大多数工业大模型（GPT-3、LLaMA、Chinchilla）均严格遵守此规范：只有注意力投影矩阵与 MLP 权重参与 Weight Decay，所有偏置和归一化参数绝对豁免衰减。
+    如果 \(\mathbf{B}\) 也采用随机高斯初始化，刚开始训练时初始模型输出就会被随机噪声严重污染，导致预训练积累的通识能力被瞬间“震坏”。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在执行反向传播后调用 <code>torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code> 的主要物理意义是：</p>
+  <p class="q">在 Kaggle 免费的 16GB T4 GPU 上，使用 LoRA 微调 Qwen-2.5-1.5B 时，训练参数量通常占模型总参数量的比例约为：</p>
   <ul class="opts">
-    <li>将模型参数的数值强制压缩在 -1.0 到 +1.0 之间</li>
-    <li data-ok>当遇到奇异噪声样本导致梯度的全局 L2 范数陡增时，将其按比例等比缩放至 1.0 的最大安全上限，从而彻底防止梯度爆炸冲毁模型参数</li>
-    <li>加速梯度在 GPU 显存中的传输带宽</li>
-    <li>自动将 FP32 梯度转换为 FP16 浮点数</li>
+    <li>100%</li>
+    <li>50%</li>
+    <li data-ok>不到 0.1%（约 150 万参数 / 15 亿参数）</li>
+    <li>90%</li>
   </ul>
   <p class="why">
-    梯度裁剪改变的是梯度更新向量的“步长上限”，但不改变其“更新方向”（等比缩放），是保障千步长周期预训练绝对不发生 Loss 突变飞升（NaN）的最坚固安全阀。
+    LoRA 仅在注意力层的投影矩阵上外挂极小秩（如 \(r=8\)）的降维与升维矩阵，冻结其余全部原模型参数，因此可训练参数比例通常只有千分之一左右。
   </p>
 </div>
 `
 });
 
 /* --- content/29-project.js --- */
-/* content/29-project.js — 模块 29：自制大模型 Gen-1（四）：自回归文本生成、模型评估与毕业设计收束 */
+/* content/29-project.js — 模块 29：模型工业交付与项目收束：Qwen 权重合并、Ollama 本地导出与 Crossfade 跨学科项目落地 */
 COURSE.register({
   id: "m29",
   part: 5,
   num: "29",
-  title: "自制大模型 Gen-1（四）：自回归文本生成、模型评估与毕业设计收束",
-  en: "Building Gen-1 LLM (Part 4): Text Generation, Evaluation, and Project Synthesis",
+  title: "模型工业交付与项目收束：Qwen 权重合并、Ollama 本地导出与 Crossfade 跨学科项目落地",
+  en: "Model Delivery & Capstone: Qwen Weight Merging, Ollama Local Export, and Crossfade Project Integration",
   minutes: 45,
-  tags: ["Gen-1自制大模型", "自回归生成", "Top-k采样", "PPL评估", "项目收束"],
+  tags: ["权重合并", "Ollama导出", "GGUF", "Crossfade实战", "项目毕业"],
   body: String.raw`
 <p class="lead">
-  在完成了分词器构建、神经网络搭建与 GPU 预训练循环之后，我们迎来了<strong>自制大模型 Gen-1 旅程的最终高潮</strong>：
-  让模型“开口说话”！我们将<strong>从零手写带温度（Temperature）与 Top-k 截断的自回归采样生成引擎</strong>，
-  计算模型的困惑度（Perplexity）量化评估指标，
-  并最终将这一套从最底层数学物理演算到代码完整交付的硬核硬实力，<strong>无缝映射至数学建模、Crossfade 产研工程与顶尖升学求职材料中</strong>！
+  在完成了 Kaggle 云端对 Qwen-2.5 的领域微调后，我们迎来了<strong>整个大模型课程的工程最终章</strong>：
+  <strong>将云端微调产物无损转化为你电脑上随时随地可调用的离线生产力工具</strong>！
+  我们将手把手执行<strong>权重物理合并（Merge and Unload）</strong>，将其打包并导入到你个人电脑上的 <strong>Ollama</strong> 运行时中，
+  打造出一个具备专属领域常识、0 API 费用、离线极速响应的 <strong>Crossfade 算法工程超级智能助手</strong>！
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在编写推理生成引擎与准备项目交付前，强烈建议研读以下权威指南：</p>
-  <ul>
-    <li>
-      <strong>核心科普与洞察视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=zjkBMFhNj_g" target="_blank" rel="noopener">《[1hr Talk] Intro to Large Language Models》</a>
-      （时长：1小时00分钟）。<br>
-      <em>重点时间戳</em>：<code>0:18:00</code> 为什么大模型本质是概率预测游戏；<code>0:32:00</code> 温度系数（Temperature）与创造力调控；<code>0:45:00</code> 从预训练底座到后训练（Post-Training）。
-    </li>
-    <li>
-      <strong>官方开源推理脚本</strong>：
-      <a href="https://github.com/karpathy/nanoGPT/blob/master/sample.py" target="_blank" rel="noopener"><code>karpathy/nanoGPT (sample.py)</code></a> 
-      — 生产级自回归采样与条件提示词填充的标准代码模板。
-    </li>
-    <li>
-      <strong>经典视觉交互博客</strong>：Jay Alammar — 
-      <a href="https://jalammar.github.io/illustrated-gpt2/" target="_blank" rel="noopener">《The Illustrated GPT-2 (Visualizing Transformer Language Models)》</a>。<br>
-      <em>推荐理由</em>：全球公认最清晰的 GPT-2 自回归推理动画解析，深入浅出展现自回归时间步逐 Token 生成的全过程。
-    </li>
-  </ul>
+  <h4><span class="ic">✓</span>工程实战闭环：从云端训练到本地常驻</h4>
+  <p>现代大模型工业落地的黄金标准路径：</p>
+  <div class="flow">
+    <div class="nd hi">1. Kaggle 免费微调</div>
+    <div class="ar">→</div>
+    <div class="nd">2. 物理权重合并</div>
+    <div class="ar">→</div>
+    <div class="nd">3. 导出 GGUF / Ollama</div>
+    <div class="ar">→</div>
+    <div class="nd hi">4. 驱动 Crossfade 工程</div>
+  </div>
 </section>
 
-<h3>1. 为什么“贪心搜索”会导致模型胡言乱语或无限死循环？</h3>
+<h3>1. 为什么必须执行权重合并（Merge and Unload）？</h3>
 <p>
-  在每一步生成时，如果始终机械地挑出概率最高的那一个 Token（即贪心搜索 Greedy Search：\(\arg\max P(w)\)），模型极易陷入<strong>退化循环（Degeneration Loop）</strong>，反复机械重复同一个单词或短语（例如：“the model the model the model...”）。
-  大模型能够展现出丰富多样的文学与逻辑创造力，根源在于<strong>按概率分布进行随机多项式采样（Stochastic Sampling）</strong>，并引入温度（Temperature）与 Top-k 截断。
+  在第 28 讲中，我们保存的产物只是几兆字节的 LoRA 增量矩阵（\(\mathbf{A}\) 与 \(\mathbf{B}\)）。
+  如果在推理服务中每次都动态挂载 LoRA，计算时必须分别执行主干矩阵乘法与旁路矩阵乘法再相加，会带来额外的显存访存开销与推理延迟。
+  工业生产中最优雅的方案是<strong>将低秩增量直接物理相加并写回原权重矩阵</strong>：
+</p>
+\[ \mathbf{W}_{\text{merged}} = \mathbf{W}_0 + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \]
+<p>
+  合并后，适配器被彻底吸收，模型重新变为一个<strong>完全独立的单体标准 Transformer</strong>，可以直接使用任何通用推理引擎（如 Ollama、vLLM、TensorRT-LLM）高速加载，无任何额外开销！
 </p>
 
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：采样调控数学公式）</h4>
-  <p>设模型对下一个 Token 的未归一化分值向量为 \(\mathbf{z} \in \mathbb{R}^V\)，引入温度系数 \(\tau > 0\) 与截断阈值 \(k\)：</p>
-  \[ P(w_i) = \frac{\exp\left(z_i / \tau\right)}{\sum_{j \in \mathcal{K}} \exp\left(z_j / \tau\right)}, \qquad \mathcal{K} = \text{Top-}k(\mathbf{z}) \]
-  <ul>
-    <li>\(\tau \to 0\)：分布无限趋近于 One-Hot 冲激响应，退化为确定性的贪心搜索；</li>
-    <li>\(\tau = 1.0\)：保留预训练学习到的原始物理概率分布；</li>
-    <li>\(\tau > 1.0\)：平滑对数几率，增加长尾词被选中的机会，带来更高多样性（但也可能增加胡言乱语风险）；</li>
-    <li>Top-\(k\)：将概率排名在 \(k\) 名以外的长尾噪声词强行置为 \(-\infty\)，彻底杜绝低质荒谬词的出现。</li>
-  </ul>
-</section>
-
-<h3>2. 逐行手写自回归生成引擎（generate）</h3>
+<h3>2. 逐行手写权重物理合并与导出代码</h3>
 <p>
-  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，实现生产级生成函数。
+  在 Kaggle Notebook 中紧接微调步骤，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，执行合并与写出。
 </p>
 
-<h4>第一步：裁剪输入上下文与获取最新步分值</h4>
+<h4>第一步：加载底座模型与微调后的 LoRA 适配器</h4>
 
-<pre><code>def generate(model, idx, max_new_tokens, block_size, temperature=1.0, top_k=None):
-    for _ in range(max_new_tokens):
+<pre><code>from peft import PeftModel
+from transformers import AutoModelForCausalLM, AutoTokenizer
+base_model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+lora_dir = "/kaggle/working/qwen-crossfade-lora"
 </code></pre>
-<p><strong>代码解析</strong>：定义生成函数，接收预训练模型 <code>model</code>、当前已有的提示词索引序列 <code>idx</code>（形状为 <code>(B, T)</code>）、期望生成的后续 Token 数量 <code>max_new_tokens</code>、模型窗口上限 <code>block_size</code>、温度与 Top-k 阈值；启动循环逐步自回归拓展。</p>
+<p><strong>代码解析</strong>：指定原开源底座 ID 与第 28 讲生成的 LoRA 权重本地路径。</p>
 
-<pre><code>        idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
-        logits, _ = model(idx_cond)
+<pre><code>tokenizer = AutoTokenizer.from_pretrained(lora_dir)
+base_model = AutoModelForCausalLM.from_pretrained(base_model_id, torch_dtype=torch.float16, device_map="cpu")
 </code></pre>
-<p><strong>代码解析</strong>：<strong>滑动窗口保护</strong>：若当前累积的 Token 长度超过了模型的位置嵌入上限 <code>block_size</code>，严格截取最近的 <code>-block_size</code> 个 Token 作为输入（防止位置嵌入越界崩溃）；将裁剪后的序列送入模型前向传播。</p>
+<p><strong>代码解析</strong>：加载微调保存的分词器；为了防止 GPU 显存不够存放两份完整模型，直接使用 <code>device_map="cpu"</code> 将底座模型以 FP16 精度加载至宿主机的 30GB 内存中。</p>
 
-<pre><code>        logits = logits[:, -1, :] / temperature
+<pre><code>model = PeftModel.from_pretrained(base_model, lora_dir)
+print("✅ 成功将 LoRA 适配器装载到底座模型拓扑结构中。")
 </code></pre>
-<p><strong>代码解析</strong>：取出序列最新生成的最后一个时间步的分值向量 <code>logits[:, -1, :]</code>（形状为 <code>(B, vocab_size)</code>）；将其除以温度系数 <code>temperature</code> 进行平滑或陡峭缩放。</p>
+<p><strong>代码解析</strong>：调用 <code>PeftModel.from_pretrained</code>，将保存的旁路矩阵动态挂载到底座模型的主干上。</p>
 
-<h4>第二步：执行 Top-k 截断过滤</h4>
+<h4>第二步：执行物理权重融合并卸载旁路</h4>
 
-<pre><code>        if top_k is not None:
-            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-            logits[logits < v[:, [-1]]] = -float('Inf')
+<pre><code>merged_model = model.merge_and_unload()
+print("🎉 物理融合完毕！已将 LoRA 低秩矩阵严格按数学公式加回主干权重矩阵。")
 </code></pre>
-<p><strong>代码解析</strong>：使用 <code>torch.topk</code> 找出排名前 \(k\) 个最大的分值；将所有严格小于第 \(k\) 名分值的候选词强行用 <code>-float('Inf')</code> 覆写遮蔽，使得它们在后续计算 Softmax 后的概率严格归零。</p>
+<p><strong>代码解析</strong>：<strong>关键核心算子</strong>：调用 <code>merge_and_unload()</code> 执行 \(\mathbf{W}_0 + \Delta \mathbf{W}\) 矩阵加法运算，随后彻底销毁低秩侧枝结构，恢复为纯净的原生 <code>Qwen2ForCausalLM</code> 类单体对象。</p>
 
-<h4>第三步：概率归一化与多项式分布采样</h4>
-
-<pre><code>        probs = F.softmax(logits, dim=-1)
-        idx_next = torch.multinomial(probs, num_samples=1)
+<pre><code>save_path = "/kaggle/working/qwen2.5-crossfade-merged"
+merged_model.save_pretrained(save_path)
+tokenizer.save_pretrained(save_path)
+print(f"💾 合并后的完整独立大模型已成功持久化保存至: {save_path}")
 </code></pre>
-<p><strong>代码解析</strong>：对缩放与截断后的分值应用 Softmax 归一化为标准的概率分布；调用 <code>torch.multinomial</code> 按照概率权重进行随机投骰子采样，抽取下一个最具表现力的 Token 索引 <code>idx_next</code>（形状为 <code>(B, 1)</code>）。</p>
+<p><strong>代码解析</strong>：将合并后的自包含模型与分词器整体导出；生成的文件夹内包含完整的 <code>model.safetensors</code> 权重与配置文件，可直接打包下载。</p>
 
-<pre><code>        idx = torch.cat((idx, idx_next), dim=1)
-    return idx
-</code></pre>
-<p><strong>代码解析</strong>：将新采样的 Token 追加拼接到原有上下文的尾部（时间步维度 <code>dim=1</code>），作为下一次前向传播的输入条件；循环执行直至达到预设的最大生成长度，返回完整序列。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<h3>3. 将改造后的模型导入本地 Ollama 运行时</h3>
 <p>
-  下面是完整的自回归生成与采样推理脚本（<code>generate.py</code>），加载第 28 讲训练生成的模型权重，输入 Prompt 进行流畅生成：
+  下载合并后的模型权重到你自己的个人电脑（笔记本或工作站）后，借助 <strong>Ollama</strong>（本地大模型轻量运行时），只需三步即可将其注册为常驻服务：
+</p>
+
+<dl class="kv">
+  <dt>第一步：编写轻量定制 Modelfile</dt>
+  <dd>在保存权重的目录下新建一个名为 <code>Modelfile</code> 的文本文件，填入定制系统提示词与超参数：
+<pre><code>FROM ./qwen2.5-crossfade-merged
+
+# 设置自回归推理采样温度
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+
+# 注入专属系统人设
+SYSTEM """
+你是专门为 Glass Player 与 Crossfade 音频渐变算法工程定制的数学与代码专家。
+你熟知等功率曲线（Equal Power Fade）、重叠相加（Overlap-Add）、多相滤波与时频连续性推导，请给出数学严格且工程可落地的建议。
+"""
+</code></pre>
+  </dd>
+  <dt>第二步：使用 Ollama 编译构建本地模型</dt>
+  <dd>在本地电脑终端（Terminal 或 PowerShell）中执行一条命令：
+<pre><code>ollama create qwen-crossfade -f ./Modelfile
+</code></pre>
+  Ollama 会自动解析模型结构并将其注册进本地模型库中。
+  </dd>
+  <dt>第三步：在终端启动交互式对话</dt>
+  <dd>
+<pre><code>ollama run qwen-crossfade "分析两首 128 BPM 电子音乐在交叉过渡时的 EQ 衰减坡度。"
+</code></pre>
+  模型将在本地 CPU / 显卡上以极高速度流式输出专业分析，彻底摆脱网络依赖与任何商业 API 计费！
+  </dd>
+</dl>
+
+<h3>4. 怎么在真实 Crossfade 项目代码中调用该模型？</h3>
+<p>
+  在你的 Crossfade 音频处理流水线（Python 项目）中，无需复杂网络依赖，直接通过本地 REST 接口进行自动化调用：
 </p>
 
 <pre><code># =====================================================================
-# Gen-1 LLM: Autoregressive Text Generation & Sampling Engine
-# Directly aligned with Andrej Karpathy's nanoGPT (sample.py)
+# Crossfade DSP Pipeline: Autonomous Parameter Generation via Local Qwen
 # =====================================================================
 
-import torch
-import torch.nn.functional as F
-from model import NanoGPTLanguageModel
+import json
+import requests
 
-@torch.no_grad()
-def generate(model, idx, max_new_tokens, block_size, temperature=0.8, top_k=20):
-    """自制大模型核心自回归生成函数"""
-    model.eval()
-    for _ in range(max_new_tokens):
-        # 截取窗口不超过模型上限
-        idx_cond = idx if idx.size(1) <= block_size else idx[:, -block_size:]
-        logits, _ = model(idx_cond)
-        
-        # 只关注最后一步预测，并施加温度调节
-        logits = logits[:, -1, :] / max(temperature, 1e-5)
-        
-        # Top-k 截断
-        if top_k is not None:
-            v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
-            logits[logits < v[:, [-1]]] = -float('Inf')
-            
-        probs = F.softmax(logits, dim=-1)
-        idx_next = torch.multinomial(probs, num_samples=1)
-        idx = torch.cat((idx, idx_next), dim=1)
-    return idx
+def get_crossfade_dsp_params(track_a_bpm, track_b_bpm, genre="House"):
+    """向本地 Ollama 微调模型请求最优过渡算法参数"""
+    prompt = f"请为 Track A (BPM={track_a_bpm}) 与 Track B (BPM={track_b_bpm}) 推荐 Crossfade 时长、过渡窗函数类型与低频削减切点。"
+    
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "qwen-crossfade",
+            "prompt": prompt,
+            "stream": False
+        }
+    )
+    result = response.json()
+    return result.get("response", "")
 
-# ----------------- 加载训练好的权重并生成文本 -----------------
 if __name__ == "__main__":
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
-    # 模拟从已保存的检查点恢复（若有真实 pt 文件则 torch.load）
-    sample_text = "First Citizen: Before we proceed any further, hear me speak."
-    chars = sorted(list(set(sample_text + " \n\rabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ:,.?!'")))
-    vocab_size = len(chars)
-    stoi = {ch: i for i, ch in enumerate(chars)}
-    itos = {i: ch for i, ch in enumerate(chars)}
-
-    model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4).to(device)
-    
-    prompt = "First Citizen:"
-    context = torch.tensor([stoi.get(c, 0) for c in prompt], dtype=torch.long, device=device).unsqueeze(0)
-    
-    print(f"📖 提示词 Prompt: \"{prompt}\"")
-    print("⏳ 正在自回归采样生成中...\n")
-    
-    output_tokens = generate(model, context, max_new_tokens=200, block_size=64, temperature=0.8, top_k=15)
-    generated_text = ''.join([itos.get(int(i), '') for i in output_tokens[0].cpu().numpy()])
-    
-    print("=================== 生成结果展示 ===================")
-    print(generated_text)
-    print("====================================================")
-    print("🎉 恭喜！你已完整走通了自制大模型 Gen-1 的所有核心环节！")
+    print("🎵 正在向本地定制 Qwen 专家模型请求音频过渡策略...")
+    dsp_advice = get_crossfade_dsp_params(124.0, 128.0)
+    print("\n[AI 专家过渡策略建议]:")
+    print(dsp_advice)
 </code></pre>
 
-<h3>4. 困惑度（Perplexity, PPL）：大模型的核心质检尺</h3>
+<h3>5. 🎓 大模型项目毕业设计：如何写进你的 CV 与学术成果？</h3>
 <p>
-  在评测大模型的生成能力时，肉眼观察主观性极高。工业界统一采用<strong>困惑度（Perplexity）</strong>作为核心数学量化标准。
-  困惑度的物理意义是：<strong>模型在每个时间步预测下一个词时，平均在犹豫“几个备选词”</strong>：
-</p>
-\[ \text{PPL} = \exp\left( \mathcal{L}_{\text{CE}} \right) = \exp\left( -\frac{1}{N} \sum_{i=1}^N \ln P(w_i \mid w_{< i}) \right) \]
-<table class="tbl">
-  <thead><tr><th>测试集交叉熵 Loss</th><th>对应的困惑度（PPL）</th><th>模型生成能力实际表现</th></tr></thead>
-  <tbody>
-    <tr><td><strong>5.60</strong>（初始冷启动）</td><td><strong>≈ 270</strong></td><td>完全随机猜测，输出为不可读的乱码字符组合</td></tr>
-    <tr><td><strong>2.30</strong>（中途阶段）</td><td><strong>≈ 10.0</strong></td><td>开始学会基础英文单词拼写、空格与常用标点，但句子缺乏长程逻辑</td></tr>
-    <tr><td><strong>1.38</strong>（充分收敛）</td><td><strong>≈ 4.0</strong></td><td>在极少数最符合语法的词汇中精准选择，能够生成结构完整、角色分明的连贯剧本</td></tr>
-  </tbody>
-</table>
-
-<h3>5. 🎓 大模型全流程毕业设计：映射至 Crossfade 与科研/求职材料</h3>
-<p>
-  学完本板块（第 23~29 讲），你已经脱胎换骨。你不再是一个只会调用 <code>import openai</code> 的 API 搬运工，
-  而是一个<strong>亲手实现过 BPE 分词算法、自注意力掩码、Pre-LN 残差连接、AdamW 权重衰减分组、梯度裁剪与 Top-k 自回归采样</strong>的全栈大模型架构理解者。
+  至此，你已经走完了现代大模型全栈研发的最硬核闭环：
+  <strong>第一性原理源码研读（Karpathy 哲学） \(\to\) 云端免费 GPU 算力调配（Kaggle） \(\to\) 真实开源底座改造（Qwen-2.5 + LoRA） \(\to\) 物理权重合并与 Ollama 边缘部署 \(\to\) 赋能 Crossfade 跨学科科研工程</strong>。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🌟</span>如何将本实战经历写进你的 CV、数模论文或个人陈述（PS）？</h4>
-  <p>在描述此类跨学科大模型工程（例如 Crossfade 课题或大模型科研）时，推荐采用经典的 STAR 法则进行专业叙述：</p>
+  <h4><span class="ic">🌟</span>学术竞赛 / 升学文书 / 招聘面试量化描述模板（STAR 原则）</h4>
   <ul>
     <li>
-      <strong>情境（Situation）与目标（Task）</strong>：<br>
-      <em>“针对受限个人算力（单卡 NVIDIA T4 16GB）场景下大模型预训练成本高昂且不稳定的难题，旨在从底层纯手工实现一套轻量级高鲁棒性自回归大语言模型架构（NanoLM-Gen1）。”</em>
+      <strong>背景（Situation）</strong>：针对跨学科音频数学建模（Crossfade）中通用大模型缺乏音频 DSP、时频能量守恒及等功率算法专业常识的问题；
     </li>
     <li>
-      <strong>行动（Action：突出第一性原理与数学深度）</strong>：<br>
-      <em>“独立设计并手写基于 UTF-8 字节对频次合并的 BPE 分词器，消除 OOV 溢出；使用 PyTorch 逐行构建 Pre-LayerNorm Transformer 解码器结构；解耦 AdamW 优化器参数组并实施 \(6ND\) 算力物理演算与带线性预热的余弦退火学习率调度；在自建断点流水线与梯度裁剪防护下，完成 5000 步稳定收敛预训练。”</em>
+      <strong>任务（Task）</strong>：在零硬件购买成本（仅利用云端 16GB 免费 T4 算力）约束下，实现顶尖开源大模型的高效微调与端侧低延迟部署闭环；
     </li>
     <li>
-      <strong>结果（Result：量化指标交付）</strong>：<br>
-      <em>“模型验证集交叉熵损失由初始的 5.58 平滑收敛至 1.35，测试集困惑度（PPL）降至 3.86，成功实现受控温度与 Top-k 采样下长程连贯语义文本的零崩溃自回归生成，代码经原子化解耦完全开源。”</em>
+      <strong>行动（Action）</strong>：
+      以开源 Qwen-2.5 为底座，利用 LoRA 低秩分解将可训练参数压缩至 0.1%（150 万参数）；
+      构建专属音频过渡数学指令集执行 SFT 监督微调；
+      推导矩阵加法完成权重物理融合（Merge and Unload），并通过 Ollama 运行时实现本地端侧私有化流式推理；
+    </li>
+    <li>
+      <strong>结果（Result）</strong>：
+      单次推理成本直接降为 0，端侧响应延迟低于 200ms，在针对交叉过渡声压塌陷及能量守恒问题的问答准度达 100%，完全贯通“大模型底座微调-边缘交付-工业算法联动”的全栈技术闭环。
     </li>
   </ul>
 </section>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在自回归生成函数中，如果将温度系数 <code>temperature</code> 设定为极小值（例如 <code>0.01</code>），模型的输出行为会表现为：</p>
+  <p class="q">在微调完成后执行 <code>model.merge_and_unload()</code> 将 LoRA 权重与底座物理合并的最主要优势是：</p>
   <ul class="opts">
-    <li>模型会随机挑选最冷门的生僻词生成</li>
-    <li data-ok>概率分布被极度拉大差距，无限接近于贪心搜索（Greedy Search），模型每一步几乎 100% 挑选预测分值最高的那个词，生成结果完全确定且保守</li>
-    <li>模型由于除以接近 0 的数字直接导致显存爆炸崩溃</li>
-    <li>模型的输出长度会缩短为 1 个 Token</li>
+    <li>能够让模型参数量变成原来的两倍</li>
+    <li data-ok>彻底消除推理时双路并行矩阵乘法与显存访存开销，使模型还原为标准的单体自包含架构，能够无缝兼容 Ollama、vLLM 等所有通用高性能推理引擎</li>
+    <li>能够让模型不需要分词器直接识别人类语言</li>
+    <li>可以将模型精度自动提升到 64-bit 浮点</li>
   </ul>
   <p class="why">
-    当温度 \(\tau \to 0\) 时，\(\frac{z_i - z_j}{\tau} \to \infty\)，最大的那个 Logit 在 Softmax 归一化后占据 99.99% 的概率权重，退化为确定性的贪心选择。
+    合并前模型是“主干 + 旁路”的复杂组合结构；合并后增量直接融入主干权重，不再需要 PEFT 运行库，任何通用推理框架都能以最高效率单体加载。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">语言模型测试集困惑度（Perplexity, PPL）与交叉熵损失（Cross-Entropy Loss, \(L\)）之间的严格数学关系是：</p>
+  <p class="q">在将微调后的 Qwen 模型导入本地 Ollama 运行时过程中，<code>Modelfile</code> 文件的核心作用是：</p>
   <ul class="opts">
-    <li>\(\text{PPL} = L^2\)</li>
-    <li data-ok>\(\text{PPL} = e^L\)</li>
-    <li>\(\text{PPL} = \ln(L)\)</li>
-    <li>\(\text{PPL} = 1 - L\)</li>
+    <li>用来向 Ollama 平台支付软件授权使用费</li>
+    <li data-ok>声明基底模型权重的存储路径，并配置推理采样超参数（如 Temperature、Top-p）以及专属于项目的 System 人设提示词，将模型固化为一个独立可调用的本地服务</li>
+    <li>用来自动联网下载 Python 解释器</li>
+    <li>用来清空电脑显卡的全部缓存</li>
   </ul>
   <p class="why">
-    交叉熵损失衡量的是模型预测概率的负对数似然 \(-\ln P\)。取指数 \(\exp(L)\) 即得到困惑度，直观反映了模型每步预测时等价于在多少个同等概率的候选词中做选择。
+    Ollama 的 Modelfile 类似于 Dockerfile，它将底层权重路径、系统预设（System Prompt）和采样超参数统一打成一个标准模型镜像，供本地随时秒级拉起。
   </p>
 </div>
 `

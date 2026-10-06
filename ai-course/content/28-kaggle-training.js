@@ -1,317 +1,243 @@
-/* content/28-kaggle-training.js — 模块 28：自制大模型 Gen-1（三）：Kaggle 免费 GPU 预训练循环与损失收敛 */
+/* content/28-kaggle-training.js — 模块 28：真实开源模型改造：在 Kaggle 免费 T4 上加载与 LoRA 微调 Qwen-2.5（千问）大模型 */
 COURSE.register({
   id: "m28",
   part: 5,
   num: "28",
-  title: "自制大模型 Gen-1（三）：Kaggle 免费 GPU 预训练循环与损失收敛",
-  en: "Building Gen-1 LLM (Part 3): Pretraining Loop & Loss Optimization on Kaggle GPU",
+  title: "真实开源模型改造：在 Kaggle 免费 T4 上加载与 LoRA 微调 Qwen-2.5（千问）大模型",
+  en: "Open-Source Model Adaptation: Loading & LoRA Fine-Tuning Qwen-2.5 on Free Kaggle T4",
   minutes: 45,
-  tags: ["Gen-1自制大模型", "预训练循环", "Kaggle实战", "AdamW", "余弦退火"],
+  tags: ["Qwen-2.5", "LoRA微调", "PEFT", "大模型实战", "Kaggle"],
   body: String.raw`
 <p class="lead">
-  在前两讲中，我们手写了 BPE 分词器与完整的 nanoGPT 神经网络架构。
-  现在，激动人心的时刻到了：我们将<strong>把数据、模型、优化器与真实 GPU 算力串联起来</strong>，
-  在 Kaggle 免费提供的 NVIDIA T4 GPU 上，从零启动你的<strong>第一代自回归大模型（NanoLM-Gen1）预训练循环</strong>！
-  你将亲眼见证模型 Loss 从初始的随机乱码状态（Loss ≈ 4.5~5.5）持续陡降至 1.5 以下，并在短短 15 分钟内彻底收敛出具备清晰语法的生成能力。
+  在真实的数学建模科研、音频工程（Crossfade）或企业级应用中，<strong>没有人会用从零训练的几兆字节玩具模型去解决复杂的现实问题</strong>。
+  我们必须站在巨人的肩膀上：以当今全球公认最强的小尺寸开源基座——<strong>阿里通义千问 Qwen-2.5（1.5B 或 7B）</strong>为底座，
+  借助<strong>低秩自适应微调技术（LoRA, Low-Rank Adaptation）</strong>，在 Kaggle 免费的 16GB T4 GPU 上，
+  将其改造为专属于我们项目的<strong>领域专家大模型</strong>！
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在编写训练引擎前，强烈建议研读 Karpathy 的预训练复现经典：</p>
+  <h4><span class="ic">✓</span>为什么选择 Qwen-2.5-1.5B-Instruct 作为首选基座？</h4>
+  <p>在千百个开源模型中，Qwen-2.5-1.5B 是当前个人算力实验的最优解：</p>
   <ul>
-    <li>
-      <strong>核心精讲视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=l8pRSuU81PU" target="_blank" rel="noopener">《Let's reproduce GPT-2 (124M)》</a>
-      （时长：4小时01分钟）。<br>
-      <em>重点时间戳</em>：<code>0:30:00</code> 批次加载器张量切片；<code>1:58:00</code> AdamW 优化器权重衰减解耦分组；<code>2:15:00</code> 带预热的余弦退火调度；<code>2:38:00</code> 梯度范数裁剪。
-    </li>
-    <li>
-      <strong>官方开源代码库</strong>：
-      <a href="https://github.com/karpathy/build-nanogpt" target="_blank" rel="noopener"><code>karpathy/build-nanogpt</code></a> 
-      — 零依赖纯 PyTorch 复现 GPT-2 完整预训练流程的标准工业代码。
-    </li>
-    <li>
-      <strong>优化器奠基论文</strong>：Loshchilov & Hutter (2019) — 
-      <a href="https://arxiv.org/abs/1711.05101" target="_blank" rel="noopener">《Decoupled Weight Decay Regularization》（AdamW, ICLR 2019）</a>。<br>
-      <em>推荐理由</em>：证明了 L2 正则化在自适应梯度法中的数学缺陷，确立了 AdamW 作为大模型预训练唯一主导优化器的历史地位。
-    </li>
+    <li><strong>能力顶级</strong>：在代码生成（HumanEval）、复杂数学推理（MATH）与中文遵循上，性能甚至超越了上一代的 7B / 13B 大模型；</li>
+    <li><strong>显存极其友好</strong>：以 16-bit 浮点加载仅需约 3.2 GB 显存，以 4-bit 量化加载仅需约 1.5 GB 显存，在 Kaggle 16GB 的 T4 GPU 上运行游刃有余，留下了充裕的批次和上下文空间；</li>
+    <li><strong>生态开放</strong>：完美支持 Hugging Face 生态、vLLM、Ollama 与 llama.cpp，导出部署极其顺畅。</li>
   </ul>
 </section>
 
-<h3>1. 训练语料极速收敛设计：TinyShakespeare / TinyStories</h3>
+<h3>1. 为什么不用全量微调？LoRA 核心数学原理解析</h3>
 <p>
-  大模型预训练的底层逻辑在 1 亿参数与 1000 亿参数上是完全同构的。为了让学员在单张免费 T4 GPU 上以极低等待成本走通全流程，我们选用经典教学语料 <strong>TinyShakespeare</strong>（约 1.1MB，4万行莎士比亚戏剧对白）或 <strong>TinyStories</strong>。
-  在这类紧凑语料上，一个 1000 万参数级别的 NanoLM 只需训练 2000~5000 步（约 10~15 分钟），即可学会英文单词拼写、角色对话排版与地道的人名词汇。
+  如果对一个 15 亿参数（1.5B）的模型执行全量微调（Full Fine-Tuning），反向传播需要为每个参数保存梯度与 AdamW 优化器的一阶/二阶动量状态，需要至少 \(1.5 \times 16 = 24 \text{ GB}\) 显存，直接撑爆单张 T4 显卡。
+  <strong>LoRA（Low-Rank Adaptation）</strong>彻底颠覆了这一切：<strong>冻结大模型原本的 99.8% 预训练权重，只在旁边外挂极其轻量的低秩矩阵侧枝</strong>。
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：预训练批次切片逻辑）</h4>
-  <p>设将全量语料展平为一个一维长张量 \(\mathbf{D} \in \mathbb{N}^L\)。每次采样批次大小为 \(B\)、上下文窗口为 \(T\)：</p>
-  \[ \mathbf{x} = \mathbf{D}[i : i+T], \qquad \mathbf{y} = \mathbf{D}[i+1 : i+T+1] \]
-  <p>
-    其中输入 \(\mathbf{x}\) 与目标 \(\mathbf{y}\) 的物理关系是<strong>严格错开 1 个时间步</strong>。对于任意时间步 \(t\)，模型的任务就是在给定 \(\mathbf{x}_{1:t}\) 的条件下，最大化真实下一个 Token \(\mathbf{y}_t = \mathbf{x}_{t+1}\) 的对数似然概率。
-  </p>
+  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：LoRA 秩分解微调数学公式）</h4>
+  <p>设大模型原有的冻结权重矩阵为 \(\mathbf{W}_0 \in \mathbb{R}^{d \times k}\)。在微调时，参数物理更新量 \(\Delta \mathbf{W}\) 被显式约束为一个低秩分解乘积：</p>
+  \[ \mathbf{h} = \mathbf{W}_0 \mathbf{x} + \Delta \mathbf{W} \mathbf{x} = \mathbf{W}_0 \mathbf{x} + \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) \mathbf{x} \]
+  <ul>
+    <li>\(\mathbf{W}_0\)：预训练大模型固有的稠密权重矩阵，在整个微调过程中<strong>完全冻结（requires_grad=False），不产生任何优化器动量开销</strong>；</li>
+    <li>\(\mathbf{A} \in \mathbb{R}^{r \times k}\)：低秩降维矩阵，使用高斯随机正态分布初始化；</li>
+    <li>\(\mathbf{B} \in \mathbb{R}^{d \times r}\)：低秩升维矩阵，初始全置为 0，<strong>确保微调启动第 0 步时 \(\mathbf{B} \cdot \mathbf{A} = \mathbf{0}\)，模型输出行为与原版底座 100% 严格一致</strong>；</li>
+    <li>\(r\)（Rank）：低秩内在维度（通常取 8 或 16）；</li>
+    <li>\(\alpha\)（Lora Alpha）：恒定缩放因子（通常取 \(2 \times r\)，如 16 或 32），用于稳定不同秩下的学习率步长。</li>
+  </ul>
 </section>
 
-<h3>2. 逐行手写预训练核心引擎（train.py）</h3>
+<h3>2. 逐行手写 Qwen-2.5 的加载与 LoRA 微调</h3>
 <p>
-  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，编写工业级预训练引擎。
+  在 Kaggle Notebook 中，我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，完成大模型微调全流程。
 </p>
 
-<h4>第一步：语料批次切片加载器（get_batch）</h4>
+<h4>第一步：安装现代大模型微调依赖全家桶</h4>
 
-<pre><code>def get_batch(split, data_train, data_val, batch_size, block_size, device):
-    data = data_train if split == 'train' else data_val
+<pre><code>!pip install -q transformers peft trl accelerate bitsandbytes datasets
 </code></pre>
-<p><strong>代码解析</strong>：定义高效批次生成函数，根据入参 <code>split</code> 自动在训练集张量与验证集张量之间切换数据源。</p>
+<p><strong>代码解析</strong>：通过 pip 静默安装 Hugging Face 核心套件：<code>transformers</code>（模型核心库）、<code>peft</code>（高效参数微调库）、<code>trl</code>（Transformer 强化与监督微调库）以及 <code>accelerate</code>（底层硬件自动加速分配）。</p>
 
-<pre><code>    ix = torch.randint(len(data) - block_size, (batch_size,))
-    x = torch.stack([data[i:i+block_size] for i in ix])
+<h4>第二步：加载 Qwen-2.5 分词器与 ChatML 提示词模版</h4>
+
+<pre><code>from transformers import AutoTokenizer
+model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
 </code></pre>
-<p><strong>代码解析</strong>：生成 <code>batch_size</code> 个均匀随机的起始索引 <code>ix</code>；使用列表推导切出长度为 <code>block_size</code> 的切片，并用 <code>torch.stack</code> 沿第 0 维拼装成形状为 <code>(B, T)</code> 的输入张量 <code>x</code>。</p>
+<p><strong>代码解析</strong>：指定 Hugging Face 上官方开源的 <code>Qwen2.5-1.5B-Instruct</code> 仓库路径；自动下载并实例化分词器（内置 15 万词表的 Tiktoken BPE 实现）。</p>
 
-<pre><code>    y = torch.stack([data[i+1:i+block_size+1] for i in ix])
-    return x.to(device), y.to(device)
+<pre><code>tokenizer.pad_token = tokenizer.eos_token
+print("词表大小:", len(tokenizer), "| 填充标记 Pad Token:", tokenizer.pad_token)
 </code></pre>
-<p><strong>代码解析</strong>：将相同起始位置向后平移 1 个单位切出标签张量 <code>y</code>；直接异步搬运至目标计算设备（如 <code>cuda:0</code>），为 GPU 高速矩阵乘法做好准备。</p>
+<p><strong>代码解析</strong>：因大模型自回归默认无填充标记，将句子结束符 <code>eos_token</code>（<code>&lt;|im_end|&gt;</code>）赋给 <code>pad_token</code>，确保批量输入时长短句能够整齐对齐。</p>
 
-<h4>第二步：权重衰减（Weight Decay）参数精细分组</h4>
+<h4>第三步：以半精度加载 Qwen-2.5 真实底座模型</h4>
 
-<pre><code>def configure_optimizers(model, weight_decay=1e-1, lr=5e-4, betas=(0.9, 0.95)):
-    decay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() >= 2]
-    nodecay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() < 2]
+<pre><code>import torch
+from transformers import AutoModelForCausalLM
+model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, device_map="auto")
 </code></pre>
-<p><strong>代码解析</strong>：遍历模型的所有可学习参数，<strong>严格执行 Karpathy 的现代分组法则</strong>：所有维度大于等于 2 的张量（即线性层与注意力的二维权重矩阵）纳入衰减组；所有一维张量（偏置项 Bias 与 LayerNorm 的缩放平移参数）纳入不衰减组。</p>
+<p><strong>代码解析</strong>：以 <code>bfloat16</code> 混合精度将 Qwen-2.5 的 15 亿参数加载进显存；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
 
-<pre><code>    optim_groups = [
-        {'params': decay_params, 'weight_decay': weight_decay},
-        {'params': nodecay_params, 'weight_decay': 0.0}
-    ]
-    return torch.optim.AdamW(optim_groups, lr=lr, betas=betas)
+<h4>第四步：构建并注入 LoRA 适配器（PEFT）</h4>
+
+<pre><code>from peft import LoraConfig, get_peft_model
+peft_config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"], lora_dropout=0.05, bias="none", task_type="CAUSAL_LM")
 </code></pre>
-<p><strong>代码解析</strong>：构造参数组字典，对权重矩阵施加 0.1 的衰减系数防止模型过拟合，对 LayerNorm 施加 0 衰减保证归一化尺度稳定，最后初始化 AdamW 优化器。</p>
+<p><strong>代码解析</strong>：定义 LoRA 拓扑配置：设置内在秩 \(r=8\)，缩放系数 \(\alpha=16\)；将低秩旁路注入至自注意力机制的查询（<code>q_proj</code>）和数值（<code>v_proj</code>）投影层中。</p>
 
-<h4>第三步：带预热的余弦退火学习率调度（Cosine Decay with Warmup）</h4>
-
-<pre><code>def get_lr(it, max_iters, warmup_iters=100, max_lr=5e-4, min_lr=5e-5):
-    if it < warmup_iters:
-        return max_lr * (it + 1) / warmup_iters
+<pre><code>model = get_peft_model(model, peft_config)
+model.print_trainable_parameters()
 </code></pre>
-<p><strong>代码解析</strong>：在训练初期前 <code>warmup_iters</code> 步执行线性预热：学习率从 0 线性爬升至峰值 <code>max_lr</code>，防止随机初始化的粗糙梯度在刚开始就震毁模型。</p>
+<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15 亿陡降至仅约 150 万（占比不到 0.1%）</strong>！显存开销暴降 80% 以上！</p>
 
-<pre><code>    if it > max_iters:
-        return min_lr
-    decay_ratio = (it - warmup_iters) / (max_iters - warmup_iters)
+<h4>第五步：准备领域微调数据集（以 Crossfade 任务为例）</h4>
+
+<pre><code>from datasets import Dataset
+train_data = [
+    {"instruction": "给出音频 Crossfade 两个轨道的过渡曲线推荐参数。", "output": "建议采用等功率对数过渡曲线（Equal Power Crossfade），将轨道 A 设为 cos(t*pi/2)，轨道 B 设为 sin(t*pi/2)，保证重叠区域能量平方和守恒，消除声压凹陷。"},
+    {"instruction": "Crossfade 数学建模中采样率不匹配应如何处理？", "output": "在执行重叠相加（Overlap-Add）之前，必须调用多相滤波插值算法（Polyphase Resampling）将从属音频轨重采样至主轨相同采样率（如 44.1kHz），以杜绝相位偏移与高频混叠。"}
+] * 50
+dataset = Dataset.from_list(train_data)
 </code></pre>
-<p><strong>代码解析</strong>：若超出最大步数则维持基底学习率；否则计算当前处于退火周期的相对进度百分比 <code>decay_ratio</code>（区间为 0.0~1.0）。</p>
+<p><strong>代码解析</strong>：构造专业指令-回答训练对，模拟将通用大模型调教为精通 Crossfade 算法与音频数学建模的专用 Agent；将其包装为标准 Hugging Face <code>Dataset</code> 对象。</p>
 
-<pre><code>    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
-    return min_lr + coeff * (max_lr - min_lr)
+<h4>第六步：应用标准对话模版（ChatML Formatting）</h4>
+
+<pre><code>def format_chat(sample):
+    messages = [{"role": "user", "content": sample["instruction"]}, {"role": "assistant", "content": sample["output"]}]
+    return {"text": tokenizer.apply_chat_template(messages, tokenize=False)}
+formatted_dataset = dataset.map(format_chat)
 </code></pre>
-<p><strong>代码解析</strong>：使用 \(\frac{1}{2}(1 + \cos(\pi \cdot \text{ratio}))\) 余弦函数平滑降低学习率，在训练收敛末期微调权重，实现最细致的局部极小值收敛。</p>
+<p><strong>代码解析</strong>：调用 Qwen 官方的 <code>apply_chat_template</code> 将用户提问与助手回答自动格式化为带 <code>&lt;|im_start|&gt;user ... &lt;|im_end|&gt;&lt;|im_start|&gt;assistant ...</code> 的严密对话标记序列。</p>
 
-<h4>第四步：无梯度验证集损失评估（estimate_loss）</h4>
+<h4>第七步：启动 SFT 监督微调循环并持久化权重</h4>
 
-<pre><code>@torch.no_grad()
-def estimate_loss(model, data_train, data_val, batch_size, block_size, device, eval_iters=50):
-    out = {}
-    model.eval()
+<pre><code>from transformers import TrainingArguments
+from trl import SFTTrainer
+training_args = TrainingArguments(output_dir="/kaggle/working/qwen_lora_out", per_device_train_batch_size=4, gradient_accumulation_steps=2, learning_rate=2e-4, num_train_epochs=3, fp16=True, logging_steps=10, save_strategy="no")
 </code></pre>
-<p><strong>代码解析</strong>：使用 <code>@torch.no_grad()</code> 装饰器禁用计算图梯度记录以节省显存；将模型切入 <code>eval()</code> 评估模式，停用 Dropout 的随机丢弃行为。</p>
+<p><strong>代码解析</strong>：配置训练参数：单卡 Batch Size 为 4，结合 2 步梯度累积（等效 Batch Size = 8）；学习率设为 \(2 \times 10^{-4}\)，启用 FP16 混合精度加速。</p>
 
-<pre><code>    for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split, data_train, data_val, batch_size, block_size, device)
-            _, loss = model(X, Y)
-            losses[k] = loss.item()
-        out[split] = losses.mean().item()
+<pre><code>trainer = SFTTrainer(model=model, train_dataset=formatted_dataset, dataset_text_field="text", max_seq_length=512, args=training_args)
+trainer.train()
+model.save_pretrained("/kaggle/working/qwen-crossfade-lora")
 </code></pre>
-<p><strong>代码解析</strong>：分别在训练集和验证集上均匀抽取 <code>eval_iters</code> 个批次，累加交叉熵损失并求均值，消除单批次偶发扰动，获得客观稳健的真实泛化误差。</p>
+<p><strong>代码解析</strong>：实例化工业级微调器 <code>SFTTrainer</code> 并启动训练，在 T4 GPU 上只需 2~3 分钟即可完成！最后将训练好的 LoRA 增量权重持久化保存至 <code>/kaggle/working/qwen-crossfade-lora</code>（文件大小仅数兆字节）。</p>
 
-<pre><code>    model.train()
-    return out
-</code></pre>
-<p><strong>代码解析</strong>：评估完成后将模型重新切回 <code>train()</code> 训练模式，返回训练集与验证集的平滑损失字典。</p>
-
-<h4>第五步：梯度裁剪与单步优化更新</h4>
-
-<pre><code>        optimizer.zero_grad(set_to_none=True)
-        _, loss = model(xb, yb)
-        loss.backward()
-</code></pre>
-<p><strong>代码解析</strong>：将优化器旧梯度置为 <code>None</code>（比传 0 显著更省内存并加速下轮反向传播）；执行模型前向传播获取当前批次损失，并调用 <code>loss.backward()</code> 反向微分计算各参数梯度。</p>
-
-<pre><code>        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
-</code></pre>
-<p><strong>代码解析</strong>：<strong>大模型训练防炸核武器</strong>：使用 <code>clip_grad_norm_</code> 将全局梯度向量的 L2 范数硬截断至 1.0 上限，彻底阻断因偶发异常数据样本导致的梯度爆炸（Gradient Explosion）；随后由优化器执行参数物理更新。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<h3>3. 🧪 模块完整整合代码清单（Complete Kaggle Fine-Tuning Script）</h3>
 <p>
-  下面是预训练引擎的<strong>完整无删减脚本（train.py）</strong>。包含内置极简语料生成、模型实例化、学习率调度、定期损失打印与检查点保存，可直接在 Kaggle 或任何 PyTorch 环境中一键启动：
+  下面是完整的可运行脚本，直接在 Kaggle Notebook 中新建单元格粘贴运行即可完整走通：
 </p>
 
 <pre><code># =====================================================================
-# Gen-1 LLM: Complete Pretraining Loop on GPU
-# Directly aligned with Andrej Karpathy's build-nanogpt & Zero to Hero
+# Qwen-2.5-1.5B-Instruct LoRA Fine-Tuning on Kaggle Free T4 GPU
+# End-to-End Pipeline for Crossfade & Domain-Specific Adaptation
 # =====================================================================
 
-import math
-import time
+import os
 import torch
-import torch.nn as nn
-from torch.nn import functional as F
+from datasets import Dataset
+from transformers import AutoTokenizer, AutoModelForCausalLM, TrainingArguments
+from peft import LoraConfig, get_peft_model
+from trl import SFTTrainer
 
-# 导入第 27 讲手写的核心模型（若在同文件可直接复用）
-from model import NanoGPTLanguageModel
+# 1. 确认硬件加速状态
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"当前运行设备: {device.upper()} (GPU型号: {torch.cuda.get_device_name(0) if device=='cuda' else 'None'})")
 
-# ----------------- 超参数设定（专为 Kaggle T4 / 本地极速训练调优） -----------------
-batch_size = 32           # 批次大小
-block_size = 64           # 上下文窗口长度
-max_iters = 1500          # 训练总迭代步数
-eval_interval = 250       # 评估验证周期间隔
-learning_rate = 5e-4      # 最大学习率
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-eval_iters = 40
-n_embd = 128
-n_head = 4
-n_layer = 4
-dropout = 0.1
+# 2. 加载 Qwen-2.5-1.5B 官方底座
+model_id = "Qwen/Qwen2.5-1.5B-Instruct"
+print(f"⏳ 正在加载开源底座: {model_id} ...")
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+tokenizer.pad_token = tokenizer.eos_token
 
-print(f"🖥️ 当前使用的训练硬件设备: {device.upper()}")
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    torch_dtype=torch.float16,
+    device_map="auto"
+)
 
-# ----------------- 极简自包含训练数据准备 -----------------
-# 构造包含经典结构的微型训练语料（实际可替换为任意文本文件）
-sample_corpus = """
-First Citizen: Before we proceed any further, hear me speak.
-All: Speak, speak.
-First Citizen: You are all resolved rather to die than to famish?
-All: Resolved. resolved.
-First Citizen: First, you know Caius Marcius is chief enemy to the people.
-All: We know't, we know't.
-First Citizen: Let us kill him, and we'll have corn at our own price.
-Is't a verdict?
-All: No more talking on't; let it be done: away, away!
-Second Citizen: One word, good citizens.
-First Citizen: We are accounted poor citizens, the patricians good.
-What authority surfeits on would relieve us: if they would yield
-us but the superfluity, while it were wholesome, we might guess
-they relieved us humanely; but they think we are too dear.
-""" * 100  # 重复放大形成自包含玩具训练集
+# 3. 挂载 LoRA 适配层（冻结 99.8% 底座权重）
+peft_config = LoraConfig(
+    r=8,
+    lora_alpha=16,
+    target_modules=["q_proj", "v_proj"],
+    lora_dropout=0.05,
+    bias="none",
+    task_type="CAUSAL_LM"
+)
+model = get_peft_model(model, peft_config)
+print("📊 参数微调比例如下:")
+model.print_trainable_parameters()
 
-chars = sorted(list(set(sample_corpus)))
-vocab_size = len(chars)
-stoi = {ch: i for i, ch in enumerate(chars)}
-itos = {i: ch for i, ch in enumerate(chars)}
+# 4. 构造 Crossfade 领域微调语料并应用 ChatML 模版
+raw_samples = [
+    {"q": "Crossfade 音频过渡时出现中频声压塌陷（Volume Dip），如何解决？", "a": "声压塌陷是因为采用了线性交叉渐变（Linear Fade）。应改用等功率曲线（Equal-Power Fade），满足Gain_A^2 + Gain_B^2 = 1，使得能量在中心点保持平直。"},
+    {"q": "如何用数学语言定义 Crossfade 的平滑过渡窗口？", "a": "可定义时间归一化变量 t in [0, 1]，加权衰减窗函数 w1(t) = sqrt(1 - t)，递增窗函数 w2(t) = sqrt(t)，此时输出信号 s(t) = w1(t)*s1(t) + w2(t)*s2(t)，满足恒等能量守恒。"}
+] * 40
 
-encode = lambda s: [stoi[c] for c in s]
-decode = lambda l: ''.join([itos[i] for i in l])
+dataset = Dataset.from_list([{"instruction": s["q"], "output": s["a"]} for s in raw_samples])
 
-data = torch.tensor(encode(sample_corpus), dtype=torch.long)
-n_train = int(0.9 * len(data))
-train_data = data[:n_train]
-val_data = data[n_train:]
+def apply_template(item):
+    msgs = [{"role": "user", "content": item["instruction"]}, {"role": "assistant", "content": item["output"]}]
+    return {"text": tokenizer.apply_chat_template(msgs, tokenize=False)}
 
-def get_batch(split):
-    d = train_data if split == 'train' else val_data
-    ix = torch.randint(len(d) - block_size, (batch_size,))
-    x = torch.stack([d[i:i+block_size] for i in ix])
-    y = torch.stack([d[i+1:i+block_size+1] for i in ix])
-    return x.to(device), y.to(device)
+formatted_ds = dataset.map(apply_template)
 
-@torch.no_grad()
-def estimate_loss(model):
-    out = {}
-    model.eval()
-    for split in ['train', 'val']:
-        losses = torch.zeros(eval_iters)
-        for k in range(eval_iters):
-            X, Y = get_batch(split)
-            _, loss = model(X, Y)
-            losses[k] = loss.item()
-        out[split] = losses.mean().item()
-    model.train()
-    return out
+# 5. 启动超轻量微调训练
+output_dir = "/kaggle/working/qwen-crossfade-lora"
+train_args = TrainingArguments(
+    output_dir="/tmp/lora_checkpoints",
+    per_device_train_batch_size=4,
+    gradient_accumulation_steps=2,
+    learning_rate=2e-4,
+    num_train_epochs=3,
+    fp16=True,
+    logging_steps=10,
+    save_strategy="no",
+    report_to="none"
+)
 
-def get_lr(it):
-    warmup_iters = 100
-    if it < warmup_iters:
-        return learning_rate * (it + 1) / warmup_iters
-    decay_ratio = (it - warmup_iters) / (max_iters - warmup_iters)
-    coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
-    return 1e-5 + coeff * (learning_rate - 1e-5)
+trainer = SFTTrainer(
+    model=model,
+    train_dataset=formatted_ds,
+    dataset_text_field="text",
+    max_seq_length=512,
+    args=train_args
+)
 
-# ----------------- 初始化模型与优化器 -----------------
-model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=n_embd, block_size=block_size, n_layer=n_layer, n_head=n_head, dropout=dropout).to(device)
+print("🚀 开始执行 LoRA 微调训练循环...")
+trainer.train()
 
-# 权重衰减分组
-decay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() >= 2]
-nodecay_params = [p for n, p in model.named_parameters() if p.requires_grad and p.dim() < 2]
-optimizer = torch.optim.AdamW([
-    {'params': decay_params, 'weight_decay': 0.1},
-    {'params': nodecay_params, 'weight_decay': 0.0}
-], lr=learning_rate, betas=(0.9, 0.95))
-
-# ----------------- 正式预训练主循环 -----------------
-print(f"🚀 开始 NanoLM-Gen1 预训练循环（总计 {max_iters} 步）...")
-start_time = time.time()
-
-for iter_step in range(max_iters):
-    # 动态调整当前步的学习率
-    lr = get_lr(iter_step)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-
-    # 定期无偏估计验证损失
-    if iter_step % eval_interval == 0 or iter_step == max_iters - 1:
-        losses = estimate_loss(model)
-        elapsed = time.time() - start_time
-        print(f"Step {iter_step:4d} | 耗时: {elapsed:5.1f}s | Train Loss: {losses['train']:.4f} | Val Loss: {losses['val']:.4f} | LR: {lr:.2e}")
-
-    # 获取批次并执行反向传播
-    xb, yb = get_batch('train')
-    logits, loss = model(xb, yb)
-    
-    optimizer.zero_grad(set_to_none=True)
-    loss.backward()
-    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-    optimizer.step()
-
-# 保存最终训练好的模型权重元组
-torch.save({
-    'model_state': model.state_dict(),
-    'vocab': chars,
-    'config': {'n_embd': n_embd, 'n_head': n_head, 'n_layer': n_layer, 'block_size': block_size}
-}, "nanogpt_gen1.pt")
-print("🎉 恭喜！NanoLM-Gen1 预训练顺利完成，权重已安全序列化至 nanogpt_gen1.pt。")
+# 6. 保存微调权重产物
+model.save_pretrained(output_dir)
+tokenizer.save_pretrained(output_dir)
+print(f"🎉 成功！专属 Crossfade 领域的 Qwen LoRA 适配器已安全保存至: {output_dir}")
 </code></pre>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在配置 AdamW 优化器参数组时，为什么必须将二维权重矩阵（<code>p.dim() >= 2</code>）与一维偏置/LayerNorm 参数（<code>p.dim() < 2</code>）分开，并对一维参数设置 <code>weight_decay = 0.0</code>？</p>
+  <p class="q">在 LoRA 微调中，低秩升维矩阵 \(\mathbf{B}\) 为什么在初始化时必须全置为 0？</p>
   <ul class="opts">
-    <li>因为 PyTorch 的底层 C++ 算子不支持对一维张量计算梯度</li>
-    <li data-ok>Weight Decay 的本质是压制权重的 L2 模长以防过拟合。LayerNorm 的缩放平移参数（\(\gamma, \beta\)）和偏置项用于微调特征分布的均值与方差，对其施加衰减会强行扭曲激活值的统计尺度，损害模型表达能力</li>
-    <li>为了让训练占用更少的 GPU 显存</li>
-    <li>这样可以使优化器跳过反向传播计算</li>
+    <li>因为置为 0 可以节省 GPU 的运算时间</li>
+    <li data-ok>使得初始时增量矩阵 \(\Delta \mathbf{W} = \frac{\alpha}{r} (\mathbf{B} \cdot \mathbf{A}) = \mathbf{0}\)，从而保证在微调启动的第 0 步，模型的推理行为与原本强大的开源预训练底座 100% 严格一致，防止随机权重破坏已有知识</li>
+    <li>这样可以使优化器不需要计算梯度</li>
+    <li>这是由 PyTorch 静态显存机制强制要求的</li>
   </ul>
   <p class="why">
-    绝大多数工业大模型（GPT-3、LLaMA、Chinchilla）均严格遵守此规范：只有注意力投影矩阵与 MLP 权重参与 Weight Decay，所有偏置和归一化参数绝对豁免衰减。
+    如果 \(\mathbf{B}\) 也采用随机高斯初始化，刚开始训练时初始模型输出就会被随机噪声严重污染，导致预训练积累的通识能力被瞬间“震坏”。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在执行反向传播后调用 <code>torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</code> 的主要物理意义是：</p>
+  <p class="q">在 Kaggle 免费的 16GB T4 GPU 上，使用 LoRA 微调 Qwen-2.5-1.5B 时，训练参数量通常占模型总参数量的比例约为：</p>
   <ul class="opts">
-    <li>将模型参数的数值强制压缩在 -1.0 到 +1.0 之间</li>
-    <li data-ok>当遇到奇异噪声样本导致梯度的全局 L2 范数陡增时，将其按比例等比缩放至 1.0 的最大安全上限，从而彻底防止梯度爆炸冲毁模型参数</li>
-    <li>加速梯度在 GPU 显存中的传输带宽</li>
-    <li>自动将 FP32 梯度转换为 FP16 浮点数</li>
+    <li>100%</li>
+    <li>50%</li>
+    <li data-ok>不到 0.1%（约 150 万参数 / 15 亿参数）</li>
+    <li>90%</li>
   </ul>
   <p class="why">
-    梯度裁剪改变的是梯度更新向量的“步长上限”，但不改变其“更新方向”（等比缩放），是保障千步长周期预训练绝对不发生 Loss 突变飞升（NaN）的最坚固安全阀。
+    LoRA 仅在注意力层的投影矩阵上外挂极小秩（如 \(r=8\)）的降维与升维矩阵，冻结其余全部原模型参数，因此可训练参数比例通常只有千分之一左右。
   </p>
 </div>
 `

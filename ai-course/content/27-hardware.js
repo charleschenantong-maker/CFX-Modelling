@@ -1,377 +1,233 @@
-/* content/27-hardware.js — 模块 27：自制大模型 Gen-1（二）：从零搭建 nanoGPT 核心模型架构 */
+/* content/27-hardware.js — 模块 27：Kaggle 保姆级实操起步：账号激活、免费 T4 算力申请与首个云端 Notebook 交互 */
 COURSE.register({
   id: "m27",
   part: 5,
   num: "27",
-  title: "自制大模型 Gen-1（二）：从零搭建 nanoGPT 核心模型架构",
-  en: "Building Gen-1 LLM (Part 2): Pure nanoGPT Model Architecture from Scratch",
-  minutes: 45,
-  tags: ["Gen-1自制大模型", "nanoGPT", "注意力机制", "Transformer", "从零手写"],
+  title: "Kaggle 保姆级实操起步：账号激活、免费 T4 算力申请与首个云端 Notebook 交互",
+  en: "Kaggle Step-by-Step Starter: Account Setup, Free T4 GPU Allocation, and First Notebook Interaction",
+  minutes: 40,
+  tags: ["Kaggle起步", "免费GPU", "Jupyter", "保姆级教程", "云端环境"],
   body: String.raw`
 <p class="lead">
-  在掌握了分词器底层原理之后，我们正式进入<strong>【自制大模型 Gen-1】的核心引擎部分</strong>：
-  使用纯 PyTorch 逐行手写一个经典的<strong>自回归 Transformer 解码器（Decoder-Only nanoGPT）</strong>。
-  我们将抛开 Hugging Face 等高级封装黑盒，
-  用最清晰直观的数学算子，实现因果自注意力掩码、多头注意力机制（Multi-Head Attention）、残差连接（Residual Connections）、层归一化（LayerNorm）与输出投影头。
+  要开始真正改造与微调现代大模型，你不需要购买昂贵的数万元专业显卡。
+  <strong>Kaggle</strong>（Google 旗下全球最大的数据科学平台）为全球注册开发者提供<strong>每周 30 小时完全免费的 NVIDIA T4 GPU 算力</strong>（具备 16GB 显存，足以为 15 亿到 70 亿参数模型进行高效微调）。
+  本讲将以<strong>保姆级（Babysitting）的细致度</strong>，手把手带你完成从账号激活、申请免费 GPU、新建第一个云端 Notebook 到敲下第一行交互代码的全流程。
 </p>
 
 <section class="blk blk-tip">
-  <h4><span class="ic">🎥</span>必看高质导读资源（Recommended Learning Resources）</h4>
-  <p>在编写本讲神经网络架构前，极力推荐反复研读以下世界级导师的公开杰作：</p>
+  <h4><span class="ic">✓</span>实操前准备清单</h4>
+  <p>在开始前，你只需要准备两样东西：</p>
   <ul>
-    <li>
-      <strong>核心精讲视频</strong>：Andrej Karpathy — 
-      <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">《Let's build GPT: from scratch, in code, spelled out.》</a>
-      （时长：1小时56分钟）。<br>
-      <em>重点时间戳</em>：<code>0:38:00</code> 注意力机制的核心数学技巧（加权平均）；<code>1:04:00</code> 单头因果注意力；<code>1:15:00</code> 多头注意力与并行；<code>1:24:00</code> 前馈网络与残差连接；<code>1:44:00</code> 完整组装 Transformer。
-    </li>
-    <li>
-      <strong>官方开源代码库</strong>：
-      <a href="https://github.com/karpathy/nanoGPT" target="_blank" rel="noopener"><code>karpathy/nanoGPT</code></a> 
-      — 世界上最精简、优雅的 GPT 训练与微调仓库（仅 2 个核心 Python 文件完成全部工作）。
-    </li>
-    <li>
-      <strong>核心论文</strong>：Vaswani et al. (2017) — 
-      <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">《Attention Is All You Need》</a> 
-      与 Radford et al. (2019) — 
-      <a href="https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" target="_blank" rel="noopener">《Language Models are Unsupervised Multitask Learners》（GPT-2）</a>。<br>
-      <em>推荐理由</em>：确立现代 Decoder-Only 架构的行业标准，现代所有大模型（GPT-4、LLaMA、DeepSeek）的祖师爷爷。
-    </li>
+    <li>一个现代网页浏览器（Chrome / Edge / Firefox / Safari 均可）；</li>
+    <li>一个能接收短信的真实手机号码（用于完成 Kaggle 免费 GPU 的实名短信激活验证）。</li>
   </ul>
 </section>
 
-<h3>1. nanoGPT 张量几何流向与物理架构</h3>
+<h3>1. Kaggle 账号注册与免费 GPU 权限解锁</h3>
 <p>
-  一个自回归因果语言模型本质上是一个<strong>下一个 Token 分类器</strong>。其输入为批次形状为 <code>(B, T)</code> 的整数索引，经过多层堆叠后输出形状为 <code>(B, T, vocab_size)</code> 的非归一化对数几率（Logits）：
+  许多新手直接注册账号后发现无法开启 GPU 加速器，原因在于<strong>未完成手机号验证</strong>。请严格按照以下步骤操作：
 </p>
 
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>记号铺垫（Notation Bridge：张量形状维度速查）</h4>
-  <p>在接下来的手写算子中，我们严格遵守业界统一的标准张量维度符号：</p>
-  \[ \mathbf{X} \in \mathbb{R}^{B \times T \times C} \]
-  <ul>
-    <li>\(B\)（Batch Size）：批次大小，即一次并行计算的独立句子数量；</li>
-    <li>\(T\)（Block Size / Sequence Length）：序列长度，模型单次能观察的上下文时间步窗口；</li>
-    <li>\(C\)（Embedding Dimension / \(n_{\text{embd}}\)）：隐层特征通道维度（如 64、128 或 768）；</li>
-    <li>\(H\)（Num Heads）：多头注意力的并行头数；每个头的维度为 \(d_{\text{head}} = C / H\)。</li>
-  </ul>
-</section>
+<div class="flow">
+  <div class="nd hi">1. 访问 Kaggle 官网注册</div>
+  <div class="ar">→</div>
+  <div class="nd">2. 绑定手机号激活 GPU</div>
+  <div class="ar">→</div>
+  <div class="nd">3. 新建 Notebook</div>
+  <div class="ar">→</div>
+  <div class="nd hi">4. 开启 T4 与 Internet</div>
+</div>
 
-<h3>2. 逐行手写 nanoGPT 核心算子</h3>
+<dl class="kv">
+  <dt>第一步：创建账号</dt>
+  <dd>在浏览器打开 <a href="https://www.kaggle.com" target="_blank" rel="noopener">https://www.kaggle.com</a>，点击右上角 <strong>"Register"</strong>。推荐选择 "Register with Google"（一键登录）或使用常用邮箱完成注册。</dd>
+  <dt>第二步：手机号实名短信验证（核心关键步）</dt>
+  <dd>登录后，点击右上角个人头像 → 选择 <strong>"Settings"</strong>（设置）→ 页面向下拉到 <strong>"Phone Verification"</strong>（手机验证）区域 → 点击 "Verify Account" → 选择你所在的国家区号并输入手机号码 → 输入收到的 6 位短信验证码。<strong>一旦验证成功，你的账号将永久解锁每周 30 小时免费 GPU 配额</strong>！</dd>
+</dl>
+
+<h3>2. 新建首个云端 Notebook 与必开设置</h3>
 <p>
-  下面我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，纯手工实现各层子模块。
+  进入 Kaggle 首页，点击左侧导航栏的 <strong>"+ Create"</strong> 按钮，在下拉菜单中点击 <strong>"New Notebook"</strong>。一个崭新的 Jupyter 云端交互式界面将在浏览器中呈现。
+</p>
+<p>
+  在敲写任何代码之前，<strong>必须首先检查并开启右侧侧边栏（Settings 面板）的三个关键开关</strong>：
+</p>
+<table class="tbl">
+  <thead><tr><th>设置项（Settings）</th><th>默认值</th><th>必须调整的目标值</th><th>为什么至关重要？</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Accelerator（加速器）</strong></td>
+      <td>None（纯 CPU）</td>
+      <td><strong>GPU T4 x2 或 GPU T4</strong></td>
+      <td>将计算引擎从孱弱的双核 CPU 切换至专业级 NVIDIA T4 GPU（16GB 独立显存），这是运行与微调大模型的算力源泉。</td>
+    </tr>
+    <tr>
+      <td><strong>Internet（外网访问权限）</strong></td>
+      <td>OFF（关闭）</td>
+      <td><strong>ON（开启）</strong></td>
+      <td><strong>初学者最常踩的坑！</strong>若不开启此项，Notebook 将无法从 Hugging Face、GitHub 或 Pip 下载任何模型权重与依赖包。</td>
+    </tr>
+    <tr>
+      <td><strong>Environment（环境镜像）</strong></td>
+      <td>Pin to original</td>
+      <td><strong>Always use latest environment</strong></td>
+      <td>确保系统自动预装最新版本的 PyTorch、CUDA 驱动与常用数据科学依赖库。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>3. Kaggle 云端文件系统物理拓扑</h3>
+<p>
+  在编写代码前，必须建立清晰的磁盘物理空间认知：
+</p>
+<table class="tbl small">
+  <thead><tr><th>目录路径</th><th>访问权限</th><th>生命周期与用途</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>/kaggle/input/</code></td>
+      <td><strong>只读（Read-Only）</strong></td>
+      <td>挂载的数据集或外部模型权重所在路径，严禁尝试在此目录下写入或保存任何文件（会抛出 PermissionError）。</td>
+    </tr>
+    <tr>
+      <td><code>/kaggle/working/</code></td>
+      <td><strong>可读可写（Read-Write）</strong></td>
+      <td>当前 Notebook 的主工作区。所有微调后的模型权重、生成的日志与图表<strong>必须保存到该目录下</strong>；在右侧面板点击 "Save Version" 后可将该目录打包持久化。</td>
+    </tr>
+    <tr>
+      <td><code>/tmp/</code></td>
+      <td>临时可读写</td>
+      <td>系统高速临时盘，容器重启或会话断开后内容立即蒸发，仅用于存储瞬时中间缓存。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>4. 逐行敲下你的第一行交互式测试代码</h3>
+<p>
+  在 Notebook 中新建一个代码单元格（Cell），我们遵循“<strong>1~2 行代码 + 紧随详细解析</strong>”的严密认知步调，验证 GPU 的健康状态。
 </p>
 
-<h4>第一步：因果单头注意力（Causal Self-Attention Head）</h4>
+<h4>第一步：通过系统终端命令探测物理显卡</h4>
 
-<pre><code>class Head(nn.Module):
-    def __init__(self, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
+<pre><code>!nvidia-smi
 </code></pre>
-<p><strong>代码解析</strong>：继承 <code>nn.Module</code> 创建单注意力头类。传入单个头的特征维度 <code>head_size</code>、输入特征维度 <code>n_embd</code>、最大时间步长度 <code>block_size</code> 与 Dropout 丢弃率。</p>
+<p><strong>代码解析</strong>：在 Jupyter 中以感叹号 <code>!</code> 开头表示执行底层的 Linux Shell 终端命令；<code>nvidia-smi</code> 是 NVIDIA 驱动自带的系统管理接口，用于输出当前显卡型号、驱动版本、CUDA 版本以及 16GB 显存的当前空闲状态。</p>
 
-<pre><code>        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
+<h4>第二步：在 PyTorch 中验证 CUDA 运算环境</h4>
+
+<pre><code>import torch
+print("CUDA 是否可用:", torch.cuda.is_available())
 </code></pre>
-<p><strong>代码解析</strong>：定义查询（Query）、键（Key）与值（Value）三个线性投影矩阵，不使用偏置项（bias=False），将输入向量映射到该注意头所在的子空间。</p>
+<p><strong>代码解析</strong>：导入核心深度学习框架 <code>torch</code>；调用 <code>torch.cuda.is_available()</code> 检测底层 CUDA 运行时是否已成功与当前 Python 环境握手（正常应输出 <code>True</code>）。</p>
 
-<pre><code>        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.dropout = nn.Dropout(dropout)
+<pre><code>device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("当前默认计算设备:", torch.cuda.get_device_name(0))
 </code></pre>
-<p><strong>代码解析</strong>：注册一个下三角全 1 掩码矩阵 <code>tril</code> 为 Buffer（不参与反向传播梯度更新，但随模型保存）；初始化 Dropout 层用于注意力权重随机失活以防过拟合。</p>
+<p><strong>代码解析</strong>：构建动态设备对象 <code>device</code>（优先使用 <code>cuda</code>）；调用 <code>get_device_name(0)</code> 打印 0 号 GPU 的物理名称（正常输出类似 <code>Tesla T4</code>）。</p>
 
-<pre><code>    def forward(self, x):
-        B, T, C = x.shape
-        k = self.key(x)   # (B, T, head_size)
-        q = self.query(x) # (B, T, head_size)
+<h4>第三步：执行张量矩阵运算基准测试（GPU Warmup）</h4>
+
+<pre><code>x = torch.randn(4096, 4096, device=device)
+y = torch.randn(4096, 4096, device=device)
 </code></pre>
-<p><strong>代码解析</strong>：前向传播获取输入张量的批次大小 \(B\)、当前时间步长 \(T\) 与特征维度 \(C\)；分别计算每个位置的 Key 和 Query 向量。</p>
+<p><strong>代码解析</strong>：直接在 GPU 显存上生成两个 \(4096 \times 4096\) 的单精度（FP32）随机矩阵，每个张量占用约 64MB 显存。</p>
 
-<pre><code>        wei = q @ k.transpose(-2, -1) * (k.shape[-1] ** -0.5)
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
+<pre><code>start_event = torch.cuda.Event(enable_timing=True)
+end_event = torch.cuda.Event(enable_timing=True)
 </code></pre>
-<p><strong>代码解析</strong>：计算注意力亲和度矩阵 \(Q K^T / \sqrt{d_k}\)；利用 <code>masked_fill</code> 将未来的时间步（掩码为 0 的右上三角区域）全部填充为负无穷大（\(-\infty\)），<strong>这是自回归模型不能“偷看未来”的核心物理保证</strong>！</p>
+<p><strong>代码解析</strong>：创建两个带时间记录功能的 CUDA 硬件事件对象，用于精确测量 GPU 内核执行的物理耗时（毫秒级）。</p>
 
-<pre><code>        wei = F.softmax(wei, dim=-1)
-        wei = self.dropout(wei)
-        v = self.value(x)
-        return wei @ v
+<pre><code>start_event.record()
+z = torch.matmul(x, y)
+end_event.record()
 </code></pre>
-<p><strong>代码解析</strong>：对最后一维做 Softmax 归一化为注意力概率分布（\(-\infty\) 变为 0）；乘以 Value 向量矩阵完成上下文特征加权聚合，输出形状为 <code>(B, T, head_size)</code>。</p>
+<p><strong>代码解析</strong>：记录起点时间，调用底层高度优化的 cuBLAS 矩阵乘法算子执行 \(O(N^3)\) 级运算，并在计算图末尾记录终点时间。</p>
 
-<h4>第二步：多头注意力（Multi-Head Attention）</h4>
-
-<pre><code>class MultiHeadAttention(nn.Module):
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
-        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
+<pre><code>torch.cuda.synchronize()
+print(f"4096阶稠密矩阵乘法物理耗时: {start_event.elapsed_time(end_event):.2f} ms")
 </code></pre>
-<p><strong>代码解析</strong>：初始化多头注意力容器，创建 <code>num_heads</code> 个并行的 <code>Head</code> 实例，让网络能在不同表示子空间中同时捕捉语法、语义等多元依赖关系。</p>
+<p><strong>代码解析</strong>：调用 <code>synchronize()</code> 阻塞等待异步流运算执行完毕；打印两点之间的精确物理用时（在 T4 上通常只需几毫秒，比 CPU 快 50 倍以上）。</p>
 
-<pre><code>        self.proj = nn.Linear(head_size * num_heads, n_embd)
-        self.dropout = nn.Dropout(dropout)
+<h4>第四步：检查显存占用与释放</h4>
+
+<pre><code>allocated_mb = torch.cuda.memory_allocated() / (1024 ** 2)
+print(f"当前已占用显存: {allocated_mb:.1f} MB / 16384 MB")
 </code></pre>
-<p><strong>代码解析</strong>：定义一个输出线性投影层 <code>proj</code>，将所有头拼接起来的特征向量统一投影回模型的隐层主通道维度 <code>n_embd</code>。</p>
+<p><strong>代码解析</strong>：调用 <code>memory_allocated()</code> 查看当前 Python 进程真实持有的活动张量显存，验证显存监控机制运行正常。</p>
 
-<pre><code>    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
-        return out
-</code></pre>
-<p><strong>代码解析</strong>：遍历执行每一个注意力头，在特征维度（<code>dim=-1</code>）上将多头输出拼接（Concatenate），经由线性投影与 Dropout 后输出。</p>
-
-<h4>第三步：前馈感知网络（FeedForward / MLP）</h4>
-
-<pre><code>class FeedForward(nn.Module):
-    def __init__(self, n_embd, dropout=0.1):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.GELU(),
-            nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout)
-        )
-</code></pre>
-<p><strong>代码解析</strong>：按照 GPT-2 标准结构，将隐层特征升维 4 倍（\(4 \times n_{\text{embd}}\)），经过平滑非线性的高斯误差线性单元 <code>nn.GELU()</code> 激活函数，再降维投影回 \(n_{\text{embd}}\)，赋予网络强大的逐 Token 记忆与特征变换能力。</p>
-
-<pre><code>    def forward(self, x):
-        return self.net(x)
-</code></pre>
-<p><strong>代码解析</strong>：前向执行两层 MLP 变换，输入输出张量形状保持 <code>(B, T, C)</code> 完全不变。</p>
-
-<h4>第四步：Transformer 残差块（Block 与 Pre-LayerNorm）</h4>
-
-<pre><code>class Block(nn.Module):
-    def __init__(self, n_embd, n_head, block_size, dropout=0.1):
-        super().__init__()
-        head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
-        self.ffwd = FeedForward(n_embd, dropout)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
-</code></pre>
-<p><strong>代码解析</strong>：定义单个 Transformer 块。包含一个多头自注意力模块 <code>self.sa</code>、一个前馈网络 <code>self.ffwd</code> 以及两个层归一化模块 <code>self.ln1</code> 和 <code>self.ln2</code>。</p>
-
-<pre><code>    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
-        x = x + self.ffwd(self.ln2(x))
-        return x
-</code></pre>
-<p><strong>代码解析</strong>：采用现代大模型普遍遵循的 <strong>Pre-LayerNorm</strong> 残差结构：在进入注意力与 MLP 之前先做归一化，输出再通过加法残差跳接（Residual Skip Connection）相加，<strong>确保极深网络的梯度能够无衰减地直通底层</strong>。</p>
-
-<h4>第五步：组装顶层自回归大语言模型（NanoGPTLanguageModel）</h4>
-
-<pre><code>class NanoGPTLanguageModel(nn.Module):
-    def __init__(self, vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4, dropout=0.1):
-        super().__init__()
-        self.block_size = block_size
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-</code></pre>
-<p><strong>代码解析</strong>：定义大模型类。初始化词嵌入表 <code>token_embedding_table</code>（将离散词表索引转为向量）与位置嵌入表 <code>position_embedding_table</code>（为序列每个时间步赋予空间绝对位置感知）。</p>
-
-<pre><code>        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
-</code></pre>
-<p><strong>代码解析</strong>：使用 <code>nn.Sequential</code> 堆叠 <code>n_layer</code> 层 Transformer 块；经过最终层归一化 <code>ln_f</code> 后，由无偏置的线性分类头 <code>lm_head</code> 将向量映射回词表大小 <code>vocab_size</code>。</p>
-
-<pre><code>    def forward(self, idx, targets=None):
-        B, T = idx.shape
-        tok_emb = self.token_embedding_table(idx) # (B, T, C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T, C)
-        x = tok_emb + pos_emb
-</code></pre>
-<p><strong>代码解析</strong>：前向计算时，将词嵌入与位置嵌入直接逐元素相加（Broadcasting），融合语义与序列时间顺序信息。</p>
-
-<pre><code>        x = self.blocks(x)
-        x = self.ln_f(x)
-        logits = self.lm_head(x) # (B, T, vocab_size)
-</code></pre>
-<p><strong>代码解析</strong>：将融合后的张量输入深层 Transformer 块进行多轮因果自注意力与 MLP 变换，最终投影为词表中各字符的预测分值（Logits）。</p>
-
-<pre><code>        if targets is None:
-            loss = None
-        else:
-            B, T, C = logits.shape
-            logits_flat = logits.view(B * T, C)
-            targets_flat = targets.view(B * T)
-            loss = F.cross_entropy(logits_flat, targets_flat)
-        return logits, loss
-</code></pre>
-<p><strong>代码解析</strong>：若提供了监督目标 <code>targets</code>（自回归下一个 Token 真实标签），将预测与标签展平为二维矩阵，计算标准的交叉熵损失（Cross Entropy Loss）；若推理生成阶段无 targets 则返回 None。</p>
-
-<h3>3. 🧪 模块完整整合代码清单（Complete Runnable Script）</h3>
+<h3>5. 🧪 模块完整整合代码清单（Complete Notebook Cell）</h3>
 <p>
-  下面是上述所有算子组件的<strong>完整无删减整合版代码（model.py）</strong>，可直接独立运行并自动打印模型参数量与单步前向校验：
+  你可以将下面整段代码直接复制到 Kaggle Notebook 的第一个单元格中，按下 <strong>Shift + Enter</strong> 组合键一键运行验证：
 </p>
 
 <pre><code># =====================================================================
-# Gen-1 LLM: Complete nanoGPT Decoder Architecture
-# Directly aligned with Andrej Karpathy's nanoGPT & Zero to Hero Lecture
+# Kaggle GPU Initialization & Environment Diagnostic Benchmark
+# Step-by-Step Babysitting Starter for Large Language Model Practice
 # =====================================================================
 
+import sys
+import os
 import torch
-import torch.nn as nn
-from torch.nn import functional as F
 
-class Head(nn.Module):
-    """单个因果自注意力头（Causal Self-Attention Head）"""
-    def __init__(self, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
-        self.key = nn.Linear(n_embd, head_size, bias=False)
-        self.query = nn.Linear(n_embd, head_size, bias=False)
-        self.value = nn.Linear(n_embd, head_size, bias=False)
-        self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
-        self.dropout = nn.Dropout(dropout)
+print(f"Python 解释器版本: {sys.version.split()[0]}")
+print(f"PyTorch 核心版本: {torch.__version__}")
 
-    def forward(self, x):
-        B, T, C = x.shape
-        k = self.key(x)   # (B, T, head_size)
-        q = self.query(x) # (B, T, head_size)
-        
-        # 计算注意力得分矩阵: (B, T, head_size) @ (B, head_size, T) -> (B, T, T)
-        wei = q @ k.transpose(-2, -1) * (k.shape[-1] ** -0.5)
-        # 因果遮蔽：未来位置填 -inf
-        wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
-        wei = F.softmax(wei, dim=-1)
-        wei = self.dropout(wei)
-        
-        v = self.value(x) # (B, T, head_size)
-        out = wei @ v     # (B, T, head_size)
-        return out
+# 1. 验证 CUDA 加速驱动
+if not torch.cuda.is_available():
+    print("❌ 警告：当前未检测到 GPU 加速器！请检查右侧面板 Settings -> Accelerator 是否已选为 GPU T4。")
+else:
+    gpu_name = torch.cuda.get_device_name(0)
+    total_mem_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    print(f"✅ GPU 激活成功！型号: {gpu_name} (独立显存: {total_mem_gb:.2f} GB)")
 
-class MultiHeadAttention(nn.Module):
-    """多头因果自注意力机制（Multi-Head Attention）"""
-    def __init__(self, num_heads, head_size, n_embd, block_size, dropout=0.1):
-        super().__init__()
-        self.heads = nn.ModuleList([Head(head_size, n_embd, block_size, dropout) for _ in range(num_heads)])
-        self.proj = nn.Linear(head_size * num_heads, n_embd)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.proj(out))
-        return out
-
-class FeedForward(nn.Module):
-    """两层逐位置前馈感知网络（MLP）"""
-    def __init__(self, n_embd, dropout=0.1):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(n_embd, 4 * n_embd),
-            nn.GELU(),
-            nn.Linear(4 * n_embd, n_embd),
-            nn.Dropout(dropout)
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-class Block(nn.Module):
-    """标准 Pre-LayerNorm Transformer 结构块"""
-    def __init__(self, n_embd, n_head, block_size, dropout=0.1):
-        super().__init__()
-        head_size = n_embd // n_head
-        self.sa = MultiHeadAttention(n_head, head_size, n_embd, block_size, dropout)
-        self.ffwd = FeedForward(n_embd, dropout)
-        self.ln1 = nn.LayerNorm(n_embd)
-        self.ln2 = nn.LayerNorm(n_embd)
-
-    def forward(self, x):
-        x = x + self.sa(self.ln1(x))
-        x = x + self.ffwd(self.ln2(x))
-        return x
-
-class NanoGPTLanguageModel(nn.Module):
-    """自制大模型 Gen-1 完整自回归语言模型"""
-    def __init__(self, vocab_size, n_embd=128, block_size=64, n_layer=4, n_head=4, dropout=0.1):
-        super().__init__()
-        self.block_size = block_size
-        self.token_embedding_table = nn.Embedding(vocab_size, n_embd)
-        self.position_embedding_table = nn.Embedding(block_size, n_embd)
-        self.blocks = nn.Sequential(*[Block(n_embd, n_head, block_size, dropout) for _ in range(n_layer)])
-        self.ln_f = nn.LayerNorm(n_embd)
-        self.lm_head = nn.Linear(n_embd, vocab_size)
-
-        # 权重初始化（小标准差正态分布，提升初期训练稳定性）
-        self.apply(self._init_weights)
-
-    def _init_weights(self, module):
-        if isinstance(module, nn.Linear):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-            if module.bias is not None:
-                torch.nn.init.zeros_(module.bias)
-        elif isinstance(module, nn.Embedding):
-            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
-
-    def forward(self, idx, targets=None):
-        B, T = idx.shape
-        tok_emb = self.token_embedding_table(idx)                           # (B, T, n_embd)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=idx.device)) # (T, n_embd)
-        x = tok_emb + pos_emb
-        x = self.blocks(x)
-        x = self.ln_f(x)
-        logits = self.lm_head(x)                                           # (B, T, vocab_size)
-
-        if targets is None:
-            loss = None
-        else:
-            B, T, C = logits.shape
-            logits_flat = logits.view(B * T, C)
-            targets_flat = targets.view(B * T)
-            loss = F.cross_entropy(logits_flat, targets_flat)
-
-        return logits, loss
-
-# ----------------- 形状验证与参数量测试 -----------------
-if __name__ == "__main__":
-    vocab_size = 270
-    block_size = 64
-    batch_size = 4
+    # 2. 矩阵乘法物理吞吐基准测验
+    device = torch.device("cuda")
+    a = torch.randn(4096, 4096, device=device)
+    b = torch.randn(4096, 4096, device=device)
     
-    model = NanoGPTLanguageModel(vocab_size=vocab_size, n_embd=128, block_size=block_size, n_layer=4, n_head=4)
-    param_count = sum(p.numel() for p in model.parameters())
-    print(f"✅ 模型构建成功！总可学习参数量: {param_count:,} ({param_count / 1e6:.2f}M)")
+    start_evt = torch.cuda.Event(enable_timing=True)
+    end_evt = torch.cuda.Event(enable_timing=True)
+    
+    start_evt.record()
+    c = torch.matmul(a, b)
+    end_evt.record()
+    
+    torch.cuda.synchronize()
+    elapsed_ms = start_evt.elapsed_time(end_evt)
+    print(f"🚀 4096×4096 稠密矩阵乘法耗时: {elapsed_ms:.2f} 毫秒")
+    print(f"📊 当前已分配显存: {torch.cuda.memory_allocated() / 1024**2:.1f} MB")
 
-    # 随机生成一个批次的虚拟输入 [B, T]
-    dummy_input = torch.randint(0, vocab_size, (batch_size, block_size))
-    dummy_targets = torch.randint(0, vocab_size, (batch_size, block_size))
-
-    logits, loss = model(dummy_input, dummy_targets)
-    print(f"输入张量形状: {dummy_input.shape}")
-    print(f"输出 Logits 形状: {logits.shape} (符合预期 [B, T, vocab_size])")
-    print(f"初始随机前向交叉熵 Loss: {loss.item():.4f} (理论应接近 -ln(1/{vocab_size}) = {-torch.log(torch.tensor(1.0/vocab_size)).item():.4f})")
-    assert logits.shape == (batch_size, block_size, vocab_size), "形状断言失败！"
-    print("🎉 单元测试 100% 通过！nanoGPT 核心模型前向与反向传播完全就绪。")
+    # 3. 验证持久化写出路径
+    work_dir = "/kaggle/working"
+    assert os.path.exists(work_dir) and os.access(work_dir, os.W_OK), "持久化目录不可写！"
+    print(f"💾 持久化主输出目录正常就绪: {work_dir}")
+    print("🎉 恭喜！你的 Kaggle 大模型实验环境已 100% 准备就绪，可以进入下一讲实战改造开源模型！")
 </code></pre>
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在 <code>Head.forward()</code> 函数中，代码执行 <code>wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))</code> 的本质目的是什么？</p>
+  <p class="q">在 Kaggle Notebook 中尝试从 Hugging Face 下载开源模型时遇到 <code>ConnectionError</code> 无法连接网络，最可能的原因是：</p>
   <ul class="opts">
-    <li>降低显卡显存占用，释放不必要的矩阵存储</li>
-    <li data-ok>实施自回归因果遮蔽（Causal Masking），使得当前位置的注意力只能汇聚过去与当前 Token 的信息，严禁“偷看未来”的信息，保证自回归预测的因果合法性</li>
-    <li>防止 Softmax 计算时发生下溢</li>
-    <li>加速张量乘法运算的速度</li>
+    <li>Kaggle 账号余额不足</li>
+    <li data-ok>未在右侧 Settings 面板中将 "Internet" 开关开启（默认为 OFF 离线状态）</li>
+    <li>Python 版本过低，不支持 HTTPS 协议</li>
+    <li>GPU 显存被占满导致网络断开</li>
   </ul>
   <p class="why">
-    语言模型的任务是根据前文预测下一个词。如果允许注意力查看后续的 Token，模型将直接“抄袭答案”而无法学到真正的序列建模与预测能力。
+    Kaggle 出于反爬虫与安全合规考量，新建 Notebook 默认将 Internet 设为关闭。只要在右侧侧边栏切换为 Internet On，即可自由下载 Hugging Face 权重与数据。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">现代大模型（如 GPT-2、LLaMA）普遍将 LayerNorm 放在残差跳接之前（Pre-LN：<code>x = x + sublayer(ln(x))</code>），相较于早期 Attention is All You Need 论文中的 Post-LN（<code>x = ln(x + sublayer(x))</code>），其最核心的数学优势是：</p>
+  <p class="q">在 Kaggle 上进行大模型微调时，训练好的 LoRA 适配器权重或微调后模型必须保存在哪个目录下，才能在生成版本后下载到本地计算机？</p>
   <ul class="opts">
-    <li>能让模型参数量减少一半</li>
-    <li data-ok>在深层网络中保持了一条完全畅通无阻的恒等残差通路（Identity Path），使得反向传播的梯度能够直达底层，杜绝深层训练初期梯度爆炸与消失，免去极其脆弱的 Warmup 依赖</li>
-    <li>能让激活函数从 GELU 替换为 ReLU</li>
-    <li>可以直接在 CPU 上极速训练</li>
+    <li><code>/kaggle/input/</code></li>
+    <li data-ok><code>/kaggle/working/</code></li>
+    <li><code>/tmp/</code></li>
+    <li><code>/root/</code></li>
   </ul>
   <p class="why">
-    Pre-LN 使得梯度可以在残差流中以类似加法的方式直接反传，极大地改善了深层网络的数值条件数，是现代大模型能稳定扩展至数百层的基石设计。
+    <code>/kaggle/input/</code> 是只读输入路径，<code>/tmp/</code> 在容器重启后会被彻底抹除，只有 <code>/kaggle/working/</code> 才是 Kaggle 的官方持久化产物输出目录。
   </p>
 </div>
 `
