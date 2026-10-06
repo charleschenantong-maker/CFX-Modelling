@@ -332,8 +332,16 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 
 <p><strong>2. 梯度截断与 AdamW 权重更新算子：</strong></p>
 <p>\[ g \leftarrow \nabla_\theta \mathcal{L}, \quad g \leftarrow g \cdot \min\left(1, \frac{M}{\|g\|_2}\right), \quad \theta \leftarrow \theta - \eta \cdot \text{AdamW}(g) \]</p>
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号拆解：梯度截断的「限速器」物理机制</h4>
+  <ul>
+    <li><strong>\(\nabla_\theta \mathcal{L}\)</strong>：倒三角记号 \(\nabla\)（读作 nabla）是多变量微积分中的<strong>梯度算子</strong>，代表对所有模型参数求偏导数拼成的大向量；</li>
+    <li><strong>\(\|g\|_2\)</strong>：双竖线表示 <strong>\(L_2\) 范数（模长）</strong>，就是高一空间向量的几何长度公式 \(\|g\|_2 = \sqrt{\sum g_i^2}\)；</li>
+    <li><strong>\(\min\left(1, \frac{M}{\|g\|_2}\right)\)</strong>：这是一座天然的<strong>限速器</strong>——若总梯度长度 \(\|g\|_2 \le M\)（未超速），比值 \(\ge 1\)，\(\min\) 返回 1，梯度原封不动；一旦梯度由于异常数据爆炸使 \(\|g\|_2 > M\)（超速），比值 \(< 1\)，乘以该比例恰好把总长度等比例压缩回上限 \(M\)，彻底消除了梯度爆炸导致模型参数变 NaN 的风险！</li>
+  </ul>
+</section>
 <p>
-  <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内，从物理机制上彻底锁死梯度爆炸；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
+  <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
 </p>
   <p>
     <strong>必须记录的实验日志</strong>：全局步数、学习率、loss、梯度范数、tokens/s、显存峰值。

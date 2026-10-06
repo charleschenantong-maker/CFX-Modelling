@@ -120,6 +120,12 @@ COURSE.register({
   <h4><span class="ic">✎</span>草稿纸演算：残差流、RMSNorm 与 SwiGLU</h4>
   <p><strong>前置定义。</strong>欧氏空间 \(\mathbb{R}^d\) 中的向量用方括号列出坐标；仿射变换写成 \(y=Ax+b\)；残差流在每个子层后做向量相加；RMSNorm 只按坐标平方的平均值缩放向量：</p>
   \[ \mathrm{RMS}(x)=\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\varepsilon},\qquad \mathrm{RMSNorm}(x)=\frac{x}{\mathrm{RMS}(x)}\odot\gamma \]
+  <p>
+    <strong>符号桥梁：什么是 \(\odot\)？</strong>
+    \(\odot\) 是数学中的 <strong>Hadamard 积（逐元素相乘，Element-wise Product）</strong>，
+    即两个相同长度的向量，对应位置上的数字各自相乘，例如 \([2, 3] \odot [4, 5] = [8, 15]\)。
+    这里的 \(\gamma\) 是一个可学习的缩放参数向量，用来让网络自由调节每个维度的增益。
+  </p>
   <p><strong>1. 残差流与 RMSNorm 的手算。</strong>取 \(x=[2.0,-1.0,3.0]\)，先平方并求平均：</p>
   \[ x_1^2+x_2^2+x_3^2=4+1+9=14,\qquad \frac{14}{3}=4.6667 \]
   \[ \mathrm{RMS}(x)=\sqrt{14/3}\approx2.1602 \]

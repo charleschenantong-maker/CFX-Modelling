@@ -52,8 +52,23 @@ COURSE.register({
 </section>
 
 <h3>1. 核心数学基石：缩放点积注意力 (Scaled Dot-Product Attention)</h3>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：Q、K、V 的生活直觉）</h4>
+  <p>
+    初读注意力公式前，先把 \(Q, K, V\) 映射到熟悉的「图书检索」生活场景：
+  </p>
+  <ul>
+    <li><strong>\(Q\)（Query，查询向量）</strong>：「我想找什么」——当前 Token 发出的提问关键词；</li>
+    <li><strong>\(K\)（Key，键向量）</strong>：「每本书的索引标签」——库中每个 Token 具备的身份标签，用来与 \(Q\) 做点积匹配相似度；</li>
+    <li><strong>\(V\)（Value，值向量）</strong>：「每本书的真实正文」——匹配成功后，真正被提取并加权融合成新表征的实际内容；</li>
+    <li><strong>矩阵乘法 \(QK^T\)</strong>：\(K^T\) 是高中学过的矩阵转置（行变列，使得 \((T 	imes d_k) 	imes (d_k 	imes T) = T 	imes T\) 维度对齐）。相乘的物理意义，是一次性算出整个序列中所有 Token 之间的<strong>两两相关性打分表</strong>；</li>
+    <li><strong>\(\mathrm{softmax}(\cdot)\)</strong>：将每一行任意大小的打分转化为相加严格等于 \(100\%\) 的概率分布；最后乘上 \(V\)，就是在按相似度高低对正文内容做<strong>加权平均融合</strong>。</li>
+  </ul>
+</section>
+
 <p>
-  Vaswani 等人在 2017 年《Attention Is All You Need》中写下的标志性公式：
+  有了上述直觉，Vaswani 等人在 2017 年写下的划时代公式就一清二楚了：
 </p>
 \[ \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\left( \frac{QK^T}{\sqrt{d_k}} \right) V \]
 <p>

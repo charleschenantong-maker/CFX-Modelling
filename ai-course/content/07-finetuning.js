@@ -491,8 +491,18 @@ COURSE.register({
 <div class="acc" data-t="选读·第二遍：GRPO 裁剪目标与 KL 项的完整形式" data-badge="可选">
   <div class="acc-body">
 \[ \mathcal{L}_{\text{GRPO}} = -\mathbb{E}\Big[\min\big(\rho_i \hat A_i,\ \mathrm{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\hat A_i\big)\Big] + \beta D_{\mathrm{KL}} \]
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>GRPO 核心记号逐个拆解</h4>
+  <ul>
+    <li><strong>\(\mathbb{E}\)</strong>：概率论中的<strong>数学期望</strong>，表示对批次中所有问题采样结果求平均值；</li>
+    <li><strong>\(\rho_i\)（希腊字母 rho）</strong>：新旧策略概率比 \(\frac{p_\theta(y_i)}{p_{\theta_{\text{old}}}(y_i)}\)，衡量当前模型相对上一轮更新前给该回答加权了多少；</li>
+    <li><strong>\(\hat A_i\)（优势值 Advantage）</strong>：就是高中最基础的<strong>标准分（Z-Score）</strong> \(\frac{r_i - \mu}{\sigma}\)，衡量这个回答比本组平均分高多少个标准差；</li>
+    <li><strong>\(\mathrm{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\)</strong>：<strong>步幅保险栓</strong>，如果概率比试图单步暴涨超过 \(1+\epsilon\)（如 \(1.2\)）或暴跌低于 \(1-\epsilon\)（如 \(0.8\)），强行钳位截断，防止策略单步更新过大走火入魔；</li>
+    <li><strong>\(D_{\mathrm{KL}}\)</strong>：<strong>KL 散度安全绳</strong>，约束新策略不要与原始基座发生严重偏离。</li>
+  </ul>
+</section>
 <p>
-  其中 \(\rho_i = p_\theta(y_i)/p_{\theta_{\text{old}}}(y_i)\) 是重要性比。
+  裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。
   裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。它并不是给概率本身设硬上限，也不保证参数更新会在阈值处停住；
   \(\beta D_{\mathrm{KL}}\) 把新策略拴在参考模型附近。
 </p>

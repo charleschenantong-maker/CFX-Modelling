@@ -237,6 +237,11 @@ COURSE.register({
 </p>
 \[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{< t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
 <p>
+  <strong>记号直觉小桥</strong>：\(\sim\) 读作「服从……采样」，\(\mathrm{Cat}\) 是 <strong>Categorical Distribution（分类分布）</strong>的缩写。
+  这句公式的物理动作极度直观：把模型最后一层输出除以温度 \(T\) 并经过 Softmax 变成总和为 \(100\%\) 的词表概率，
+  然后拿着这个概率分布去<strong>掷一枚拥有 \(V\) 个面的不均匀骰子</strong>，掷出的那个面就是下一个吐出的 Token \(x_t\)！
+</p>
+<p>
   其中 \(x_{< t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
   \(h_t^{(L)}\) 是最后一层在位置 \(t\) 的隐状态。这条链可以拆成两个性质完全不同的阶段：
 </p>

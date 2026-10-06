@@ -1662,8 +1662,23 @@ COURSE.register({
 </section>
 
 <h3>1. 核心数学基石：缩放点积注意力 (Scaled Dot-Product Attention)</h3>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：Q、K、V 的生活直觉）</h4>
+  <p>
+    初读注意力公式前，先把 \(Q, K, V\) 映射到熟悉的「图书检索」生活场景：
+  </p>
+  <ul>
+    <li><strong>\(Q\)（Query，查询向量）</strong>：「我想找什么」——当前 Token 发出的提问关键词；</li>
+    <li><strong>\(K\)（Key，键向量）</strong>：「每本书的索引标签」——库中每个 Token 具备的身份标签，用来与 \(Q\) 做点积匹配相似度；</li>
+    <li><strong>\(V\)（Value，值向量）</strong>：「每本书的真实正文」——匹配成功后，真正被提取并加权融合成新表征的实际内容；</li>
+    <li><strong>矩阵乘法 \(QK^T\)</strong>：\(K^T\) 是高中学过的矩阵转置（行变列，使得 \((T 	imes d_k) 	imes (d_k 	imes T) = T 	imes T\) 维度对齐）。相乘的物理意义，是一次性算出整个序列中所有 Token 之间的<strong>两两相关性打分表</strong>；</li>
+    <li><strong>\(\mathrm{softmax}(\cdot)\)</strong>：将每一行任意大小的打分转化为相加严格等于 \(100\%\) 的概率分布；最后乘上 \(V\)，就是在按相似度高低对正文内容做<strong>加权平均融合</strong>。</li>
+  </ul>
+</section>
+
 <p>
-  Vaswani 等人在 2017 年《Attention Is All You Need》中写下的标志性公式：
+  有了上述直觉，Vaswani 等人在 2017 年写下的划时代公式就一清二楚了：
 </p>
 \[ \mathrm{Attention}(Q, K, V) = \mathrm{softmax}\left( \frac{QK^T}{\sqrt{d_k}} \right) V \]
 <p>
@@ -2304,6 +2319,12 @@ COURSE.register({
   <h4><span class="ic">✎</span>草稿纸演算：残差流、RMSNorm 与 SwiGLU</h4>
   <p><strong>前置定义。</strong>欧氏空间 \(\mathbb{R}^d\) 中的向量用方括号列出坐标；仿射变换写成 \(y=Ax+b\)；残差流在每个子层后做向量相加；RMSNorm 只按坐标平方的平均值缩放向量：</p>
   \[ \mathrm{RMS}(x)=\sqrt{\frac{1}{d}\sum_{i=1}^{d}x_i^2+\varepsilon},\qquad \mathrm{RMSNorm}(x)=\frac{x}{\mathrm{RMS}(x)}\odot\gamma \]
+  <p>
+    <strong>符号桥梁：什么是 \(\odot\)？</strong>
+    \(\odot\) 是数学中的 <strong>Hadamard 积（逐元素相乘，Element-wise Product）</strong>，
+    即两个相同长度的向量，对应位置上的数字各自相乘，例如 \([2, 3] \odot [4, 5] = [8, 15]\)。
+    这里的 \(\gamma\) 是一个可学习的缩放参数向量，用来让网络自由调节每个维度的增益。
+  </p>
   <p><strong>1. 残差流与 RMSNorm 的手算。</strong>取 \(x=[2.0,-1.0,3.0]\)，先平方并求平均：</p>
   \[ x_1^2+x_2^2+x_3^2=4+1+9=14,\qquad \frac{14}{3}=4.6667 \]
   \[ \mathrm{RMS}(x)=\sqrt{14/3}\approx2.1602 \]
@@ -3021,8 +3042,16 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 
 <p><strong>2. 梯度截断与 AdamW 权重更新算子：</strong></p>
 <p>\[ g \leftarrow \nabla_\theta \mathcal{L}, \quad g \leftarrow g \cdot \min\left(1, \frac{M}{\|g\|_2}\right), \quad \theta \leftarrow \theta - \eta \cdot \text{AdamW}(g) \]</p>
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号拆解：梯度截断的「限速器」物理机制</h4>
+  <ul>
+    <li><strong>\(\nabla_\theta \mathcal{L}\)</strong>：倒三角记号 \(\nabla\)（读作 nabla）是多变量微积分中的<strong>梯度算子</strong>，代表对所有模型参数求偏导数拼成的大向量；</li>
+    <li><strong>\(\|g\|_2\)</strong>：双竖线表示 <strong>\(L_2\) 范数（模长）</strong>，就是高一空间向量的几何长度公式 \(\|g\|_2 = \sqrt{\sum g_i^2}\)；</li>
+    <li><strong>\(\min\left(1, \frac{M}{\|g\|_2}\right)\)</strong>：这是一座天然的<strong>限速器</strong>——若总梯度长度 \(\|g\|_2 \le M\)（未超速），比值 \(\ge 1\)，\(\min\) 返回 1，梯度原封不动；一旦梯度由于异常数据爆炸使 \(\|g\|_2 > M\)（超速），比值 \(< 1\)，乘以该比例恰好把总长度等比例压缩回上限 \(M\)，彻底消除了梯度爆炸导致模型参数变 NaN 的风险！</li>
+  </ul>
+</section>
 <p>
-  <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内，从物理机制上彻底锁死梯度爆炸；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
+  <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
 </p>
   <p>
     <strong>必须记录的实验日志</strong>：全局步数、学习率、loss、梯度范数、tokens/s、显存峰值。
@@ -3996,8 +4025,18 @@ COURSE.register({
 <div class="acc" data-t="选读·第二遍：GRPO 裁剪目标与 KL 项的完整形式" data-badge="可选">
   <div class="acc-body">
 \[ \mathcal{L}_{\text{GRPO}} = -\mathbb{E}\Big[\min\big(\rho_i \hat A_i,\ \mathrm{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\hat A_i\big)\Big] + \beta D_{\mathrm{KL}} \]
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>GRPO 核心记号逐个拆解</h4>
+  <ul>
+    <li><strong>\(\mathbb{E}\)</strong>：概率论中的<strong>数学期望</strong>，表示对批次中所有问题采样结果求平均值；</li>
+    <li><strong>\(\rho_i\)（希腊字母 rho）</strong>：新旧策略概率比 \(\frac{p_\theta(y_i)}{p_{\theta_{\text{old}}}(y_i)}\)，衡量当前模型相对上一轮更新前给该回答加权了多少；</li>
+    <li><strong>\(\hat A_i\)（优势值 Advantage）</strong>：就是高中最基础的<strong>标准分（Z-Score）</strong> \(\frac{r_i - \mu}{\sigma}\)，衡量这个回答比本组平均分高多少个标准差；</li>
+    <li><strong>\(\mathrm{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\)</strong>：<strong>步幅保险栓</strong>，如果概率比试图单步暴涨超过 \(1+\epsilon\)（如 \(1.2\)）或暴跌低于 \(1-\epsilon\)（如 \(0.8\)），强行钳位截断，防止策略单步更新过大走火入魔；</li>
+    <li><strong>\(D_{\mathrm{KL}}\)</strong>：<strong>KL 散度安全绳</strong>，约束新策略不要与原始基座发生严重偏离。</li>
+  </ul>
+</section>
 <p>
-  其中 \(\rho_i = p_\theta(y_i)/p_{\theta_{\text{old}}}(y_i)\) 是重要性比。
+  裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。
   裁剪限制的是这个样本在替代目标里的记分方式：优势为正时，\(\rho_i\) 超过 \(1+\epsilon\) 之后继续增大不再增加裁剪后的目标值；优势为负时，\(\rho_i\) 跌破 \(1-\epsilon\) 之后继续减小同样不再增加目标值。它并不是给概率本身设硬上限，也不保证参数更新会在阈值处停住；
   \(\beta D_{\mathrm{KL}}\) 把新策略拴在参考模型附近。
 </p>
@@ -4386,6 +4425,11 @@ COURSE.register({
   每吐一个，都必须等上一个落到硬件里、算完前向，才能继续。形式上，
 </p>
 \[ p(x_{1:n}) = \prod_{t=1}^{n} p(x_t \mid x_{< t}), \qquad x_t \sim \mathrm{Cat}\!\left(\operatorname{softmax}\left(\frac{W_E h_t^{(L)}}{T}\right)\right) \]
+<p>
+  <strong>记号直觉小桥</strong>：\(\sim\) 读作「服从……采样」，\(\mathrm{Cat}\) 是 <strong>Categorical Distribution（分类分布）</strong>的缩写。
+  这句公式的物理动作极度直观：把模型最后一层输出除以温度 \(T\) 并经过 Softmax 变成总和为 \(100\%\) 的词表概率，
+  然后拿着这个概率分布去<strong>掷一枚拥有 \(V\) 个面的不均匀骰子</strong>，掷出的那个面就是下一个吐出的 Token \(x_t\)！
+</p>
 <p>
   其中 \(x_{< t}\) 是前 \(t-1\) 个 token，\(W_E\) 是输出嵌入矩阵，\(T\) 是温度，
   \(h_t^{(L)}\) 是最后一层在位置 \(t\) 的隐状态。这条链可以拆成两个性质完全不同的阶段：
@@ -7524,6 +7568,14 @@ COURSE.register({
     真实场景里你只有「采样 \(n\) 次、其中 \(c\) 次正确」这一组观测，需要用无偏估计量（Chen et al., 2021）：
   </p>
   \[ \widehat{\text{pass@}k} = 1 - \frac{\binom{n-c}{k}}{\binom{n}{k}} \]
+  <p>
+    <strong>高中概率一眼看透</strong>：
+    记号 \(\binom{n}{k}\) 就是高中数学的<strong>组合数</strong> \(C_n^k = \frac{n!}{k!(n-k)!}\)（从 \(n\) 个里面挑 \(k\) 个的选法总数）。
+    这个公式的本质是高一最基础的<strong>逆事件概率</strong>：
+    分母 \(\binom{n}{k}\) 是任意抽取 \(k\) 个样本的总组合数；
+    分子 \(\binom{n-c}{k}\) 是抽出的 \(k\) 个全部来自那 \(n-c\) 个<strong>错误答案</strong>的组合数（即「抽到的 \(k\) 个全错」的概率）。
+    用 \(1\) 减去「全错的概率」，就是我们想要的<strong>「抽出的 \(k\) 个样本中至少有 1 个回答正确」的概率</strong>！
+  </p>
   <p>
     当 \(k=1\) 时它就退化成 \(\frac{c}{n}\)（直接数比例）；当 \(k\) 接近 \(n\) 时它明显更稳。
     这也是为什么评估报告里必须写清「采样几次、取哪一次的答案」——同一组 \(n=8\) 的采样，
