@@ -678,36 +678,7 @@ COURSE.register({
     目标：在免费 Colab（CPU 也能跑）上跑通嵌入 + 本地向量检索 + 小模型生成，
     并在留出问题上比较两种模式。全流程不依赖任何向量数据库服务。
   </p>
-<pre><code>!pip -q install -U "sentence-transformers" "transformers" numpy torch
-
-import numpy as np, torch
-from sentence_transformers import SentenceTransformer
-
-<span class="cm"># [逐行剖析] 1. 加载双塔稠密嵌入模型</span>
-model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-docs = [
-    "Crossfade audio involves smooth transition between two tracks.",
-    "Equal power crossfade preserves total RMS acoustic energy.",
-    "Linear crossfades cause a perceptible 3dB volume drop in the middle.",
-    "Transformer attention computes scaled dot-product over key-value pairs."
-]
-
-<span class="cm"># [逐行剖析] 2. 知识库离线向量化与单位球投影归一化</span>
-<span class="cm"># 动态形状: doc_emb -> (N_docs, D) = (4, 384) [float32]</span>
-doc_emb = model.encode(docs, normalize_embeddings=True)
-
-query = "Why does an audio crossfade dip in loudness?"
-<span class="cm"># 动态形状: q_emb -> (1, D) = (1, 384) [float32]</span>
-q_emb = model.encode([query], normalize_embeddings=True)
-
-<span class="cm"># [逐行剖析] 3. 欧氏内积即余弦相似度检索</span>
-<span class="cm"># 动态形状: scores -> (N_docs,) = (4,) | 矩阵乘法: (1, D) @ (D, N) -> (1, N)</span>
-scores = (q_emb @ doc_emb.T)[0]
-top_idx = np.argsort(scores)[::-1]
-
-print("Top 检索命中段落:")
-for i in top_idx[:2]:
-    print(f"得分: {scores[i]:.4f} | 内容: {docs[i]}")</code></pre>
+<p>\[ \text{Sim}(q, d) = \frac{\mathbf{e}_q^\top \mathbf{e}_d}{\|\mathbf{e}_q\|_2 \|\mathbf{e}_d\|_2}, \quad \mathbf{e} = \text{MeanPool}(\text{Encoder}(\text{text})) \]</p>
   <p><strong>要产出的一张表</strong>（这是本实验的真正成果，不是代码）：</p>
   <table class="tbl small">
     <thead><tr><th>指标</th><th>无检索</th><th>有检索</th><th>怎么得到</th></tr></thead>
@@ -735,25 +706,7 @@ for i in top_idx[:2]:
     这是教学用的下限实现：真实项目里把哈希向量换成 <code>sentence-transformers</code> 等本地模型，
     再把 FTS5 换成 <code>rank_bm25</code> 或自己的倒排索引即可，接口不变。
   </p>
-<pre><code><span class="cm"># [逐行剖析] 工业级混合检索下限实现：BM25 词频检索 + 稠密向量 + 互易排名融合 (RRF)</span>
-import numpy as np
-
-def rrf(rank_lists, k=60):
-    <span class="cm"># 数学机制: RRF_score(d) = sum_{m} 1 / (k + rank_m(d))</span>
-    scores = {}
-    for r_list in rank_lists:
-        for rank, doc_id in enumerate(r_list):
-            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
-    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
-
-<span class="cm"># 模拟测试：sparse_rank 为关键词检索排名，dense_rank 为语义向量检索排名</span>
-sparse_rank = ["doc_A", "doc_B", "doc_C"]
-dense_rank  = ["doc_B", "doc_A", "doc_D"]
-
-fused = rrf([sparse_rank, dense_rank], k=60)
-print("RRF 融合综合排序结果:")
-for doc, score in fused:
-    print(f"文档: {doc} | RRF 融合得分: {score:.5f}")</code></pre>
+<p>\[ \text{RRF\_score}(d) = \sum_{m \in \mathcal{M}} \frac{1}{k + \text{rank}_m(d)}, \quad k = 60 \]</p>
   <p>
     <strong>要记录的三个数字</strong>（缺一个这次实验就白做）：
     ① 留出 20 题上的 <strong>Recall@5</strong>（gold 块是否进前 5）；

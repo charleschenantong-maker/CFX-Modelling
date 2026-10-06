@@ -188,8 +188,7 @@ COURSE.register({
 </p>
 
 <p><strong>RoPE 旋转位置编码与角频率缩放微算子演示：</strong></p>
-<pre><code>freqs = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
-q_rot = (q * torch.cos(m * freqs)) + (rotate_half(q) * torch.sin(m * freqs))</code></pre>
+<p>\[ \theta_i = b^{-2(i-1)/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=1}^{d/2} \right) \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>freqs</code> 计算特征维度各对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上旋转角度的余弦与正弦项，将绝对位置转化为向量内积中的相对位移 \(m - n\)；YaRN 算法在此基础上对高频与低频分量进行精细化分段插值，实现超长文本的免重训平滑外推。
 </p>

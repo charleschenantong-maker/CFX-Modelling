@@ -723,116 +723,7 @@ COURSE.register({
     这个实验完全自包含：现场训练一个极小的语言模型，然后对同一个模型做三种压缩，
     分别量出「质量、字节数、墙钟时间」。跑完你会亲眼看到「参数变少 ≠ 变快」。
   </p>
-<pre><code>import torch, torch.nn as nn, copy, io, time
-torch.manual_seed(0)
-
-<span class="cm"># ---------- 0. 造一个极小的“语言模型”并训练它 ----------</span>
-class Tiny(nn.Module):
-    def __init__(s, V=64, d=256, ff=1024):
-        super().__init__()
-        s.emb = nn.Embedding(V, d)
-        s.l1, s.l2 = nn.Linear(d, ff), nn.Linear(ff, d)
-        s.out = nn.Linear(d, V)
-    def forward(s, x):
-        h = s.emb(x)
-        h = h + s.l2(torch.relu(s.l1(h)))
-        return s.out(h)
-
-V, T, B = 64, 32, 32
-x = torch.randint(0, V, (B, T))
-y = torch.roll(x, -1, dims=1)
-
-def ce(m, target):
-    with torch.no_grad():
-        return nn.functional.cross_entropy(m(x).reshape(-1, V), target.reshape(-1)).item()
-
-m = Tiny()
-opt = torch.optim.AdamW(m.parameters(), lr=3e-3)
-for _ in range(300):
-    loss = nn.functional.cross_entropy(m(x).reshape(-1, V), y.reshape(-1))
-    opt.zero_grad(); loss.backward(); opt.step()
-print("训练后 loss =", round(ce(m, y), 3))
-
-def kb(mod):                       <span class="cm"># 序列化后的真实字节数</span>
-    buf = io.BytesIO(); torch.save(mod.state_dict(), buf)
-    return buf.tell() / 1024
-
-<span class="cm"># ---------- 1. 幅度剪枝：50% 置零，不压缩存储 ----------</span>
-def magnitude_prune(mod, p, names=("l1", "l2")):
-    for n in names:
-        W = getattr(mod, n).weight.data
-        k = max(1, int(p * W.numel()))
-        thr = W.abs().flatten().kthvalue(k).values
-        W[W.abs() &lt;= thr] = 0.0
-
-mp = copy.deepcopy(m); magnitude_prune(mp, 0.5)
-nz = sum((getattr(mp, n).weight != 0).sum().item() for n in ("l1", "l2"))
-tot = sum(getattr(mp, n).weight.numel() for n in ("l1", "l2"))
-print("剪枝后 loss =", round(ce(mp, y), 3),
-      "| 非零占比 =", round(nz / tot, 3),
-      "| 字节 =", round(kb(mp), 1), "KB (剪枝前", round(kb(m), 1), "KB)")
-
-<span class="cm"># ---------- 2. 稀疏存储的账：CSR 反而更大 ----------</span>
-def csr_kb(mod, p, names=("l1", "l2")):
-    b = 0
-    for n in names:
-        W = getattr(mod, n).weight.data
-        nnz = int((1 - p) * W.numel())
-        b += nnz * (W.element_size() + 4) + (W.shape[0] + 1) * 4
-    return b / 1024
-print("CSR(50%) 估算 =", round(csr_kb(m, 0.5), 1), "KB  vs  稠密 =", round(kb(m), 1), "KB")
-
-<span class="cm"># ---------- 3. 延迟：置零不会让通用内核变快 ----------</span>
-A, Bd = torch.randn(2048, 2048), torch.randn(2048, 2048)
-def ms(f, n=20):
-    f(); t0 = time.perf_counter()
-    for _ in range(n): f()
-    return (time.perf_counter() - t0) / n * 1e3
-As = A.clone()
-thr = As.abs().flatten().kthvalue(int(0.9 * As.numel())).values
-As[As.abs() &lt;= thr] = 0.0
-print("dense matmul  =", round(ms(lambda: A @ Bd), 2), "ms")
-print("90% 稀疏(仍按稠密算) =", round(ms(lambda: As @ Bd), 2), "ms",
-      "| 非零占比 =", round((As != 0).float().mean().item(), 3))
-
-<span class="cm"># ---------- 4. 量化：动态 int8，看字节与延迟 ----------</span>
-mq = torch.ao.quantization.quantize_dynamic(m, {nn.Linear}, dtype=torch.qint8)
-print("量化后 字节 =", round(kb(mq), 1), "KB (原", round(kb(m), 1), "KB)")
-
-<span class="cm"># ---------- 5. 合并：两个“任务”的 delta 相加 vs 取平均 ----------</span>
-def finetune(base, shift, steps=150):
-    mm = copy.deepcopy(base)
-    yy = torch.roll(x, -shift, dims=1)
-    o = torch.optim.AdamW(mm.parameters(), lr=1e-3)
-    for _ in range(steps):
-        l = nn.functional.cross_entropy(mm(x).reshape(-1, V), yy.reshape(-1))
-        o.zero_grad(); l.backward(); o.step()
-    return mm
-
-a, b = finetune(m, 1), finetune(m, 5)
-ya, yb = torch.roll(x, -1, dims=1), torch.roll(x, -5, dims=1)
-
-def merge(base, models, ws=None):
-    out = copy.deepcopy(base)
-    ws = ws or [1.0 / len(models)] * len(models)
-    pa = dict(base.named_parameters())
-    deltas = [dict(mm.named_parameters()) for mm in models]
-    with torch.no_grad():
-        for name, p in out.named_parameters():
-            d = sum(w * (dd[name].data - pa[name].data) for w, dd in zip(ws, deltas))
-            p.add_(d)
-    return out
-
-print("--- loss（越小越好）---")
-print("基座        : 任务1", round(ce(m, ya), 3), " 任务2", round(ce(m, yb), 3))
-print("微调A       : 任务1", round(ce(a, ya), 3), " 任务2", round(ce(a, yb), 3))
-print("微调B       : 任务1", round(ce(b, ya), 3), " 任务2", round(ce(b, yb), 3))
-mg = merge(m, [a, b])
-print("合并(1,1)   : 任务1", round(ce(mg, ya), 3), " 任务2", round(ce(mg, yb), 3))
-for lam in (0.5, 1.5):
-    mm2 = merge(m, [a, b], [lam, lam])
-    print("合并(%.1f)   : 任务1" % lam, round(ce(mm2, ya), 3),
-          " 任务2", round(ce(mm2, yb), 3))</code></pre>
+<p>\[ M_{i, j} = \mathbb{I}(|W_{i, j}| \ge \tau_k), \quad W_{\text{pruned}} = W \odot M, \quad \tilde{W} = S \cdot (W_q - Z) \]</p>
   <p><strong>要记录并解释的四件事：</strong></p>
   <p>
     <strong>①</strong> 剪枝后 loss 涨了多少？非零元素少了一半，但<em>字节数一点没变</em>——
@@ -1080,19 +971,7 @@ for lam in (0.5, 1.5):
     先准备一个 <code>eval.txt</code>：把你自己业务里 100 条左右的文本拼在一起（音频项目的报告、
     标注说明、领域文档都行）。<strong>不要用训练集</strong>，否则量出来的是记忆而不是泛化。
   </p>
-<pre><code>import torch, math
-
-<span class="cm"># [逐行剖析] 1. 计算 KV Cache 显存占用物理公式</span>
-<span class="cm"># 显存机制: 每 token 占用显存 = 2 * n_layers * n_kv_heads * head_dim * bytes_per_elem</span>
-def kv_cache_size_mb(batch_size, seq_len, n_layers=24, n_kv_heads=2, head_dim=64, bytes_per_elem=2):
-    total_bytes = 2 * n_layers * n_kv_heads * head_dim * seq_len * batch_size * bytes_per_elem
-    return total_bytes / (1024 ** 2)
-
-print("KV Cache 显存压力分析 (MB):")
-for S in (1024, 4096, 16384, 65536):
-    fp16_mb = kv_cache_size_mb(1, S, bytes_per_elem=2)
-    int4_mb = kv_cache_size_mb(1, S, bytes_per_elem=0.5)
-    print(f"上下文长 {S:5d} | FP16 KV: {fp16_mb:6.1f} MB | INT4 KV: {int4_mb:6.1f} MB (压缩 75%)")</code></pre>
+<p>\[ \text{Memory}_{\text{KV}} = 2 \times B \times L \times H_{\text{kv}} \times d_h \times T \times \text{bytes\_per\_elem} \]</p>
   <p>
     <code>load_in_4bit=True</code> 走的是 bitsandbytes 的 NF4 路径；环境没有 CUDA 时，
     可以换成 PyTorch 原生的 torchao 量化 API，脚本结构与上面完全相同（只换掉加载那两行）。

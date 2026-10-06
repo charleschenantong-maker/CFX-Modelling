@@ -266,13 +266,13 @@ COURSE.register({
 </p>
 
 <p><strong>1. RMSNorm 算子核心演示：</strong></p>
-<pre><code>norm_x = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + 1e-6) * gamma</code></pre>
+<p>\[ \text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon}} \odot \gamma \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方和的均值；<code>torch.rsqrt</code> 计算均方根的倒数，跳过了传统 LayerNorm 中减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。在现代大模型（LLaMA-3、Qwen-2.5）中被全量采用，硬件吞吐提升约 7%~15%。
 </p>
 
 <p><strong>2. SwiGLU 门控前馈网络（FFN）核心演示：</strong></p>
-<pre><code>ffn_out = (F.silu(x @ W_gate) * (x @ W_up)) @ W_down</code></pre>
+<p>\[ \text{SwiGLU}(x) = \left( \text{SiLU}(x W_{\text{gate}}) \odot (x W_{\text{up}}) \right) W_{\text{down}} \]</p>
 <p>
   <strong>逐行代数解析</strong>：输入向量 \(x\) 分别乘上两个升维矩阵；<code>W_gate</code> 通道经过 SiLU 激活函数充当平滑开关，与 <code>W_up</code> 的线性特征进行元素级逐项乘法（Hadamard Product），最后由 <code>W_down</code> 投影回残差流维度。
 </p>

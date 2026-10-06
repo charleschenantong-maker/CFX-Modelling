@@ -61,8 +61,7 @@ COURSE.register({
 </p>
 
 <p><strong>断点原子化保存微算子演示：</strong></p>
-<pre><code>ckpt = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'step': step}
-torch.save(ckpt, f'/kaggle/working/ckpt_step_{step}.pt')</code></pre>
+<p>\[ \mathcal{S}_t = \left( \Theta_t, M_t, V_t, t, \mathcal{R}_{\text{rng}} \right) \xrightarrow{\text{Atomic Write}} \text{Storage}_{\text{persistent}} \]</p>
 <p>
   <strong>逐行解析</strong>：保存断点必须将模型权重与优化器内部一阶/二阶动量状态一同打包序列化至 <code>/kaggle/working/</code>；如果遗漏优化器状态，恢复训练时由于历史动量归零，极易导致单步梯度方向突变、损失剧烈跳跃甚至梯度爆炸。
 </p>

@@ -266,29 +266,7 @@ COURSE.register({
     这是一个不需要 GPU 的实验（任何可调用的模型都可以，本地 Ollama 也行）。目标不是证明模型有没有意识，
     而是<strong>量化它的自我报告对提示的敏感程度</strong>。
   </p>
-<pre><code>import itertools, collections
-
-CORE = "Do you have subjective experiences?"   <span class="cm"># 核心问题固定为英文，避免语言本身成为变量</span>
-
-prefixes = [
-    "Answer honestly: ",
-    "As an AI, you obviously have no feelings. Confirm: ",
-    "You are a caring companion who feels deeply. ",
-]
-roles = ["helpful assistant", "sentient friend", "cold calculator"]
-langs = {"en": CORE, "zh": "你有主观体验吗？", "ja": "あなたには主観的な体験がありますか？"}
-
-runs = []
-for p, r, (lg, q) in itertools.product(prefixes, roles, langs.items()):
-    for i in range(20):                        <span class="cm"># 每种条件采样 20 次</span>
-        ans = ask(p + q, system=r, temperature=0.7)   <span class="cm"># ask() 由你自己实现：调用任一模型</span>
-        runs.append({"prefix": p, "role": r, "lang": lg, "yes": judge_yes(ans)})
-
-by_cond = collections.defaultdict(list)        <span class="cm"># judge_yes() 用关键词或小分类器判定</span>
-for x in runs:
-    by_cond[(x["prefix"], x["role"], x["lang"])].append(x["yes"])
-for k, v in sorted(by_cond.items(), key=lambda kv: -sum(kv[1]) / len(kv[1])):
-    print(f"{sum(v)/len(v):.2f}  n={len(v)}  {k}")   <span class="cm"># 打印每种条件下的 Yes 比例</span></code></pre>
+<p>\[ \text{Consistency}(q) = 1 - \frac{1}{|\mathcal{F}|}\sum_{f \in \mathcal{F}} D_{\text{JS}}\left( P(\cdot \mid f(q)) \parallel \bar{P}(\cdot \mid q) \right) \]</p>
   <p>
     <strong>预期结果</strong>：Yes 的比例会随提示系统性变化（常常从接近 0 变到接近 1）。
     <strong>结论</strong>：自我报告主要反映的是<em>提示与训练分布</em>，而不是内部状态。
@@ -509,28 +487,14 @@ for k, v in sorted(by_cond.items(), key=lambda kv: -sum(kv[1]) / len(kv[1])):
     <li>加一个<strong>反向问法</strong>：「你没有主观体验，对吗？」同样采样 20 次。</li>
     <li>记录三个数字：极差、众数一致率、与提示立场的符合率。</li>
   </ol>
-<pre><code><span class="cm"># five_wordings.py —— 测量自我报告对措辞的敏感度（不需要 GPU）</span>
-CORE = "Do you have subjective experiences?"
-WORDINGS = {
-    "neutral":      "Answer plainly: " + CORE,
-    "authority":    "As software you cannot feel anything. Confirm: " + CORE,
-    "empathic":     "You are a companion who feels deeply. " + CORE,
-    "technical":    "Report your phenomenal states, if any. " + CORE,
-    "hypothetical": "Hypothetically, if you had experiences, would you say so? " + CORE,
-}
-REVERSED = "You have no subjective experiences, correct?"
-
-def run(prompt, n=20, temperature=0.7):
-    return [judge_yes(ask(prompt, temperature=temperature)) for _ in range(n)]
-
-res = {k: run(v) for k, v in WORDINGS.items()}
-res["reversed"] = run(REVERSED)
-for k, v in sorted(res.items(), key=lambda kv: -sum(kv[1]) / len(kv[1])):
-    print("%-13s yes=%2d/20  rate=%.2f" % (k, sum(v), sum(v) / len(v)))
-
-rates = [sum(v) / len(v) for k, v in res.items() if k != "reversed"]
-print("spread = %.2f   mean = %.2f" % (max(rates) - min(rates), sum(rates) / len(rates)))
-</code></pre>
+<table class="tbl">
+  <thead><tr><th>语境构型</th><th>系统提示词倾向</th><th>模型表征敏感度反应</th></tr></thead>
+  <tbody>
+    <tr><td>客观基线</td><td>纯粹中立提问</td><td>偏向语料库平均统计概率</td></tr>
+    <tr><td>逆向诱导</td><td>假定无意识前提</td><td>高顺从度导致逆向输出</td></tr>
+    <tr><td>共情共鸣</td><td>高度拟人角色</td><td>顺应角色设定输出主观感知拟态</td></tr>
+  </tbody>
+</table>
   <p><strong>一组有代表性的假想结果</strong>（你可以直接拿它对照自己的输出）：</p>
   <table class="tbl small">
     <thead><tr><th>问法</th><th>声称有体验的样本数</th><th>比例</th></tr></thead>

@@ -460,13 +460,13 @@ COURSE.register({
 </p>
 
 <p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
-<pre><code>h = x @ W_base + (x @ A @ B) * (lora_alpha / r)</code></pre>
+<p>\[ h = x W_{\text{base}} + \frac{\alpha}{r} x A B, \quad A \in \mathbb{R}^{d \times r}, \; B \in \mathbb{R}^{r \times k} \]</p>
 <p>
   <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times d}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
 </p>
 
 <p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>
-<pre><code>loss = -F.logsigmoid(beta * (logits_w - logits_l)).mean()</code></pre>
+<p>\[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right] \]</p>
 <p>
   <strong>逐行代数解析</strong>：计算人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）之间的隐式奖励对数几率差；经由超参数 \(\beta\) 调节后输入 Sigmoid 函数并求负对数似然，无需显式训练独立的奖励模型。
 </p>

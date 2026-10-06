@@ -325,15 +325,13 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 </p>
 
 <p><strong>1. 自回归交叉熵损失算子：</strong></p>
-<pre><code>loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1))</code></pre>
+<p>\[ \mathcal{L}_{\text{CE}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{e^{z_{i, y_i}}}{\sum_{j=1}^V e^{z_{i, j}}} \]</p>
 <p>
   <strong>逐行代数解析</strong>：将预测张量打平为所有位置的类别分布，计算目标 Token 的负对数似然（Negative Log-Likelihood）。这也是衡量模型“惊奇程度”的基准指标。
 </p>
 
 <p><strong>2. 梯度截断与 AdamW 权重更新算子：</strong></p>
-<pre><code>loss.backward()
-torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-optimizer.step()</code></pre>
+<p>\[ g \leftarrow \nabla_\theta \mathcal{L}, \quad g \leftarrow g \cdot \min\left(1, \frac{M}{\|g\|_2}\right), \quad \theta \leftarrow \theta - \eta \cdot \text{AdamW}(g) \]</p>
 <p>
   <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内，从物理机制上彻底锁死梯度爆炸；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
 </p>

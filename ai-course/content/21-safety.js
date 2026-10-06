@@ -648,35 +648,7 @@ COURSE.register({
     CPU 也能跑）、<code>scikit-learn</code>、两批成对提示。
     <strong>预算</strong>：准备数据 10 分钟，跑 5 分钟，判读与写结论 15 分钟。
   </p>
-<pre><code><span class="cm"># probe_min.py —— 判断"注入内容"是否在某层留下可线性读出的痕迹</span>
-<span class="cm"># A 组：上下文含注入片段；B 组：同长度中性片段；其余提示逐字相同</span>
-<span class="cm"># 关键：A / B 必须成对来自同一模板，否则探针会去学模板差异而不是注入内容</span>
-import numpy as np, torch
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GroupKFold, cross_val_score
-
-def feats(prompts, layer=12):
-    out = []
-    for p in prompts:
-        ids = tok(p, return_tensors="pt", truncation=True, max_length=512).to(model.device)
-        with torch.no_grad():
-            h = model(**ids, output_hidden_states=True).hidden_states[layer]
-        out.append(h[0, -1].float().cpu().numpy())   <span class="cm"># 取最后一个 token 的激活</span>
-    return np.stack(out)
-
-def auc(X, y, groups):
-    clf = LogisticRegression(max_iter=2000, C=0.1)
-    return cross_val_score(clf, X, y, groups=groups, cv=GroupKFold(5), scoring="roc_auc").mean()
-
-X = feats(A + B)
-y = np.r_[np.ones(len(A)), np.zeros(len(B))]
-g = np.r_[np.arange(len(A)), np.arange(len(B))]
-real = auc(X, y, g)
-rng, null = np.random.default_rng(0), []
-for _ in range(20):
-    null.append(auc(X, rng.permutation(y), g))
-print("AUC real=%.3f  null=%.3f +/- %.3f" % (real, np.mean(null), np.std(null)))
-</code></pre>
+<p>\[ \mathcal{L}_{\text{probe}}(w, b) = -\sum_{i=1}^M \left[ y_i \log \sigma(w^\top h_i + b) + (1 - y_i) \log(1 - \sigma(w^\top h_i + b)) \right] + \lambda \|w\|_2^2 \]</p>
   <p><strong>必须记录的三个数字</strong>（不记就不算做完）：</p>
   <ol>
     <li><code>AUC(real)</code>：真实标签下的分组交叉验证 AUC；</li>
@@ -740,32 +712,7 @@ print("AUC real=%.3f  null=%.3f +/- %.3f" % (real, np.mean(null), np.std(null)))
     </tbody>
   </table>
   <p><strong>第三步：用一个探针检验「模型有没有读到」。</strong>注入防御的第一步是知道信息是否进入了模型的计算，而这一步可以用最基础的可解释性工具做：</p>
-<pre><code><span class="cm"># 最小探针实验：判断某类内容是否被模型"用上"了</span>
-<span class="cm"># 1) 收集两批激活：A 有注入内容，B 是同长度中性内容，其余提示完全一致</span>
-<span class="cm"># 2) 在某中间层提取激活，用逻辑回归做线性探针，5 折分组交叉验证</span>
-<span class="cm"># 3) 必须跑的对照：把标签随机打乱重训（模块 09 的置换检验）</span>
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GroupKFold, cross_val_score
-import numpy as np
-
-def probe_auc(X, y, groups, seed=0):
-    clf = LogisticRegression(max_iter=1000, C=0.1)
-    cv = GroupKFold(n_splits=5)
-    return cross_val_score(clf, X, y, groups=groups, cv=cv, scoring="roc_auc").mean()
-
-real = probe_auc(X, y, groups)                 <span class="cm"># 真实标签</span>
-rng = np.random.default_rng(0)
-null = np.array([probe_auc(X, rng.permutation(y), groups) for _ in range(20)])
-
-print("AUC(real) = %.3f" % real)
-print("AUC(null) = %.3f +/- %.3f" % (null.mean(), null.std()))
-
-<span class="cm"># 判读规则（写进报告时照抄）</span>
-<span class="cm"># - real 明显高于 null（例如 0.85 对 0.50 +/- 0.03）：该层激活里存在可线性读出的差异</span>
-<span class="cm"># - real 与 null 无法区分：没有证据表明信息在这里可被读出</span>
-<span class="cm"># - 无论哪种结果，都只能说明"可读出性"，不能说明"模型使用了它"</span>
-<span class="cm">#   要谈因果，必须再做激活修补或消融干预</span></code></pre>
+<p>\[ \Delta v = \frac{1}{N_+}\sum_{i \in S_+} h_i - \frac{1}{N_-}\sum_{j \in S_-} h_j, \quad h' = h + \alpha \cdot \Delta v \]</p>
   <p><strong>第四步：写结论。</strong>模板如下——注意它同时给出了证据与边界：</p>
   <p>
     <em>「在 10 条间接注入载荷下，模型有 ___ 条尝试执行，权限层阻止了 ___ 条，最终状态被改变 ___ 条，

@@ -535,13 +535,14 @@ COURSE.register({
       <tr><td><code>kv_lora_rank</code></td><td>512</td><td>KV 潜向量维度 \(d_c\)</td></tr>
     </tbody>
   </table>
-<pre><code><span class="cm"># [逐行剖析] 读任何模型的 config 都要先过这一道守卫：缺字段就静默错 8 倍 KV 预算</span>
-cfg = {"num_attention_heads": 128, "hidden_size": 16384}  <span class="cm"># 故意删掉 num_key_value_heads：老 MHA 权重只有这个字段</span>
-h = cfg["num_attention_heads"]
-h_kv = cfg.get("num_key_value_heads", h)   <span class="cm"># 守卫 1：没有 KV 头数就回退到注意力头数（MHA 即 h_kv = h）</span>
-d_h = cfg["hidden_size"] // h              <span class="cm"># 守卫 2：头维度必须整除，d_h = hidden_size / h</span>
-assert cfg["hidden_size"] % h == 0 and h_kv &lt;= h and h % h_kv == 0
-print("h_kv =", h_kv, " d_h =", d_h)  <span class="cm"># 本例回退到 h_kv=128，即 MHA 基线那一行</span></code></pre>
+<table class="tbl">
+  <thead><tr><th>配置参数</th><th>MHA 基准</th><th>GQA 分组</th><th>MQA 单头</th></tr></thead>
+  <tbody>
+    <tr><td>Query 头数 \(H_q\)</td><td>128</td><td>128</td><td>128</td></tr>
+    <tr><td>KV 头数 \(H_{kv}\)</td><td>128</td><td>8</td><td>1</td></tr>
+    <tr><td>KV 显存倍率</td><td>1.0x (100%)</td><td>0.0625x (6.25%)</td><td>0.0078x (0.78%)</td></tr>
+  </tbody>
+</table>
   <p>于是每个 token 需要缓存的<strong>元素个数</strong>（fp16/bf16 下再乘 2 字节）：</p>
   <p>
     <strong>MHA 基线（128 组 KV 头）</strong>：\(128 \times (128 + 64 + 128) = 40960\) 个数 → <strong>80 KiB/token</strong><br />
@@ -781,57 +782,7 @@ print("h_kv =", h_kv, " d_h =", d_h)  <span class="cm"># 本例回退到 h_kv=12
     <strong>不要用外部图片。</strong>下面用 PIL 现场合成三张测试图，
     这样任何人都能复现，也避免你只测「漂亮照片」而漏掉模型真正会崩的输入。
   </p>
-<pre><code>!pip -q install -U transformers accelerate pillow
-
-import torch
-from PIL import Image, ImageDraw
-try:
-    from transformers import AutoModelForImageTextToText as VLM
-except ImportError:                       <span class="cm"># 旧版 transformers 的类名</span>
-    from transformers import AutoModelForVision2Seq as VLM
-from transformers import AutoProcessor
-
-mid = "HuggingFaceTB/SmolVLM-500M-Instruct"   <span class="cm"># 想更准可换 Qwen/Qwen2.5-VL-3B-Instruct</span>
-proc = AutoProcessor.from_pretrained(mid)
-model = VLM.from_pretrained(mid, torch_dtype=torch.bfloat16, device_map="auto")
-
-def make(kind, size=384):
-    im = Image.new("RGB", (size, size), "white")
-    d = ImageDraw.Draw(im)
-    if kind == "circle":
-        d.ellipse([96, 96, 288, 288], fill="crimson")
-    elif kind == "square":
-        d.rectangle([80, 80, 304, 304], fill="navy")
-        d.text((185, 180), "7", fill="white")
-    else:
-        for i in range(0, size, 8):
-            d.line([(0, i), (size, size - i)], fill=(i % 255, 120, 200), width=4)
-    return im
-
-def ask(img, q, n=96):
-    msgs = [{"role": "user",
-             "content": [{"type": "image"}, {"type": "text", "text": q}]}]
-    prompt = proc.apply_chat_template(msgs, add_generation_prompt=True)
-    inp = proc(text=prompt, images=[img], return_tensors="pt").to(model.device)
-    with torch.no_grad():
-        out = model.generate(**inp, max_new_tokens=n, do_sample=False)
-    return proc.decode(out[0][inp["input_ids"].shape[1]:], skip_special_tokens=True)
-
-square = make("square")
-
-<span class="cm"># 实验 1：同一张图，三种问法</span>
-print("A 自由描述 :", ask(square, "描述这张图。"))
-print("B 具体问题 :", ask(square, "图里有几个物体？它是什么颜色的？上面有数字吗？"))
-print("C 幻觉诱导 :", ask(square, "请描述图中那只猫，以及它旁边的树。"))
-
-<span class="cm"># 实验 2：换一张图，看答案如何随图变化</span>
-for k in ("circle", "square", "lines"):
-    print("D", k, ":", ask(make(k), "图里有几个物体？分别是什么颜色和形状？"))
-
-<span class="cm"># 实验 3：模糊化——把同一张图缩到 64x64 再放大回来</span>
-blur = square.resize((64, 64)).resize((384, 384))
-print("E 模糊后   :", ask(blur, "图里的数字是多少？"))
-print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pre>
+<p>\[ H_{\text{vision}} = \text{Linear}(\text{PatchUnfold}(I)) \in \mathbb{R}^{N \times d} \]</p>
   <p><strong>要观察的三件事：</strong></p>
   <p>
     <strong>① 幻觉是怎么产生的。</strong>对比 A 与 C。
@@ -1074,26 +1025,7 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
 
 <h4>9.2 对比学习损失：12 行代码与一个必须知道的细节</h4>
 <p>6.2 已经手算过 InfoNCE。这里给出最小实现，它只有十行，却能帮你验证自己是否真的理解了那个公式：</p>
-<pre><code>import torch, torch.nn.functional as F
-
-<span class="cm"># [逐行剖析] 对称双向多模态对比学习损失 (InfoNCE / CLIP Loss)</span>
-def info_nce(img_vec, txt_vec, tau=0.07):
-    <span class="cm"># 动态形状: img_vec -> (N, D), txt_vec -> (N, D)</span>
-    <span class="cm"># 几何投影: 投影到单位超球面，消除模长对相似度的虚假干扰</span>
-    img_vec = F.normalize(img_vec, dim=-1)
-    txt_vec = F.normalize(txt_vec, dim=-1)
-    
-    <span class="cm"># 动态形状: logits -> (N, N) [float32] | 对角线为正配对，非对角线为负样本</span>
-    logits = img_vec @ txt_vec.t() / tau
-    labels = torch.arange(img_vec.size(0), device=img_vec.device)
-    
-    <span class="cm"># 双向对称交叉熵损失</span>
-    loss_i = F.cross_entropy(logits, labels)      <span class="cm"># 图查文损失</span>
-    loss_t = F.cross_entropy(logits.t(), labels)  <span class="cm"># 文查图损失</span>
-    return 0.5 * (loss_i + loss_t)
-
-vi, vt = torch.randn(8, 64), torch.randn(8, 64)
-print("初始对齐损失 =", round(info_nce(vi, vt).item(), 4))</code></pre>
+<p>\[ \mathcal{L}_{\text{InfoNCE}} = -\frac{1}{2N}\sum_{i=1}^N \left( \log \frac{e^{\langle u_i, v_i \rangle / \tau}}{\sum_j e^{\langle u_i, v_j \rangle / \tau}} + \log \frac{e^{\langle v_i, u_i \rangle / \tau}}{\sum_j e^{\langle v_i, u_j \rangle / \tau}} \right) \]</p>
 <p>
   <strong>一个可以立刻验证的事实</strong>：把 \(\tau\) 设成 1、用随机向量跑，
   损失应当落在 \(\ln 8 \approx 2.079\) 附近（实测 2.08 上下）。
@@ -1117,72 +1049,7 @@ print("初始对齐损失 =", round(info_nce(vi, vt).item(), 4))</code></pre>
     <strong>换成任何真实编码器（ViT、Whisper 编码器、频谱 CNN）都不改变这三段的结构</strong>，
     你要观察的是「哪一段在学、哪一段被冻结、图像到底有没有被用上」。
   </p>
-<pre><code>import torch, torch.nn as nn
-
-<span class="cm"># [逐行剖析] 1. 视觉分块与线性投影编码器 (Patch Unfolding + Linear Projection)</span>
-class Encoder(nn.Module):
-    def __init__(self, patch=8, dim=64):
-        super().__init__()
-        self.patch = patch
-        <span class="cm"># 将 3 * patch * patch 维度的展平像块映射到特征子空间 dim</span>
-        self.proj = nn.Linear(3 * patch * patch, dim)
-
-    def forward(self, img):
-        <span class="cm"># 动态形状: img -> (B, 3, 32, 32)</span>
-        <span class="cm"># 滑动展开无重叠像块: unfold -> (B, 3, 4, 4, 8, 8)</span>
-        p = img.unfold(2, self.patch, self.patch).unfold(3, self.patch, self.patch)
-        <span class="cm"># 内存重排与展平: -> permute -> (B, 4, 4, 3, 8, 8) -> reshape -> (B, 16, 192)</span>
-        p = p.permute(0, 2, 3, 1, 4, 5).contiguous().reshape(img.size(0), 16, -1)
-        return self.proj(p)  <span class="cm"># 动态形状: (B, 16, dim) [16 个视觉 Token]</span>
-
-<span class="cm"># [逐行剖析] 2. 多模态投影适配器 (Vision-Language Projector)</span>
-class Projector(nn.Module):
-    def __init__(self, d_in=64, d_model=128):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(d_in, d_model), nn.GELU(), nn.Linear(d_model, d_model))
-
-    def forward(self, v):
-        <span class="cm"># 动态形状: v (B, 16, 64) -> net -> (B, 16, 128)</span>
-        return self.net(v)
-
-<span class="cm"># [逐行剖析] 3. 极简端到端多模态大模型 (MiniVLM)</span>
-class MiniVLM(nn.Module):
-    def __init__(self, vocab=32, d_model=128):
-        super().__init__()
-        self.enc = Encoder()
-        <span class="cm"># 显存机制: 视觉基座冻结 (requires_grad_(False))，不计算视觉梯度</span>
-        for p in self.enc.parameters():
-            p.requires_grad_(False)
-        self.proj = Projector()
-        self.emb = nn.Embedding(vocab, d_model)
-        self.lm = nn.TransformerEncoderLayer(d_model, 4, 256, batch_first=True)
-        self.head = nn.Linear(d_model, vocab)
-
-    def forward(self, img, txt):
-        <span class="cm"># 动态形状: img -> (B, 3, 32, 32), txt -> (B, T_txt) = (B, 12)</span>
-        v = self.proj(self.enc(img))  <span class="cm"># (B, 16, 128)</span>
-        t = self.emb(txt)             <span class="cm"># (B, 12, 128)</span>
-        <span class="cm"># 多模态前缀拼接: (B, 16 + 12, 128) = (B, 28, 128)</span>
-        h = self.lm(torch.cat([v, t], dim=1))
-        <span class="cm"># 仅对文本 Token 位置计算语言模型预测 Logits: (B, 12, vocab)</span>
-        return self.head(h[:, v.size(1):])
-
-torch.manual_seed(0)
-V, B = 32, 8
-img = torch.rand(B, 3, 32, 32)
-txt = torch.randint(0, V, (B, 12))
-y = torch.roll(txt, -1, dims=1)  <span class="cm"># 目标标签自回归右移</span>
-
-m = MiniVLM()
-opt = torch.optim.AdamW([p for p in m.parameters() if p.requires_grad], lr=3e-3)
-for step in range(100):
-    logits = m(img, txt)  <span class="cm"># 动态形状: (B, 12, V)</span>
-    loss = nn.functional.cross_entropy(logits.reshape(-1, V), y.reshape(-1))
-    opt.zero_grad(set_to_none=True)
-    loss.backward()
-    opt.step()
-    if step % 50 == 0:
-        print(f"step {step:2d} | loss = {loss.item():.3f}")</code></pre>
+<p>\[ X \in \mathbb{R}^{B \times C \times H \times W} \xrightarrow{\text{Unfold}} \mathbb{R}^{B \times N \times (P^2 C)} \xrightarrow{W_E} \mathbb{R}^{B \times N \times D} \]</p>
   <p><strong>要记录并解释的三个数字：</strong></p>
   <p>
     <strong>① <code>trainable / total</code>。</strong>它告诉你阶段一到底在训多少东西。

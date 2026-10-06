@@ -230,8 +230,7 @@ COURSE.register({
 <p>
   在现代并行计算框架（如 JAX / PyTorch DTensor）中，多卡切分的本质可以通过两行微声明展示：
 </p>
-<pre><code>sharding = NamedSharding(mesh, PartitionSpec('data', None))
-sharded_x = jax.device_put(x, sharding)</code></pre>
+<p>\[ \text{Mesh}(\mathcal{D}_{\text{data}}, \mathcal{D}_{\text{model}}): \quad X \in \mathbb{R}^{B \times T \times d} \xrightarrow{\text{Sharding}} \{X^{(k)} \in \mathbb{R}^{\frac{B}{N_d} \times T \times d}\}_{k=1}^{N_d} \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>PartitionSpec('data', None)</code> 声明张量的物理切分规格——批量样本轴沿着设备网格的 <code>data</code> 轴切开分发至各张卡，特征隐藏轴保持完整不切分；<code>jax.device_put</code> 指挥硬件通过高速总线完成内存映射与设备广播，无需开发者手工写网络套接字传输。
 </p>

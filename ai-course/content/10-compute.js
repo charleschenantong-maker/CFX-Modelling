@@ -135,8 +135,7 @@ COURSE.register({
 </div>
 
 <p><strong>Kaggle 规范初始化微演示：</strong></p>
-<pre><code>torch.manual_seed(42)
-os.makedirs('/kaggle/working/checkpoints', exist_ok=True)</code></pre>
+<div class="blk blk-tip"><p><strong>可复现性原则</strong>：固化所有随机种子 \(S \in \mathbb{N}\)，并始终将产出定向保存在 <code>/kaggle/working/</code> 持久化层中。</p></div>
 <p>
   <strong>逐行解析</strong>：<code>torch.manual_seed(42)</code> 固化随机数发生器种子，确保网络初始化与采样具备严格可复现性；<code>os.makedirs</code> 在 Kaggle 持久化路径 <code>/kaggle/working/</code> 下建立检查点目录，确保训练权重在任务后台 Commit 后安全归档。
 </p>

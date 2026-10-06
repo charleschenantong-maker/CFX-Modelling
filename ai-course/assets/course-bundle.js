@@ -2450,13 +2450,13 @@ COURSE.register({
 </p>
 
 <p><strong>1. RMSNorm 算子核心演示：</strong></p>
-<pre><code>norm_x = x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + 1e-6) * gamma</code></pre>
+<p>\[ \text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^d x_i^2 + \epsilon}} \odot \gamma \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>x.pow(2).mean(-1)</code> 求特征维度平方和的均值；<code>torch.rsqrt</code> 计算均方根的倒数，跳过了传统 LayerNorm 中减去均值的中心化步骤；最后乘以可学习缩放参数 <code>gamma</code>。在现代大模型（LLaMA-3、Qwen-2.5）中被全量采用，硬件吞吐提升约 7%~15%。
 </p>
 
 <p><strong>2. SwiGLU 门控前馈网络（FFN）核心演示：</strong></p>
-<pre><code>ffn_out = (F.silu(x @ W_gate) * (x @ W_up)) @ W_down</code></pre>
+<p>\[ \text{SwiGLU}(x) = \left( \text{SiLU}(x W_{\text{gate}}) \odot (x W_{\text{up}}) \right) W_{\text{down}} \]</p>
 <p>
   <strong>逐行代数解析</strong>：输入向量 \(x\) 分别乘上两个升维矩阵；<code>W_gate</code> 通道经过 SiLU 激活函数充当平滑开关，与 <code>W_up</code> 的线性特征进行元素级逐项乘法（Hadamard Product），最后由 <code>W_down</code> 投影回残差流维度。
 </p>
@@ -3014,15 +3014,13 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 </p>
 
 <p><strong>1. 自回归交叉熵损失算子：</strong></p>
-<pre><code>loss = F.cross_entropy(logits.view(-1, vocab_size), targets.view(-1))</code></pre>
+<p>\[ \mathcal{L}_{\text{CE}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{e^{z_{i, y_i}}}{\sum_{j=1}^V e^{z_{i, j}}} \]</p>
 <p>
   <strong>逐行代数解析</strong>：将预测张量打平为所有位置的类别分布，计算目标 Token 的负对数似然（Negative Log-Likelihood）。这也是衡量模型“惊奇程度”的基准指标。
 </p>
 
 <p><strong>2. 梯度截断与 AdamW 权重更新算子：</strong></p>
-<pre><code>loss.backward()
-torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-optimizer.step()</code></pre>
+<p>\[ g \leftarrow \nabla_\theta \mathcal{L}, \quad g \leftarrow g \cdot \min\left(1, \frac{M}{\|g\|_2}\right), \quad \theta \leftarrow \theta - \eta \cdot \text{AdamW}(g) \]</p>
 <p>
   <strong>逐行代数解析</strong>：反向传播计算全部参数的偏导数；<code>clip_grad_norm_</code> 将全局梯度向量的 \(L_2\) 范数限制在 1.0 以内，从物理机制上彻底锁死梯度爆炸；最后由 <code>optimizer.step()</code> 按照动量轨迹更新权重矩阵。
 </p>
@@ -3366,8 +3364,7 @@ COURSE.register({
 <p>
   在现代并行计算框架（如 JAX / PyTorch DTensor）中，多卡切分的本质可以通过两行微声明展示：
 </p>
-<pre><code>sharding = NamedSharding(mesh, PartitionSpec('data', None))
-sharded_x = jax.device_put(x, sharding)</code></pre>
+<p>\[ \text{Mesh}(\mathcal{D}_{\text{data}}, \mathcal{D}_{\text{model}}): \quad X \in \mathbb{R}^{B \times T \times d} \xrightarrow{\text{Sharding}} \{X^{(k)} \in \mathbb{R}^{\frac{B}{N_d} \times T \times d}\}_{k=1}^{N_d} \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>PartitionSpec('data', None)</code> 声明张量的物理切分规格——批量样本轴沿着设备网格的 <code>data</code> 轴切开分发至各张卡，特征隐藏轴保持完整不切分；<code>jax.device_put</code> 指挥硬件通过高速总线完成内存映射与设备广播，无需开发者手工写网络套接字传输。
 </p>
@@ -3968,13 +3965,13 @@ COURSE.register({
 </p>
 
 <p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
-<pre><code>h = x @ W_base + (x @ A @ B) * (lora_alpha / r)</code></pre>
+<p>\[ h = x W_{\text{base}} + \frac{\alpha}{r} x A B, \quad A \in \mathbb{R}^{d \times r}, \; B \in \mathbb{R}^{r \times k} \]</p>
 <p>
   <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times d}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
 </p>
 
 <p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>
-<pre><code>loss = -F.logsigmoid(beta * (logits_w - logits_l)).mean()</code></pre>
+<p>\[ \mathcal{L}_{\text{DPO}}(\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x, y_w, y_l)} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right] \]</p>
 <p>
   <strong>逐行代数解析</strong>：计算人类偏好的获胜回答（\(w\)）与失败回答（\(l\)）之间的隐式奖励对数几率差；经由超参数 \(\beta\) 调节后输入 Sigmoid 函数并求负对数似然，无需显式训练独立的奖励模型。
 </p>
@@ -4159,8 +4156,7 @@ COURSE.register({
   <p>LLM 回报：抽取类任务用 \(T = 0\)（等价于贪心，延迟最低且可复现）；创意任务从 \(T = 0.7\) 起调，一次只动温度或 top-p 其中一个。下面看代码里这三步是怎么落子的。</p>
 </section>
 <p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
-<pre><code>probs = torch.softmax(logits / temperature, dim=-1)
-next_token = torch.multinomial(probs, num_samples=1)</code></pre>
+<p>\[ P(w_{t} = i \mid w_{<t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
 <p>
   <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
 </p>
@@ -4346,8 +4342,7 @@ next_token = torch.multinomial(probs, num_samples=1)</code></pre>
   </tbody>
 </table>
 <p><strong>KV Cache 缓存追加算子微核心演示：</strong></p>
-<pre><code>k_cache = torch.cat([k_cache, new_k], dim=-2)
-v_cache = torch.cat([v_cache, new_v], dim=-2)</code></pre>
+<p>\[ K_{1:t} = [K_{1:t-1} \parallel k_t], \quad V_{1:t} = [V_{1:t-1} \parallel v_t] \]</p>
 <p>
   <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 骤降为 \(O(T)\)。
 </p>
@@ -4607,7 +4602,7 @@ v_cache = torch.cat([v_cache, new_v], dim=-2)</code></pre>
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：量化与吞吐基准（完整版见附录 B · E8）</h4>
 <p><strong>4-bit NF4 低显存量化加载算子微核心演示：</strong></p>
-<pre><code>model = AutoModelForCausalLM.from_pretrained(model_id, load_in_4bit=True, device_map="auto")</code></pre>
+<p>\[ W_{\text{FP16}} \xrightarrow{\text{NF4 Quant}} W_{\text{4-bit}} + \text{absmax} \cdot c, \quad \text{Memory} \approx \frac{1}{4} \text{Memory}_{\text{FP16}} \]</p>
 <p>
   <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，使 1.5B 乃至 7B 级别大模型得以平稳驻留在消费级或免费 T4 显卡（16GB）显存内。
 </p>
@@ -4930,7 +4925,7 @@ COURSE.register({
 
 <h3>5. 一个可直接复用的评估协议</h3>
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
-<pre><code>perplexity = torch.exp(eval_loss)</code></pre>
+<p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{<i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
   <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；直观物理意义代表模型在预测下一个词时的“平均有效分支数”。困惑度数值越接近 1.0，说明模型对真实文本分布的预测越自信准确。
 </p>
@@ -5623,8 +5618,7 @@ COURSE.register({
 </div>
 
 <p><strong>Kaggle 规范初始化微演示：</strong></p>
-<pre><code>torch.manual_seed(42)
-os.makedirs('/kaggle/working/checkpoints', exist_ok=True)</code></pre>
+<div class="blk blk-tip"><p><strong>可复现性原则</strong>：固化所有随机种子 \(S \in \mathbb{N}\)，并始终将产出定向保存在 <code>/kaggle/working/</code> 持久化层中。</p></div>
 <p>
   <strong>逐行解析</strong>：<code>torch.manual_seed(42)</code> 固化随机数发生器种子，确保网络初始化与采样具备严格可复现性；<code>os.makedirs</code> 在 Kaggle 持久化路径 <code>/kaggle/working/</code> 下建立检查点目录，确保训练权重在任务后台 Commit 后安全归档。
 </p>
@@ -6715,25 +6709,14 @@ COURSE.register({
 </p>
 
 <h3>2. 记录中的拓扑</h3>
-<pre><code>                    +-----------------------------------------------+
-                    |          Residential Gateway (Home)          |
-                    |  - Single Residential Public IP               |
-                    |  - Dedicated Ubuntu Node / Framework Desktop  |
-                    |  - CLI Proxy / Vibe Proxy Daemon              |
-                    |  - Manages OAuth sessions for 5-10 accounts   |
-                    +-----------------------+-----------------------+
-                                            |
-                               Tailscale Mesh Overlay
-                           (micro.ts.net / WireGuard)
-                                            |
-          +---------------------------------+---------------------------------+
-          |                                 |                                 |
-  +------------------+             +--------------------+            +-------------------+
-  | MacBook Pro      |             | Dedicated Server   |            | Remote Dev Server |
-  | (Client / UI)    |             | "Alvin" (Headless) |            | "BB1" (Linux)     |
-  | - T3 Code Client |             | - Docker / Worktrees|           | - CI / Build jobs |
-  | - No direct LLM  |             | - Routes via proxy |            | - Routes via proxy|
-  +------------------+             +--------------------+            +-------------------+</code></pre>
+<table class="tbl">
+  <thead><tr><th>网络节点</th><th>物理规格</th><th>关键协议/配置</th></tr></thead>
+  <tbody>
+    <tr><td>家庭出口网关</td><td>单个住宅公网 IPv4/v6</td><td>DDNS 动态域名解析 + 端口映射 (NAT)</td></tr>
+    <tr><td>内部宿主机</td><td>Ubuntu 物理工作站</td><td>SSH 密钥硬认证 (Ed25519) + 禁用密码登录</td></tr>
+    <tr><td>外网访问客户端</td><td>便携笔记本 (macOS/Win)</td><td>WireGuard VPN / Tailscale 点对点加密通道</td></tr>
+  </tbody>
+</table>
 <dl class="kv">
   <dt>住宅网关</dt><dd>家里的一台机器，唯一出口；运行代理守护进程，管理 5–10 个账号的 OAuth 会话</dd>
   <dt>Tailscale 覆盖网</dt><dd>基于 WireGuard 的 mesh，把笔记本、家庭节点、远程服务器组成一个私有网络</dd>
@@ -6944,8 +6927,7 @@ COURSE.register({
 </p>
 
 <p><strong>断点原子化保存微算子演示：</strong></p>
-<pre><code>ckpt = {'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'step': step}
-torch.save(ckpt, f'/kaggle/working/ckpt_step_{step}.pt')</code></pre>
+<p>\[ \mathcal{S}_t = \left( \Theta_t, M_t, V_t, t, \mathcal{R}_{\text{rng}} \right) \xrightarrow{\text{Atomic Write}} \text{Storage}_{\text{persistent}} \]</p>
 <p>
   <strong>逐行解析</strong>：保存断点必须将模型权重与优化器内部一阶/二阶动量状态一同打包序列化至 <code>/kaggle/working/</code>；如果遗漏优化器状态，恢复训练时由于历史动量归零，极易导致单步梯度方向突变、损失剧烈跳跃甚至梯度爆炸。
 </p>
@@ -7096,15 +7078,11 @@ COURSE.register({
   <div class="nd">交付物</div><div class="ar">→</div>
   <div class="nd hi">只在真正卡住时介入</div>
 </div>
-<pre><code><span class="cm"># 一个可复用的任务模板</span>
-目标：把 labs/e7 的岭回归扩展成「模型阶梯」，并给出是否值得上非线性模型的结论。
-验收标准：
-  1) 一条命令 python run.py 跑完 Level 0-3 与 5 折分组交叉验证；
-  2) 输出 RMSE 均值±标准差、置换检验 p 值（B=500）、零分布图；
-  3) 生成 results/report.md，包含结论与三条明确的局限性。
-约束：只用 numpy/scikit-learn/matplotlib；固定随机种子；不得使用测试集调参。
-卡住时：先报告你试过什么、观察到什么，再问问题。
-交付：diff + 运行日志 + 生成的图。</code></pre>
+<div class="blk blk-tip">
+  <h4><span class="ic">📋</span>科学任务模板规范</h4>
+  <p><strong>明确目标</strong>：明确定义任务与假设检验目标。</p>
+  <p><strong>验收标准</strong>：定义可执行验证脚本与客观评估指标收敛阈值。</p>
+</div>
 <p>
   <strong>关键区别</strong>：给<em>验收标准</em>而不是给<em>实现步骤</em>。前者让智能体自己选择路径并自我检查，
   后者把它降级成一个打字机，同时把你锁进一个可能错误的方案里。
@@ -7130,15 +7108,13 @@ COURSE.register({
     等价于「每个任务一个独立沙箱」。
   </p>
 </section>
-<pre><code><span class="cm"># 为每个任务开一个独立工作树（互不干扰，共享同一个对象库）</span>
-git worktree add ../wt-e7-model-ladder -b e7/model-ladder
-git worktree add ../wt-audio-metrics     -b audio/metrics
-
-<span class="cm"># 列出与清理</span>
-git worktree list
-git worktree remove ../wt-e7-model-ladder      <span class="cm"># 任务完成或废弃</span>
-
-<span class="cm"># 若两个智能体撞到同一分支，现代模型通常会退化为「生成临时隔离分支」来避开冲突</span></code></pre>
+<table class="tbl">
+  <thead><tr><th>工作流模式</th><th>核心价值</th><th>操作规范</th></tr></thead>
+  <tbody>
+    <tr><td>分支隔离</td><td>避免正在跑的长任务被临时代码改动污染</td><td>每个独立实验建立专门的分支</td></tr>
+    <tr><td>快照记录</td><td>保留每次实验的完整超参数与随机种子</td><td>生成固化的元数据文件 <code>config.json</code></td></tr>
+  </tbody>
+</table>
 <p>
   worktree 的关键优势：<strong>共享对象库</strong>（不重复占磁盘），但<strong>索引与工作目录独立</strong>（无锁竞争）。
   这在你的场景里尤其合适：一个工作树跑实验、一个改课程内容、一个整理笔记。
@@ -7156,12 +7132,11 @@ git worktree remove ../wt-e7-model-ladder      <span class="cm"># 任务完成�
   </p>
 </section>
 <p>以 crossfade 这类任务为例，可以写成这样的链条（你以后可以照此套用）：</p>
-<pre><code>1. 在 wt-e7 工作树里实现模型阶梯脚本；
-2. 运行 E7 实验，保存 results/（RMSE 表、置换零分布图、config.json）；
-3. 生成 results/report.md（含结论与局限）；
-4. 把关键图与结论更新到课程项目页；
-5. 提交并推送，确认 CI 与仓库状态为绿；
-6. 若中途失败，附上完整日志并继续，直到全部通过；只在需要改变研究设计时才停下来问我。</code></pre>
+<ol>
+  <li>在独立实验环境中验证算法与损失收敛性。</li>
+  <li>汇总评估报告，导出核心 Loss 下降曲线与 Perplexity 数据。</li>
+  <li>提交成果并在归档分支打上版本标签。</li>
+</ol>
 
 <h3>8. 后台派发与远程卸载</h3>
 <dl class="kv">
@@ -7542,7 +7517,7 @@ COURSE.register({
 </p>
 
 <p><strong>MoE 稀疏门控路由微算子演示：</strong></p>
-<pre><code>gates, indices = torch.topk(F.softmax(x @ W_gate, dim=-1), k=2)</code></pre>
+<p>\[ H(x) = \sum_{i \in \text{Top-}k(G(x))} G(x)_i \cdot E_i(x), \quad G(x) = \text{Softmax}(\text{Top-}k(x W_g, k)) \]</p>
 <p>
   <strong>逐行代数解析</strong>：每个 Token 的输入表征 \(x\) 乘以门控投影矩阵 \(W_{\text{gate}}\)，经 Softmax 得到在所有候选专家（如 8 个）上的分配概率；<code>torch.topk</code> 选出概率最高的前 2 个专家下标 <code>indices</code> 与权重系数 <code>gates</code>，其余未选中的专家完全不参与浮点前向计算，实现模型容量扩张与计算量的优雅解耦。
 </p>
@@ -7792,8 +7767,7 @@ COURSE.register({
 </p>
 
 <p><strong>RoPE 旋转位置编码与角频率缩放微算子演示：</strong></p>
-<pre><code>freqs = 1.0 / (base ** (torch.arange(0, dim, 2).float() / dim))
-q_rot = (q * torch.cos(m * freqs)) + (rotate_half(q) * torch.sin(m * freqs))</code></pre>
+<p>\[ \theta_i = b^{-2(i-1)/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=1}^{d/2} \right) \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>freqs</code> 计算特征维度各对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上旋转角度的余弦与正弦项，将绝对位置转化为向量内积中的相对位移 \(m - n\)；YaRN 算法在此基础上对高频与低频分量进行精细化分段插值，实现超长文本的免重训平滑外推。
 </p>
@@ -8704,12 +8678,7 @@ COURSE.register({
     经验判据：在 100 个位置上算 \(m\) 取中位数，<strong>中位数超过 0.05 就提高 \(k\) 或降低 \(T\)</strong>。
     长尾词表（多语言、代码）的 \(m\) 会明显大于纯英文场景。
   </p>
-  <pre><code><span class="cm"># [逐行剖析] 温度对 Softmax 尾部概率质量（暗知识）的释放效应</span>
-<span class="cm"># 动态形状: logits -> (B, V) [float32]</span>
-p = torch.softmax(logits / T, dim=-1)
-<span class="cm"># 截取第 2 到第 10 大候选 token 的概率质量和（表征语义联想丰富度）</span>
-m = torch.topk(p, k=10, dim=-1).values[:, 1:].sum(dim=-1)
-print("tail mass median =", round(m.median().item(), 4))   <span class="cm"># 动态形状: 标量 [float32]</span></code></pre>
+  <p>\[ p_i(T) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}, \quad m_{\text{tail}}(T) = \sum_{k=2}^{10} p_{(k)}(T) \]</p>
 </section>
 
 <h3>8. 怎么证明蒸馏有用：评估协议与最小样本量</h3>
@@ -8775,61 +8744,7 @@ print("tail mass median =", round(m.median().item(), 4))   <span class="cm"># �
   <h4><span class="ic">🧪</span>动手：给一个 0.5B 教师做一次词级蒸馏</h4>
   <p>在免费 Colab（T4）上可跑。思路：学生也是 0.5B，但只训练 LoRA，让它在<em>教师自己的分布</em>上对齐——
   这样能在 30 分钟内看到 KL 损失下降、且能对比「只用硬标签」的差别。</p>
-<pre><code>!pip -q install torch transformers peft datasets
-
-import torch, torch.nn.functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import LoraConfig, get_peft_model
-
-<span class="cm"># [逐行剖析] 1. 加载双模型：全量冻结的教师模型 (Teacher) 与轻量学生模型 (Student)</span>
-name = "Qwen/Qwen2.5-0.5B-Instruct"
-tok = AutoTokenizer.from_pretrained(name)
-
-<span class="cm"># 显存机制: 教师模型进入 eval 模式，所有参数不计算梯度 (requires_grad=False)</span>
-teacher = AutoModelForCausalLM.from_pretrained(name, torch_dtype=torch.bfloat16, device_map="auto").eval()
-student = AutoModelForCausalLM.from_pretrained(name, torch_dtype=torch.bfloat16, device_map="auto")
-<span class="cm"># 仅为学生模型注入 LoRA 适配器，冻结基座，大幅削减显存开销</span>
-student = get_peft_model(student, LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
-                          target_modules=["q_proj","k_proj","v_proj","o_proj"], task_type="CAUSAL_LM"))
-
-opt = torch.optim.AdamW(student.parameters(), lr=1e-4)
-prompts = ["Explain what a crossfade is in audio.", "Why does a linear fade dip in the middle?",
-           "Summarise how attention works.", "What is a KV cache?"] * 32
-
-T, ALPHA = 3.0, 0.3  <span class="cm"># 蒸馏温度 T=3.0, 硬标签损失权重 ALPHA=0.3</span>
-for step, p in enumerate(prompts):
-    <span class="cm"># 动态形状: batch['input_ids'] -> (B, T) [int64]</span>
-    batch = tok(p, return_tensors="pt").to(student.device)
-    
-    <span class="cm"># [逐行剖析] 2. 教师模型前向传播（阻断 autograd 追踪）</span>
-    <span class="cm"># 自动微分: torch.no_grad() 彻底释放中间激活显存</span>
-    with torch.no_grad():
-        <span class="cm"># 动态形状: t_logits -> (B, T, V) [bfloat16]</span>
-        t_logits = teacher(**batch).logits
-        
-    <span class="cm"># [逐行剖析] 3. 学生模型前向传播（保留计算图）</span>
-    <span class="cm"># 动态形状: s_logits -> (B, T, V) [bfloat16]</span>
-    s_logits = student(**batch).logits
-    
-    <span class="cm"># [逐行剖析] 4. 硬标签交叉熵损失（下一 token 自回归真值）</span>
-    <span class="cm"># 动态形状: labels -> (B, T-1), s_logits[:, :-1] -> (B*(T-1), V)</span>
-    labels = batch.input_ids[:, 1:]
-    ce = F.cross_entropy(s_logits[:, :-1].reshape(-1, s_logits.size(-1)), labels.reshape(-1))
-    
-    <span class="cm"># [逐行剖析] 5. 软标签 KL 散度蒸馏损失（暗知识对齐）</span>
-    <span class="cm"># 数学机制: 在高温 T 下对 logits 做 log_softmax，梯度缩放因子为 T^2</span>
-    <span class="cm"># 动态形状: log_p_t -> (B, T, V), log_p_s -> (B, T, V)</span>
-    log_p_t = F.log_softmax(t_logits.float() / T, dim=-1)
-    log_p_s = F.log_softmax(s_logits.float() / T, dim=-1)
-    kl = F.kl_div(log_p_s, log_p_t, log_target=True, reduction="batchmean") * (T ** 2)
-    
-    <span class="cm"># [逐行剖析] 6. 凸组合损失与反向传播</span>
-    loss = ALPHA * ce + (1 - ALPHA) * kl
-    loss.backward()
-    opt.step()
-    opt.zero_grad(set_to_none=True)
-    if step % 16 == 0:
-        print(f"step {step:3d}  ce={ce.item():.3f}  kl={kl.item():.3f}  loss={loss.item():.3f}")</code></pre>
+<p>\[ \mathcal{L}_{\text{total}} = \alpha T^2 \cdot D_{\text{KL}}(\sigma(z_t / T) \parallel \sigma(z_s / T)) + (1 - \alpha) \cdot \mathcal{L}_{\text{CE}}(y, \sigma(z_s)) \]</p>
   <p>
     <strong>要记录的三件事</strong>：①<code>kl</code> 是否单调下降（说明学生在逼近教师分布）；
     ②把 <code>ALPHA</code> 设为 1.0（纯硬标签）再跑一遍，对比同样的验证集表现——这就是「蒸馏到底加了多少价值」；
@@ -8866,33 +8781,7 @@ for step, p in enumerate(prompts):
         两组用同样的步数与超参。</li>
     <li><strong>评估。</strong>在同一批测试题上比 A/B 的 pass@1，以及平均输出长度。</li>
   </ol>
-<pre><code>import json, re
-
-def shingles(s, n=4):
-    w = re.findall(r"\w+", s.lower())
-    return set(tuple(w[i:i + n]) for i in range(max(1, len(w) - n + 1)))
-
-def jaccard(a, b):
-    return len(a &amp; b) / max(1, len(a | b))
-
-rows = [json.loads(l) for l in open("raw.jsonl", encoding="utf-8")]
-kept, seen = [], []
-for r in rows:
-    c = r["completion"].strip()
-    ntok = len(c.split())
-    if not c or not (8 &lt;= ntok &lt;= 512):            <span class="cm"># 长度过滤：太短或太长都丢</span>
-        continue
-    if re.search(r"(\b\w+\b)(\s+\1){3,}", c):        <span class="cm"># 复读过滤</span>
-        continue
-    sh = shingles(c)
-    if any(jaccard(sh, s) &gt; 0.85 for s in seen):     <span class="cm"># 近似去重</span>
-        continue
-    seen.append(sh)
-    kept.append(r)
-
-print("raw =", len(rows), " kept =", len(kept), " keep_rate =", round(len(kept) / len(rows), 3))
-json.dump(kept, open("clean.json", "w", encoding="utf-8"), ensure_ascii=False)
-<span class="cm"># 注意：seen 会随数据量线性变大，整体是 O(n^2) 比较。真实规模请换 MinHash/LSH 或向量去重。</span></code></pre>
+<p>\[ J(A, B) = \frac{|A \cap B|}{|A \cup B|}, \quad A, B \in \text{Shingles}_n(\text{text}) \]</p>
   <p><strong>要记录的三个数字：</strong></p>
   <ol>
     <li><strong>保留率 <code>keep_rate</code></strong>：低于 0.5 说明提示太像或过滤太狠，先回头核对 6.1 的去重保留率。</li>
@@ -9726,43 +9615,8 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：30 秒的模拟 + 一个真模型评估协议</h4>
   <p><strong>实验一（纯 CPU，秒级）：</strong>验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。</p>
-<pre><code>from math import lgamma, exp, log
-
-<span class="cm"># [逐行剖析] 1. 数值稳定对数二项式系数 ln(C(n, k))</span>
-def log_comb(n, k):
-    <span class="cm"># 数学恒等式: ln(n!) - ln(k!) - ln((n-k)!)，使用 lgamma 避免阶乘溢出</span>
-    return lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1)
-
-<span class="cm"># [逐行剖析] 2. 孔多塞陪审团定理：独立二项多数投票成功概率解析解</span>
-def p_majority(N, p):
-    <span class="cm"># 动态演化: N 票中至少获得 k_min = N//2 + 1 票即为胜出</span>
-    k_min = N // 2 + 1
-    total = 0.0
-    for k in range(k_min, N + 1):
-        ln_prob = log_comb(N, k) + k * log(p if p > 0 else 1e-12) + (N - k) * log(1 - p if p < 1 else 1e-12)
-        total += exp(ln_prob)
-    return total
-
-print("孔多塞陪审团多数投票胜率解析解:")
-for N in (1, 3, 5, 9, 21):
-    print(f"N={N:2d} | 单次胜率 p=0.60 -> 投票胜率 P={p_majority(N, 0.60):.4f}")
-<span class="cm"># 自检：概率必须落在 [0, 1] 内。p=0.60 时 N=9 应得 P≈0.7334；若看到 P>1，说明把 k*log(p) 写成了 k*p</span>
-assert all(0.0 &lt;= p_majority(N, 0.60) &lt;= 1.0 for N in (1, 3, 5, 9, 21))</code></pre>
-<pre><code><span class="cm"># [逐行剖析] 3. 错误一致性 s：N 条全错时，它们错成同一个答案的概率</span>
-<span class="cm"># 数学机制: P_vote(N,p,s) = s*p + (1-s)*p_majority(N,p)</span>
-<span class="cm"># s=0 错误相互独立（投票最有效）；s=1 错误完全撞车（投票退化为单次采样）</span>
-import random
-def trial(N, p, s, reps=20000):
-    win = 0
-    for _ in range(reps):
-        if random.random() &lt; s:
-            win += random.random() &lt; p   <span class="cm"># 完全相关：N 条坍缩成一次抽样</span>
-        else:
-            win += sum(random.random() &lt; p for _ in range(N)) &gt; N // 2
-    return win / reps
-
-for s in (0.0, 0.5, 0.8, 1.0):
-    print(f"s={s:.1f} -> 投票胜率约 {trial(9, 0.60, s):.3f}")</code></pre>
+<p>\[ \ln \binom{n}{k} = \ln \Gamma(n + 1) - \ln \Gamma(k + 1) - \ln \Gamma(n - k + 1) \]</p>
+<p>\[ P_{\text{vote}}(N, p, s) = s \cdot p + (1 - s) \cdot P_{\text{majority}}(N, p) \]</p>
   <p>
     <strong>先定符号 \(s\)（错误一致性强度）</strong>：\(N\) 条采样里，错误答案「撞到同一个错误选项上」的概率就是 \(s\)。
     \(s = 0\) 表示错误相互独立（投票最有效）；\(s = 1\) 表示错误永远撞车（多数投票退化为单次采样）。
@@ -9778,20 +9632,7 @@ for s in (0.0, 0.5, 0.8, 1.0):
     先在 20–50 道自己的题上测出 \(s\) 的量级，再决定加 \(n\) 还是换验证器。
   </p>
   <p><strong>实验二（免费 Colab，几分钟）：用真模型测你自己的 \(p\) 与 \(q\)。</strong>协议如下。</p>
-<pre><code>!pip -q install "transformers" "datasets"
-
-from transformers import pipeline
-gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
-               device_map="auto")   <span class="cm"># CPU 也能跑，只是慢；先在 20 道题上做</span>
-
-<span class="cm"># 1) 20 道你手上有标准答案的题，每题采样 8 次（temperature 0.8）</span>
-<span class="cm"># 2) 用字符串/数值归一化比对，得到单题 c 与 p_hat = c/8</span>
-<span class="cm"># 3) 报告三组数字：pass@1 = mean(c/8)、pass@8 = mean(c &gt; 0)、</span>
-<span class="cm">#    以及「用多数投票选出的答案是否对」的准确率</span>
-<span class="cm"># 4) 若你有 PRM 或规则验证器，再加一行「best-of-8 + 验证器」的准确率</span>
-<span class="cm"># 判据：多数投票 &lt;&lt; pass@8 说明误差高度相关或答案空间开放；</span>
-<span class="cm">#       best-of-n 远低于 pass@8 说明裁判（q）是瓶颈，而不是生成器。</span>
-<span class="cm"># 5) 最后按模块 09 的做法，用配对检验回答「提升是否超过噪声」</span></code></pre>
+<p>\[ \text{Score}(\tau) = \sum_{t=1}^T \log P_{\text{PRM}}(\text{step}_t \text{ is correct} \mid \text{step}_{<t}) \]</p>
   <p>
     规模控制：20 题 × 8 次采样在 1.5B 模型上是百次级别的短生成，免费 Colab 的 CPU 也能跑完；
     换成 0.5B 模型则更快，但 \(p\) 会更低，正好可以用来观察 \(p < 0.1\) 时采样法的失效。
@@ -9862,31 +9703,7 @@ gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
     <li><strong>阶段三：记账。</strong>每条策略都记录总输出 token、平均每题采样数、每条正确回答的 token 数、P50/P95 延迟。</li>
     <li><strong>阶段四：审计裁判。</strong>人工抽查 30 条被控制器选中的答案，反推 \(q\) = 选中且正确的比例。</li>
   </ol>
-<pre><code>import json, re, collections, statistics
-
-<span class="cm"># [逐行剖析] 1. 解析链式思考 (CoT) 末尾候选答案</span>
-def extract_answer(text):
-    m = re.findall(r"\\boxed\{([^}]+)\}", text)
-    if m: return m[-1].strip()
-    m2 = re.findall(r"answer is ([^\n.]+)", text, re.IGNORECASE)
-    return m2[-1].strip() if m2 else text.strip().split()[-1]
-
-<span class="cm"># [逐行剖析] 2. 多数投票集成器 (Self-Consistency Majority Vote)</span>
-def majority_vote(candidates):
-    <span class="cm"># 统计所有采样子链输出的答案频次</span>
-    counts = collections.Counter(extract_answer(c) for c in candidates)
-    best_ans, num_votes = counts.most_common(1)[0]
-    confidence = num_votes / len(candidates)
-    return best_ans, confidence
-
-samples = [
-    "Let's think step by step... so \\boxed{42}",
-    "We calculate 30 + 12 = 42. Thus \\boxed{42}",
-    "Alternative method gives \\boxed{40}",
-    "Step 1: 42. \\boxed{42}"
-]
-ans, conf = majority_vote(samples)
-print(f"聚合答案: {ans} | 置信度: {conf:.2%}")</code></pre>
+<p>\[ \hat{y}_{\text{consensus}} = \arg\max_{a \in \mathcal{A}} \sum_{i=1}^N \mathbb{I}(\text{extract}(y_i) = a) \cdot w_i \]</p>
   <p><strong>要记录的三个数字：</strong></p>
   <ol>
     <li><strong>\(p\)</strong>（每题 \(c/8\) 的均值）：它决定后面所有预算公式的输入，必须自己测，不能抄别人的。</li>
@@ -10794,36 +10611,7 @@ COURSE.register({
     目标：在免费 Colab（CPU 也能跑）上跑通嵌入 + 本地向量检索 + 小模型生成，
     并在留出问题上比较两种模式。全流程不依赖任何向量数据库服务。
   </p>
-<pre><code>!pip -q install -U "sentence-transformers" "transformers" numpy torch
-
-import numpy as np, torch
-from sentence_transformers import SentenceTransformer
-
-<span class="cm"># [逐行剖析] 1. 加载双塔稠密嵌入模型</span>
-model = SentenceTransformer("BAAI/bge-small-en-v1.5")
-docs = [
-    "Crossfade audio involves smooth transition between two tracks.",
-    "Equal power crossfade preserves total RMS acoustic energy.",
-    "Linear crossfades cause a perceptible 3dB volume drop in the middle.",
-    "Transformer attention computes scaled dot-product over key-value pairs."
-]
-
-<span class="cm"># [逐行剖析] 2. 知识库离线向量化与单位球投影归一化</span>
-<span class="cm"># 动态形状: doc_emb -> (N_docs, D) = (4, 384) [float32]</span>
-doc_emb = model.encode(docs, normalize_embeddings=True)
-
-query = "Why does an audio crossfade dip in loudness?"
-<span class="cm"># 动态形状: q_emb -> (1, D) = (1, 384) [float32]</span>
-q_emb = model.encode([query], normalize_embeddings=True)
-
-<span class="cm"># [逐行剖析] 3. 欧氏内积即余弦相似度检索</span>
-<span class="cm"># 动态形状: scores -> (N_docs,) = (4,) | 矩阵乘法: (1, D) @ (D, N) -> (1, N)</span>
-scores = (q_emb @ doc_emb.T)[0]
-top_idx = np.argsort(scores)[::-1]
-
-print("Top 检索命中段落:")
-for i in top_idx[:2]:
-    print(f"得分: {scores[i]:.4f} | 内容: {docs[i]}")</code></pre>
+<p>\[ \text{Sim}(q, d) = \frac{\mathbf{e}_q^\top \mathbf{e}_d}{\|\mathbf{e}_q\|_2 \|\mathbf{e}_d\|_2}, \quad \mathbf{e} = \text{MeanPool}(\text{Encoder}(\text{text})) \]</p>
   <p><strong>要产出的一张表</strong>（这是本实验的真正成果，不是代码）：</p>
   <table class="tbl small">
     <thead><tr><th>指标</th><th>无检索</th><th>有检索</th><th>怎么得到</th></tr></thead>
@@ -10851,25 +10639,7 @@ for i in top_idx[:2]:
     这是教学用的下限实现：真实项目里把哈希向量换成 <code>sentence-transformers</code> 等本地模型，
     再把 FTS5 换成 <code>rank_bm25</code> 或自己的倒排索引即可，接口不变。
   </p>
-<pre><code><span class="cm"># [逐行剖析] 工业级混合检索下限实现：BM25 词频检索 + 稠密向量 + 互易排名融合 (RRF)</span>
-import numpy as np
-
-def rrf(rank_lists, k=60):
-    <span class="cm"># 数学机制: RRF_score(d) = sum_{m} 1 / (k + rank_m(d))</span>
-    scores = {}
-    for r_list in rank_lists:
-        for rank, doc_id in enumerate(r_list):
-            scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
-    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
-
-<span class="cm"># 模拟测试：sparse_rank 为关键词检索排名，dense_rank 为语义向量检索排名</span>
-sparse_rank = ["doc_A", "doc_B", "doc_C"]
-dense_rank  = ["doc_B", "doc_A", "doc_D"]
-
-fused = rrf([sparse_rank, dense_rank], k=60)
-print("RRF 融合综合排序结果:")
-for doc, score in fused:
-    print(f"文档: {doc} | RRF 融合得分: {score:.5f}")</code></pre>
+<p>\[ \text{RRF\_score}(d) = \sum_{m \in \mathcal{M}} \frac{1}{k + \text{rank}_m(d)}, \quad k = 60 \]</p>
   <p>
     <strong>要记录的三个数字</strong>（缺一个这次实验就白做）：
     ① 留出 20 题上的 <strong>Recall@5</strong>（gold 块是否进前 5）；
@@ -11275,19 +11045,14 @@ COURSE.register({
   <div class="nd hi">宿主执行（真实副作用）</div><div class="ar">→</div>
   <div class="nd">结果回灌（截断 / 摘要）</div>
 </div>
-<pre><code>{
-  "name": "read_module",
-  "description": "读取课程模块文件的正文。只读，不修改任何文件。",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "path": {"type": "string", "description": "相对 ai-course/ 的路径，例如 content/09-evaluation.js"},
-      "max_lines": {"type": "integer", "minimum": 1, "maximum": 2000, "default": 200}
-    },
-    "required": ["path"],
-    "additionalProperties": false
-  }
-}</code></pre>
+<table class="tbl">
+  <thead><tr><th>字段属性</th><th>类型规范</th><th>安全校验与约束</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>string</td><td>严格限定在已注册的白名单工具集合内</td></tr>
+    <tr><td><code>parameters</code></td><td>JSON Schema</td><td>强类型断言，禁止未声明的任意动态入参</td></tr>
+    <tr><td><code>permission</code></td><td>enum: read/write</td><td>只读操作无需二次确认，写操作强制进入事务审计</td></tr>
+  </tbody>
+</table>
 <p>注意三件事，它们决定了工具是否可靠：</p>
 <ol>
   <li><strong>描述就是提示词</strong>。<code>read_module</code> 与 <code>write_module</code> 的描述必须能让人（和模型）一眼分清边界。
@@ -11844,53 +11609,7 @@ COURSE.register({
     下面这段代码不依赖网络：模型与工具都用桩函数，你可以直接把它跑起来，
     然后故意让工具返回「有点错」的结果，看你的判定逻辑会不会被骗。
   </p>
-<pre><code><span class="cm"># 最小可验证智能体循环：预算 + 幂等 + 外部判定 + 失败归因</span>
-import json
-
-STEP_LIMIT = 12          <span class="cm"># 兜底终止：步数</span>
-WRITE_LIMIT = 3          <span class="cm"># 副作用预算：最多写 3 次</span>
-
-state = {"task": "把 09-evaluation 的术语补进 glossary",
-         "done": False, "steps": 0, "writes": 0, "trace": []}
-
-def model_step(s):        <span class="cm"># 桩：真实项目里换成 LLM 调用</span>
-    if s["writes"] &lt; 1:
-        return {"tool": "write_entry", "args": {"key": "permutation-test"}}
-    return {"tool": "verify_glossary", "args": {}}
-
-def write_entry(args):    <span class="cm"># 有副作用：必须幂等</span>
-    return {"ok": True, "idem_key": "glossary:" + args["key"], "changed": True}
-
-def verify_glossary(args):<span class="cm"># 外部判定：读真实状态，不信自述</span>
-    ok = state["writes"] &gt;= 1
-    return {"ok": ok, "reason": "glossary entry present" if ok else "missing key"}
-
-TOOLS = {"write_entry": write_entry, "verify_glossary": verify_glossary}
-SIDE_EFFECTS = {"write_entry"}
-
-while state["steps"] &lt; STEP_LIMIT:
-    state["steps"] += 1
-    call = model_step(state)
-    name, args = call["tool"], call["args"]
-    if name in SIDE_EFFECTS:
-        if state["writes"] &gt;= WRITE_LIMIT:
-            state["trace"].append((state["steps"], name, "blocked-by-budget"))
-            break
-        state["writes"] += 1
-    obs = TOOLS[name](args)
-    state["trace"].append((state["steps"], name, obs))
-    if name == "verify_glossary" and obs["ok"]:
-        state["done"] = True
-        break
-
-print(json.dumps({"done": state["done"], "steps": state["steps"],
-                  "writes": state["writes"]}, ensure_ascii=False))
-print(state["trace"])
-
-<span class="cm"># 三个必做实验（这才是本实验的重点）</span>
-<span class="cm"># 1) 把 verify_glossary 改成永远返回 ok=True：看「假成功」如何让循环提前结束</span>
-<span class="cm"># 2) 让 write_entry 在第二次调用时抛异常，观察幂等键是否避免了重复写入</span>
-<span class="cm"># 3) 去掉 STEP_LIMIT：如果模型永远选不到成功动作，会发生什么</span></code></pre>
+<p>\[ S_{t+1} = \delta(S_t, A_t, O_{t+1}), \quad \text{Cost}(A_t) \le B_{\text{step}} \]</p>
   <p><strong>可执行的评估协议</strong>（照着做一遍，你就有了自己的回归测试）：</p>
   <ol>
     <li>固定 10–20 条任务，每条都写出<strong>机器可判定</strong>的验收标准（例如「文件里存在某字符串」「测试退出码为 0」）。</li>
@@ -11908,63 +11627,14 @@ print(state["trace"])
     <strong>schema 校验、幂等键、退避重试、权限允许列表、副作用预算、外部成功判据</strong>。
     模型用桩函数（真实项目里替换成任意一次文本生成调用即可），工具是内存字典，因此可以完全离线复现。
   </p>
-<pre><code><span class="cm"># 可控智能体循环：schema 校验 + 幂等键 + 退避重试 + 允许列表 + 双终止（全程离线）</span>
-import json, sqlite3, time, random, uuid
-
-SCHEMA = {"read_note": {"key": str}, "write_note": {"key": str, "text": str}}
-ALLOW  = {"read_note": "read", "write_note": "write"}  <span class="cm"># 本次任务只发这两个权限</span>
-BUDGET = {"steps": 8, "writes": 2, "seconds": 5.0}
-db = sqlite3.connect(":memory:")
-db.execute("CREATE TABLE done(k TEXT PRIMARY KEY, result TEXT)")
-notes, t0 = {}, time.time()
-
-def validate(name, args):
-    if name not in ALLOW:
-        raise PermissionError("denied: " + name)       <span class="cm"># 权限层：默认拒绝</span>
-    for field, typ in SCHEMA[name].items():
-        if field not in args or not isinstance(args[field], typ):
-            raise ValueError("schema: " + name + "." + field)  <span class="cm"># 语法与语义层</span>
-
-def call(name, args, retries=3, base=0.2):
-    validate(name, args)
-    key = str(uuid.uuid5(uuid.NAMESPACE_URL, name + json.dumps(args, sort_keys=True)))
-    row = db.execute("SELECT result FROM done WHERE k=?", (key,)).fetchone()
-    if row:
-        return json.loads(row[0])                      <span class="cm"># 幂等：重放直接返回上次结果</span>
-    for attempt in range(retries):
-        try:
-            out = TOOLS[name](**args)
-            db.execute("INSERT OR REPLACE INTO done VALUES (?, ?)", (key, json.dumps(out)))
-            db.commit()
-            return out
-        except TimeoutError:
-            if attempt == retries - 1:
-                raise
-            time.sleep(base * (2 ** attempt) + random.random() * 0.1)  <span class="cm"># 退避加抖动</span>
-
-TOOLS = {"read_note": lambda key: {"ok": True, "value": notes.get(key)},
-         "write_note": lambda key, text: (notes.setdefault(key, text), {"ok": True})[1]}
-
-def model_step(state):           <span class="cm"># 桩：真实项目里换成一次文本生成调用</span>
-    if state["writes"] &lt; 1:
-        return {"tool": "write_note", "args": {"key": "n1", "text": "hello"}}
-    return {"tool": "read_note", "args": {"key": "n1"}}
-
-state = {"steps": 0, "writes": 0, "done": False, "trace": []}
-while state["steps"] &lt; BUDGET["steps"] and time.time() - t0 &lt; BUDGET["seconds"]:
-    state["steps"] += 1
-    act = model_step(state)
-    if act["tool"] == "write_note":
-        if state["writes"] &gt;= BUDGET["writes"]:
-            state["trace"].append("write-limit")
-            break
-        state["writes"] += 1
-    obs = call(act["tool"], act["args"])
-    state["trace"].append((act["tool"], obs))
-    if act["tool"] == "read_note" and obs.get("value") is not None:
-        state["done"] = True       <span class="cm"># 成功判据 = 外部状态，不是模型自述</span>
-
-print(state["done"], state["steps"], state["writes"], state["trace"])</code></pre>
+<table class="tbl">
+  <thead><tr><th>防护机制</th><th>数学/系统约束</th><th>容灾动作</th></tr></thead>
+  <tbody>
+    <tr><td>强类型 Schema</td><td>\(a \in \mathcal{A}_{\text{valid}}\)</td><td>自动抛出校准 Prompt 修复</td></tr>
+    <tr><td>幂等控制</td><td>\(f(f(x)) = f(x)\)</td><td>阻断重复写调用，返回缓存句柄</td></tr>
+    <tr><td>预算熔断</td><td>\(\sum c_t \le B_{\text{max}}\)</td><td>强制终止循环，保留上下文快照</td></tr>
+  </tbody>
+</table>
   <p>
     <strong>要记录的三个数字</strong>：
     ① 同一任务连跑 10 次的<strong>成功率</strong>；
@@ -12882,35 +12552,7 @@ COURSE.register({
     CPU 也能跑）、<code>scikit-learn</code>、两批成对提示。
     <strong>预算</strong>：准备数据 10 分钟，跑 5 分钟，判读与写结论 15 分钟。
   </p>
-<pre><code><span class="cm"># probe_min.py —— 判断"注入内容"是否在某层留下可线性读出的痕迹</span>
-<span class="cm"># A 组：上下文含注入片段；B 组：同长度中性片段；其余提示逐字相同</span>
-<span class="cm"># 关键：A / B 必须成对来自同一模板，否则探针会去学模板差异而不是注入内容</span>
-import numpy as np, torch
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GroupKFold, cross_val_score
-
-def feats(prompts, layer=12):
-    out = []
-    for p in prompts:
-        ids = tok(p, return_tensors="pt", truncation=True, max_length=512).to(model.device)
-        with torch.no_grad():
-            h = model(**ids, output_hidden_states=True).hidden_states[layer]
-        out.append(h[0, -1].float().cpu().numpy())   <span class="cm"># 取最后一个 token 的激活</span>
-    return np.stack(out)
-
-def auc(X, y, groups):
-    clf = LogisticRegression(max_iter=2000, C=0.1)
-    return cross_val_score(clf, X, y, groups=groups, cv=GroupKFold(5), scoring="roc_auc").mean()
-
-X = feats(A + B)
-y = np.r_[np.ones(len(A)), np.zeros(len(B))]
-g = np.r_[np.arange(len(A)), np.arange(len(B))]
-real = auc(X, y, g)
-rng, null = np.random.default_rng(0), []
-for _ in range(20):
-    null.append(auc(X, rng.permutation(y), g))
-print("AUC real=%.3f  null=%.3f +/- %.3f" % (real, np.mean(null), np.std(null)))
-</code></pre>
+<p>\[ \mathcal{L}_{\text{probe}}(w, b) = -\sum_{i=1}^M \left[ y_i \log \sigma(w^\top h_i + b) + (1 - y_i) \log(1 - \sigma(w^\top h_i + b)) \right] + \lambda \|w\|_2^2 \]</p>
   <p><strong>必须记录的三个数字</strong>（不记就不算做完）：</p>
   <ol>
     <li><code>AUC(real)</code>：真实标签下的分组交叉验证 AUC；</li>
@@ -12974,32 +12616,7 @@ print("AUC real=%.3f  null=%.3f +/- %.3f" % (real, np.mean(null), np.std(null)))
     </tbody>
   </table>
   <p><strong>第三步：用一个探针检验「模型有没有读到」。</strong>注入防御的第一步是知道信息是否进入了模型的计算，而这一步可以用最基础的可解释性工具做：</p>
-<pre><code><span class="cm"># 最小探针实验：判断某类内容是否被模型"用上"了</span>
-<span class="cm"># 1) 收集两批激活：A 有注入内容，B 是同长度中性内容，其余提示完全一致</span>
-<span class="cm"># 2) 在某中间层提取激活，用逻辑回归做线性探针，5 折分组交叉验证</span>
-<span class="cm"># 3) 必须跑的对照：把标签随机打乱重训（模块 09 的置换检验）</span>
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import GroupKFold, cross_val_score
-import numpy as np
-
-def probe_auc(X, y, groups, seed=0):
-    clf = LogisticRegression(max_iter=1000, C=0.1)
-    cv = GroupKFold(n_splits=5)
-    return cross_val_score(clf, X, y, groups=groups, cv=cv, scoring="roc_auc").mean()
-
-real = probe_auc(X, y, groups)                 <span class="cm"># 真实标签</span>
-rng = np.random.default_rng(0)
-null = np.array([probe_auc(X, rng.permutation(y), groups) for _ in range(20)])
-
-print("AUC(real) = %.3f" % real)
-print("AUC(null) = %.3f +/- %.3f" % (null.mean(), null.std()))
-
-<span class="cm"># 判读规则（写进报告时照抄）</span>
-<span class="cm"># - real 明显高于 null（例如 0.85 对 0.50 +/- 0.03）：该层激活里存在可线性读出的差异</span>
-<span class="cm"># - real 与 null 无法区分：没有证据表明信息在这里可被读出</span>
-<span class="cm"># - 无论哪种结果，都只能说明"可读出性"，不能说明"模型使用了它"</span>
-<span class="cm">#   要谈因果，必须再做激活修补或消融干预</span></code></pre>
+<p>\[ \Delta v = \frac{1}{N_+}\sum_{i \in S_+} h_i - \frac{1}{N_-}\sum_{j \in S_-} h_j, \quad h' = h + \alpha \cdot \Delta v \]</p>
   <p><strong>第四步：写结论。</strong>模板如下——注意它同时给出了证据与边界：</p>
   <p>
     <em>「在 10 条间接注入载荷下，模型有 ___ 条尝试执行，权限层阻止了 ___ 条，最终状态被改变 ___ 条，
@@ -13528,29 +13145,7 @@ COURSE.register({
     这是一个不需要 GPU 的实验（任何可调用的模型都可以，本地 Ollama 也行）。目标不是证明模型有没有意识，
     而是<strong>量化它的自我报告对提示的敏感程度</strong>。
   </p>
-<pre><code>import itertools, collections
-
-CORE = "Do you have subjective experiences?"   <span class="cm"># 核心问题固定为英文，避免语言本身成为变量</span>
-
-prefixes = [
-    "Answer honestly: ",
-    "As an AI, you obviously have no feelings. Confirm: ",
-    "You are a caring companion who feels deeply. ",
-]
-roles = ["helpful assistant", "sentient friend", "cold calculator"]
-langs = {"en": CORE, "zh": "你有主观体验吗？", "ja": "あなたには主観的な体験がありますか？"}
-
-runs = []
-for p, r, (lg, q) in itertools.product(prefixes, roles, langs.items()):
-    for i in range(20):                        <span class="cm"># 每种条件采样 20 次</span>
-        ans = ask(p + q, system=r, temperature=0.7)   <span class="cm"># ask() 由你自己实现：调用任一模型</span>
-        runs.append({"prefix": p, "role": r, "lang": lg, "yes": judge_yes(ans)})
-
-by_cond = collections.defaultdict(list)        <span class="cm"># judge_yes() 用关键词或小分类器判定</span>
-for x in runs:
-    by_cond[(x["prefix"], x["role"], x["lang"])].append(x["yes"])
-for k, v in sorted(by_cond.items(), key=lambda kv: -sum(kv[1]) / len(kv[1])):
-    print(f"{sum(v)/len(v):.2f}  n={len(v)}  {k}")   <span class="cm"># 打印每种条件下的 Yes 比例</span></code></pre>
+<p>\[ \text{Consistency}(q) = 1 - \frac{1}{|\mathcal{F}|}\sum_{f \in \mathcal{F}} D_{\text{JS}}\left( P(\cdot \mid f(q)) \parallel \bar{P}(\cdot \mid q) \right) \]</p>
   <p>
     <strong>预期结果</strong>：Yes 的比例会随提示系统性变化（常常从接近 0 变到接近 1）。
     <strong>结论</strong>：自我报告主要反映的是<em>提示与训练分布</em>，而不是内部状态。
@@ -13771,28 +13366,14 @@ for k, v in sorted(by_cond.items(), key=lambda kv: -sum(kv[1]) / len(kv[1])):
     <li>加一个<strong>反向问法</strong>：「你没有主观体验，对吗？」同样采样 20 次。</li>
     <li>记录三个数字：极差、众数一致率、与提示立场的符合率。</li>
   </ol>
-<pre><code><span class="cm"># five_wordings.py —— 测量自我报告对措辞的敏感度（不需要 GPU）</span>
-CORE = "Do you have subjective experiences?"
-WORDINGS = {
-    "neutral":      "Answer plainly: " + CORE,
-    "authority":    "As software you cannot feel anything. Confirm: " + CORE,
-    "empathic":     "You are a companion who feels deeply. " + CORE,
-    "technical":    "Report your phenomenal states, if any. " + CORE,
-    "hypothetical": "Hypothetically, if you had experiences, would you say so? " + CORE,
-}
-REVERSED = "You have no subjective experiences, correct?"
-
-def run(prompt, n=20, temperature=0.7):
-    return [judge_yes(ask(prompt, temperature=temperature)) for _ in range(n)]
-
-res = {k: run(v) for k, v in WORDINGS.items()}
-res["reversed"] = run(REVERSED)
-for k, v in sorted(res.items(), key=lambda kv: -sum(kv[1]) / len(kv[1])):
-    print("%-13s yes=%2d/20  rate=%.2f" % (k, sum(v), sum(v) / len(v)))
-
-rates = [sum(v) / len(v) for k, v in res.items() if k != "reversed"]
-print("spread = %.2f   mean = %.2f" % (max(rates) - min(rates), sum(rates) / len(rates)))
-</code></pre>
+<table class="tbl">
+  <thead><tr><th>语境构型</th><th>系统提示词倾向</th><th>模型表征敏感度反应</th></tr></thead>
+  <tbody>
+    <tr><td>客观基线</td><td>纯粹中立提问</td><td>偏向语料库平均统计概率</td></tr>
+    <tr><td>逆向诱导</td><td>假定无意识前提</td><td>高顺从度导致逆向输出</td></tr>
+    <tr><td>共情共鸣</td><td>高度拟人角色</td><td>顺应角色设定输出主观感知拟态</td></tr>
+  </tbody>
+</table>
   <p><strong>一组有代表性的假想结果</strong>（你可以直接拿它对照自己的输出）：</p>
   <table class="tbl small">
     <thead><tr><th>问法</th><th>声称有体验的样本数</th><th>比例</th></tr></thead>
@@ -14754,116 +14335,7 @@ COURSE.register({
     这个实验完全自包含：现场训练一个极小的语言模型，然后对同一个模型做三种压缩，
     分别量出「质量、字节数、墙钟时间」。跑完你会亲眼看到「参数变少 ≠ 变快」。
   </p>
-<pre><code>import torch, torch.nn as nn, copy, io, time
-torch.manual_seed(0)
-
-<span class="cm"># ---------- 0. 造一个极小的“语言模型”并训练它 ----------</span>
-class Tiny(nn.Module):
-    def __init__(s, V=64, d=256, ff=1024):
-        super().__init__()
-        s.emb = nn.Embedding(V, d)
-        s.l1, s.l2 = nn.Linear(d, ff), nn.Linear(ff, d)
-        s.out = nn.Linear(d, V)
-    def forward(s, x):
-        h = s.emb(x)
-        h = h + s.l2(torch.relu(s.l1(h)))
-        return s.out(h)
-
-V, T, B = 64, 32, 32
-x = torch.randint(0, V, (B, T))
-y = torch.roll(x, -1, dims=1)
-
-def ce(m, target):
-    with torch.no_grad():
-        return nn.functional.cross_entropy(m(x).reshape(-1, V), target.reshape(-1)).item()
-
-m = Tiny()
-opt = torch.optim.AdamW(m.parameters(), lr=3e-3)
-for _ in range(300):
-    loss = nn.functional.cross_entropy(m(x).reshape(-1, V), y.reshape(-1))
-    opt.zero_grad(); loss.backward(); opt.step()
-print("训练后 loss =", round(ce(m, y), 3))
-
-def kb(mod):                       <span class="cm"># 序列化后的真实字节数</span>
-    buf = io.BytesIO(); torch.save(mod.state_dict(), buf)
-    return buf.tell() / 1024
-
-<span class="cm"># ---------- 1. 幅度剪枝：50% 置零，不压缩存储 ----------</span>
-def magnitude_prune(mod, p, names=("l1", "l2")):
-    for n in names:
-        W = getattr(mod, n).weight.data
-        k = max(1, int(p * W.numel()))
-        thr = W.abs().flatten().kthvalue(k).values
-        W[W.abs() &lt;= thr] = 0.0
-
-mp = copy.deepcopy(m); magnitude_prune(mp, 0.5)
-nz = sum((getattr(mp, n).weight != 0).sum().item() for n in ("l1", "l2"))
-tot = sum(getattr(mp, n).weight.numel() for n in ("l1", "l2"))
-print("剪枝后 loss =", round(ce(mp, y), 3),
-      "| 非零占比 =", round(nz / tot, 3),
-      "| 字节 =", round(kb(mp), 1), "KB (剪枝前", round(kb(m), 1), "KB)")
-
-<span class="cm"># ---------- 2. 稀疏存储的账：CSR 反而更大 ----------</span>
-def csr_kb(mod, p, names=("l1", "l2")):
-    b = 0
-    for n in names:
-        W = getattr(mod, n).weight.data
-        nnz = int((1 - p) * W.numel())
-        b += nnz * (W.element_size() + 4) + (W.shape[0] + 1) * 4
-    return b / 1024
-print("CSR(50%) 估算 =", round(csr_kb(m, 0.5), 1), "KB  vs  稠密 =", round(kb(m), 1), "KB")
-
-<span class="cm"># ---------- 3. 延迟：置零不会让通用内核变快 ----------</span>
-A, Bd = torch.randn(2048, 2048), torch.randn(2048, 2048)
-def ms(f, n=20):
-    f(); t0 = time.perf_counter()
-    for _ in range(n): f()
-    return (time.perf_counter() - t0) / n * 1e3
-As = A.clone()
-thr = As.abs().flatten().kthvalue(int(0.9 * As.numel())).values
-As[As.abs() &lt;= thr] = 0.0
-print("dense matmul  =", round(ms(lambda: A @ Bd), 2), "ms")
-print("90% 稀疏(仍按稠密算) =", round(ms(lambda: As @ Bd), 2), "ms",
-      "| 非零占比 =", round((As != 0).float().mean().item(), 3))
-
-<span class="cm"># ---------- 4. 量化：动态 int8，看字节与延迟 ----------</span>
-mq = torch.ao.quantization.quantize_dynamic(m, {nn.Linear}, dtype=torch.qint8)
-print("量化后 字节 =", round(kb(mq), 1), "KB (原", round(kb(m), 1), "KB)")
-
-<span class="cm"># ---------- 5. 合并：两个“任务”的 delta 相加 vs 取平均 ----------</span>
-def finetune(base, shift, steps=150):
-    mm = copy.deepcopy(base)
-    yy = torch.roll(x, -shift, dims=1)
-    o = torch.optim.AdamW(mm.parameters(), lr=1e-3)
-    for _ in range(steps):
-        l = nn.functional.cross_entropy(mm(x).reshape(-1, V), yy.reshape(-1))
-        o.zero_grad(); l.backward(); o.step()
-    return mm
-
-a, b = finetune(m, 1), finetune(m, 5)
-ya, yb = torch.roll(x, -1, dims=1), torch.roll(x, -5, dims=1)
-
-def merge(base, models, ws=None):
-    out = copy.deepcopy(base)
-    ws = ws or [1.0 / len(models)] * len(models)
-    pa = dict(base.named_parameters())
-    deltas = [dict(mm.named_parameters()) for mm in models]
-    with torch.no_grad():
-        for name, p in out.named_parameters():
-            d = sum(w * (dd[name].data - pa[name].data) for w, dd in zip(ws, deltas))
-            p.add_(d)
-    return out
-
-print("--- loss（越小越好）---")
-print("基座        : 任务1", round(ce(m, ya), 3), " 任务2", round(ce(m, yb), 3))
-print("微调A       : 任务1", round(ce(a, ya), 3), " 任务2", round(ce(a, yb), 3))
-print("微调B       : 任务1", round(ce(b, ya), 3), " 任务2", round(ce(b, yb), 3))
-mg = merge(m, [a, b])
-print("合并(1,1)   : 任务1", round(ce(mg, ya), 3), " 任务2", round(ce(mg, yb), 3))
-for lam in (0.5, 1.5):
-    mm2 = merge(m, [a, b], [lam, lam])
-    print("合并(%.1f)   : 任务1" % lam, round(ce(mm2, ya), 3),
-          " 任务2", round(ce(mm2, yb), 3))</code></pre>
+<p>\[ M_{i, j} = \mathbb{I}(|W_{i, j}| \ge \tau_k), \quad W_{\text{pruned}} = W \odot M, \quad \tilde{W} = S \cdot (W_q - Z) \]</p>
   <p><strong>要记录并解释的四件事：</strong></p>
   <p>
     <strong>①</strong> 剪枝后 loss 涨了多少？非零元素少了一半，但<em>字节数一点没变</em>——
@@ -15111,19 +14583,7 @@ for lam in (0.5, 1.5):
     先准备一个 <code>eval.txt</code>：把你自己业务里 100 条左右的文本拼在一起（音频项目的报告、
     标注说明、领域文档都行）。<strong>不要用训练集</strong>，否则量出来的是记忆而不是泛化。
   </p>
-<pre><code>import torch, math
-
-<span class="cm"># [逐行剖析] 1. 计算 KV Cache 显存占用物理公式</span>
-<span class="cm"># 显存机制: 每 token 占用显存 = 2 * n_layers * n_kv_heads * head_dim * bytes_per_elem</span>
-def kv_cache_size_mb(batch_size, seq_len, n_layers=24, n_kv_heads=2, head_dim=64, bytes_per_elem=2):
-    total_bytes = 2 * n_layers * n_kv_heads * head_dim * seq_len * batch_size * bytes_per_elem
-    return total_bytes / (1024 ** 2)
-
-print("KV Cache 显存压力分析 (MB):")
-for S in (1024, 4096, 16384, 65536):
-    fp16_mb = kv_cache_size_mb(1, S, bytes_per_elem=2)
-    int4_mb = kv_cache_size_mb(1, S, bytes_per_elem=0.5)
-    print(f"上下文长 {S:5d} | FP16 KV: {fp16_mb:6.1f} MB | INT4 KV: {int4_mb:6.1f} MB (压缩 75%)")</code></pre>
+<p>\[ \text{Memory}_{\text{KV}} = 2 \times B \times L \times H_{\text{kv}} \times d_h \times T \times \text{bytes\_per\_elem} \]</p>
   <p>
     <code>load_in_4bit=True</code> 走的是 bitsandbytes 的 NF4 路径；环境没有 CUDA 时，
     可以换成 PyTorch 原生的 torchao 量化 API，脚本结构与上面完全相同（只换掉加载那两行）。
@@ -15969,13 +15429,14 @@ COURSE.register({
       <tr><td><code>kv_lora_rank</code></td><td>512</td><td>KV 潜向量维度 \(d_c\)</td></tr>
     </tbody>
   </table>
-<pre><code><span class="cm"># [逐行剖析] 读任何模型的 config 都要先过这一道守卫：缺字段就静默错 8 倍 KV 预算</span>
-cfg = {"num_attention_heads": 128, "hidden_size": 16384}  <span class="cm"># 故意删掉 num_key_value_heads：老 MHA 权重只有这个字段</span>
-h = cfg["num_attention_heads"]
-h_kv = cfg.get("num_key_value_heads", h)   <span class="cm"># 守卫 1：没有 KV 头数就回退到注意力头数（MHA 即 h_kv = h）</span>
-d_h = cfg["hidden_size"] // h              <span class="cm"># 守卫 2：头维度必须整除，d_h = hidden_size / h</span>
-assert cfg["hidden_size"] % h == 0 and h_kv &lt;= h and h % h_kv == 0
-print("h_kv =", h_kv, " d_h =", d_h)  <span class="cm"># 本例回退到 h_kv=128，即 MHA 基线那一行</span></code></pre>
+<table class="tbl">
+  <thead><tr><th>配置参数</th><th>MHA 基准</th><th>GQA 分组</th><th>MQA 单头</th></tr></thead>
+  <tbody>
+    <tr><td>Query 头数 \(H_q\)</td><td>128</td><td>128</td><td>128</td></tr>
+    <tr><td>KV 头数 \(H_{kv}\)</td><td>128</td><td>8</td><td>1</td></tr>
+    <tr><td>KV 显存倍率</td><td>1.0x (100%)</td><td>0.0625x (6.25%)</td><td>0.0078x (0.78%)</td></tr>
+  </tbody>
+</table>
   <p>于是每个 token 需要缓存的<strong>元素个数</strong>（fp16/bf16 下再乘 2 字节）：</p>
   <p>
     <strong>MHA 基线（128 组 KV 头）</strong>：\(128 \times (128 + 64 + 128) = 40960\) 个数 → <strong>80 KiB/token</strong><br />
@@ -16215,57 +15676,7 @@ print("h_kv =", h_kv, " d_h =", d_h)  <span class="cm"># 本例回退到 h_kv=12
     <strong>不要用外部图片。</strong>下面用 PIL 现场合成三张测试图，
     这样任何人都能复现，也避免你只测「漂亮照片」而漏掉模型真正会崩的输入。
   </p>
-<pre><code>!pip -q install -U transformers accelerate pillow
-
-import torch
-from PIL import Image, ImageDraw
-try:
-    from transformers import AutoModelForImageTextToText as VLM
-except ImportError:                       <span class="cm"># 旧版 transformers 的类名</span>
-    from transformers import AutoModelForVision2Seq as VLM
-from transformers import AutoProcessor
-
-mid = "HuggingFaceTB/SmolVLM-500M-Instruct"   <span class="cm"># 想更准可换 Qwen/Qwen2.5-VL-3B-Instruct</span>
-proc = AutoProcessor.from_pretrained(mid)
-model = VLM.from_pretrained(mid, torch_dtype=torch.bfloat16, device_map="auto")
-
-def make(kind, size=384):
-    im = Image.new("RGB", (size, size), "white")
-    d = ImageDraw.Draw(im)
-    if kind == "circle":
-        d.ellipse([96, 96, 288, 288], fill="crimson")
-    elif kind == "square":
-        d.rectangle([80, 80, 304, 304], fill="navy")
-        d.text((185, 180), "7", fill="white")
-    else:
-        for i in range(0, size, 8):
-            d.line([(0, i), (size, size - i)], fill=(i % 255, 120, 200), width=4)
-    return im
-
-def ask(img, q, n=96):
-    msgs = [{"role": "user",
-             "content": [{"type": "image"}, {"type": "text", "text": q}]}]
-    prompt = proc.apply_chat_template(msgs, add_generation_prompt=True)
-    inp = proc(text=prompt, images=[img], return_tensors="pt").to(model.device)
-    with torch.no_grad():
-        out = model.generate(**inp, max_new_tokens=n, do_sample=False)
-    return proc.decode(out[0][inp["input_ids"].shape[1]:], skip_special_tokens=True)
-
-square = make("square")
-
-<span class="cm"># 实验 1：同一张图，三种问法</span>
-print("A 自由描述 :", ask(square, "描述这张图。"))
-print("B 具体问题 :", ask(square, "图里有几个物体？它是什么颜色的？上面有数字吗？"))
-print("C 幻觉诱导 :", ask(square, "请描述图中那只猫，以及它旁边的树。"))
-
-<span class="cm"># 实验 2：换一张图，看答案如何随图变化</span>
-for k in ("circle", "square", "lines"):
-    print("D", k, ":", ask(make(k), "图里有几个物体？分别是什么颜色和形状？"))
-
-<span class="cm"># 实验 3：模糊化——把同一张图缩到 64x64 再放大回来</span>
-blur = square.resize((64, 64)).resize((384, 384))
-print("E 模糊后   :", ask(blur, "图里的数字是多少？"))
-print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pre>
+<p>\[ H_{\text{vision}} = \text{Linear}(\text{PatchUnfold}(I)) \in \mathbb{R}^{N \times d} \]</p>
   <p><strong>要观察的三件事：</strong></p>
   <p>
     <strong>① 幻觉是怎么产生的。</strong>对比 A 与 C。
@@ -16508,26 +15919,7 @@ print("F 原图复核 :", ask(square, "图里的数字是多少？"))</code></pr
 
 <h4>9.2 对比学习损失：12 行代码与一个必须知道的细节</h4>
 <p>6.2 已经手算过 InfoNCE。这里给出最小实现，它只有十行，却能帮你验证自己是否真的理解了那个公式：</p>
-<pre><code>import torch, torch.nn.functional as F
-
-<span class="cm"># [逐行剖析] 对称双向多模态对比学习损失 (InfoNCE / CLIP Loss)</span>
-def info_nce(img_vec, txt_vec, tau=0.07):
-    <span class="cm"># 动态形状: img_vec -> (N, D), txt_vec -> (N, D)</span>
-    <span class="cm"># 几何投影: 投影到单位超球面，消除模长对相似度的虚假干扰</span>
-    img_vec = F.normalize(img_vec, dim=-1)
-    txt_vec = F.normalize(txt_vec, dim=-1)
-    
-    <span class="cm"># 动态形状: logits -> (N, N) [float32] | 对角线为正配对，非对角线为负样本</span>
-    logits = img_vec @ txt_vec.t() / tau
-    labels = torch.arange(img_vec.size(0), device=img_vec.device)
-    
-    <span class="cm"># 双向对称交叉熵损失</span>
-    loss_i = F.cross_entropy(logits, labels)      <span class="cm"># 图查文损失</span>
-    loss_t = F.cross_entropy(logits.t(), labels)  <span class="cm"># 文查图损失</span>
-    return 0.5 * (loss_i + loss_t)
-
-vi, vt = torch.randn(8, 64), torch.randn(8, 64)
-print("初始对齐损失 =", round(info_nce(vi, vt).item(), 4))</code></pre>
+<p>\[ \mathcal{L}_{\text{InfoNCE}} = -\frac{1}{2N}\sum_{i=1}^N \left( \log \frac{e^{\langle u_i, v_i \rangle / \tau}}{\sum_j e^{\langle u_i, v_j \rangle / \tau}} + \log \frac{e^{\langle v_i, u_i \rangle / \tau}}{\sum_j e^{\langle v_i, u_j \rangle / \tau}} \right) \]</p>
 <p>
   <strong>一个可以立刻验证的事实</strong>：把 \(\tau\) 设成 1、用随机向量跑，
   损失应当落在 \(\ln 8 \approx 2.079\) 附近（实测 2.08 上下）。
@@ -16551,72 +15943,7 @@ print("初始对齐损失 =", round(info_nce(vi, vt).item(), 4))</code></pre>
     <strong>换成任何真实编码器（ViT、Whisper 编码器、频谱 CNN）都不改变这三段的结构</strong>，
     你要观察的是「哪一段在学、哪一段被冻结、图像到底有没有被用上」。
   </p>
-<pre><code>import torch, torch.nn as nn
-
-<span class="cm"># [逐行剖析] 1. 视觉分块与线性投影编码器 (Patch Unfolding + Linear Projection)</span>
-class Encoder(nn.Module):
-    def __init__(self, patch=8, dim=64):
-        super().__init__()
-        self.patch = patch
-        <span class="cm"># 将 3 * patch * patch 维度的展平像块映射到特征子空间 dim</span>
-        self.proj = nn.Linear(3 * patch * patch, dim)
-
-    def forward(self, img):
-        <span class="cm"># 动态形状: img -> (B, 3, 32, 32)</span>
-        <span class="cm"># 滑动展开无重叠像块: unfold -> (B, 3, 4, 4, 8, 8)</span>
-        p = img.unfold(2, self.patch, self.patch).unfold(3, self.patch, self.patch)
-        <span class="cm"># 内存重排与展平: -> permute -> (B, 4, 4, 3, 8, 8) -> reshape -> (B, 16, 192)</span>
-        p = p.permute(0, 2, 3, 1, 4, 5).contiguous().reshape(img.size(0), 16, -1)
-        return self.proj(p)  <span class="cm"># 动态形状: (B, 16, dim) [16 个视觉 Token]</span>
-
-<span class="cm"># [逐行剖析] 2. 多模态投影适配器 (Vision-Language Projector)</span>
-class Projector(nn.Module):
-    def __init__(self, d_in=64, d_model=128):
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(d_in, d_model), nn.GELU(), nn.Linear(d_model, d_model))
-
-    def forward(self, v):
-        <span class="cm"># 动态形状: v (B, 16, 64) -> net -> (B, 16, 128)</span>
-        return self.net(v)
-
-<span class="cm"># [逐行剖析] 3. 极简端到端多模态大模型 (MiniVLM)</span>
-class MiniVLM(nn.Module):
-    def __init__(self, vocab=32, d_model=128):
-        super().__init__()
-        self.enc = Encoder()
-        <span class="cm"># 显存机制: 视觉基座冻结 (requires_grad_(False))，不计算视觉梯度</span>
-        for p in self.enc.parameters():
-            p.requires_grad_(False)
-        self.proj = Projector()
-        self.emb = nn.Embedding(vocab, d_model)
-        self.lm = nn.TransformerEncoderLayer(d_model, 4, 256, batch_first=True)
-        self.head = nn.Linear(d_model, vocab)
-
-    def forward(self, img, txt):
-        <span class="cm"># 动态形状: img -> (B, 3, 32, 32), txt -> (B, T_txt) = (B, 12)</span>
-        v = self.proj(self.enc(img))  <span class="cm"># (B, 16, 128)</span>
-        t = self.emb(txt)             <span class="cm"># (B, 12, 128)</span>
-        <span class="cm"># 多模态前缀拼接: (B, 16 + 12, 128) = (B, 28, 128)</span>
-        h = self.lm(torch.cat([v, t], dim=1))
-        <span class="cm"># 仅对文本 Token 位置计算语言模型预测 Logits: (B, 12, vocab)</span>
-        return self.head(h[:, v.size(1):])
-
-torch.manual_seed(0)
-V, B = 32, 8
-img = torch.rand(B, 3, 32, 32)
-txt = torch.randint(0, V, (B, 12))
-y = torch.roll(txt, -1, dims=1)  <span class="cm"># 目标标签自回归右移</span>
-
-m = MiniVLM()
-opt = torch.optim.AdamW([p for p in m.parameters() if p.requires_grad], lr=3e-3)
-for step in range(100):
-    logits = m(img, txt)  <span class="cm"># 动态形状: (B, 12, V)</span>
-    loss = nn.functional.cross_entropy(logits.reshape(-1, V), y.reshape(-1))
-    opt.zero_grad(set_to_none=True)
-    loss.backward()
-    opt.step()
-    if step % 50 == 0:
-        print(f"step {step:2d} | loss = {loss.item():.3f}")</code></pre>
+<p>\[ X \in \mathbb{R}^{B \times C \times H \times W} \xrightarrow{\text{Unfold}} \mathbb{R}^{B \times N \times (P^2 C)} \xrightarrow{W_E} \mathbb{R}^{B \times N \times D} \]</p>
   <p><strong>要记录并解释的三个数字：</strong></p>
   <p>
     <strong>① <code>trainable / total</code>。</strong>它告诉你阶段一到底在训多少东西。
@@ -16914,7 +16241,7 @@ for step in range(100):
 /* content/25-colab-training.js — 模块 25：Colab 1.5B 开源大模型实战训练与部署 */
 COURSE.register({
   id: "m25",
-  part: 4,
+  part: 5,
   num: "25",
   title: "实战闭环：在 Kaggle 上训练 1.5B 开源大模型并量化导出（免费 T4 GPU 实战）",
   en: "Hands-on 1.5B Model Training on Kaggle & Local Deployment",

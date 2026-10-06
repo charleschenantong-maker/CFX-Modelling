@@ -214,7 +214,7 @@ COURSE.register({
 
 <h3>5. 一个可直接复用的评估协议</h3>
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
-<pre><code>perplexity = torch.exp(eval_loss)</code></pre>
+<p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{<i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
   <strong>逐行代数解析</strong>：困惑度（Perplexity）在数学上严格等于验证集平均交叉熵损失的指数 \(\exp(\mathcal{L})\)；直观物理意义代表模型在预测下一个词时的“平均有效分支数”。困惑度数值越接近 1.0，说明模型对真实文本分布的预测越自信准确。
 </p>

@@ -613,43 +613,8 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：30 秒的模拟 + 一个真模型评估协议</h4>
   <p><strong>实验一（纯 CPU，秒级）：</strong>验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。</p>
-<pre><code>from math import lgamma, exp, log
-
-<span class="cm"># [逐行剖析] 1. 数值稳定对数二项式系数 ln(C(n, k))</span>
-def log_comb(n, k):
-    <span class="cm"># 数学恒等式: ln(n!) - ln(k!) - ln((n-k)!)，使用 lgamma 避免阶乘溢出</span>
-    return lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1)
-
-<span class="cm"># [逐行剖析] 2. 孔多塞陪审团定理：独立二项多数投票成功概率解析解</span>
-def p_majority(N, p):
-    <span class="cm"># 动态演化: N 票中至少获得 k_min = N//2 + 1 票即为胜出</span>
-    k_min = N // 2 + 1
-    total = 0.0
-    for k in range(k_min, N + 1):
-        ln_prob = log_comb(N, k) + k * log(p if p > 0 else 1e-12) + (N - k) * log(1 - p if p < 1 else 1e-12)
-        total += exp(ln_prob)
-    return total
-
-print("孔多塞陪审团多数投票胜率解析解:")
-for N in (1, 3, 5, 9, 21):
-    print(f"N={N:2d} | 单次胜率 p=0.60 -> 投票胜率 P={p_majority(N, 0.60):.4f}")
-<span class="cm"># 自检：概率必须落在 [0, 1] 内。p=0.60 时 N=9 应得 P≈0.7334；若看到 P>1，说明把 k*log(p) 写成了 k*p</span>
-assert all(0.0 &lt;= p_majority(N, 0.60) &lt;= 1.0 for N in (1, 3, 5, 9, 21))</code></pre>
-<pre><code><span class="cm"># [逐行剖析] 3. 错误一致性 s：N 条全错时，它们错成同一个答案的概率</span>
-<span class="cm"># 数学机制: P_vote(N,p,s) = s*p + (1-s)*p_majority(N,p)</span>
-<span class="cm"># s=0 错误相互独立（投票最有效）；s=1 错误完全撞车（投票退化为单次采样）</span>
-import random
-def trial(N, p, s, reps=20000):
-    win = 0
-    for _ in range(reps):
-        if random.random() &lt; s:
-            win += random.random() &lt; p   <span class="cm"># 完全相关：N 条坍缩成一次抽样</span>
-        else:
-            win += sum(random.random() &lt; p for _ in range(N)) &gt; N // 2
-    return win / reps
-
-for s in (0.0, 0.5, 0.8, 1.0):
-    print(f"s={s:.1f} -> 投票胜率约 {trial(9, 0.60, s):.3f}")</code></pre>
+<p>\[ \ln \binom{n}{k} = \ln \Gamma(n + 1) - \ln \Gamma(k + 1) - \ln \Gamma(n - k + 1) \]</p>
+<p>\[ P_{\text{vote}}(N, p, s) = s \cdot p + (1 - s) \cdot P_{\text{majority}}(N, p) \]</p>
   <p>
     <strong>先定符号 \(s\)（错误一致性强度）</strong>：\(N\) 条采样里，错误答案「撞到同一个错误选项上」的概率就是 \(s\)。
     \(s = 0\) 表示错误相互独立（投票最有效）；\(s = 1\) 表示错误永远撞车（多数投票退化为单次采样）。
@@ -665,20 +630,7 @@ for s in (0.0, 0.5, 0.8, 1.0):
     先在 20–50 道自己的题上测出 \(s\) 的量级，再决定加 \(n\) 还是换验证器。
   </p>
   <p><strong>实验二（免费 Colab，几分钟）：用真模型测你自己的 \(p\) 与 \(q\)。</strong>协议如下。</p>
-<pre><code>!pip -q install "transformers" "datasets"
-
-from transformers import pipeline
-gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
-               device_map="auto")   <span class="cm"># CPU 也能跑，只是慢；先在 20 道题上做</span>
-
-<span class="cm"># 1) 20 道你手上有标准答案的题，每题采样 8 次（temperature 0.8）</span>
-<span class="cm"># 2) 用字符串/数值归一化比对，得到单题 c 与 p_hat = c/8</span>
-<span class="cm"># 3) 报告三组数字：pass@1 = mean(c/8)、pass@8 = mean(c &gt; 0)、</span>
-<span class="cm">#    以及「用多数投票选出的答案是否对」的准确率</span>
-<span class="cm"># 4) 若你有 PRM 或规则验证器，再加一行「best-of-8 + 验证器」的准确率</span>
-<span class="cm"># 判据：多数投票 &lt;&lt; pass@8 说明误差高度相关或答案空间开放；</span>
-<span class="cm">#       best-of-n 远低于 pass@8 说明裁判（q）是瓶颈，而不是生成器。</span>
-<span class="cm"># 5) 最后按模块 09 的做法，用配对检验回答「提升是否超过噪声」</span></code></pre>
+<p>\[ \text{Score}(\tau) = \sum_{t=1}^T \log P_{\text{PRM}}(\text{step}_t \text{ is correct} \mid \text{step}_{<t}) \]</p>
   <p>
     规模控制：20 题 × 8 次采样在 1.5B 模型上是百次级别的短生成，免费 Colab 的 CPU 也能跑完；
     换成 0.5B 模型则更快，但 \(p\) 会更低，正好可以用来观察 \(p < 0.1\) 时采样法的失效。
@@ -749,31 +701,7 @@ gen = pipeline("text-generation", model="Qwen/Qwen2.5-1.5B-Instruct",
     <li><strong>阶段三：记账。</strong>每条策略都记录总输出 token、平均每题采样数、每条正确回答的 token 数、P50/P95 延迟。</li>
     <li><strong>阶段四：审计裁判。</strong>人工抽查 30 条被控制器选中的答案，反推 \(q\) = 选中且正确的比例。</li>
   </ol>
-<pre><code>import json, re, collections, statistics
-
-<span class="cm"># [逐行剖析] 1. 解析链式思考 (CoT) 末尾候选答案</span>
-def extract_answer(text):
-    m = re.findall(r"\\boxed\{([^}]+)\}", text)
-    if m: return m[-1].strip()
-    m2 = re.findall(r"answer is ([^\n.]+)", text, re.IGNORECASE)
-    return m2[-1].strip() if m2 else text.strip().split()[-1]
-
-<span class="cm"># [逐行剖析] 2. 多数投票集成器 (Self-Consistency Majority Vote)</span>
-def majority_vote(candidates):
-    <span class="cm"># 统计所有采样子链输出的答案频次</span>
-    counts = collections.Counter(extract_answer(c) for c in candidates)
-    best_ans, num_votes = counts.most_common(1)[0]
-    confidence = num_votes / len(candidates)
-    return best_ans, confidence
-
-samples = [
-    "Let's think step by step... so \\boxed{42}",
-    "We calculate 30 + 12 = 42. Thus \\boxed{42}",
-    "Alternative method gives \\boxed{40}",
-    "Step 1: 42. \\boxed{42}"
-]
-ans, conf = majority_vote(samples)
-print(f"聚合答案: {ans} | 置信度: {conf:.2%}")</code></pre>
+<p>\[ \hat{y}_{\text{consensus}} = \arg\max_{a \in \mathcal{A}} \sum_{i=1}^N \mathbb{I}(\text{extract}(y_i) = a) \cdot w_i \]</p>
   <p><strong>要记录的三个数字：</strong></p>
   <ol>
     <li><strong>\(p\)</strong>（每题 \(c/8\) 的均值）：它决定后面所有预算公式的输入，必须自己测，不能抄别人的。</li>

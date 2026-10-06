@@ -62,8 +62,7 @@ COURSE.register({
   <p>LLM 回报：抽取类任务用 \(T = 0\)（等价于贪心，延迟最低且可复现）；创意任务从 \(T = 0.7\) 起调，一次只动温度或 top-p 其中一个。下面看代码里这三步是怎么落子的。</p>
 </section>
 <p><strong>采样算子微核心演示：温度缩放与多项式随机采样</strong></p>
-<pre><code>probs = torch.softmax(logits / temperature, dim=-1)
-next_token = torch.multinomial(probs, num_samples=1)</code></pre>
+<p>\[ P(w_{t} = i \mid w_{<t}) = \frac{\exp(z_i / T)}{\sum_{j \in \mathcal{V}_{\text{top-p}}} \exp(z_j / T)} \]</p>
 <p>
   <strong>逐行代数解析</strong>：未归一化的原始得分 <code>logits</code> 除以温度系数 \(T\)（\(T < 1\) 放大差异使输出更确定，\(T > 1\) 抚平分布使输出更丰富多样）；经 Softmax 映射为概率分布后，由 <code>torch.multinomial</code> 按照概率权重完成随机采样，杜绝纯贪心算法的机械死循环。
 </p>
@@ -249,8 +248,7 @@ next_token = torch.multinomial(probs, num_samples=1)</code></pre>
   </tbody>
 </table>
 <p><strong>KV Cache 缓存追加算子微核心演示：</strong></p>
-<pre><code>k_cache = torch.cat([k_cache, new_k], dim=-2)
-v_cache = torch.cat([v_cache, new_v], dim=-2)</code></pre>
+<p>\[ K_{1:t} = [K_{1:t-1} \parallel k_t], \quad V_{1:t} = [V_{1:t-1} \parallel v_t] \]</p>
 <p>
   <strong>逐行代数解析</strong>：在自回归解码步中，避免对整个前序长序列重复做全量矩阵乘法；仅对最新生成的单个 Token 计算当前的 Key 与 Value 向量，沿着序列时间轴（<code>dim=-2</code>）与历史缓存拼接，使生成单步计算复杂度从 \(O(T^2)\) 骤降为 \(O(T)\)。
 </p>
@@ -510,7 +508,7 @@ v_cache = torch.cat([v_cache, new_v], dim=-2)</code></pre>
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：量化与吞吐基准（完整版见附录 B · E8）</h4>
 <p><strong>4-bit NF4 低显存量化加载算子微核心演示：</strong></p>
-<pre><code>model = AutoModelForCausalLM.from_pretrained(model_id, load_in_4bit=True, device_map="auto")</code></pre>
+<p>\[ W_{\text{FP16}} \xrightarrow{\text{NF4 Quant}} W_{\text{4-bit}} + \text{absmax} \cdot c, \quad \text{Memory} \approx \frac{1}{4} \text{Memory}_{\text{FP16}} \]</p>
 <p>
   <strong>逐行代数解析</strong>：底层将权重矩阵从 16-bit 压缩为 4-bit NF4 格式，显存占用直接缩减为原先的 \(\frac{1}{4}\)，使 1.5B 乃至 7B 级别大模型得以平稳驻留在消费级或免费 T4 显卡（16GB）显存内。
 </p>

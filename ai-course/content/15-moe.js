@@ -284,7 +284,7 @@ COURSE.register({
 </p>
 
 <p><strong>MoE 稀疏门控路由微算子演示：</strong></p>
-<pre><code>gates, indices = torch.topk(F.softmax(x @ W_gate, dim=-1), k=2)</code></pre>
+<p>\[ H(x) = \sum_{i \in \text{Top-}k(G(x))} G(x)_i \cdot E_i(x), \quad G(x) = \text{Softmax}(\text{Top-}k(x W_g, k)) \]</p>
 <p>
   <strong>逐行代数解析</strong>：每个 Token 的输入表征 \(x\) 乘以门控投影矩阵 \(W_{\text{gate}}\)，经 Softmax 得到在所有候选专家（如 8 个）上的分配概率；<code>torch.topk</code> 选出概率最高的前 2 个专家下标 <code>indices</code> 与权重系数 <code>gates</code>，其余未选中的专家完全不参与浮点前向计算，实现模型容量扩张与计算量的优雅解耦。
 </p>

@@ -374,12 +374,7 @@ COURSE.register({
     经验判据：在 100 个位置上算 \(m\) 取中位数，<strong>中位数超过 0.05 就提高 \(k\) 或降低 \(T\)</strong>。
     长尾词表（多语言、代码）的 \(m\) 会明显大于纯英文场景。
   </p>
-  <pre><code><span class="cm"># [逐行剖析] 温度对 Softmax 尾部概率质量（暗知识）的释放效应</span>
-<span class="cm"># 动态形状: logits -> (B, V) [float32]</span>
-p = torch.softmax(logits / T, dim=-1)
-<span class="cm"># 截取第 2 到第 10 大候选 token 的概率质量和（表征语义联想丰富度）</span>
-m = torch.topk(p, k=10, dim=-1).values[:, 1:].sum(dim=-1)
-print("tail mass median =", round(m.median().item(), 4))   <span class="cm"># 动态形状: 标量 [float32]</span></code></pre>
+  <p>\[ p_i(T) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)}, \quad m_{\text{tail}}(T) = \sum_{k=2}^{10} p_{(k)}(T) \]</p>
 </section>
 
 <h3>8. 怎么证明蒸馏有用：评估协议与最小样本量</h3>
@@ -445,61 +440,7 @@ print("tail mass median =", round(m.median().item(), 4))   <span class="cm"># �
   <h4><span class="ic">🧪</span>动手：给一个 0.5B 教师做一次词级蒸馏</h4>
   <p>在免费 Colab（T4）上可跑。思路：学生也是 0.5B，但只训练 LoRA，让它在<em>教师自己的分布</em>上对齐——
   这样能在 30 分钟内看到 KL 损失下降、且能对比「只用硬标签」的差别。</p>
-<pre><code>!pip -q install torch transformers peft datasets
-
-import torch, torch.nn.functional as F
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import LoraConfig, get_peft_model
-
-<span class="cm"># [逐行剖析] 1. 加载双模型：全量冻结的教师模型 (Teacher) 与轻量学生模型 (Student)</span>
-name = "Qwen/Qwen2.5-0.5B-Instruct"
-tok = AutoTokenizer.from_pretrained(name)
-
-<span class="cm"># 显存机制: 教师模型进入 eval 模式，所有参数不计算梯度 (requires_grad=False)</span>
-teacher = AutoModelForCausalLM.from_pretrained(name, torch_dtype=torch.bfloat16, device_map="auto").eval()
-student = AutoModelForCausalLM.from_pretrained(name, torch_dtype=torch.bfloat16, device_map="auto")
-<span class="cm"># 仅为学生模型注入 LoRA 适配器，冻结基座，大幅削减显存开销</span>
-student = get_peft_model(student, LoraConfig(r=16, lora_alpha=32, lora_dropout=0.05,
-                          target_modules=["q_proj","k_proj","v_proj","o_proj"], task_type="CAUSAL_LM"))
-
-opt = torch.optim.AdamW(student.parameters(), lr=1e-4)
-prompts = ["Explain what a crossfade is in audio.", "Why does a linear fade dip in the middle?",
-           "Summarise how attention works.", "What is a KV cache?"] * 32
-
-T, ALPHA = 3.0, 0.3  <span class="cm"># 蒸馏温度 T=3.0, 硬标签损失权重 ALPHA=0.3</span>
-for step, p in enumerate(prompts):
-    <span class="cm"># 动态形状: batch['input_ids'] -> (B, T) [int64]</span>
-    batch = tok(p, return_tensors="pt").to(student.device)
-    
-    <span class="cm"># [逐行剖析] 2. 教师模型前向传播（阻断 autograd 追踪）</span>
-    <span class="cm"># 自动微分: torch.no_grad() 彻底释放中间激活显存</span>
-    with torch.no_grad():
-        <span class="cm"># 动态形状: t_logits -> (B, T, V) [bfloat16]</span>
-        t_logits = teacher(**batch).logits
-        
-    <span class="cm"># [逐行剖析] 3. 学生模型前向传播（保留计算图）</span>
-    <span class="cm"># 动态形状: s_logits -> (B, T, V) [bfloat16]</span>
-    s_logits = student(**batch).logits
-    
-    <span class="cm"># [逐行剖析] 4. 硬标签交叉熵损失（下一 token 自回归真值）</span>
-    <span class="cm"># 动态形状: labels -> (B, T-1), s_logits[:, :-1] -> (B*(T-1), V)</span>
-    labels = batch.input_ids[:, 1:]
-    ce = F.cross_entropy(s_logits[:, :-1].reshape(-1, s_logits.size(-1)), labels.reshape(-1))
-    
-    <span class="cm"># [逐行剖析] 5. 软标签 KL 散度蒸馏损失（暗知识对齐）</span>
-    <span class="cm"># 数学机制: 在高温 T 下对 logits 做 log_softmax，梯度缩放因子为 T^2</span>
-    <span class="cm"># 动态形状: log_p_t -> (B, T, V), log_p_s -> (B, T, V)</span>
-    log_p_t = F.log_softmax(t_logits.float() / T, dim=-1)
-    log_p_s = F.log_softmax(s_logits.float() / T, dim=-1)
-    kl = F.kl_div(log_p_s, log_p_t, log_target=True, reduction="batchmean") * (T ** 2)
-    
-    <span class="cm"># [逐行剖析] 6. 凸组合损失与反向传播</span>
-    loss = ALPHA * ce + (1 - ALPHA) * kl
-    loss.backward()
-    opt.step()
-    opt.zero_grad(set_to_none=True)
-    if step % 16 == 0:
-        print(f"step {step:3d}  ce={ce.item():.3f}  kl={kl.item():.3f}  loss={loss.item():.3f}")</code></pre>
+<p>\[ \mathcal{L}_{\text{total}} = \alpha T^2 \cdot D_{\text{KL}}(\sigma(z_t / T) \parallel \sigma(z_s / T)) + (1 - \alpha) \cdot \mathcal{L}_{\text{CE}}(y, \sigma(z_s)) \]</p>
   <p>
     <strong>要记录的三件事</strong>：①<code>kl</code> 是否单调下降（说明学生在逼近教师分布）；
     ②把 <code>ALPHA</code> 设为 1.0（纯硬标签）再跑一遍，对比同样的验证集表现——这就是「蒸馏到底加了多少价值」；
@@ -536,33 +477,7 @@ for step, p in enumerate(prompts):
         两组用同样的步数与超参。</li>
     <li><strong>评估。</strong>在同一批测试题上比 A/B 的 pass@1，以及平均输出长度。</li>
   </ol>
-<pre><code>import json, re
-
-def shingles(s, n=4):
-    w = re.findall(r"\w+", s.lower())
-    return set(tuple(w[i:i + n]) for i in range(max(1, len(w) - n + 1)))
-
-def jaccard(a, b):
-    return len(a &amp; b) / max(1, len(a | b))
-
-rows = [json.loads(l) for l in open("raw.jsonl", encoding="utf-8")]
-kept, seen = [], []
-for r in rows:
-    c = r["completion"].strip()
-    ntok = len(c.split())
-    if not c or not (8 &lt;= ntok &lt;= 512):            <span class="cm"># 长度过滤：太短或太长都丢</span>
-        continue
-    if re.search(r"(\b\w+\b)(\s+\1){3,}", c):        <span class="cm"># 复读过滤</span>
-        continue
-    sh = shingles(c)
-    if any(jaccard(sh, s) &gt; 0.85 for s in seen):     <span class="cm"># 近似去重</span>
-        continue
-    seen.append(sh)
-    kept.append(r)
-
-print("raw =", len(rows), " kept =", len(kept), " keep_rate =", round(len(kept) / len(rows), 3))
-json.dump(kept, open("clean.json", "w", encoding="utf-8"), ensure_ascii=False)
-<span class="cm"># 注意：seen 会随数据量线性变大，整体是 O(n^2) 比较。真实规模请换 MinHash/LSH 或向量去重。</span></code></pre>
+<p>\[ J(A, B) = \frac{|A \cap B|}{|A \cup B|}, \quad A, B \in \text{Shingles}_n(\text{text}) \]</p>
   <p><strong>要记录的三个数字：</strong></p>
   <ol>
     <li><strong>保留率 <code>keep_rate</code></strong>：低于 0.5 说明提示太像或过滤太狠，先回头核对 6.1 的去重保留率。</li>

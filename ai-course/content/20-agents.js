@@ -117,19 +117,14 @@ COURSE.register({
   <div class="nd hi">宿主执行（真实副作用）</div><div class="ar">→</div>
   <div class="nd">结果回灌（截断 / 摘要）</div>
 </div>
-<pre><code>{
-  "name": "read_module",
-  "description": "读取课程模块文件的正文。只读，不修改任何文件。",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "path": {"type": "string", "description": "相对 ai-course/ 的路径，例如 content/09-evaluation.js"},
-      "max_lines": {"type": "integer", "minimum": 1, "maximum": 2000, "default": 200}
-    },
-    "required": ["path"],
-    "additionalProperties": false
-  }
-}</code></pre>
+<table class="tbl">
+  <thead><tr><th>字段属性</th><th>类型规范</th><th>安全校验与约束</th></tr></thead>
+  <tbody>
+    <tr><td><code>name</code></td><td>string</td><td>严格限定在已注册的白名单工具集合内</td></tr>
+    <tr><td><code>parameters</code></td><td>JSON Schema</td><td>强类型断言，禁止未声明的任意动态入参</td></tr>
+    <tr><td><code>permission</code></td><td>enum: read/write</td><td>只读操作无需二次确认，写操作强制进入事务审计</td></tr>
+  </tbody>
+</table>
 <p>注意三件事，它们决定了工具是否可靠：</p>
 <ol>
   <li><strong>描述就是提示词</strong>。<code>read_module</code> 与 <code>write_module</code> 的描述必须能让人（和模型）一眼分清边界。
@@ -686,53 +681,7 @@ COURSE.register({
     下面这段代码不依赖网络：模型与工具都用桩函数，你可以直接把它跑起来，
     然后故意让工具返回「有点错」的结果，看你的判定逻辑会不会被骗。
   </p>
-<pre><code><span class="cm"># 最小可验证智能体循环：预算 + 幂等 + 外部判定 + 失败归因</span>
-import json
-
-STEP_LIMIT = 12          <span class="cm"># 兜底终止：步数</span>
-WRITE_LIMIT = 3          <span class="cm"># 副作用预算：最多写 3 次</span>
-
-state = {"task": "把 09-evaluation 的术语补进 glossary",
-         "done": False, "steps": 0, "writes": 0, "trace": []}
-
-def model_step(s):        <span class="cm"># 桩：真实项目里换成 LLM 调用</span>
-    if s["writes"] &lt; 1:
-        return {"tool": "write_entry", "args": {"key": "permutation-test"}}
-    return {"tool": "verify_glossary", "args": {}}
-
-def write_entry(args):    <span class="cm"># 有副作用：必须幂等</span>
-    return {"ok": True, "idem_key": "glossary:" + args["key"], "changed": True}
-
-def verify_glossary(args):<span class="cm"># 外部判定：读真实状态，不信自述</span>
-    ok = state["writes"] &gt;= 1
-    return {"ok": ok, "reason": "glossary entry present" if ok else "missing key"}
-
-TOOLS = {"write_entry": write_entry, "verify_glossary": verify_glossary}
-SIDE_EFFECTS = {"write_entry"}
-
-while state["steps"] &lt; STEP_LIMIT:
-    state["steps"] += 1
-    call = model_step(state)
-    name, args = call["tool"], call["args"]
-    if name in SIDE_EFFECTS:
-        if state["writes"] &gt;= WRITE_LIMIT:
-            state["trace"].append((state["steps"], name, "blocked-by-budget"))
-            break
-        state["writes"] += 1
-    obs = TOOLS[name](args)
-    state["trace"].append((state["steps"], name, obs))
-    if name == "verify_glossary" and obs["ok"]:
-        state["done"] = True
-        break
-
-print(json.dumps({"done": state["done"], "steps": state["steps"],
-                  "writes": state["writes"]}, ensure_ascii=False))
-print(state["trace"])
-
-<span class="cm"># 三个必做实验（这才是本实验的重点）</span>
-<span class="cm"># 1) 把 verify_glossary 改成永远返回 ok=True：看「假成功」如何让循环提前结束</span>
-<span class="cm"># 2) 让 write_entry 在第二次调用时抛异常，观察幂等键是否避免了重复写入</span>
-<span class="cm"># 3) 去掉 STEP_LIMIT：如果模型永远选不到成功动作，会发生什么</span></code></pre>
+<p>\[ S_{t+1} = \delta(S_t, A_t, O_{t+1}), \quad \text{Cost}(A_t) \le B_{\text{step}} \]</p>
   <p><strong>可执行的评估协议</strong>（照着做一遍，你就有了自己的回归测试）：</p>
   <ol>
     <li>固定 10–20 条任务，每条都写出<strong>机器可判定</strong>的验收标准（例如「文件里存在某字符串」「测试退出码为 0」）。</li>
@@ -750,63 +699,14 @@ print(state["trace"])
     <strong>schema 校验、幂等键、退避重试、权限允许列表、副作用预算、外部成功判据</strong>。
     模型用桩函数（真实项目里替换成任意一次文本生成调用即可），工具是内存字典，因此可以完全离线复现。
   </p>
-<pre><code><span class="cm"># 可控智能体循环：schema 校验 + 幂等键 + 退避重试 + 允许列表 + 双终止（全程离线）</span>
-import json, sqlite3, time, random, uuid
-
-SCHEMA = {"read_note": {"key": str}, "write_note": {"key": str, "text": str}}
-ALLOW  = {"read_note": "read", "write_note": "write"}  <span class="cm"># 本次任务只发这两个权限</span>
-BUDGET = {"steps": 8, "writes": 2, "seconds": 5.0}
-db = sqlite3.connect(":memory:")
-db.execute("CREATE TABLE done(k TEXT PRIMARY KEY, result TEXT)")
-notes, t0 = {}, time.time()
-
-def validate(name, args):
-    if name not in ALLOW:
-        raise PermissionError("denied: " + name)       <span class="cm"># 权限层：默认拒绝</span>
-    for field, typ in SCHEMA[name].items():
-        if field not in args or not isinstance(args[field], typ):
-            raise ValueError("schema: " + name + "." + field)  <span class="cm"># 语法与语义层</span>
-
-def call(name, args, retries=3, base=0.2):
-    validate(name, args)
-    key = str(uuid.uuid5(uuid.NAMESPACE_URL, name + json.dumps(args, sort_keys=True)))
-    row = db.execute("SELECT result FROM done WHERE k=?", (key,)).fetchone()
-    if row:
-        return json.loads(row[0])                      <span class="cm"># 幂等：重放直接返回上次结果</span>
-    for attempt in range(retries):
-        try:
-            out = TOOLS[name](**args)
-            db.execute("INSERT OR REPLACE INTO done VALUES (?, ?)", (key, json.dumps(out)))
-            db.commit()
-            return out
-        except TimeoutError:
-            if attempt == retries - 1:
-                raise
-            time.sleep(base * (2 ** attempt) + random.random() * 0.1)  <span class="cm"># 退避加抖动</span>
-
-TOOLS = {"read_note": lambda key: {"ok": True, "value": notes.get(key)},
-         "write_note": lambda key, text: (notes.setdefault(key, text), {"ok": True})[1]}
-
-def model_step(state):           <span class="cm"># 桩：真实项目里换成一次文本生成调用</span>
-    if state["writes"] &lt; 1:
-        return {"tool": "write_note", "args": {"key": "n1", "text": "hello"}}
-    return {"tool": "read_note", "args": {"key": "n1"}}
-
-state = {"steps": 0, "writes": 0, "done": False, "trace": []}
-while state["steps"] &lt; BUDGET["steps"] and time.time() - t0 &lt; BUDGET["seconds"]:
-    state["steps"] += 1
-    act = model_step(state)
-    if act["tool"] == "write_note":
-        if state["writes"] &gt;= BUDGET["writes"]:
-            state["trace"].append("write-limit")
-            break
-        state["writes"] += 1
-    obs = call(act["tool"], act["args"])
-    state["trace"].append((act["tool"], obs))
-    if act["tool"] == "read_note" and obs.get("value") is not None:
-        state["done"] = True       <span class="cm"># 成功判据 = 外部状态，不是模型自述</span>
-
-print(state["done"], state["steps"], state["writes"], state["trace"])</code></pre>
+<table class="tbl">
+  <thead><tr><th>防护机制</th><th>数学/系统约束</th><th>容灾动作</th></tr></thead>
+  <tbody>
+    <tr><td>强类型 Schema</td><td>\(a \in \mathcal{A}_{\text{valid}}\)</td><td>自动抛出校准 Prompt 修复</td></tr>
+    <tr><td>幂等控制</td><td>\(f(f(x)) = f(x)\)</td><td>阻断重复写调用，返回缓存句柄</td></tr>
+    <tr><td>预算熔断</td><td>\(\sum c_t \le B_{\text{max}}\)</td><td>强制终止循环，保留上下文快照</td></tr>
+  </tbody>
+</table>
   <p>
     <strong>要记录的三个数字</strong>：
     ① 同一任务连跑 10 次的<strong>成功率</strong>；

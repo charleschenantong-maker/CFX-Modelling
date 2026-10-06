@@ -87,15 +87,11 @@ COURSE.register({
   <div class="nd">交付物</div><div class="ar">→</div>
   <div class="nd hi">只在真正卡住时介入</div>
 </div>
-<pre><code><span class="cm"># 一个可复用的任务模板</span>
-目标：把 labs/e7 的岭回归扩展成「模型阶梯」，并给出是否值得上非线性模型的结论。
-验收标准：
-  1) 一条命令 python run.py 跑完 Level 0-3 与 5 折分组交叉验证；
-  2) 输出 RMSE 均值±标准差、置换检验 p 值（B=500）、零分布图；
-  3) 生成 results/report.md，包含结论与三条明确的局限性。
-约束：只用 numpy/scikit-learn/matplotlib；固定随机种子；不得使用测试集调参。
-卡住时：先报告你试过什么、观察到什么，再问问题。
-交付：diff + 运行日志 + 生成的图。</code></pre>
+<div class="blk blk-tip">
+  <h4><span class="ic">📋</span>科学任务模板规范</h4>
+  <p><strong>明确目标</strong>：明确定义任务与假设检验目标。</p>
+  <p><strong>验收标准</strong>：定义可执行验证脚本与客观评估指标收敛阈值。</p>
+</div>
 <p>
   <strong>关键区别</strong>：给<em>验收标准</em>而不是给<em>实现步骤</em>。前者让智能体自己选择路径并自我检查，
   后者把它降级成一个打字机，同时把你锁进一个可能错误的方案里。
@@ -121,15 +117,13 @@ COURSE.register({
     等价于「每个任务一个独立沙箱」。
   </p>
 </section>
-<pre><code><span class="cm"># 为每个任务开一个独立工作树（互不干扰，共享同一个对象库）</span>
-git worktree add ../wt-e7-model-ladder -b e7/model-ladder
-git worktree add ../wt-audio-metrics     -b audio/metrics
-
-<span class="cm"># 列出与清理</span>
-git worktree list
-git worktree remove ../wt-e7-model-ladder      <span class="cm"># 任务完成或废弃</span>
-
-<span class="cm"># 若两个智能体撞到同一分支，现代模型通常会退化为「生成临时隔离分支」来避开冲突</span></code></pre>
+<table class="tbl">
+  <thead><tr><th>工作流模式</th><th>核心价值</th><th>操作规范</th></tr></thead>
+  <tbody>
+    <tr><td>分支隔离</td><td>避免正在跑的长任务被临时代码改动污染</td><td>每个独立实验建立专门的分支</td></tr>
+    <tr><td>快照记录</td><td>保留每次实验的完整超参数与随机种子</td><td>生成固化的元数据文件 <code>config.json</code></td></tr>
+  </tbody>
+</table>
 <p>
   worktree 的关键优势：<strong>共享对象库</strong>（不重复占磁盘），但<strong>索引与工作目录独立</strong>（无锁竞争）。
   这在你的场景里尤其合适：一个工作树跑实验、一个改课程内容、一个整理笔记。
@@ -147,12 +141,11 @@ git worktree remove ../wt-e7-model-ladder      <span class="cm"># 任务完成�
   </p>
 </section>
 <p>以 crossfade 这类任务为例，可以写成这样的链条（你以后可以照此套用）：</p>
-<pre><code>1. 在 wt-e7 工作树里实现模型阶梯脚本；
-2. 运行 E7 实验，保存 results/（RMSE 表、置换零分布图、config.json）；
-3. 生成 results/report.md（含结论与局限）；
-4. 把关键图与结论更新到课程项目页；
-5. 提交并推送，确认 CI 与仓库状态为绿；
-6. 若中途失败，附上完整日志并继续，直到全部通过；只在需要改变研究设计时才停下来问我。</code></pre>
+<ol>
+  <li>在独立实验环境中验证算法与损失收敛性。</li>
+  <li>汇总评估报告，导出核心 Loss 下降曲线与 Perplexity 数据。</li>
+  <li>提交成果并在归档分支打上版本标签。</li>
+</ol>
 
 <h3>8. 后台派发与远程卸载</h3>
 <dl class="kv">

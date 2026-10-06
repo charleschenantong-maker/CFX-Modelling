@@ -39,25 +39,14 @@ COURSE.register({
 </p>
 
 <h3>2. 记录中的拓扑</h3>
-<pre><code>                    +-----------------------------------------------+
-                    |          Residential Gateway (Home)          |
-                    |  - Single Residential Public IP               |
-                    |  - Dedicated Ubuntu Node / Framework Desktop  |
-                    |  - CLI Proxy / Vibe Proxy Daemon              |
-                    |  - Manages OAuth sessions for 5-10 accounts   |
-                    +-----------------------+-----------------------+
-                                            |
-                               Tailscale Mesh Overlay
-                           (micro.ts.net / WireGuard)
-                                            |
-          +---------------------------------+---------------------------------+
-          |                                 |                                 |
-  +------------------+             +--------------------+            +-------------------+
-  | MacBook Pro      |             | Dedicated Server   |            | Remote Dev Server |
-  | (Client / UI)    |             | "Alvin" (Headless) |            | "BB1" (Linux)     |
-  | - T3 Code Client |             | - Docker / Worktrees|           | - CI / Build jobs |
-  | - No direct LLM  |             | - Routes via proxy |            | - Routes via proxy|
-  +------------------+             +--------------------+            +-------------------+</code></pre>
+<table class="tbl">
+  <thead><tr><th>网络节点</th><th>物理规格</th><th>关键协议/配置</th></tr></thead>
+  <tbody>
+    <tr><td>家庭出口网关</td><td>单个住宅公网 IPv4/v6</td><td>DDNS 动态域名解析 + 端口映射 (NAT)</td></tr>
+    <tr><td>内部宿主机</td><td>Ubuntu 物理工作站</td><td>SSH 密钥硬认证 (Ed25519) + 禁用密码登录</td></tr>
+    <tr><td>外网访问客户端</td><td>便携笔记本 (macOS/Win)</td><td>WireGuard VPN / Tailscale 点对点加密通道</td></tr>
+  </tbody>
+</table>
 <dl class="kv">
   <dt>住宅网关</dt><dd>家里的一台机器，唯一出口；运行代理守护进程，管理 5–10 个账号的 OAuth 会话</dd>
   <dt>Tailscale 覆盖网</dt><dd>基于 WireGuard 的 mesh，把笔记本、家庭节点、远程服务器组成一个私有网络</dd>
