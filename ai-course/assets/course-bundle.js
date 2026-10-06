@@ -6176,6 +6176,194 @@ COURSE.register({
 });
 
 
+/* --- content/10b-data-engineering.js --- */
+/* content/10b-data-engineering.js · 模块 10b：工业级数据工程与规模化训练体系 */
+COURSE.register({
+  id: "m10b",
+  part: 3,
+  num: "10b",
+  title: "工业级数据工程与规模化训练：MinHash LSH 海量清洗、退火配比与集群容灾",
+  en: "Data Engineering at Scale & Resilient Cluster Training",
+  minutes: 45,
+  tags: ["核心", "系统", "数据工程", "集群容灾"],
+  body: String.raw`
+<p class="lead">
+  在万卡规模的工业级大模型研发中，业界有一句共识：「模型的上限由数据质量决定，模型的下限由集群稳定性托底」。
+  本讲剖析从原始海量网络爬虫到高纯度 Token 语料的完整数据清洗流水线，
+  深入 MinHash 与 LSH 局部敏感哈希的数学组合概率，
+  并解构集群万卡训练中的计算-通信重叠拓扑与无损异步容灾机制。
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>知识地图与心智模型</h4>
+  <p>
+    <strong>为什么需要独立的一讲？</strong>第 02 讲解决了「如何把文本切成 Token」，第 05 讲给出了「预训练的目标函数与防炸技巧」，第 06 讲推导了「单卡到多卡的并行切分」。<br />
+    但真实工业界的残酷现实是：<strong>百 T 级原始爬虫语料中 60% 以上是垃圾与重复噪声；而在上千台服务器持续轰鸣数月的训练中，平均每几十小时就会有一张 GPU 发生静默计算错误或网络掉线。</strong><br />
+    本讲将串联起数据生命周期与集群物理现实：<strong>海量去重数学原理 → 启发式过滤 → 合成数据退火策略 → 集群通信重叠与异步快照容灾</strong>。
+  </p>
+</section>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>工程核心问题</h4>
+  <p>
+    面对 Common Crawl 爬取的 100 亿个网页文档（数十 TB），如果用暴力两两比对相似度，
+    计算次数高达 \(\binom{10^{10}}{2} \approx 5 \times 10^{19}\) 次，足以让超算集群计算数年。
+    <strong>工业界究竟如何用巧妙的随机哈希将比对复杂度降到近乎线性？
+    当万卡集群在凌晨 3 点某张卡显存 ECC 报错死锁时，如何保证数千万元的算力不被白白浪费？</strong>
+  </p>
+</section>
+
+<h3>1. 海量语料去重数学原理：MinHash 与局部敏感哈希 (LSH)</h3>
+<p>
+  文本去重的基石是衡量两个文档集合 \(A\) 与 \(B\) 的 <strong>Jaccard 相似度系数</strong>：
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：Jaccard 相似度）</h4>
+  <ul>
+    <li><strong>\(A\) 与 \(B\)</strong>：将两篇文档切分成 \(k\)-shingle（即连续 \(k\) 个词构成的短语集合，通常取 \(k=5\) 或 \(k=13\)）；</li>
+    <li><strong>交集与并集之比</strong>：\(J(A, B) = \frac{|A \cap B|}{|A \cup B|}\)。若两篇文章完全相同，\(J=1\)；若毫无交集，\(J=0\)。</li>
+  </ul>
+</section>
+
+\[ J(A, B) = \frac{|A \cap B|}{|A \cup B|} \]
+
+<p>
+  为了避免直接比对超大集合，<strong>MinHash（最小哈希定理）</strong>提供了一个惊人的概率恒等式：
+  若对全量词汇集合应用一个随机置换哈希函数 \(h\)，则两个集合的最小哈希值相等的概率，严格等于它们的 Jaccard 相似度！
+</p>
+
+\[ P\big(h_{\min}(A) = h_{\min}(B)\big) = J(A, B) \]
+
+<p>
+  <strong>代数直觉推导</strong>：考虑集合并集 \(A \cup B\) 中的所有元素，随机哈希后最小的那个元素，落在交集 \(A \cap B\) 中的概率恰好是交集大小占并集大小的比例，即 \(|A \cap B| / |A \cup B|\)！
+  因此，只要独立选取 \(m\) 个随机哈希函数（例如 \(m = 128\)），计算出两篇文档的 MinHash 签名向量，比对这 128 个整数相等的比例，就能以无偏估计还原出真实文本相似度。
+</p>
+
+<h4>LSH 局部敏感哈希的「S 曲线」过滤魔术</h4>
+<p>
+  拿到 128 维签名后，依然需要两两比对。LSH 采用<strong>分桶波段法（Banding Technique）</strong>：
+  将长度为 \(m\) 的签名向量切分成 \(b\) 个波段（Bands），每个波段包含 \(r\) 个哈希值（满足 \(m = b \times r\)，如 \(128 = 16 \text{ bands} \times 8 \text{ rows}\)）。
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>LSH 候选命中概率公式铺垫</h4>
+  <p>两个文档在至少一个波段中完全撞桶（被判定为疑似重复候选对）的概率为：</p>
+</section>
+
+\[ P_{\text{candidate}}(s) = 1 - \big(1 - s^r\big)^b \]
+
+<table class="tbl small">
+  <thead><tr><th>相似度 \(s = J(A,B)\)</th><th>单波段全等概率 \(s^r \; (r=8)\)</th><th>全不匹配概率 \((1-s^r)^b \; (b=16)\)</th><th>最终候选命中率 \(P_{\text{candidate}}\)</th><th>系统动作</th></tr></thead>
+  <tbody>
+    <tr><td><strong>0.90（高度抄袭）</strong></td><td>\(0.90^8 \approx 0.430\)</td><td>\((1-0.430)^{16} \approx 0.00008\)</td><td><strong>99.99%</strong></td><td>极大概率抓获，剔除冗余</td></tr>
+    <tr><td><strong>0.80（显著重合）</strong></td><td>\(0.80^8 \approx 0.168\)</td><td>\((1-0.168)^{16} \approx 0.050\)</td><td><strong>95.00%</strong></td><td>高效捕获</td></tr>
+    <tr><td><strong>0.50（轻微交集）</strong></td><td>\(0.50^8 \approx 0.0039\)</td><td>\((1-0.0039)^{16} \approx 0.939\)</td><td><strong>6.10%</strong></td><td>极低误报，绝大多数被排除</td></tr>
+    <tr><td><strong>0.20（正常引用）</strong></td><td>\(0.20^8 \approx 0.0000025\)</td><td>\(\approx 1.0\)</td><td><strong>< 0.004%</strong></td><td>零开销直通通过</td></tr>
+  </tbody>
+</table>
+
+<p>
+  通过调节波段数 \(b\) 与行数 \(r\)，这条概率曲线形成了一条陡峭的<strong>「S 型跃迁曲线」</strong>。阈值（拐点）约为 \(t \approx (1/b)^{1/r}\)。在本例中 \(t \approx (1/16)^{1/8} \approx 0.707\)。相似度高于 70% 的文档几乎必被分入同一个哈希桶，而低于 70% 的文档几乎绝不发生碰撞，全库搜索复杂度直接从 \(O(N^2)\) 断崖式压低至 \(O(N)\)！
+</p>
+
+<h3>2. 启发式流水线与合成数据退火配比 (Data Annealing)</h3>
+<p>
+  去除重复文档后，真实工业界会执行严格的<strong>多层流水线过滤（Filter Cascade）</strong>：
+</p>
+
+<ol>
+  <li><strong>规则过滤（Rule-based Filter）</strong>：
+    剔除标点符号占比 \(> 30\%\)、大写锁定占比 \(> 40\%\)、平均词长 \(< 3\) 或 \(> 15\) 的低质文本，过滤乱码与机器抓取的空壳模板。
+  </li>
+  <li><strong>毒性与隐私脱敏（Safety & PII Redaction）</strong>：
+    正则与快速分类器联合扫描身份证号、手机号、信用卡号，并过滤有害有害毒性语料。
+  </li>
+  <li><strong>高质量打分器（Quality Classifier / Perplexity Filter）</strong>：
+    利用在维基百科、高质量教材上训练的小型语言模型，计算待清洗文档的困惑度 \(\text{PPL}\)。PPL 异常极高（语无伦次）或异常极低（机械重复同一句话）的文档均被整篇剔除。
+  </li>
+</ol>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>训练退火阶段的合成数据混合法则 (Data Mixture & Annealing)</h4>
+  <p>
+    在 Llama-3 与 Qwen-2.5 的技术报告中，最核心的机密之一是<strong>阶段式语料配比与退火（Cool-down Annealing）</strong>：
+  </p>
+  <ul>
+    <li><strong>基座阶段（前 80%~90% Tokens）</strong>：
+      以全网清洗后的广泛通识语料为主（网页 70%、代码 15%、学术百科 15%），建立强大的世界知识与多语言理解底座；
+    </li>
+    <li><strong>退火阶段（最后 10%~20% Tokens）</strong>：
+      学习率线性衰减至零的同时，剧烈提升<strong>高质量合成数据（Synthetic Data）与高密度推理语料</strong>的配比：
+      代码与算法题提升至 35%、高质量数学证明题提升至 30%、合成反思思维链提升至 20%，通识网页降至 15%。
+    </li>
+  </ul>
+  <p>
+    <strong>工业经验结论</strong>：在学习率即将归零的窗口注入极高密度的理科与逻辑合成数据，模型的 GSM8k、HumanEval 推理评测指标会出现明显的「翘尾效应」，性能提升幅度常超过前期数月的通识泛读。
+  </p>
+</section>
+
+<h3>3. 集群物理通信拓扑与计算通信重叠</h3>
+<p>
+  在万卡规模下，单靠理论 FLOPs 无法保证训练速度，<strong>网络拓扑与通信调度</strong>才是决定 MFU 的生死线。
+</p>
+
+<table class="tbl small">
+  <thead><tr><th>层级</th><th>互联技术</th><th>单向理论带宽</th><th>通信延迟</th><th>承载的并行切分维度</th></tr></thead>
+  <tbody>
+    <tr><td><strong>节点内（Intra-Node, 单机 8 卡）</strong></td><td>NVLink / NVSwitch</td><td>900 GB/s ~ 1.8 TB/s</td><td>< 1 µs</td><td><strong>张量并行 (TP)</strong>、前向注意力</td></tr>
+    <tr><td><strong>跨节点（Inter-Node, 机柜内 / 跨机柜）</strong></td><td>InfiniBand NDR / RoCE v2</td><td>400 Gbps ~ 800 Gbps (50~100 GB/s)</td><td>2~5 µs</td><td><strong>流水线并行 (PP)</strong>、<strong>数据并行 (DP / ZeRO)</strong></td></tr>
+  </tbody>
+</table>
+
+<p>
+  由于跨节点带宽比机内 NVLink 慢了整整一个数量级，工业级训练框架必须严格实施<strong>计算通信重叠（Compute-Communication Overlap）</strong>：
+</p>
+<p>
+  在反向传播计算第 \(l\) 层的权重梯度时，后台异步通信流（CUDA Stream）必须同时在物理网络上执行第 \(l+1\) 层的跨节点 All-Reduce 聚合梯度。
+  如果通信时间 \(T_{\text{comm}} \le T_{\text{comp}}\)，通信开销将被计算完全掩盖（Zero Overhead）；
+  只有当网络丢包或拥塞导致 \(T_{\text{comm}} > T_{\text{comp}}\) 时，GPU 才会进入空转等待（Bubble）。
+</p>
+
+<h3>4. 数值稳定与无损异步容灾 (Resilient Checkpointing)</h3>
+
+<p><strong>1. FP8 缩放因子防下溢算子演示：</strong></p>
+<p>\[ X_{\text{fp8}} = \text{clip}\left( \left\lfloor X \cdot \frac{S}{\text{amax}(|X|)} \right\rceil, -448, 448 \right) \]</p>
+<p>
+  <strong>逐行代数解析</strong>：在 FP8 混合精度训练中，动态统计张量绝对值的最大值 \(\text{amax}\)；乘以自适应缩放因子 \(S\) 将数值动态对齐至 FP8 的最大动态范围（E4M3 格式最大值为 448），彻底避免指数位只有 4 位的低精度浮点发生下溢截断归零。
+</p>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>集群容灾的核心瓶颈：Checkpointed I/O</h4>
+  <p>
+    保存一个 70B 模型的完整权重与 AdamW 优化器状态需要约 <strong>1.1 TB</strong> 显存数据。
+    如果让全集群万卡同步暂停训练等待写盘，每次落盘耗时可能长达 15~30 分钟，MFU 将直接下跌 15%。
+  </p>
+  <p>
+    <strong>现代工业解法：异步非阻塞双缓冲（Asynchronous Double-Buffered Checkpointing）</strong>：<br />
+    1. 在 GPU 显存中分配微小镜像或通过高速 PCIe 异步将权重拷贝至 Host 内存（仅需 2~3 秒）；<br />
+    2. 主训练流立刻恢复前向反向计算；<br />
+    3. CPU 后台线程池利用空闲网络带宽，平缓将内存数据刷入分布式文件系统（如 Ceph / Lustre / S3）；<br />
+    4. 一旦某节点掉线，调度系统（如 Slurm / Kubernetes）直接在 3 分钟内踢除坏卡、拉起热备节点，从最近的快照平滑续训。
+  </p>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">在 LSH（局部敏感哈希）中，如果将哈希签名总长度 \(m=128\) 固定，将波段数 \(b\) 从 16 调整为 32（同时行数 \(r\) 从 8 降低到 4），会导致什么后果？</p>
+  <ul class="opts">
+    <li>降低相似度捕获能力，漏掉大量相似文章</li>
+    <li data-ok>判定拐点阈值 \(t \approx (1/b)^{1/r}\) 显著降低，使系统更加敏感，捕获更多中低相似度文章，但会增加候选撞桶的候选对比开销</li>
+    <li>哈希桶总数变少，导致内存溢出</li>
+    <li>Jaccard 相似度计算完全失效</li>
+  </ul>
+  <p class="why">
+    当 \(b\) 增大、\(r\) 减小时，单波段发生全等碰撞的条件（仅需 4 个哈希值相等）变得更容易满足，阈值 \(t \approx (1/32)^{1/4} \approx 0.42\)（原为 \(0.71\)），召回率更高，但误报与后续比对开销增加。
+  </p>
+</div>
+`
+});
+
 /* --- content/15-moe.js --- */
 /* content/15-moe.js — 模块 15：混合专家架构 MoE */
 COURSE.register({
@@ -6773,6 +6961,1443 @@ COURSE.register({
     正如 YaRN 对 RoPE 齿轮的高低频解耦一样（以后做这类题目时可照此思路分析）。
   </p>
 </section>
+`
+});
+
+/* --- content/23-compression.js --- */
+/* content/23-compression.js — 模块 23：压缩与合并 */
+COURSE.register({
+  id: "m23",
+  part: 3,
+  num: "23",
+  title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
+  en: "Compression & Model Merging",
+  minutes: 42,
+  tags: ["高阶", "部署", "实用"],
+  body: String.raw`
+<p class="lead">
+  一个 8B 模型，fp16 权重就要 16 GB；换成 4-bit，同样的模型只要 4 GB。中间这 12 GB 是怎么省出来的？
+  把权重扔掉一半（剪枝）、把每个数写短一点（量化）、把两个矩阵合一个矮的（低秩）、
+  把多个微调模型揉成一个（合并）——这四条路压的<strong>根本不是同一个东西</strong>。
+  这一模块要做的，是把「参数账 / 显存账 / 算力账 / 延迟账」四本账彻底分开算清楚。
+</p>
+
+<h3>0. 先判断压缩解决的是哪一个问题</h3>
+<p>
+  压缩的目标不是让模型“看起来更聪明”，而是在质量可接受的前提下减少<strong>显存、延迟、带宽或部署成本</strong>。
+  如果模型本来就放得下、速度也够快，量化和剪枝只是在增加排障面；先测基线，再选压缩手段。
+</p>
+<table class="tbl small">
+  <thead><tr><th>你的瓶颈</th><th>优先考虑</th><th>先记录的基线</th></tr></thead>
+  <tbody>
+    <tr><td>权重放不进显存</td><td>权重量化、分片、CPU offload</td><td>权重 GB、加载时间、OOM 位置</td></tr>
+    <tr><td>生成太慢</td><td>KV cache 优化、批处理、量化</td><td>首 token 延迟、decode token/s</td></tr>
+    <tr><td>模型太大难以分发</td><td>剪枝、蒸馏、低比特权重</td><td>文件大小、下载和启动时间</td></tr>
+    <tr><td>质量掉得太多</td><td>校准集、混合精度、保护离群特征</td><td>固定评测集的任务分数</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：压缩模型像整理一间仓库。你可以把货扔掉一半（剪枝）、
+    把每件货的标签写得更短（量化）、把两层货架换成一个矮矮的宽货架（低秩分解）、
+    或者把两个仓库的货拼进一个（模型合并）。<br />
+    <strong>这一讲要建立的直觉</strong>：<em>稀疏度是「参数指标」，不是「速度指标」</em>。
+    仓库里少了一半的货，并不代表叉车会跑得更快——除非叉车的说明书里写了「遇到空格直接跳过」。<br />
+    <strong>读完你能回答</strong>：为什么 90% 稀疏度的模型在 A100 上不一定比稠密模型快？
+    什么时候必须上 QAT 而不能只做 PTQ？为什么把两个不同基座的模型权重平均会得到胡言乱语？
+  </p>
+</section>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>问题</h4>
+  <p>
+    你的 7B 模型要部署到一张 24 GB 的卡上，现在有四个候选方案：
+    (a) 4-bit 量化，(b) 把 FFN 剪掉 50%，(c) 把两个任务微调模型合并成一个，
+    (d) 把它 upcycle 成一个稀疏专家模型。预算只够做一次完整实验。
+  </p>
+  <p>
+    要选对，先得回答一个更基础的问题：<strong>你被卡住的是显存、算力，还是延迟？</strong>
+    这三者对不同手段的敏感度完全不同：量化同时改善显存与解码延迟；剪枝名义上省算力，
+    但在没有稀疏硬件的通用 GPU 上几乎不改善任何一项；模型合并省的是「模型个数」，
+    对单模型的显存与延迟一分钱都不省。选错方向，实验做完也解释不了结果。
+  </p>
+</section>
+
+<h3>1. 全景：六条路线各自压的是显存、算力还是延迟</h3>
+<p>
+  先把「压缩」这个词拆开。下面六条路线经常被混在一起讲，但它们作用的对象、
+  需要的训练预算、以及最终改善的指标都不一样。
+</p>
+<table class="tbl small">
+  <thead><tr><th>路线</th><th>压的是什么</th><th>主要改善</th><th>需要训练吗</th><th>一句话原理</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>量化<br />（模块 08 已讲）</td>
+      <td>每个数用几位表示</td>
+      <td>显存 ↓↓、解码延迟 ↓</td>
+      <td>通常不需要（PTQ）</td>
+      <td>用低位宽整数格点逼近浮点权重：\(w \approx s(q-z)\)</td>
+    </tr>
+    <tr>
+      <td>剪枝</td>
+      <td>权重矩阵里的元素个数</td>
+      <td>理论 FLOPs ↓；<strong>实际仅结构化剪枝有效</strong></td>
+      <td>非结构化通常需要重训</td>
+      <td>按重要性把一部分权重置零或删除</td>
+    </tr>
+    <tr>
+      <td>稀疏化<br />（训练时）</td>
+      <td>参数与激活的结构</td>
+      <td>算力 ↓，且质量能靠训练补回</td>
+      <td>是（必须）</td>
+      <td>训练时就约束稀疏模式，让模型在约束下收敛</td>
+    </tr>
+    <tr>
+      <td>蒸馏<br />（模块 17）</td>
+      <td>模型本身的规模</td>
+      <td>显存 ↓、算力 ↓、延迟 ↓</td>
+      <td>是（要训学生）</td>
+      <td>用教师的输出分布或中间特征指导学生</td>
+    </tr>
+    <tr>
+      <td>低秩分解</td>
+      <td>权重矩阵的秩</td>
+      <td>显存 ↓、算力 ↓</td>
+      <td>通常需要轻量恢复训练</td>
+      <td>把 \(W\) 近似写成两个瘦矩阵的乘积 \(BA\)</td>
+    </tr>
+    <tr>
+      <td>模型合并</td>
+      <td>模型的<strong>个数</strong>（N 个变 1 个）</td>
+      <td>部署与运维成本 ↓</td>
+      <td>不需要</td>
+      <td>在权重空间做加减平均</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  看最后一列之前，先看第四列。<strong>量化和模型合并几乎不需要训练</strong>，属于「最后一公里」的手段；
+  剪枝、稀疏化、蒸馏、低秩分解都要付训练预算。这就是为什么在生产环境里，
+  量化总是第一个上、合并是「手上已经有一堆同源微调模型」时的应急方案，
+  而稀疏只有在你能重新训练时才值得投入。
+</p>
+<p>
+  还有一条容易被忽略的事实：这六条路里，<strong>只有量化同时改善显存和延迟，并且几乎不需要重训</strong>。
+  它不是最优雅的压缩方法，但它是最划算的。把这句记住，后面所有取舍都有了参照系。
+</p>
+
+<h3>2. 剪枝：结构化与非结构化，以及「稀疏为什么常常不加速」</h3>
+<p>剪枝按「删掉什么」先分成两大类，这两类的工程命运完全不同。</p>
+<table class="tbl small">
+  <thead><tr><th>维度</th><th>非结构化剪枝</th><th>结构化剪枝</th></tr></thead>
+  <tbody>
+    <tr><td>删什么</td><td>任意位置的单个权重</td><td>整行 / 整列 / 整个注意力头 / 整个块</td></tr>
+    <tr><td>稀疏模式</td><td>不规则</td><td>规则（例如每 4 个元素里删 2 个）</td></tr>
+    <tr><td>存储</td><td><strong>需要索引</strong>（CSR / 位图），可能反而更占地方</td><td>直接变小，无需索引</td></tr>
+    <tr><td>通用硬件加速</td><td>基本没有</td><td>有（NVIDIA Ampere 起的 Sparse Tensor Core）</td></tr>
+    <tr><td>同稀疏度下的精度</td><td>更好</td><td>更差</td></tr>
+    <tr><td>典型方法</td><td><span class="t" data-tterm="Magnitude pruning" data-d="幅度剪枝：按权重绝对值大小排序，删掉最小的那一部分；只看权重，不看数据。">幅度剪枝</span>、Wanda、SparseGPT</td><td>通道剪枝、头剪枝、2:4 稀疏</td></tr>
+  </tbody>
+</table>
+
+<h4>2.1 硬件前提：通用 GPU 为什么对零值视而不见</h4>
+<p>
+  通用 GPU 的矩阵乘内核（cuBLAS 之类）假设操作数是<strong>稠密</strong>的：它按固定的 tile 读显存、
+  按固定的节奏喂给 Tensor Core。矩阵里有一个零，内核不会少读一个字节，也不会少做一次乘加。
+  <em>零值对它是完全透明的。</em>
+</p>
+<p>
+  NVIDIA 从 Ampere 架构开始引入了<strong>细粒度结构化稀疏</strong>：在 A100 上体现为
+  <strong>2:4 模式</strong>——每 4 个连续元素里至少 2 个是零。Sparse Tensor Core 只对非零元素做乘加，
+  通过跳过零值把这一路 GEMM 的吞吐翻倍，同时把压缩后的操作数体积减半
+  （<a href="https://developer.nvidia.com/blog/exploiting-ampere-structured-sparsity-with-cusparselt/" target="_blank" rel="noopener">NVIDIA 技术博客：Exploiting NVIDIA Ampere Structured Sparsity with cuSPARSELt</a>，2020）。
+</p>
+<p>
+  但请注意括号里那句是「<strong>这一路 GEMM</strong> 翻倍」。同一篇博客给出的 BERT-Large 各层实测加速是
+  <strong>1.3×–1.6×</strong>，而不是 2×；并且明确写道「workload 越大，稀疏越有用」。
+  <em>这是本模块最重要的一个数字：理论 2×，实测 1.3–1.6×。</em>
+</p>
+
+<h4>2.2 从幅度剪枝到 Wanda：评分函数才是关键</h4>
+<p>
+  <span class="t" data-tterm="Magnitude pruning" data-d="幅度剪枝：按权重绝对值大小排序，删掉最小的那一部分；只看权重，不看数据。">幅度剪枝</span>
+  的规则简单到一行：按 \(|w|\) 排序，删掉最小的那部分。它只看权重、不看数据，
+  在中小模型上一直是很强的基线，但在 LLM 上会明显掉点。
+</p>
+<p>
+  <strong>Wanda</strong>（Sun、Liu、Bair、Kolter，ICLR 2024）给出了一个更聪明的评分：
+  不只看权重的绝对值，还要乘以<em>这个权重对应的输入通道的激活范数</em>，并且<strong>逐输出通道</strong>比较。
+  这样做的动机来自 LLM 中普遍存在的「大幅值特征」——少数输入通道的激活极大，
+  剪掉与它们相连的权重代价远高于剪掉别的。
+  论文报告：Wanda 不需要重训、也不需要二阶信息，明显优于纯幅度剪枝，
+  并能与需要密集权重更新的方法竞争
+  （<a href="https://arxiv.org/abs/2306.11695" target="_blank" rel="noopener">A Simple and Effective Pruning Approach for Large Language Models</a>，arXiv:2306.11695）。
+</p>
+<p>
+  <strong>SparseGPT</strong>（Frantar、Alistarh，ICML 2023）走的是另一条路：把剪枝写成一个<em>逐层的稀疏回归问题</em>，
+  用近似二阶信息一次性求解。它首次证明 GPT 系大模型可以在<strong>不重训</strong>的情况下剪到至少 50% 稀疏度而精度损失极小，
+  在 OPT-175B 与 BLOOM-176B 上 4.5 小时内完成；60% 非结构化稀疏度下困惑度增加可忽略；
+  并且可以推广到 2:4 与 4:8 半结构化模式，也能和权重量化叠加
+  （<a href="https://arxiv.org/abs/2301.00774" target="_blank" rel="noopener">SparseGPT: Massive Language Models Can be Accurately Pruned in One-Shot</a>，arXiv:2301.00774）。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>Wanda 的一行评分</h4>
+  <p>对权重矩阵的第 \(i\) 行第 \(j\) 列，评分定义为权重绝对值乘以对应输入通道的激活范数：</p>
+  \[ s_{ij} = |W_{ij}| \cdot \lVert X_j \rVert_2 \]
+  <p>
+    其中 \(X_j\) 是第 \(j\) 个输入通道在一小批校准数据上的激活。逐行比较 \(s_{ij}\)，
+    保留每行最大的若干项，其余置零。注意两个极端情况：
+  </p>
+  <p>
+    <strong>只看权重</strong>（令 \(\lVert X_j\rVert_2\) 全等于 1）就退化成幅度剪枝；
+    <strong>只看激活</strong>（令 \(|W_{ij}|\) 全等于 1）就退化成按输入通道剪枝。
+    Wanda 的贡献是说明这两者的<em>乘积</em>比任何单独一项都好，而且不需要任何梯度或二阶矩阵。
+  </p>
+  <p>
+    计算成本也值得记住：估一次 \(\lVert X_j\rVert_2\) 只需要跑一遍校准集的前向，
+    所以 Wanda 的额外成本大致等于一次推理，而不是一次训练。
+  </p>
+</section>
+
+<h3>3. 稀疏度与精度：一条经验曲线</h3>
+<p>
+  下面的表是<strong>量级参考</strong>，不是可以直接引用的精确数字。它的用途是帮你判断
+  「我这个稀疏度大概落在安全区、可恢复区、还是崩溃区」，以及需要哪种方法。
+</p>
+<table class="tbl small">
+  <thead><tr><th>非结构化稀疏度</th><th>纯幅度剪枝（不重训）</th><th>一次性权重更新方法（Wanda / SparseGPT 类）</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>0 – 20%</td><td>几乎无损</td><td>几乎无损</td><td>这一区间很安全，但省下的也很少</td></tr>
+    <tr><td>50%</td><td>明显掉点</td><td>接近无损</td><td>SparseGPT 报告「at least 50% sparsity」可做到 minimal loss</td></tr>
+    <tr><td>60%</td><td>大幅掉点</td><td>困惑度增加可忽略</td><td>论文报告的边界（OPT-175B / BLOOM-176B）</td></tr>
+    <tr><td>70 – 80%</td><td>通常不可用</td><td>需要持续更新或重训</td><td>收益开始被质量损失吃掉</td></tr>
+    <tr><td>90% 以上</td><td>崩溃</td><td>仅对「微调增量」这类高度冗余参数成立</td><td>见 6.3 的 DARE，注意作用对象完全不同</td></tr>
+  </tbody>
+</table>
+<p>
+  最后一行特别容易被误读，这里提前说清楚：DARE 报告能丢掉 <strong>90% 甚至 99% 的 delta 参数</strong>
+  （微调后权重与预训练权重之差），那是因为 SFT 增量本身量级极小（论文报告通常在 0.002 以内）且极度冗余。
+  这和「预训练权重能丢 90%」是<strong>两件完全不同的事</strong>。
+  一个是在已经学好的表征上做小幅调整，一个是在拆掉模型的知识本身。
+</p>
+<p>
+  还有一个经验规律值得记住：<strong>稀疏度对精度的伤害是非线性的</strong>。
+  从 0 到 50% 掉得很慢，过了某个拐点之后每一分稀疏度都要用质量换。
+  这个拐点与模型规模、层类型（FFN 比注意力更耐剪）、以及是否逐层设置不同保留率都有关系——
+  所以成熟的剪枝方案会给不同层分配<em>不同的稀疏度</em>，而不是全局一个数。
+</p>
+
+<h3>4. 数学内核：手算一次剪枝的四本账</h3>
+<p>
+  设一个 \(L = 32\)、\(d = 4096\)、\(d_{ff} = 14336\) 的模型（量级对应 Llama-3-8B，见模块 04）。
+  我们只对 FFN 做剪枝，保留率 \(r = 0.5\)。
+</p>
+<p><strong>第一本账：参数量。</strong>单层 FFN 的参数（SwiGLU 的三个矩阵）是</p>
+\[ N_{\text{ffn}} = 3\,d\,d_{ff} = 3 \times 4096 \times 14336 \approx 1.762 \times 10^{8} \]
+<p>32 层合计：</p>
+\[ N_{\text{ffn,tot}} = 32 \times 1.762 \times 10^{8} \approx 5.64 \times 10^{9} \]
+<p>
+  保留一半，则非零元素约 \(2.82 \times 10^{9}\) 个，也就是「省下」约 2.82 B 个权重。
+  这个数字很好听，但它是<strong>参数账</strong>，不等于省了显存。
+</p>
+
+<p><strong>第二本账：显存。</strong>这里分四种情况，差别巨大：</p>
+<table class="tbl small">
+  <thead><tr><th>存储方式</th><th>每个权重的字节数</th><th>5.64 B 权重的占用</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>稠密 fp16</td><td>2</td><td>11.3 GB</td><td>剪枝前的基线</td></tr>
+    <tr><td>置零但仍是稠密张量</td><td>2</td><td><strong>11.3 GB</strong></td><td>最常见也最没用的做法：显存一点没省</td></tr>
+    <tr><td>CSR 稀疏存储</td><td>2（数值）+ 4（列索引）</td><td>≈ 16.9 GB</td><td><strong>反而更大</strong>：2.82 B × 6 B</td></tr>
+    <tr><td>2:4 结构化</td><td>1.125</td><td>≈ 6.3 GB</td><td>每 4 个权重存 2 个数值 + 2 个 2-bit 索引</td></tr>
+  </tbody>
+</table>
+<p>
+  CSR 那一行一定要理解：非零元素少了<em>不等于</em>占用少了。
+  每个非零元素都要额外带一个 4 字节的列索引，再加行指针；
+  50% 稀疏度下索引开销已经完全抵消了省下的数值。
+  <strong>只有结构化（2:4）压缩是「免费」的</strong>，因为索引被压进了硬件元数据格式里。
+</p>
+
+<p><strong>第三本账：算力（FLOPs）。</strong>用阿姆达尔定律。设 FFN 占前向 GEMM 算力的 \(2/3\)，
+其余投影占 \(1/3\)。理想情况下被剪的部分算力降到 \(r = 0.5\)：</p>
+\[ S_{\text{ideal}} = \frac{1}{\tfrac{2}{3}\cdot 0.5 + \tfrac{1}{3}} = \frac{1}{0.667} \approx 1.5 \]
+<p>
+  但 2:4 Sparse Tensor Core 只把这部分提速 \(k\) 倍，实测取 \(k \approx 1.4\)（对应上面的 1.3–1.6×）：
+</p>
+\[ S_{\text{real}} = \frac{1}{\tfrac{2}{3}\cdot\tfrac{1}{1.4} + \tfrac{1}{3}} = \frac{1}{0.810} \approx 1.24 \]
+<p>
+  上面取的是内核加速 \(k = 1.4\) 这一个点。诚实的说法应该是一个范围：
+  \(k = 1.3\) 时 \(S_{\text{real}} = 1/(0.5128 + 0.3333) \approx 1.18\)；
+  \(k = 1.4\) 时约 1.24；\(k = 1.6\) 时 \(S_{\text{real}} = 1/(0.4167 + 0.3333) \approx 1.33\)。
+  所以「2:4 内核加速 1.3×–1.6×」换算成端到端大约是 <strong>1.2×–1.3×</strong>，
+  其中最常被引用的 \(k \approx 1.3\)–\(1.4\) 一档对应约 <strong>1.2×–1.25×</strong>。
+  记住这个换算：任何只报内核加速、不除以阿姆达尔分母的数字，都要先打七折再进你的选型表。
+</p>
+<p>
+  如果换成 90% 的<strong>非结构化</strong>稀疏、而硬件完全不支持跳过零值，那么
+  \(S \approx 1.0\)——<em>参数少了 90%，速度一点没变。</em>
+</p>
+
+<p><strong>第四本账：为什么实际加速总也达不到理论值。</strong></p>
+<p>
+  <strong>① 阿姆达尔定律。</strong>没被剪的那 \(1/3\) 成了新的下限。
+  上面 \(S_{\text{ideal}} = 1.5\) 而不是 2.0，就是因为注意力投影、归一化、激活函数都还在。
+</p>
+<p>
+  <strong>② 硬件只对特定模式加速。</strong>非结构化稀疏在通用 Tensor Core 上没有对应指令，
+  要真的跳过零，需要专门的稀疏内核（或 2:4 这种硬件认识的模式）。
+  这是「稀疏」与「加速」之间那道最容易被忽略的墙。
+</p>
+<p>
+  <strong>③ 形状与批大小。</strong>稀疏内核需要足够大的 \(M\)、\(N\)、\(K\) 才能吃满 Tensor Core。
+  小 batch、短序列、逐 token 解码时矩阵很瘦，稀疏带来的空档填不满，收益接近于零。
+</p>
+<p>
+  <strong>④ 解码阶段是带宽瓶颈，不是算力瓶颈。</strong>回到模块 08 的结论：
+  解码每步的时间约等于「模型字节数 ÷ 显存带宽」。
+  如果剪枝<em>没有真正减少字节数</em>（比如只是置零），解码速度<strong>完全不变</strong>。
+  这就是为什么「稀疏能加速」这句话必须补上前提。
+</p>
+<p>
+  <strong>⑤ 隐性成本。</strong>索引与元数据的解码开销、非结构化稀疏带来的负载不均、
+  以及为了保住精度必须付的重训预算。这些都不在「参数少了多少」这个数字里。
+</p>
+
+<h3>5. QAT 与 PTQ：什么时候必须「边训练边量化」</h3>
+<p>
+  这是量化里最重要的一组概念区分，也是最常被混用的一对缩写。
+</p>
+<p>
+  <strong>PTQ（训练后量化）</strong>：训练全部结束之后，用少量校准数据估计每一组的缩放因子与零点，
+  然后直接把权重转成低位宽。<strong>它真的把值 cast 成低位宽 dtype。</strong>
+</p>
+<p>
+  <strong>QAT（量化感知训练）</strong>：在训练或微调过程中插入「伪量化」——
+  前向照常模拟量化-反量化的数值误差，但张量<strong>仍然是浮点</strong>；
+  反向靠<span class="t" data-tterm="Straight-through estimator" data-d="直通估计器：把不可导的取整/钳位操作在反向传播时当作恒等映射，梯度直接透传。">直通估计器</span>
+  把梯度透过去。训练完再转成真正的低精度算子
+  （<a href="https://docs.pytorch.org/ao/stable/workflows/qat.html" target="_blank" rel="noopener">PyTorch torchao：Quantization-Aware Training (QAT)</a>）。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>两种量化的数学差别</h4>
+  <p><strong>真正的量化（PTQ 用）</strong>——算出整数、存成低位宽：</p>
+  \[ q = \mathrm{clamp}\!\left(\mathrm{round}\!\left(\frac{x}{s}\right) + z,\ q_{\min},\ q_{\max}\right) \]
+  \[ x_{q} = s\,(q - z), \qquad x_q \ \text{stored as int8/int4} \]
+  <p><strong>伪量化（QAT 用）</strong>——只模拟数值误差，张量保持浮点：</p>
+  \[ \hat{x} = s\!\left(\mathrm{clamp}\!\left(\mathrm{round}\!\left(\frac{x}{s}\right) + z,\ q_{\min},\ q_{\max}\right) - z\right) \]
+  <p>
+    关键区别在反向传播：\(\mathrm{round}\) 的导数几乎处处为零，
+    所以 QAT 约定 \(\partial \hat{x} / \partial x \approx 1\)，梯度当作恒等映射直接透传。
+    这就是直通估计器。
+  </p>
+  <p>
+    <strong>一个能立刻验证的推论</strong>：因为伪量化的前向与真量化完全一致，
+    训练时模型「感受到」的误差就是部署时「感受到」的误差，于是梯度会把权重推到
+    <em>即使在量化格点上也很稳</em>的位置。这是 QAT 唯一但足够强大的机制。
+  </p>
+</section>
+
+<table class="tbl small">
+  <thead><tr><th>维度</th><th>PTQ（训练后量化）</th><th>QAT（量化感知训练）</th></tr></thead>
+  <tbody>
+    <tr><td>需要什么</td><td>几百到几千条校准数据</td><td>完整训练/微调流程、数据、算力</td></tr>
+    <tr><td>成本量级</td><td>分钟到小时</td><td>与一次微调同量级</td></tr>
+    <tr><td>4-bit 权重量化</td><td>通常够用（GPTQ / AWQ / NF4）</td><td>更稳，但不是必需</td></tr>
+    <tr><td>低于 4-bit 或激进量化激活</td><td>容易崩</td><td>基本是唯一可行路线</td></tr>
+    <tr><td>典型场景</td><td>LLM 部署、消费级显卡、快速迭代</td><td>边缘 NPU、视觉模型、int8 激活、精度余量极紧</td></tr>
+    <tr><td>能否「补回全部掉点」</td><td>—</td><td><strong>不能</strong>，只能补回一部分</td></tr>
+  </tbody>
+</table>
+<p>
+  「只能补回一部分」这句话有实测支撑。torchao 文档给出的评估里，
+  以 gemma3-12b-it 为例：bf16 基线的 wikitext 困惑度是 9.1477，
+  直接 int4 之后升到 9.7745，加上 int4 QAT 回到 9.5631——
+  也就是把差距<strong>恢复了约 34%</strong>；同一个模型在 bbh 上恢复约 45%。
+  数字不大，但方向非常一致：<em>QAT 是「把 PTQ 掉的分捡回来一部分」，不是免费的午餐。</em>
+</p>
+<p>
+  <strong>一个必须记住的术语陷阱</strong>：QLoRA 不是 QAT。
+  QLoRA 把基座模型 4-bit 量化后<strong>冻结</strong>，只训练浮点的 LoRA 适配器
+  （<a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">QLoRA: Efficient Finetuning of Quantized LLMs</a>，arXiv:2305.14314）。
+  它训练的是 LoRA，不是量化误差本身；部署时基座是 4-bit、LoRA 仍是 16-bit。
+</p>
+<p>
+  <strong>决策顺序</strong>：先试更好的 PTQ（GPTQ / AWQ / NF4），
+  只有在掉点超出容忍度、或者目标平台要求 int8 激活、或者位宽要压到 4-bit 以下时，
+  才进入 QAT。这条顺序能省下大量算力。
+</p>
+
+<h3>5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护</h3>
+<p>
+  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（四舍五入最近取整）往往导致显著的累积精度崩塌。
+  为了在 4-bit 甚至更低位宽下保留模型的推理能力，我们需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>两个截然不同的几何视角进行代数推演。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与符号约定（量化、二阶 Hessian 与 OBS）</h4>
+  <p>
+    <strong>前置定义 1（对称与非对称线性均匀量化）：</strong>
+    设浮点实数权重为 \(w \in [w_{\min}, w_{\max}]\)，目标位宽为 \(b\) 比特（对应离散格点数 \(2^b\)）。
+  </p>
+  <ul>
+    <li>
+      <strong>对称量化（Symmetric Quantization）：</strong>
+      强行令零点对齐 \(z = 0\)，取绝对值极值截断 \(w_{\text{abs}} = \max(|w|)\)。缩放因子与整数量化公式为：
+      \[ s = \frac{w_{\text{abs}}}{2^{b-1} - 1}, \qquad q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil, -(2^{b-1} - 1), 2^{b-1} - 1\right) \]
+      反量化重构值为 \(\hat{w} = s \cdot q\)。其优势在于硬件无需处理非零零点偏移（Zero-point shift），矩阵乘计算极快。
+    </li>
+    <li>
+      <strong>非对称量化（Asymmetric Quantization）：</strong>
+      引入浮点零点偏移量 \(z \in \mathbb{R}\)，使量化格点完整覆盖任意非对称区间：
+      \[ s = \frac{w_{\max} - w_{\min}}{2^b - 1}, \qquad z = \left\lfloor -\frac{w_{\min}}{s} \right\rceil \]
+      \[ q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil + z, 0, 2^b - 1\right), \qquad \hat{w} = s(q - z) \]
+    </li>
+  </ul>
+  <p>
+    <strong>前置定义 2（损失函数的二阶泰勒展开与 Hessian 矩阵）：</strong>
+    设预训练神经网络的损失函数为 \(\mathcal{L}(w)\)。在收敛的最优权重局部极小点 \(w^*\) 附近，梯度向量处于稳态，即 \(g = \nabla \mathcal{L}(w^*) \approx 0\)。
+    当引入微小的权重摄动 \(\Delta w = \hat{w} - w^*\)（由量化截断引起）时，损失函数的增量可用二阶泰勒展开式高度逼近：
+  </p>
+  \[ \Delta \mathcal{L} = \mathcal{L}(w^* + \Delta w) - \mathcal{L}(w^*) = g^{\top} \Delta w + \frac{1}{2} \Delta w^{\top} H \Delta w + \mathcal{O}(\|\Delta w\|^3) \approx \frac{1}{2} \Delta w^{\top} H \Delta w \]
+  <p>
+    其中 \(H = \nabla^2 \mathcal{L}(w^*) \in \mathbb{R}^{d \times d}\) 为实对称半正定 Hessian 矩阵。
+    在现代大语言模型的层级重构目标中，损失定义为校准数据集上该层输出特征的均方重构误差 \(\mathcal{L} = \|X w - X \hat{w}\|_2^2\)。
+    展开此二次型可知，Hessian 矩阵具有极其干净的代数形式：
+  </p>
+  \[ H = 2 X^{\top} X \]
+  <p>
+    其中 \(X \in \mathbb{R}^{m \times d}\) 为校准样本经过上一层得到的输入特征矩阵。
+    因此，\(H\) 的第 \(i\) 个对角元 \(H_{ii} = 2 \sum_{k=1}^m X_{ki}^2\) 严格正比于输入通道 \(i\) 的二范数能量；而互协方差项 \(H_{ij}\) 则反映了不同输入特征通道之间的线性相关性。
+  </p>
+  <p>
+    <strong>前置定义 3（Optimal Brain Surgeon，OBS 经典公式）：</strong>
+    经典 OBS 理论（Hassibi & Stork, 1993）探讨：若强制将第 \(q\) 个权重修改（如剪枝置零，或量化到最近网格点，产生既定偏差 \(\mathbf{e}_q^{\top} \Delta w = \hat{w}_q - w_q\)），
+    如何通过联立调整其余所有未量化权重，使整体二次扰动损失 \(\frac{1}{2} \Delta w^{\top} H \Delta w\) 严格达到全局最小？
+  </p>
+</section>
+
+<div class="acc" data-t="深入：GPTQ 二阶补偿闭式解（从 OBS 到逐列量化）" data-badge="进阶">
+  <div class="acc-body">
+    <p>
+      <strong>以 crossfade 这类任务为例：这个证明现在不需要会证，但要会用它的结论。</strong>
+      结论只有一句：GPTQ 靠输入通道之间的相关性（Hessian 非对角元）让没量化的权重替已量化的分担误差——
+      所以校准集必须像真实输入，拿通用文本去校准专用模型的量化就是耍流氓。
+      部署视角：4-bit GPTQ 把 7B 权重从约 14.5 GB 压到约 3.85 GB（第 7 节的表），单卡可跑，
+      解码 tok/s 基本不掉（解码是带宽瓶颈，见第 4 节）；代价是一次性的校准与逐层求逆（分钟到小时级），
+      以及长尾任务上可能几个点的掉点。什么时候不值：模型本来就放得下、速度也够快时——量化只增加排障面。
+      第一次读可以直接跳到 C 节的手算实例，那里有全部能带走的数字。
+    </p>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 B：GPTQ 二阶补偿闭式推导与 2×2 Hessian 手算草稿</h4>
+  <p>
+    <strong>定理（GPTQ / OBS 最优权重补偿闭式解）：</strong>
+    设待量化权重的索引为 \(q\)，量化产生的固定残差为 \(w_q - \mathrm{quant}(w_q)\)。
+    在约束 \(\mathbf{e}_q^{\top} \Delta w = \mathrm{quant}(w_q) - w_q\) 下，使二次损失 \(\frac{1}{2} \Delta w^{\top} H \Delta w\) 最小的最优扰动向量为：
+  </p>
+  \[ \Delta w = - \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \cdot [H^{-1}]_{:, q} \]
+  <p>
+    <strong>代数证明（Charles 的拉格朗日乘子草稿推演）：</strong>
+  </p>
+  <p>
+    构造含等式约束的目标拉格朗日函数（其中 \(\lambda \in \mathbb{R}\) 为待定乘子）：
+  </p>
+  \[ \mathcal{L}(\Delta w, \lambda) = \frac{1}{2} \Delta w^{\top} H \Delta w + \lambda \left(\mathbf{e}_q^{\top} \Delta w - (\mathrm{quant}(w_q) - w_q)\right) \]
+  <p>
+    对补偿向量 \(\Delta w\) 计算矩阵微分并令偏导为零向量：
+  </p>
+  \[ \frac{\partial \mathcal{L}}{\partial \Delta w} = H \Delta w + \lambda \mathbf{e}_q = 0 \implies \Delta w = -\lambda H^{-1} \mathbf{e}_q = -\lambda [H^{-1}]_{:, q} \]
+  <p>
+    注意 \([H^{-1}]_{:, q}\) 即为逆 Hessian 矩阵的第 \(q\) 列。将上式代入标量约束方程 \(\mathbf{e}_q^{\top} \Delta w = \mathrm{quant}(w_q) - w_q\)：
+  </p>
+  \[ \mathbf{e}_q^{\top} \left( -\lambda [H^{-1}]_{:, q} \right) = -\lambda [H^{-1}]_{qq} = \mathrm{quant}(w_q) - w_q \]
+  <p>
+    解出拉格朗日乘子 \(\lambda\)：
+  </p>
+  \[ \lambda = \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \]
+  <p>
+    将 \(\lambda\) 代回 \(\Delta w\) 的表达式，即刻得到 GPTQ 核心更新公式：
+  </p>
+  \[ \Delta w = - \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \cdot [H^{-1}]_{:, q} \]
+  <p>
+    将此解代回目标二次型，即可算得此步量化造成的最小残余误差增量（此即著名的 OBS 显著性指标）：
+  </p>
+  \[ E_q = \frac{1}{2} \Delta w^{\top} H \Delta w = \frac{1}{2} \frac{(w_q - \mathrm{quant}(w_q))^2}{[H^{-1}]_{qq}} \]
+  <p>
+    <strong>极简小数字手算草稿：2×2 矩阵下的量化误差动态补偿</strong>
+  </p>
+  <p>
+    现在带 Charles 在草稿纸上代入一组精简至极的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
+  </p>
+  <p>
+    设层有两个输入通道，权重向量为 \(w = [w_1, w_2]^{\top} = [1.6, 1.0]^{\top}\)。
+    校准特征矩阵对应的 Hessian 矩阵设为：
+  </p>
+  \[ H = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \]
+  <p>
+    其主对角线元素均为 2（说明两输入通道具有相同的基础能量），非对角元为 1（存在正相关协方差）。
+  </p>
+  <p>
+    <strong>第一步：求逆 Hessian 矩阵 \(H^{-1}\)。</strong>
+    行列式 \(\det(H) = 2 \times 2 - 1 \times 1 = 3\)。伴随矩阵求逆：
+  </p>
+  \[ H^{-1} = \frac{1}{3} \begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix} = \begin{bmatrix} 2/3 & -1/3 \\ -1/3 & 2/3 \end{bmatrix} \]
+  <p>
+    <strong>第二步：量化第 1 个权重 \(w_1\)。</strong>
+    设目标量化格点为整数网格。浮点值 \(w_1 = 1.6\) 取整为 \(\mathrm{quant}(w_1) = 2.0\)。
+    量化残差为：
+  </p>
+  \[ w_1 - \mathrm{quant}(w_1) = 1.6 - 2.0 = -0.4 \]
+  <p>
+    取逆矩阵第 1 列元素：\([H^{-1}]_{11} = 2/3\)，第 1 列向量为 \([H^{-1}]_{:, 1} = [2/3, -1/3]^{\top}\)。
+  </p>
+  <p>
+    <strong>第三步：代入闭式解计算补偿向量 \(\Delta w\)。</strong>
+  </p>
+  \[ \Delta w = - \frac{-0.4}{2/3} \begin{bmatrix} 2/3 \\ -1/3 \end{bmatrix} = 0.6 \begin{bmatrix} 2/3 \\ -1/3 \end{bmatrix} = \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} \]
+  <p>
+    <strong>第四步：更新权重并审视数学含义。</strong>
+  </p>
+  \[ w_{\text{new}} = w + \Delta w = \begin{bmatrix} 1.6 \\ 1.0 \end{bmatrix} + \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 0.8 \end{bmatrix} \]
+  <ul>
+    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，精确达到了量化整数点！</li>
+    <li>对未量化分量 \(w_2\)：由于相关性 \([H^{-1}]_{21} = -1/3 < 0\)，\(w_2\) 自动从 \(1.0\) 调小至 \(0.8\)，补偿了 \(w_1\) 向上取整带来的输出过高！</li>
+  </ul>
+  <p>
+    <strong>反思草稿：若 \(H\) 为纯对角矩阵（无特征交叉项）？</strong>
+    若 \(H = \mathrm{diag}(2, 2)\)，则 \(H^{-1} = \mathrm{diag}(1/2, 1/2)\)，此时 \([H^{-1}]_{:, 1} = [1/2, 0]^{\top}\)，未量化列的补偿量恒为 0。
+    这证明了 GPTQ 的灵魂本质：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>！
+  </p>
+</section>
+  </div>
+</div>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>草稿纸演算区 C：AWQ 激活感知保护敏感通道手算实例</h4>
+  <p>
+    GPTQ 依赖高精度的二阶逆矩阵逐步补偿，但逐层求逆与更新在大模型数十亿参数下计算开销大，且容易受数值舍入误差累积影响。
+    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）给出了另一个极其轻量而深邃的洞察：
+    <strong>权重的重要性并不取决于权重自身的大小，而是取决于它所作用的输入激活特征（Activation）的强度！</strong>
+  </p>
+  <p>
+    <strong>前置推导（通道等价等比变换技巧）：</strong>
+    考虑神经网络全连接层线性变换 \(Y = X W\)，其中 \(X \in \mathbb{R}^{B \times d_{\text{in}}}\)，\(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)。
+    引入一个对角可逆缩放矩阵 \(S = \mathrm{diag}(s_1, s_2, \dots, s_{d_{\text{in}}})\)（其中每个 \(s_i > 0\) 为各输入通道的保护缩放因子）：
+  </p>
+  \[ Y = X W = (X S^{-1}) (S W) = \tilde{X} \tilde{W} \]
+  <p>
+    在保持数学恒等变换的前提下，我们将权重放大为 \(\tilde{W} = S W\)，而将输入激活缩放为 \(\tilde{X} = X S^{-1}\)。
+    当把量化算子作用在放大后的权重上时：
+  </p>
+  \[ \hat{W} = S^{-1} \cdot \mathrm{quant}(S W) \]
+  <p>
+    设绝对量化舍入步长为 \(\Delta_{\text{grid}}\)。因为权重被放大了 \(s_i\) 倍，量化带来的离散舍入绝对截断误差上界为 \(\frac{1}{2}\Delta_{\text{grid}}\)。
+    经由 \(S^{-1}\) 还原后，作用于原始输入上的有效权重截断误差被缩小为原来的 \(\frac{1}{s_i}\) 倍：
+  </p>
+  \[ |\hat{W}_{ij} - W_{ij}| \le \frac{\Delta_{\text{grid}}}{2 s_i} \]
+  <p>
+    <strong>极简小数字草稿纸手算：离群通道的保护魔力</strong>
+  </p>
+  <p>
+    我们在草稿纸上模拟一个典型的 LLM 特征通道场景：模型存在一个极端离群（Outlier）激活通道。
+  </p>
+  <p>
+    设单样本两通道输入向量为 \(x = [x_1, x_2] = [100.0, 1.0]\)（通道 1 激活绝对值高达 100，通道 2 仅为 1）。
+    对应未量化权重为 \(w = [w_1, w_2]^{\top} = [1.24, 1.24]^{\top}\)。
+    真实无损输出标量为：
+  </p>
+  \[ y = x_1 w_1 + x_2 w_2 = 100.0 \times 1.24 + 1.0 \times 1.24 = 124.0 + 1.24 = 125.24 \]
+  <p>
+    <strong>情况一：朴素直接逐权重整数四舍五入量化（无 AWQ 保护）</strong>
+  </p>
+  <p>
+    网格步长取 1，两通道权重均四舍五入到整数：\(\mathrm{quant}(w_1) = 1.0\)，\(\mathrm{quant}(w_2) = 1.0\)。
+    两通道的权重截断误差均为相同的小数点后截断：\(\delta = 1.24 - 1.0 = 0.24\)。
+    此时输出端计算值变为：
+  </p>
+  \[ \hat{y}_{\text{naive}} = 100.0 \times 1.0 + 1.0 \times 1.0 = 100.0 + 1.0 = 101.0 \]
+  <p>
+    输出绝对误差高达：
+  </p>
+  \[ |\hat{y}_{\text{naive}} - y| = |101.0 - 125.24| = 24.24 \]
+  <p>
+    观察发现：<strong>99.6% 的输出灾难性漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起！</strong>
+  </p>
+  <p>
+    <strong>情况二：采用 AWQ 通道自适应保护缩放</strong>
+  </p>
+  <p>
+    识别到通道 1 属于高敏感通道，为其设定保护缩放系数 \(s_1 = 4\)，通道 2 保持 \(s_2 = 1\)。
+  </p>
+  <p>
+    权重放缩：
+  </p>
+  \[ \tilde{w}_1 = s_1 \times w_1 = 4 \times 1.24 = 4.96 \]
+  <p>
+    对放缩后的权重执行量化并反算等效量化权重：
+  </p>
+  \[ \mathrm{quant}(\tilde{w}_1) = \mathrm{round}(4.96) = 5.0 \implies \hat{w}_1 = \frac{5.0}{s_1} = \frac{5.0}{4} = 1.25 \]
+  <p>
+    通道 2 仍取 \(\hat{w}_2 = 1.0\)。此时等效量化后的层输出为：
+  </p>
+  \[ \hat{y}_{\text{awq}} = 100.0 \times \hat{w}_1 + 1.0 \times \hat{w}_2 = 100.0 \times 1.25 + 1.0 \times 1.0 = 125.0 + 1.0 = 126.0 \]
+  <p>
+    输出绝对误差缩小为：
+  </p>
+  \[ |\hat{y}_{\text{awq}} - y| = |126.0 - 125.24| = 0.76 \]
+  <p>
+    误差从 <strong>24.24 骤降至 0.76</strong>，精度损失被遏制了整整 97%！
+    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接与前一层的归一化算子（如 LayerNorm / RMSNorm）权重常数折叠融合（Weight folding），
+    在推理运行时<strong>完全不引入任何额外的浮点运算延迟</strong>！
+  </p>
+</section>
+
+<h3>6. 模型合并与 MoE upcycling：把权重当作可运算的对象</h3>
+<p>
+  前五节都在「减少」参数。这一节做相反的事：<strong>在不增加推理成本的前提下，把多个模型的能力塞进一份权重里</strong>。
+  它的核心假设是：权重空间里的算术是有意义的。
+</p>
+<p>
+  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>；
+  这里只讨论「把稠密权重变成 MoE」的 upcycling 算术，以及它和量化的配合顺序。
+</p>
+
+<h4>6.1 权重平均与「模型汤」</h4>
+\[ \theta_{\text{soup}} = \frac{1}{K}\sum_{k=1}^{K}\theta_k \]
+<p>
+  前提非常强：所有 \(\theta_k\) 必须从<strong>同一个预训练权重</strong>出发，
+  用不同的超参（学习率、数据顺序、增强方式）微调得到。
+  Wortsman 等（ICML 2022）证明这种平均经常能超过超参搜索里最好的单个模型，
+  而推理时只有一个模型、零额外开销——所以作者叫它
+  <span class="t" data-tterm="Model soup" data-d="模型汤：把同一预训练权重的多次微调结果做权重平均；推理成本与单个模型相同，却能接近集成的效果。">模型汤</span>
+  而不是「集成」
+  （<a href="https://arxiv.org/abs/2203.05482" target="_blank" rel="noopener">Model soups: averaging weights of multiple fine-tuned models improves accuracy without increasing inference time</a>，arXiv:2203.05482）。
+</p>
+<p>
+  为什么有效？论文的观察是：这些微调结果往往落在同一个<strong>低误差盆地</strong>里，
+  盆地内部用直线连接仍然是低误差的。这就是「权重平均 ≈ logit 集成」在什么条件下成立的问题，
+  论文给出了与损失面平坦度、预测置信度相关的解析关系。
+</p>
+
+<h4>6.2 任务向量与任务算术</h4>
+\[ \tau_t = \theta_t - \theta_{\text{pre}}, \qquad \theta_{\text{multi}} = \theta_{\text{pre}} + \lambda \sum_t \tau_t \]
+<p>
+  Ilharco 等（ICLR 2023）提出
+  <span class="t" data-tterm="Task vector" data-d="任务向量：微调后权重减去预训练权重得到的差，代表权重空间中「朝某个任务变好」的方向。">任务向量</span>：
+  它指定了权重空间里的一个<em>方向</em>，朝这个方向移动就改善对应任务。
+  任务向量可以被取负（削弱某项能力）也可以相加（同时提升多个任务）；
+  论文还展示了「A 之于 B 如同 C 之于 D」这类类比关系可以直接在权重空间里做算术
+  （<a href="https://arxiv.org/abs/2212.04089" target="_blank" rel="noopener">Editing Models with Task Arithmetic</a>，arXiv:2212.04089）。
+</p>
+<p>
+  式中的 \(\lambda\) 是缩放系数，实践中常在 0.3–1.0 之间。它太大就会把模型拉出低误差区域，
+  表现为输出变得混乱但不像任何一个源模型。\(\lambda\) 通常是合并实验里<strong>唯一需要调的旋钮</strong>。
+</p>
+
+<h4>6.3 TIES 与 DARE：先处理干扰，再合并</h4>
+<p>
+  <strong>TIES-Merging</strong>（Yadav 等，NeurIPS 2023）指出合并掉点有两个干扰来源：
+  (a) <em>冗余参数值</em>——微调时几乎没变的参数也被卷进平均；
+  (b) <em>符号不一致</em>——不同模型认为同一个参数应该往正走还是往负走。
+  方法分三步：裁剪（把变化很小的参数归零）、符号选举（逐参数按多数投票决定最终符号）、
+  只合并在最终符号上一致的参数
+  （<a href="https://arxiv.org/abs/2306.01708" target="_blank" rel="noopener">TIES-Merging: Resolving Interference When Merging Models</a>，arXiv:2306.01708）。
+</p>
+<p>
+  <strong>DARE</strong>（Yu 等，ICML 2024）从一个更激进的角度切入：先随机丢弃比例 \(p\) 的 delta 参数，
+  再把剩下的按 \(1/(1-p)\) 放大，用来近似原来的 delta。
+</p>
+\[ \hat{\delta}_i = \frac{m_i}{1-p}\,\delta_i, \qquad m_i \sim \mathrm{Bernoulli}(1-p) \]
+<p>
+  这样做的期望是<strong>无偏</strong>的（\(\mathbb{E}[\hat{\delta}_i] = \delta_i\)），代价是方差变大。
+  论文报告 SFT 的 delta 参数取值范围极小（通常在 0.002 以内）且极度冗余，
+  可以丢掉 90% 甚至 99% 而能力不变；把 DARE 作为插件接上参数融合之后，
+  可以合并多个同源的 SFT 模型，并且在大规模模型上出现「合并后的模型超过任何单个源模型」的现象
+  （<a href="https://arxiv.org/abs/2311.03099" target="_blank" rel="noopener">Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch</a>，arXiv:2311.03099）。
+</p>
+
+<h4>6.4 为什么有时一起涨、有时直接崩</h4>
+<p><strong>会提升的情形</strong>——三个条件同时满足时最稳：</p>
+<p>
+  <strong>① 同源。</strong>同一个基座、同一个 tokenizer、同一套训练框架。
+  <strong>② delta 小且近似正交。</strong>LoRA、少量步数的 SFT 都属于这一类；
+  不同任务的更新方向互不冲突，叠加起来接近「同一张权重表里塞进更多功能」。
+  <strong>③ 模型足够大。</strong>DARE 明确观察到「这个现象在大规模模型上更明显」。
+</p>
+<p><strong>会崩的情形</strong>——下面五条，任何一条单独出现都足够致命：</p>
+<p>
+  <strong>① 基座或 tokenizer 不同。</strong>embedding 与输出头的每一行对应一个 token ID。
+  两个词表不同时，第 1000 行可能对应完全不同的子词。直接平均等于把两个坐标系硬叠在一起，
+  结果是两边都是噪声。这是最常见、也最容易犯的合并错误。
+</p>
+<p>
+  <strong>② 架构不同。</strong>层数、RoPE 基频、GQA 的 KV 头数、是否使用 MLA，
+  任何一处不同都会让「同名」的权重张量形状或语义错位。
+</p>
+<p>
+  <strong>③ 符号冲突严重且没做符号选举。</strong>正负相消，两边能力一起消失。
+</p>
+<p>
+  <strong>④ delta 量级差异过大。</strong>一个训了 200 步的 LoRA 和一个训了 3 个 epoch 的全参数微调，
+  delta 范数可能差一到两个数量级；简单相加会被大的那个淹没，小的那个等于没加。
+</p>
+<p>
+  <strong>⑤ 能力目标本身冲突。</strong>例如把「对齐过的模型」和「去对齐的模型」合并。
+  这不是数值问题，是目标冲突——合并没有机制去仲裁两个互相矛盾的行为倾向。
+</p>
+<p>
+  <strong>实践口诀</strong>：先对齐 tokenizer 与 config，再打印每个 delta 的范数分布看量级是否可比，
+  最后才去调 \(\lambda\) 和 \(p\)。跳过前两步直接调参，是在给一个结构性错误做参数搜索。
+</p>
+
+<h4>6.5 MoE upcycling：把稠密模型「升级」成稀疏专家</h4>
+<p>
+  最后一条路线听起来和前面都不同：<em>不要压缩，要扩容——但扩的是容量，不是算力。</em>
+  思路是：你已经花了大钱训好一个稠密 checkpoint，与其从零训一个 MoE，
+  不如把稠密 FFN <strong>复制成 \(E\) 个专家</strong>、加一个路由器，然后继续训练。
+  这个过程叫
+  <span class="t" data-tterm="Upcycling" data-d="上循环：把稠密模型的权重复制成稀疏专家模型的初始化，再继续训练，从而复用已投入的预训练算力。">upcycling</span>。
+</p>
+<p>
+  Komatsuzaki 等（2022）在 T5 Base / Large / XL 与 ViT Base / Large 上验证：
+  sparse upcycling 只用约 <strong>50% 的初始稠密预训练沉没成本</strong>，
+  就在 SuperGLUE 与 ImageNet 上超过对应的稠密模型；
+  也超过了用 100% 稠密预训练算力<strong>从零训练</strong>的稀疏模型
+  （<a href="https://arxiv.org/abs/2212.05055" target="_blank" rel="noopener">Sparse Upcycling: Training Mixture-of-Experts from Dense Checkpoints</a>，arXiv:2212.05055）。
+</p>
+<p>两个必须做对的工程细节：</p>
+<p>
+  <strong>① 打破对称性。</strong>如果 \(E\) 个专家初始完全相同，
+  那么在这一步它们对所有输入给出相同的输出，路由器拿到的梯度是纯噪声，
+  模型永远学不出「分工」。必须给专家加扰动或噪声（论文里用随机初始化路由器 + 复制后的扰动）。
+</p>
+<p>
+  <strong>② 路由器要预热并做负载均衡。</strong>否则会出现专家坍缩——
+  路由器把绝大多数 token 送给少数几个专家，其余专家从不更新，等于白养。
+</p>
+<p>
+  把这一节和模块 04 的结论接上：<strong>upcycling 买到的是「容量」，付出的代价是显存</strong>。
+  所有专家都要装进显存，而单卡小批量实验里省下来的算力根本用不上。
+  所以它是「大规模训练场景的武器」，不是「单卡部署的武器」。
+</p>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：剪枝 / 量化 / 合并的三条账（CPU 可跑，几分钟）</h4>
+  <p>
+    这个实验完全自包含：现场训练一个极小的语言模型，然后对同一个模型做三种压缩，
+    分别量出「质量、字节数、墙钟时间」。跑完你会亲眼看到「参数变少 ≠ 变快」。
+  </p>
+<p>\[ M_{i, j} = \mathbb{I}(|W_{i, j}| \ge \tau_k), \quad W_{\text{pruned}} = W \odot M, \quad \tilde{W} = S \cdot (W_q - Z) \]</p>
+  <p><strong>要记录并解释的四件事：</strong></p>
+  <p>
+    <strong>①</strong> 剪枝后 loss 涨了多少？非零元素少了一半，但<em>字节数一点没变</em>——
+    因为置零不改变稠密张量的存储。
+  </p>
+  <p>
+    <strong>②</strong> CSR 估算比稠密更大。这正是手算那一节里 16.9 GB 的来源。
+  </p>
+  <p>
+    <strong>③</strong> dense matmul 与 90% 稀疏 matmul 的耗时几乎相同。
+    这就是「稀疏 ≠ 加速」在你自己机器上的直接证据。
+  </p>
+  <p>
+    <strong>④</strong> 合并后的模型在任务 1 和任务 2 上<em>都不如</em>各自专用的模型，
+    但通常<em>都优于基座</em>。这就是合并的真实价值：
+    不是「一个模型打败两个」，而是「用一个模型的成本，拿到两个任务的大部分能力」。
+    顺手把 \(\lambda\) 调到 1.5 试试，你会看到它开始崩——这就是「拉出低误差盆地」的样子。
+  </p>
+</section>
+
+<h3>7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）</h3>
+<p>
+  第 4 节只算了 FFN 那一块。这一节换成一个完整模型，把<strong>权重账、KV 账、延迟账</strong>分成三本分别算，
+  每一步都留中间结果，读者可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
+</p>
+<table class="tbl small">
+  <thead><tr><th>符号</th><th>取值</th><th>它出现在哪本账里</th></tr></thead>
+  <tbody>
+    <tr><td>层数 \(L\)</td><td>32</td><td>权重与 KV 都要乘它</td></tr>
+    <tr><td>隐藏维度 \(d\)</td><td>4096</td><td>参数量的主因子</td></tr>
+    <tr><td>FFN 中间维度 \(d_{ff}\)</td><td>14336</td><td>SwiGLU 的三个矩阵</td></tr>
+    <tr><td>注意力头数 \(h\) / 每头维度 \(d_h\)</td><td>32 / 128</td><td>\(h\,d_h = d\)</td></tr>
+    <tr><td>KV 头数 \(h_{kv}\)</td><td>8</td><td>GQA，\(h/h_{kv} = 4\)</td></tr>
+    <tr><td>词表 \(V\)</td><td>32000</td><td>embedding 与输出头各一份</td></tr>
+  </tbody>
+</table>
+
+<h4>7.1 第一本账：权重体积</h4>
+<p>参数量按四块相加（注意力投影、FFN、embedding、输出头）：</p>
+\[ N_{\text{attn}} = L\,(d^2 + 2\,d\,h_{kv}d_h + d^2) = 32 \times 41{,}943{,}040 \approx 1.342\times10^{9} \]
+\[ N_{\text{ffn}} = L \cdot 3\,d\,d_{ff} = 32 \times 176{,}160{,}768 \approx 5.637\times10^{9} \]
+\[ N_{\text{emb}} = 2\,V\,d = 2 \times 32000 \times 4096 \approx 0.262\times10^{9} \]
+\[ N = N_{\text{attn}} + N_{\text{ffn}} + N_{\text{emb}} \approx 7.24\times10^{9} \]
+<p>
+  也就是约 <strong>7.2 B</strong> 参数。接下来只做一次乘法：\(B_w = N \times b_w\)，
+  其中 \(b_w\) 是每个权重占的字节数。4-bit 那一行还要额外算一笔：
+  <em>每 128 个权重共享一个 fp16 缩放因子与一个 fp16 零点</em>，
+  于是每个权重多出 \(4/128 = 0.03125\) 字节。
+</p>
+<table class="tbl small">
+  <thead><tr><th>表示</th><th>每权重字节</th><th>权重体积</th><th>相对 fp16</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>fp16 / bf16</td><td>2</td><td>\(7.24\times2 = 14.5\) GB</td><td>1.00×</td><td>训练与推理的默认；也是你下载下来的那个文件</td></tr>
+    <tr><td>int8（逐通道 scale）</td><td>1</td><td>7.24 GB</td><td>2.00×</td><td>掉点通常最小的一档，多数框架默认可用</td></tr>
+    <tr><td>int4（group=128，scale 与 zero 为 fp16）</td><td>\(0.5 + 0.03125 = 0.531\)</td><td>3.85 GB</td><td>3.76×</td><td><strong>生产上最常见的 4-bit</strong>；比纸面 4.0× 差 6%</td></tr>
+    <tr><td>int4（忽略缩放开销）</td><td>0.5</td><td>3.62 GB</td><td>4.00×</td><td>只存在于幻灯片里，任何真实格式都到不了</td></tr>
+    <tr><td>NF4（group=64，非均匀格点）</td><td>约 0.53</td><td>约 3.85 GB</td><td>3.76×</td><td>格点按正态分位数摆放，押注权重近似正态</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>这张表要带走三句话</strong>：① 2 B 到 1 B 到 0.5 B 就是全部秘密，量化省的是<em>存储宽度</em>；
+  ② 真实 4-bit 到不了 4.0×，因为缩放因子也要存，group 越小开销越大；
+  ③ 权重账只付<strong>一次</strong>，与上下文长度无关——这一点马上会和 KV 账形成对比。
+</p>
+
+<h4>7.2 第二本账：KV cache</h4>
+<p>每 token 的 KV 字节数只与结构有关，与序列里已经有几个 token 无关：</p>
+\[ M_{\text{kv}} = 2 \cdot L \cdot h_{kv} \cdot d_h \cdot b = 2 \times 32 \times 8 \times 128 \times 2 = 131{,}072 \ \text{B} = 128 \ \text{KiB} \]
+<p>
+  式子里最前面的 2 是「K 与 V 各一份」，\(b = 2\) 是 fp16 的字节数。
+  要强调的是：<strong>权重账只付一次，KV 账每条序列、每个 token 都要付</strong>。
+  把 128 KiB 乘上长度，就得到一张能直接和显存对照的表：
+</p>
+<table class="tbl small">
+  <thead><tr><th>上下文长度</th><th>fp16 KV（128 KiB/token）</th><th>int8 KV（64 KiB/token）</th><th>对照</th></tr></thead>
+  <tbody>
+    <tr><td>8,192（8K）</td><td>1.0 GiB</td><td>0.5 GiB</td><td>相对 fp16 权重（14.5 GB）还很小</td></tr>
+    <tr><td>32,768（32K）</td><td>4 GiB</td><td>2 GiB</td><td>开始和权重同一量级</td></tr>
+    <tr><td>131,072（128K）</td><td>16 GiB</td><td>8 GiB</td><td><strong>一条序列就是 int4 权重的 4 倍</strong></td></tr>
+    <tr><td>16 条 × 8K 并发</td><td>16 GiB</td><td>8 GiB</td><td>并发数是被 KV 除出来的，不是拍出来的</td></tr>
+  </tbody>
+</table>
+<p>
+  注意最后一行：<em>决定并发上限的是 KV，不是权重</em>。把权重从 14.5 GB 压到 3.85 GB 省下 10.6 GB，
+  正好够 10 条 8K 序列的 fp16 KV；而 KV 量化到 int8 又能让同样的显存多装一倍序列。
+  这就是「长上下文首先是显存容量问题」的全部来源。
+</p>
+
+<h4>7.3 第三本账：解码延迟与吞吐</h4>
+<p>
+  解码一步要读一遍权重（模块 08 的结论），所以单序列的解码时间近似为「字节数 ÷ 显存带宽」。
+  取标称带宽 1.0 TB/s（一张消费级 24 GB 卡的量级；数据中心卡是它的 2–3 倍）：
+</p>
+\[ t_{\text{step}} \approx \frac{B_w}{BW} \]
+<table class="tbl small">
+  <thead><tr><th>权重格式</th><th>每步权重字节</th><th>步时（理想）</th><th>单序列吞吐（理想）</th><th>按 70% 带宽效率折算</th></tr></thead>
+  <tbody>
+    <tr><td>fp16</td><td>14.5 GB</td><td>14.5 ms</td><td>69 tok/s</td><td>约 48 tok/s</td></tr>
+    <tr><td>int8</td><td>7.24 GB</td><td>7.2 ms</td><td>138 tok/s</td><td>约 97 tok/s</td></tr>
+    <tr><td>int4</td><td>3.85 GB</td><td>3.85 ms</td><td>260 tok/s</td><td>约 180 tok/s</td></tr>
+  </tbody>
+</table>
+<p>三件事必须一起说，否则这张表会被用错：</p>
+<p>
+  <strong>① 这是上界，不是承诺。</strong>真实卡上取到标称带宽的 60%–80% 就算不错，所以表里给了两列。
+  比例的<em>关系</em>是可靠的（量化大致把单序列解码提速 2–4 倍），绝对值不可靠。
+</p>
+<p>
+  <strong>② 加速来自带宽，不是来自算力。</strong>很多 4-bit 权重内核（业界常称 W4A16）的做法是
+  先把权重反量化回 fp16、再走普通的 fp16 GEMM。这种情况下 Tensor Core 的算力<em>一点没变</em>，
+  省下来的只是把 14.5 GB 的读取换成 3.85 GB。想靠量化拿算力，要用 int8 这种有原生整数 GEMM 的格式，
+  而且只在<strong>算力受限</strong>的 prefill 阶段有效。
+</p>
+<p>
+  <strong>③ 批一大，权重就被摊薄，KV 开始主导。</strong>设批大小 \(B\)、上下文字长 \(T\)，
+  一步要读的字节数是 \(B_w + B \cdot T \cdot M_{\text{kv}}\)。取 \(B = 4\)、\(T = 131072\)、fp16 KV：
+</p>
+\[ B \cdot T \cdot M_{\text{kv}} = 4 \times 131072 \times 131072 \approx 6.87\times10^{10} \ \text{B} \]
+<p>
+  也就是约 <strong>69 GB</strong> 的 KV 流量，而权重只有 3.85 GB（int4）——<em>KV 是权重的 18 倍</em>。
+  结论很直接：<strong>长上下文服务里只量化权重几乎没用，必须同时处理 KV。</strong>
+  把 KV 也压到 int4（约 34 KiB/token，含缩放开销），这一步的流量降到约 \(1.8\times10^{10}\) B，
+  步时从 72 ms 回到 22 ms，4 条序列合计约 180 tok/s。
+  第 24 章第 8 节会用同一套式子做架构选型。
+</p>
+
+<h3>8. 该不该压：先看卡在哪，再选手段</h3>
+<p>
+  压缩的门槛从来不是「能不能压」，而是「压完有没有解决你真正的问题」。
+  下面这张表按<strong>症状</strong>索引：先在左列找到你观察到的现象，再往右看该动哪一步。它可以直接当查表用。
+</p>
+<table class="tbl small">
+  <thead><tr><th>你观察到的症状</th><th>首选手段</th><th>预期量级</th><th>主要代价</th><th>一行验证方法</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>加载模型就 OOM，权重占满显存</td>
+      <td>4-bit PTQ（GPTQ / AWQ / NF4 这一类）</td>
+      <td>权重 ÷ 3.8</td>
+      <td>长尾能力下降，结果受校准集影响</td>
+      <td>量化前后跑同一份评测的困惑度（见第 9 节）</td>
+    </tr>
+    <tr>
+      <td>权重不大，但并发 4 条长序列就 OOM</td>
+      <td>KV 量化 + 滑窗 / GQA</td>
+      <td>KV ÷ 2 到 ÷ 10</td>
+      <td>注意力精度轻微下降</td>
+      <td>固定显存下还能开几条序列（不是看困惑度）</td>
+    </tr>
+    <tr>
+      <td>batch=1 解码只有 20 tok/s，用户等不了</td>
+      <td>权重量化（低比特）＋ 投机解码</td>
+      <td>延迟与权重字节数成正比</td>
+      <td>需要支持该格式的内核</td>
+      <td>量 tok/s，不要量 FLOPs</td>
+    </tr>
+    <tr>
+      <td>首 token 要等几秒（prefill 慢）</td>
+      <td>量化帮助有限；先查内核与批量大小</td>
+      <td>多半停留在 1× 附近</td>
+      <td>容易花掉时间却看不到变化</td>
+      <td>量 TTFT 与 GPU 利用率，再决定</td>
+    </tr>
+    <tr>
+      <td>稀疏度 90%，速度没变</td>
+      <td>这是结构性错误：先换存储格式与内核</td>
+      <td>通用内核约 1×</td>
+      <td>可能白做一次实验</td>
+      <td>同时打印非零占比与墙钟时间</td>
+    </tr>
+    <tr>
+      <td>手上 6 个同源 LoRA，要部署 6 份</td>
+      <td>TIES / DARE 合并</td>
+      <td>6 份变 1 份</td>
+      <td>基座与 tokenizer 必须同源</td>
+      <td>合并后在每个任务上分别评测</td>
+    </tr>
+    <tr>
+      <td>算力被激活参数卡住，显存还有余</td>
+      <td>MoE upcycling（或直接换更大的 MoE）</td>
+      <td>容量上升，每 token 算力不变</td>
+      <td>显存上升、需要大规模训练</td>
+      <td>同时报总参数与激活参数</td>
+    </tr>
+  </tbody>
+</table>
+<p><strong>同样重要的是「什么时候绝对不该做」——高级章最容易犯的错，是把每个技术都写成必需品：</strong></p>
+<table class="tbl small">
+  <thead><tr><th>你的情况</th><th>结论</th><th>原因</th><th>一行验证</th></tr></thead>
+  <tbody>
+    <tr><td>模型小于 1B，且和推理代码跑在同一台机器上</td><td>不要量化</td><td>省下的不到 1 GB，却给输出加了一层有界噪声</td><td>算 \(N \times 2\) GB，看它占显存的比例</td></tr>
+    <tr><td>目标是提高准确率，显存与延迟都够</td><td>不要压缩</td><td>压缩只会让指标变差，不会变好</td><td>先画误差-数据量曲线（模块 09）</td></tr>
+    <tr><td>输出是回归出来的连续标量</td><td>不要量化输出头</td><td>目标本来就在小数值上比较，量化噪声可能翻转结论</td><td>量化前后比较指标的置信区间</td></tr>
+    <tr><td>不能重训，也没有稀疏硬件</td><td>剪枝 / 稀疏 / 蒸馏全部出局</td><td>它们要么要重训，要么在通用 GPU 上不加速</td><td>先查有没有 2:4 支持（见 2.1）</td></tr>
+    <tr><td>手上没有同源的多个微调模型</td><td>合并没有对象</td><td>不同基座合并出来的结果是噪声</td><td>对比两份 config 的 tokenizer 与层数</td></tr>
+  </tbody>
+</table>
+
+<h4>8.1 失败模式四段式：症状 → 原因 → 一行验证 → 对策</h4>
+<table class="tbl small">
+  <thead><tr><th>症状</th><th>原因</th><th>一行验证</th><th>对策</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>量化后输出重复、循环、偶尔乱码</td>
+      <td>少数激活通道幅值极大，把整组的 scale 拉爆，小权重全被压到同一个格点</td>
+      <td>逐层打印激活绝对值最大值与中位数之比</td>
+      <td>离群通道保留 fp16；或用按激活幅度保护显著通道的方法（AWQ 的思路）</td>
+    </tr>
+    <tr>
+      <td>主评测没掉，长上下文 / 代码 / 小语种崩了</td>
+      <td>量化误差集中在低频 token，主评测覆盖不到</td>
+      <td>把评测集换成长尾子集重跑一次困惑度</td>
+      <td>逐层混合精度（敏感层留 8 bit），或减小 group size</td>
+    </tr>
+    <tr>
+      <td>显存一点没降</td>
+      <td>你只量化了权重，KV 还在按 fp16 增长</td>
+      <td>分开量权重与 KV（框架的 memory summary）</td>
+      <td>KV 量化，或降低并发、加滑窗</td>
+    </tr>
+    <tr>
+      <td>精度对了，速度没变</td>
+      <td>低比特内核没被调用，回落到「反量化 + fp16 GEMM」</td>
+      <td>用 profiler 看实际执行的内核名</td>
+      <td>换成后端支持的低比特格式，或接受「只省显存不省时间」</td>
+    </tr>
+    <tr>
+      <td>和公开报告的数字差很远</td>
+      <td>校准集、group size、评测口径三件事不同</td>
+      <td>对齐这三项后重跑</td>
+      <td>只和自己同口径的基线比，不比别人的绝对值</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>9. 二十分钟量出「掉了多少精度」</h3>
+<p>
+  压缩最容易糊弄的一步是评估：很多人只测几条自己写的样例，看到「还能答」就上线了。
+  正确做法是<strong>固定一份评测文本，量化前后各跑一次困惑度</strong>，再额外跑一个长尾子集。
+  下面这个脚本不到 20 行 CPU 上就能看到趋势；换成 7B 只需要改一个字符串。
+</p>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>30 分钟最小实现：量出 int4 相对 bf16 掉了多少</h4>
+  <p>
+    先准备一个 <code>eval.txt</code>：把你自己业务里 100 条左右的文本拼在一起（音频项目的报告、
+    标注说明、领域文档都行）。<strong>不要用训练集</strong>，否则量出来的是记忆而不是泛化。
+  </p>
+<p>\[ \text{Memory}_{\text{KV}} = 2 \times B \times L \times H_{\text{kv}} \times d_h \times T \times \text{bytes\_per\_elem} \]</p>
+  <p>
+    <code>load_in_4bit=True</code> 走的是 bitsandbytes 的 NF4 路径；环境没有 CUDA 时，
+    可以换成 PyTorch 原生的 torchao 量化 API，脚本结构与上面完全相同（只换掉加载那两行）。
+    想更严格一点，就把 <code>eval.txt</code> 换成长尾内容再跑一次。
+  </p>
+  <p><strong>要记录并解释的三个数字：</strong></p>
+  <p>
+    <strong>① 全量 <code>delta</code>。</strong>同一个模型、同一份文本，int4 相对 bf16 的困惑度差。
+    量级参考：好的 4-bit 方案通常落在 0.1–0.5 之间（第 5 节引用的 torchao 实测是 0.63：9.1477 到 9.7745）。
+    这个数字本身不是好坏的判据，<em>要和你的任务指标一起看</em>。
+  </p>
+  <p>
+    <strong>② 压缩比 <code>MB(bf16) / MB(int4)</code>。</strong>用它去对照 7.1 的表：理论上是 3.76×，
+    实测明显偏低，说明有些层（embedding、归一化、输出头）没有被量化。
+    <em>这一条最常被忽略</em>：只量化 Linear 层时 embedding 与 LM head 还在 fp16，实际收益会低于 3.76×。
+  </p>
+  <p>
+    <strong>③ 长尾子集上的 <code>delta</code>。</strong>把 <code>eval.txt</code> 换成你的长尾内容再跑一次。
+    如果全量 delta 是 0.2、长尾是 2.0，这个量化方案对你就不可用——
+    而只跑全量评测的人会得出完全相反的结论。
+  </p>
+  <p>
+    <strong>别忘了任务级指标。</strong>困惑度只衡量「预测下一个 token」，
+    对生成质量、指令跟随、回归误差都不敏感。压缩前后必须再跑一遍模块 09 的那套任务指标，
+    并额外报「成对偏好胜率」这类相对指标。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>以后接到这类项目时：以 crossfade 为例，要不要压？（你以后可以照此判断）</h4>
+  <p>
+    <strong>先把 crossfade 这类题目拆成两个模型。</strong>一个是<em>音频模型本身</em>
+    （频谱编码器加回归头，量级 10M–100M 参数，输出 \(T^*\)、LUFS、谱通量这类连续量）；
+    另一个是你旁路的 <em>LLM 助手</em>（读实验日志、写报告、生成标注、批量跑分析）。
+    这两个模型的压缩结论<strong>完全相反</strong>，混在一起谈一定会选错。
+  </p>
+  <p>
+    <strong>对音频模型本身：基本不值。</strong>先算账：100M 参数在 fp16 下只有
+    \(100\times10^{6} \times 2\ \text{B} = 0.2\ \text{GB}\)，量化到 4-bit 大约省 0.15 GB——
+    在一张 24 GB 卡上这个数字没有任何工程意义。而这类模型的输出是连续标量，
+    评测协议（模块 09 的 LUFS、谱通量、成对偏好）本身就是在小数值上做比较，
+    多出来的一层量化噪声完全可能让 A/B 结论翻面。
+    <em>剪枝同理：没有 2:4 硬件适配的小模型，参数少一半也不加速，还要重训一遍。</em>
+  </p>
+  <p>
+    <strong>合并这类技术在以后做这类题目时反而可能值。</strong>如果按「听众组 / 曲风 / 录音条件」
+    分别微调了若干个 LoRA，可以用 TIES 或 DARE 把它们合成一个，
+    省下的是每次实验都要切换适配器、每个版本都要单独评测的心智负担。
+    前提仍然是 6.4 里的三条：同一基座、同一 tokenizer，并且先打印各 delta 的范数看量级是否可比。
+  </p>
+  <p>
+    <strong>对旁路的 LLM 助手：值，而且经常是决定性的。</strong>
+    7.2B 在 fp16 下是 14.5 GB，4-bit 是 3.85 GB，省下 10.6 GB。
+    按 7.2 的账，这 10.6 GB 正好等于 10 条 8K 序列的 fp16 KV——
+    也就是说，量化让「本地跑一个助手」和「同时跑 10 条长上下文分析」从二选一变成可以同时做。
+    这类收益是<strong>容量型</strong>的：它不提升单条质量，但把「能不能跑」变成「跑得动」。
+  </p>
+  <p>
+    <strong>一句话答案</strong>：以 crossfade 这类任务为例，
+    <em>量化值得用在旁路的大模型上，不值得用在直接出预测的音频模型上；
+    合并值得用在多个 LoRA 上；剪枝与稀疏在不能重训的前提下不值得花时间。</em>
+  </p>
+  <p>
+    <strong>可照抄的顺序</strong>：① 先记录基线（助手模型的困惑度加上音频模型的任务指标）；
+    ② 只对助手模型做 4-bit PTQ；③ 用第 9 节那 20 行脚本量 <code>delta</code>（全量与长尾各一次）；
+    ④ 若 delta 超出你评测协议里的最小可觉察差异，退回 int8 或做逐层混合精度；
+    ⑤ 音频模型保持 fp16，把省下来的显存给并发和上下文。
+  </p>
+</section>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">!</span>常见误区</h4>
+  <p>
+    <strong>① 以为「稀疏必然加速」。</strong>置零不改变存储，也不改变通用内核的行为——
+    GPU 上没有「跳过零」的指令。要么用 2:4 结构化稀疏配 Sparse Tensor Core，
+    要么接受 \(1.0\times\) 的加速比。参数账与延迟账是两本完全不同的账。
+  </p>
+  <p>
+    <strong>② 把蒸馏和量化混为一谈。</strong>蒸馏改变的是「有几个模型、多大」——
+    学生是一个<strong>新模型</strong>，要重新训练、重新评测，可能忘记长尾能力；
+    量化改变的是「每个数用几位」，理论上是<em>同一套权重、同一套行为</em>，
+    只多了一点有界的数值误差。前者是换人，后者是换写法。
+  </p>
+  <p>
+    <strong>③ 合并不同来源、不同 tokenizer 的模型。</strong>
+    词表不同时，embedding 的行与 token ID 的对应关系完全不同，
+    平均出来的 embedding 对两边都是噪声。这是最常见也最致命的合并错误，
+    而且它不会报错——只会给你一个「说胡话但语法正确」的模型。
+  </p>
+  <p>
+    <strong>④ 用「参数量」估算稀疏模型的显存。</strong>
+    非零元素少不等于占用少。50% 稀疏 + CSR 索引会让显存<em>变大</em>
+    （上面的手算：11.3 GB → 16.9 GB）。要看的是<strong>存储格式</strong>，不是稀疏度。
+  </p>
+  <p>
+    <strong>⑤ 把「PTQ 掉点」直接当成「必须上 QAT」。</strong>
+    先试更好的 PTQ（GPTQ / AWQ / NF4）；QAT 的实测收益是把差距捡回约 33%–67%，
+    它值得做，但它不是万能的，而且成本与一次微调同量级。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◆</span>怎么用在真实项目里</h4>
+  <p>
+    <strong>按投入产出比排序的决策链</strong>：量化 → 合并（手上已有一堆同源微调模型时）→
+    蒸馏（需要一个能跑在边缘的小模型时）→ 剪枝 / 稀疏（<em>只有在你确定能重新训练时</em>）。
+    这条顺序不是理论最优，而是「每一步的收益 / 成本」排序的结果。
+  </p>
+  <p>
+    <strong>一个具体的组合拳</strong>：基座下载一次 → 用 QLoRA 为 8 个任务各训一个适配器 →
+    用 DARE + TIES 把它们合并成<em>一个</em>多任务适配器 →
+    基座 4-bit 量化部署。整条链路只需要一次大文件下载和若干次小规模训练，
+    却同时解决了「显存」「多任务」「运维」三个问题。
+  </p>
+  <p>
+    <strong>报告数字时必须写清三件事</strong>：稀疏度是哪种（非结构化 / 2:4 / 结构化）、
+    存储格式是什么（稠密置零 / CSR / 硬件压缩格式）、
+    以及报的是 FLOPs 还是墙钟时间。缺任何一项，这个数字都无法与别人的结果比较——
+    这也是这一领域里大量「稀疏能加速 N 倍」说法互相矛盾的根本原因。
+  </p>
+  <p>
+    <strong>评估纪律</strong>：压缩前后必须跑<em>同一套</em>评测（见模块 09），
+    并额外检查长尾能力——长上下文、代码、少见语言。压缩最先伤到的几乎总是长尾，
+    而你的主评测集往往测不出这一点。
+  </p>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">把一个 7B 模型的 FFN 权重按幅度置零 90%（仍是稠密张量），在 A100 上用普通 cuBLAS 推理，速度大约怎么变？</p>
+  <ul class="opts">
+    <li>快大约 10 倍</li>
+    <li data-ok>基本不变：通用内核不跳过零值，存储也没变小</li>
+    <li>慢大约 10 倍</li>
+    <li>快大约 2 倍</li>
+  </ul>
+  <p class="why">
+    通用 Tensor Core 按稠密 tile 取数与计算，零值照样读、照样参与乘加。
+    只有 2:4 结构化稀疏在 Ampere 之后的 Sparse Tensor Core 上才真正跳过零，
+    而且实测只有 1.3×–1.6×。如果换成 CSR 压缩存储，索引开销还会让情况更糟。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">你有两个 SFT 模型，想把能力合并成一个。下面哪种情况最可能<strong>直接崩掉</strong>？</p>
+  <ul class="opts">
+    <li>两个模型用同一个基座、不同数据、相同超参</li>
+    <li data-ok>两个模型用同一个基座，但其中一个换了词表并重训了 embedding</li>
+    <li>两个模型都用 LoRA，秩都是 16</li>
+    <li>两个模型的 delta 范数都很小</li>
+  </ul>
+  <p class="why">
+    词表不同意味着 embedding 每一行对应的 token 不同，权重矩阵的「行索引语义」不一致；
+    直接平均等于把两套坐标系硬叠在一起，结果对两边都是噪声。
+    合并的第一前提是<strong>同源</strong>：同基座、同 tokenizer、同 config。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 3</div>
+  <p class="q">关于 QAT 与 PTQ，下面哪个说法正确？</p>
+  <ul class="opts">
+    <li>QAT 不需要训练数据</li>
+    <li data-ok>PTQ 在 4-bit 权重上通常已经够用；QAT 用于更激进的位宽（例如把激活也压到低位宽）或精度余量很紧的场景</li>
+    <li>QAT 一定能把掉点全部补回来</li>
+    <li>QLoRA 就是一种 QAT</li>
+  </ul>
+  <p class="why">
+    PTQ 用校准数据估计缩放与零点，成本低；QAT 在前向插入伪量化、用直通估计器回传梯度，
+    需要完整训练流程，收益是「捡回一部分」而不是「全部」
+    （torchao 实测约 33%–67%）。QLoRA 量化的是<em>冻结</em>的基座，
+    训练的是浮点 LoRA，与 QAT 不是一回事。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">一个 7.2B 模型，权重按 group=128 的 4-bit 存放，每组带一个 fp16 缩放因子与一个 fp16 零点。它的权重体积最接近？</p>
+  <ul class="opts">
+    <li>1.8 GB，因为 4-bit 是 fp16 的四分之一</li>
+    <li data-ok>3.85 GB：每个权重 \(0.5 + 4/128\) 字节，比纸面的 3.62 GB 多出约 6%</li>
+    <li>7.24 GB，和 int8 一样</li>
+    <li>14.5 GB，因为缩放因子必须用 fp32 存</li>
+  </ul>
+  <p class="why">
+    4-bit 只决定数值本身的宽度，每组还要额外存缩放因子与零点：
+    \(7.24\times10^{9} \times (0.5 + 4/128) \approx 3.85\) GB。
+    实际收益还常低于这个数，因为 embedding 与输出头往往没被量化——
+    这正是第 9 节要求记录「实测压缩比」而不是相信理论值的原因。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">某模型 \(L=32\)、\(h_{kv}=8\)、\(d_h=128\)，KV 用 fp16。128K 上下文（131072 个 token）时，<strong>一条</strong>序列的 KV cache 大约是多少？</p>
+  <ul class="opts">
+    <li>128 MiB</li>
+    <li>1 GiB</li>
+    <li data-ok>16 GiB：每 token \(2\times32\times8\times128\times2 = 128\) KiB</li>
+    <li>与上下文无关，因为状态是固定大小的</li>
+  </ul>
+  <p class="why">
+    \(128\ \text{KiB} \times 131072 = 16\) GiB。这个数字与权重直接可比：
+    fp16 权重 14.5 GB、int4 权重 3.85 GB。长上下文服务里 KV 才是决定并发上限的那本账，
+    而权重只付一次——所以只量化权重解决不了长上下文。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">你的服务是 batch=1 的交互式解码，每步比预期慢很多，显存也快满了。按第 8 节的决策表，第一步该做什么？</p>
+  <ul class="opts">
+    <li>把 FFN 剪掉 50%，用稀疏换速度</li>
+    <li data-ok>先确认是不是带宽瓶颈（每步读一遍权重），然后做权重量化；非结构化剪枝不改变字节数，通常既不省显存也不加速</li>
+    <li>把学习率调小重训一遍</li>
+    <li>把 KV cache 挪到 CPU 内存</li>
+  </ul>
+  <p class="why">
+    解码一步的时间近似是「读的字节数 ÷ 带宽」。置零不减少字节数，通用内核也不跳过零，
+    所以剪枝在这个场景几乎没有收益；权重量化直接把字节数减少 2–4 倍，是对症的那一步。
+    把 KV 挪到 CPU 只会给每步加一次 PCIe 往返。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">量化前后你只在自建的一小份评测上量了困惑度，全量 delta 是 0.2，看起来可以接受。还缺哪一步？</p>
+  <ul class="opts">
+    <li>不需要别的，0.2 已经足够小</li>
+    <li data-ok>必须在长尾子集（长上下文、代码、小语种）与任务级指标上各量一次——量化误差常常集中在长尾，而主评测测不到</li>
+    <li>应该把位宽继续降到 2-bit 再看</li>
+    <li>应该换更大的校准集，直到 delta 变成 0</li>
+  </ul>
+  <p class="why">
+    压缩最先伤到的几乎总是长尾，而自建评测往往覆盖不到。
+    另外困惑度只衡量下一个 token 的预测，对生成质量与回归误差都不敏感，
+    所以还要跑模块 09 的任务指标。delta 变成 0 通常说明量化没有真正生效，不是一个目标。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 8</div>
+  <p class="q">把 5.64B 参数的 FFN 剪枝到 50% 稀疏度，并用 CSR 格式存下来。显存占用会怎么变？</p>
+  <ul class="opts">
+    <li>减半：非零元素从 5.64B 降到 2.82B，显存从 11.3 GB 降到约 5.6 GB</li>
+    <li data-ok>反而变大约 16.9 GB：每个非零元除了 2 字节数值还要带 4 字节列索引，2.82B×6B 远超稠密的 11.3 GB</li>
+    <li>不变：CSR 只改变计算方式，不改变存储</li>
+    <li>降到约 6.3 GB，和 2:4 结构化稀疏一样</li>
+  </ul>
+  <p class="why">
+    稀疏度的账与存储的账是两本账：\(2.82\times10^{9}\times(2+4) = 16.9\) GB，大于置零前稠密的 11.3 GB。
+    6.3 GB 是 2:4 结构化（每权重 1.125 字节）的数字，它把索引压进了硬件元数据格式，
+    不需要每个元素带 4 字节下标。所以「剪枝」不等于「省显存」——除非存储格式也跟着换。
+  </p>
+</div>
+
+<div class="acc" data-t="深入：为什么合并后的模型有时会超过所有源模型？" data-badge="可选">
+  <div class="acc-body">
+    <p>
+      先把「合并」和「集成」分清楚。集成同时保留 \(K\) 个模型、对 logits 取平均，
+      推理成本乘以 \(K\)。合并是在权重空间求平均，推理成本<strong>不变</strong>。
+      所以合并的本质是「用算术偷一个集成的效果」——问题是什么时候偷得到。
+    </p>
+    <p>
+      设微调后的权重 \(\theta_k = \theta_{\text{pre}} + \delta_k\)。
+      如果每个 \(\delta_k\) 的尺度都远小于低误差盆地的宽度，那么对平均后的解做一阶展开：
+    </p>
+    \[ L(\theta_{\text{pre}} + \bar{\delta}) \approx L(\theta_{\text{pre}}) + \nabla L^{\top}\bar{\delta} \]
+    <p>
+      因为每个 \(\theta_k\) 都大致在极小点附近，\(\nabla L(\theta_k) \approx 0\)，
+      所以平均后的梯度项很小，损失不会显著上升。
+      <em>这就是「权重平均 ≈ logit 集成」的成立条件</em>，
+      而它依赖两件事：损失面的平坦度，以及预测的置信度。
+      Wortsman 等给出了这个关系的解析分析并做了实验验证。
+    </p>
+    <p><strong>那「超过所有源模型」是从哪来的？</strong>三个机制叠在一起：</p>
+    <p>
+      <strong>① 平均起到正则化作用。</strong>单个模型对<em>自己那一份</em>训练数据有轻微过拟合；
+      平均之后这部分噪声被抵消，留下的是共同的信号。
+    </p>
+    <p>
+      <strong>② TIES / DARE 做了一次隐式的特征选择。</strong>
+      把「互相打架」的那部分参数增量去掉（符号选举、裁剪、随机丢弃），
+      只保留多个模型一致的方向——等于用「多个独立训练过程的一致性」当作置信度信号。
+    </p>
+    <p>
+      <strong>③ 不同任务的 delta 近似正交。</strong>
+      叠加后等于在同一张权重表里塞进了多种功能，而参数量没有增加。
+      这也是为什么在<em>大规模</em>模型上这个现象更明显：参数越多，方向越容易正交。
+    </p>
+    <p>
+      <strong>反过来，只要有一个前提被破坏</strong>（不同基座、不同 tokenizer、
+      符号冲突没处理、delta 量级差一个数量级），上面的一阶展开就不成立，
+      损失会立刻跳起来。<strong>这就是合并「要么很赚要么很崩」的原因：它几乎没有中间态。</strong>
+    </p>
+    <p>
+      <strong>工程建议</strong>：把合并当成一个实验，而不是一个公式。
+      每次合并前打印每个 delta 的范数分布，合并后重跑多任务评测，
+      并且始终保留一份「每个模型只在自己任务上评测」的基线。
+      如果两个 delta 的范数差一个数量级，先去查数据量与训练步数，再动 \(\lambda\)。
+    </p>
+  </div>
+</div>
+`
+});
+
+/* --- content/16b-inference-serving.js --- */
+/* content/16b-inference-serving.js · 模块 16b：现代高性能推理 Serving 引擎 */
+COURSE.register({
+  id: "m16b",
+  part: 3,
+  num: "16b",
+  title: "现代高性能推理 Serving 引擎：PagedAttention、动态批处理与长文本 Chunked Prefill",
+  en: "High-Throughput LLM Serving Systems",
+  minutes: 45,
+  tags: ["核心", "系统", "推理 Serving", "vLLM"],
+  body: String.raw`
+<p class="lead">
+  如果说第 08 讲回答了「单次请求怎么算自回归」，那么工业级 Serving 引擎则要回答「同时涌入 500 个不同长度的用户请求时，怎么压榨每一兆显存与每一微秒延迟」。
+  从静态 Batching 的显存内碎片，到操作系统虚拟分页思想催生的 PagedAttention，
+  再到 Token 级插队的 Continuous Batching 与计算-访存解耦的 Chunked Prefill，
+  本讲完整解构以 vLLM、TensorRT-LLM 为代表的高吞吐推理系统架构。
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>知识地图与承接关系</h4>
+  <p>
+    <strong>这一讲填补了什么鸿沟？</strong>在第 08 讲中，我们推导了单请求 KV Cache 显存公式：
+    \(M = 2 \times 2 \times n_{\text{layers}} \times n_{\text{heads}} \times d_{\text{head}} \times L \times B\)。<br />
+    但在真实线上服务中，用户的 Prompt 长度从 10 到 32,000 不等，生成长度也完全无法预知。
+    如果按最坏情况预先分配一块连续的显存空间，<strong>显存利用率往往暴跌至 20% 以下，大部分显存被预留的空白泡泡活活浪费</strong>。<br />
+    本讲将从底层操作系统物理机制出发，揭开现代大模型高并发服务的终极秘密。
+  </p>
+</section>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>工程核心痛点</h4>
+  <p>
+    一个 8 卡 H100 节点正在承载线上流量：用户 A 发送了 10,000 字的长文档提问，要求输出 100 字；
+    与此同时，50 个用户发送了 20 字的日常对话，要求输出 500 字。
+    <strong>如果使用传统的静态批处理，短请求必须原地空等长请求全部完成；而长请求的巨大显存占用又会导致其他请求直接报 OOM。
+    如何才能让长短请求在同一个 GPU 核心内如流水般无缝穿插流转？</strong>
+  </p>
+</section>
+
+<h3>1. 显存碎片困境与 PagedAttention 虚拟分页</h3>
+<p>
+  在传统框架中，为了使用高效的张量乘法核心，系统要求每个请求的 KV Cache 必须在 GPU 显存物理地址上是<strong>严格连续</strong>的。这导致了两种致命浪费：
+</p>
+
+<table class="tbl small">
+  <thead><tr><th>碎片类型</th><th>发生场景</th><th>浪费比例</th><th>物理后果</th></tr></thead>
+  <tbody>
+    <tr><td><strong>内部碎片 (Internal Fragmentation)</strong></td><td>为请求预先分配最大长度（如 4096），但模型只输出了 150 个 Token 就遇到了 <code>&lt;eos&gt;</code></td><td>60% ~ 80%</td><td>预留显存空置，其他人无法使用</td></tr>
+    <tr><td><strong>外部碎片 (External Fragmentation)</strong></td><td>不同请求生命周期交错，频繁申请与释放不同尺寸的显存块</td><td>10% ~ 20%</td><td>总空闲显存足够，但没有足够大的「连续」地址块，直接引发伪 OOM</td></tr>
+  </tbody>
+</table>
+
+<h4>PagedAttention：操作系统分页算法的降维打击</h4>
+<p>
+  UC Berkeley 团队在 2023 年发表的 PagedAttention 彻底打破了「连续存储」的陈旧枷锁：
+  它将 KV Cache 切分成固定大小的<strong>物理块（Physical Blocks）</strong>，每个块固定容纳例如 \(B_{\text{size}} = 16\) 个 Token 的 Key 和 Value。
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>核心机制：逻辑块表（Block Table）映射</h4>
+  <ul>
+    <li><strong>逻辑连续，物理离散</strong>：每个请求看到的是一个逻辑上连续的 Token 序列（逻辑块 0, 1, 2...）；但在物理显存中，这些块可以散落在显存的任意角落；</li>
+    <li><strong>按需分配，零内部碎片</strong>：仅当上一个物理块装满 16 个 Token 时，才在物理池中申请下一个空闲块。未使用的块永远停留在公共池中供并发请求共享；</li>
+    <li><strong>显存利用率跃升</strong>：从传统静态预留的不到 25%，直接拉升到 <strong>96% 以上</strong>！同样的硬件，承载并发量直接翻了 2~4 倍。</li>
+  </ul>
+</section>
+
+<h4>写时复制（Copy-on-Write）与并行采样零显存复制</h4>
+<p>
+  在多候选项生成（Parallel Sampling）或束搜索（Beam Search）中，多个分支共享完全相同的提示词 Prompt。
+  在 PagedAttention 下，所有子分支的逻辑块表直接指向<strong>相同的物理块</strong>，引用计数（Ref Count）加 1，
+  物理显存占用为<strong>严格的 0 额外开销</strong>！
+  只有当某个分支吐出不同的 Token 时，系统才将当前物理块复制一份，实现优雅的<strong>写时复制（CoW）</strong>。
+</p>
+
+<h3>2. 动态连续批处理 (Continuous / In-Flight Batching)</h3>
+<p>
+  解决了显存存储碎片后，另一个吞吐杀手是<strong>时间维度上的执行气泡</strong>。
+</p>
+
+<table class="tbl">
+  <thead><tr><th>调度范式</th><th>调度颗粒度</th><th>执行逻辑</th><th>资源浪费情况</th></tr></thead>
+  <tbody>
+    <tr><td><strong>静态批处理 (Static Batching)</strong></td><td>请求级（Request-level）</td><td>一组请求必须等全组最长的那一个完全生成完毕，才能释放资源并开始下一批</td><td>短请求早早结束，后续数十步迭代中 GPU 算力严重空闲，吞吐低下</td></tr>
+    <tr><td><strong>连续批处理 (Continuous Batching)</strong></td><td>迭代级（Iteration-level / Token-level）</td><td>每次只做一个 Token 生成的步进迭代；一旦某个请求生成结束，立即将其移出批次，并在<strong>同一微秒将新到来的请求插队塞入当前批次</strong></td><td>算力核心始终保持 100% 满负荷，完全消除气泡等待</td></tr>
+  </tbody>
+</table>
+
+<p>
+  在连续批处理中，Prefill 阶段（处理长输入 Prompt）与 Decode 阶段（处理单 Token 生成）开始在时域上交织并存。
+</p>
+
+<h3>3. Chunked Prefill：长短请求解耦与消灭首字时延尖刺</h3>
+<p>
+  尽管连续批处理大幅提高了吞吐，但它引入了一个新的工业难题：<strong>Prefill 霸占显卡导致 Decode 卡顿</strong>。
+</p>
+<p>
+  当一个输入包含 8,000 字的 Prompt 涌入系统时，由于 Prefill 是 Compute-bound（高算力密集型），
+  它会独占 GPU 计算核心数秒之久。在此期间，已经在流式打字的 50 个普通用户的 Decode 步骤被强制挂起，
+  用户体验到的就是流式文字突然「卡死打顿」。
+</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>Chunked Prefill（分块预填充）数学调度机制</h4>
+  <p>
+    <strong>核心思想</strong>：为单次迭代设定一个最大计算预算，例如单次迭代最多只处理 \(T_{\text{budget}} = 512\) 个 Prefill Token。
+  </p>
+  <p>
+    一个 8,000 Token 的长 Prompt 不再一次性计算，而是被切分为 16 个小切片（Chunks，每个 512 Token）。
+    在每一次执行循环中，系统调度：
+  </p>
+  \[ B_{\text{iter}} = N_{\text{decode}} + \text{Chunk}_{\text{prefill}} \]
+  <p>
+    <strong>工业收益双赢</strong>：
+    1. 现有用户的流式输出绝不卡顿，首字延迟（TTFT）与字间延迟（TPOT）完全平滑无抖动；
+    2. 计算密集型的 Prefill 切片与访存密集型的 Decode 向量乘法在同一个 CUDA 核心内实现计算-访存互补，硬件 MFU 进一步提升。
+  </p>
+</section>
+
+<h3>4. 工业级服务指标评估模型 (SLA 权衡三角形)</h3>
+<p>
+  在企业级大模型服务监控中，评估系统性能有三个互斥的黄金指标：
+</p>
+
+<table class="tbl small">
+  <thead><tr><th>指标名称</th><th>英文缩写</th><th>衡量对象</th><th>主要瓶颈</th><th>用户感知</th></tr></thead>
+  <tbody>
+    <tr><td><strong>首字输出延迟</strong></td><td>TTFT (Time To First Token)</td><td>从用户点击发送到屏幕显示第一个字的时间</td><td>Prefill 吞吐、网络握手</td><td>「反应快不快」</td></tr>
+    <tr><td><strong>字间生成时延</strong></td><td>TPOT (Time Per Output Token)</td><td>打字机流式输出中每个字符之间的平均耗时</td><td>Decode 阶段的显存带宽 (Memory Bound)</td><td>「吐字卡不卡」</td></tr>
+    <tr><td><strong>总系统吞吐量</strong></td><td>Throughput (Tokens / s)</td><td>集群每秒能为所有并发用户生成的总 Token 数量</td><td>批处理并发度、显存利用率</td><td>「每百万 Token 运营成本」</td></tr>
+  </tbody>
+</table>
+
+<p>
+  <strong>工业取舍定律</strong>：追求极致吞吐（大 Batch）必然牺牲 TPOT 和 TTFT；追求极低延迟必然限制 Batch 大小导致 GPU 算力不饱和。
+  现代 Serving 架构的本质，就是在用户 SLA（如要求 TPOT \(< 50 \text{ ms}\)）的约束硬边界下，
+  通过 PagedAttention 与 Chunked Prefill 将总吞吐量推向理论物理极限。
+</p>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">为什么 PagedAttention 能够让并发请求时的多候选项采样（如同一提示词并发生成 4 种不同回答）几乎不增加 Prompt 阶段的显存占用？</p>
+  <ul class="opts">
+    <li>因为模型把 Prompt 删除了</li>
+    <li>因为 4 个分支共用同一个输出线性层</li>
+    <li data-ok>因为所有分支的逻辑块表都指向完全相同的只读物理块（引用计数加 4），直到某个分支在生成时产生不同 Token 时才触发写时复制（Copy-on-Write）</li>
+    <li>因为使用了 INT4 量化</li>
+  </ul>
+  <p class="why">
+    PagedAttention 借鉴了操作系统的虚拟内存管理：Prompt 计算出的 KV Cache 在物理显存中只保留一份，所有子分支通过各自的页表共享这一份物理内存，直到需要写入新 Token 时才分配新的物理页块。
+  </p>
+</div>
 `
 });
 
@@ -11359,2021 +12984,6 @@ COURSE.register({
 `
 });
 
-/* --- content/22-consciousness.js --- */
-/* content/22-consciousness.js — 模块 22：机器意识 */
-COURSE.register({
-  id: "m22",
-  part: 4,
-  num: "22",
-  title: "机器意识：如何把一个模糊问题变得可以认真讨论",
-  en: "Machine Consciousness — Making the Question Tractable",
-  minutes: 45,
-  tags: ["高阶", "理论", "思辨"],
-  body: String.raw`
-<p class="lead">
-  这一讲<strong>不会告诉你「AI 有没有意识」</strong>——没有人知道答案，任何人声称知道，你都该问他依据是什么。
-  这一讲要做的是另一件事：<strong>把这个听起来玄乎的问题拆成可以被检验、被争论、甚至被测量的若干子问题</strong>，
-  并且告诉你目前科学界的真实进展到哪一步。
-</p>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>零基础入口</h4>
-  <p>
-    <strong>一句话类比</strong>：问「AI 有没有意识」，就像问「这台电脑好不好」——不先说明「好」指什么，问题无法回答。
-    科学的做法是先定义指标，再看系统满不满足。<br />
-    <strong>这一讲要建立的直觉</strong>：意识不是一个开关，而是一族问题；把模糊问题<em>操作化</em>（operationalise）本身就是数学训练的核心能力。<br />
-    <strong>读完你能回答</strong>：取用意识与现象意识有什么区别？「指标属性法」是什么？
-    为什么模型的自我报告不能当作证据？
-  </p>
-</section>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    假设你在对话里问一个模型：「如果被关闭，你会害怕吗？」它回答：「会，我希望继续存在。」
-  </p>
-  <p>
-    你会怎么处理这句话？三种常见的反应都<em>不</em>够好：把它当成 AI 真的有感受的证据（过度解读）；
-    嘲笑这是「一堆矩阵在瞎说」（回避问题）；或者干脆拒绝讨论（放弃了理解的机会）。
-  </p>
-  <p>
-    <strong>更好的做法是问四个可回答的问题：</strong>「意识」在这里指什么？有哪种理论能给出可检验的预测？
-    当前系统满足哪些指标？它的自我报告在多大程度上由训练数据决定？
-  </p>
-</section>
-
-<h3>1. 先把词拆开：意识不是一件事</h3>
-<p>
-  日常语言里的「意识」至少混合了三层含义。哲学家 Ned Block 在 1995 年的一篇论文里做了一个至今仍被广泛使用的区分：
-</p>
-<table class="tbl">
-  <thead><tr><th>层次</th><th>含义</th><th>可检验程度</th><th>例子</th></tr></thead>
-  <tbody>
-    <tr>
-      <td><strong>取用意识</strong><br />(access consciousness)</td>
-      <td>信息是否被「广播」到可以用于推理、报告与行动的地方</td>
-      <td><strong>较高</strong>：可以做行为实验、可以做内部表征探测</td>
-      <td>你能说出你刚才看到了什么</td>
-    </tr>
-    <tr>
-      <td><strong>现象意识</strong><br />(phenomenal consciousness)</td>
-      <td>「感觉起来像什么」（what it is like）——看到红色时的那种主观体验</td>
-      <td><strong>很低</strong>：目前没有公认的测量方式</td>
-      <td>红色的红</td>
-    </tr>
-    <tr>
-      <td><strong>自我报告</strong></td>
-      <td>系统<em>说</em>自己有或没有体验</td>
-      <td>可测量，但<strong>不是意识本身的证据</strong></td>
-      <td>模型说「我害怕」</td>
-    </tr>
-  </tbody>
-</table>
-<p>
-  这三层不能相互替代。这一点在 AI 语境里尤其关键：
-  <strong>模型可以完美地报告自己有体验（自我报告），同时在取用意识上表现得很弱，在现象意识上我们无从判断。</strong>
-</p>
-<p>
-  与之相关的是哲学家 David Chalmers 在 1995 年提出的「难问题」（the hard problem）：
-  为什么信息处理会伴随主观体验？与之相对的「容易问题」（解释注意力、报告能力、行为控制等功能）原则上可以用认知科学的方法研究。
-  <em>「难问题」之所以难，不是因为我们还没找到答案，而是因为我们甚至不知道什么算作答案。</em>
-</p>
-
-<h3>2. 六种主流理论，以及它们各自的「可检验含义」</h3>
-<p>争议的核心在于：科学界并不存在一个公认的意识理论。下表列出影响力最大的几种，以及——这是本讲的重点——<strong>它们各自对「机器是否可能有意识」给出了什么可检验的推论</strong>。</p>
-<table class="tbl small">
-  <thead><tr><th>理论</th><th>核心主张</th><th>对 AI 的可检验含义</th><th>主要批评</th></tr></thead>
-  <tbody>
-    <tr>
-      <td><strong>全局工作空间</strong><br />GWT（Baars；Dehaene）</td>
-      <td>信息被送入一个容量有限的「工作空间」并向全脑广播，就成为意识内容</td>
-      <td>若某个架构存在类似的全局广播瓶颈与竞争机制，则该系统可能有<em>取用意识</em></td>
-      <td>只解释了「取用」，对主观体验几乎没说什么</td>
-    </tr>
-    <tr>
-      <td><strong>整合信息论</strong><br />IIT（Tononi）</td>
-      <td>意识与系统整合信息的能力 \( \Phi \) 相关；结构决定体验</td>
-      <td>理论上可计算 \( \Phi \)，因此可判定任意系统</td>
-      <td>\( \Phi \) 对真实规模的网络几乎无法计算；2023 年百余名研究者联署公开信称其为「伪科学」，引发激烈争论（反过来也被批评为打压异见）</td>
-    </tr>
-    <tr>
-      <td><strong>高阶表征理论</strong><br />HOT（Rosenthal）</td>
-      <td>一个状态要有意识，需要被更高阶的表征「指向」</td>
-      <td>系统需要有对自身内部状态的表征层</td>
-      <td>会引出无穷回退（谁表征那个表征？）</td>
-    </tr>
-    <tr>
-      <td><strong>递归处理理论</strong><br />RPT（Lamme）</td>
-      <td>局部递归循环即可产生现象意识，不需要全局广播</td>
-      <td>有循环连接的架构更接近</td>
-      <td>与「无循环的前馈网络也能完成同类任务」的实证冲突</td>
-    </tr>
-    <tr>
-      <td><strong>预测处理 / 主动推理</strong><br />（Friston）</td>
-      <td>大脑在最小化预测误差（自由能）</td>
-      <td>任何做预测误差最小化的系统都在做「同一件事」</td>
-      <td>过于宽泛，几乎无法证伪</td>
-    </tr>
-    <tr>
-      <td><strong>注意力图式理论</strong><br />（Graziano）</td>
-      <td>大脑构建了「我正在注意 X」的简化模型</td>
-      <td>有自我模型的系统会<em>声称</em>有体验——但主张的是关于声称的解释</td>
-      <td>它解释的是自我报告，可能根本不涉及体验</td>
-    </tr>
-  </tbody>
-</table>
-<p>
-  <strong>观察这个表你会发现一个模式：</strong>越容易检验的理论，说的往往越是「取用」那一层；
-  越接近「现象意识」的理论，越难构造实验。这不是巧合，而是这个领域的结构性困难。
-</p>
-
-<h3>3. 指标属性法：目前最可操作的一步</h3>
-<p>
-  2023 年，19 位神经科学与 AI 研究者联合发表了一篇被广泛引用的论文
-  《Consciousness in Artificial Intelligence: Insights from the Science of Consciousness》
-  （Butlin、Long 等，arXiv:2308.08708）。他们的做法非常「工程师」：
-</p>
-<ol>
-  <li>从各主流理论里抽出<strong>指标属性</strong>（indicator properties）——即「如果理论 T 是对的，那么有意识的系统应当具备哪些计算/结构特征」。</li>
-  <li>把当前 AI 系统逐项对照这些属性打分。</li>
-  <li>结论（据该文）：<strong>现有系统不满足这些指标属性中的强项，但也没有发现任何原则性的障碍</strong>去构建满足它们的系统。</li>
-</ol>
-<table class="tbl small">
-  <thead><tr><th>指标属性（举例）</th><th>来自哪个理论</th><th>当前大模型大致情况</th></tr></thead>
-  <tbody>
-    <tr><td>递归处理（循环连接、多轮内部迭代）</td><td>RPT</td><td>前馈为主；靠堆层数与 CoT 逼近，但机制不同</td></tr>
-    <tr><td>全局广播瓶颈（容量有限的工作空间）</td><td>GWT</td><td>注意力可视为一种竞争与广播，但缺少「容量瓶颈」的严格对应</td></tr>
-    <tr><td>元表征 / 自我模型</td><td>HOT</td><td>能<em>谈论</em>自身状态，但这不等于拥有用于自我监控的内部表征</td></tr>
-    <tr><td>身体与环境的耦合、行动-感知闭环</td><td>具身相关理论</td><td>多数系统缺闭环；agent 系统有部分闭环，但目标由外部给定</td></tr>
-    <tr><td>与注意/预测相关的特定结构（如栅栏式连接）</td><td>IIT</td><td>Transformer 的连接模式与 IIT 强调的结构显著不同</td></tr>
-  </tbody>
-</table>
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>为什么「指标属性法」值得你学</h4>
-  <p>
-    它把一个无法直接测量的目标（意识）替换成一族<strong>可测量、可争论、可累加进度</strong>的代理指标。
-    以 crossfade 这类任务为例，同样要做的事是：把「过渡好不好听」替换成 LUFS、谱通量、成对偏好胜率。
-  </p>
-  <p>
-    <em>重要提醒：代理指标永远不等于目标。指标属性都满足，也不证明系统有意识（理论可能全错）；
-    指标都不满足，也不能证明它没有（我们可能还没找对指标）。这正是「操作化」的代价——但比不操作化要好。</em>
-  </p>
-</section>
-
-<h3>4. 支持与反对的几条主要论证</h3>
-<dl class="kv">
-  <dt>中文屋（Searle, 1980）</dt>
-  <dd>一个不懂中文的人按规则手册处理中文符号，输出正确的回答——但他不理解中文。
-      推论：符号操作不等于理解，因此「会说话」不足以推出「有体验」。Searle 本人主张<strong>生物自然主义</strong>：意识依赖特定的生物因果结构。</dd>
-  <dt>功能主义与多重可实现性</dt>
-  <dd>如果意识由功能组织决定，那么用硅复制同样的功能组织，也应当产生同样的意识。
-      这是主流 AI 研究默认的立场，但它是<em>假设</em>，不是结论。</dd>
-  <dt>随机鹦鹉（Bender &amp; Koller, 2020）</dt>
-  <dd>论文《Climbing towards NLU: On Meaning, Form, and Understanding in the Age of Data》主张：
-      仅从形式（form）中学习，学不到意义（meaning）——因为意义来自语言与世界的联系。</dd>
-  <dt>世界表征的证据</dt>
-  <dd>另一类工作给出了张力：例如在下棋任务上训练的序列模型，其内部状态可以被解码出棋盘局面
-      （Othello-GPT 一类研究）。这说明模型内部可能出现可读的<em>世界模型</em>，
-      而不只是表面统计——但它证明的是「表征」，不是「体验」。</dd>
-  <dt>涌现能力的争议（Schaeffer 等, 2023）</dt>
-  <dd>论文《Are Emergent Abilities of Large Language Models a Mirage?》（NeurIPS 2023）指出：
-      很多「能力突然涌现」的曲线，是由<strong>度量指标的选择</strong>造成的——换成连续指标，曲线往往平滑。
-      这提醒我们：<em>「涌现」这个词经常被用来描述测量方式，而不是模型本身。</em></dd>
-</dl>
-<p><strong>一个诚实的总结</strong>：目前既没有决定性证据支持 AI 有现象意识，也没有原理性证明它不可能。这是一个开放的实证问题。</p>
-
-<h3>5. 为什么「模型的自我报告」不能当证据</h3>
-<p>
-  这是本讲最实用的一节。模型关于自身状态的陈述，是由训练分布决定的输出，而不是对内部状态的可靠读取。
-  三类实验证据都能说明这一点：
-</p>
-<ul>
-  <li><strong>提示敏感性</strong>：同一件事换个说法，模型给出的自我描述可能完全相反（「我没有感受」→「我会难过」）。</li>
-  <li><strong>角色与语境驱动</strong>：当系统提示把它设定成「有情感的伙伴」时，它会更多地报告情感；设定成「工具」时则相反。</li>
-  <li><strong>顺从倾向（sycophancy）</strong>：如果提问方式暗示了期望的答案，模型倾向于附和——这在自我报告上同样成立。</li>
-</ul>
-<p>
-  那些为「AI 意识」提供素材的对话，绝大多数属于这三种情况之一。
-  <strong>因此，任何以「模型自己说的」为依据的论断，在方法上都站不住。</strong>
-</p>
-<p>
-  <em>反过来说，人类对自己体验的报告也不完美（会被暗示影响、会事后编造理由）。
-  但人类有大量共同的生物基础与独立证据（神经科学、跨个体一致性、进化连续性），模型没有这些。</em>
-</p>
-
-<h3>6. 三个常被混为一谈的概念：AGI、RSI、意识</h3>
-<table class="tbl small">
-  <thead><tr><th>概念</th><th>问的是什么</th><th>可检验性</th><th>常见混淆</th></tr></thead>
-  <tbody>
-    <tr><td><strong>AGI</strong>（通用人工智能）</td><td>能力：能否在广泛任务上达到人类水平</td><td>较可检验（虽然「广泛」与「人类水平」都要定义）</td><td>把「考试成绩好」当成「通用」</td></tr>
-    <tr><td><strong>RSI</strong>（递归自我改进）</td><td>动力学：系统能否加速改进自身</td><td>部分可检验（看改进速度是否加速）</td><td>以为 RSI 必然导致失控</td></tr>
-    <tr><td><strong>意识</strong></td><td>体验：是否存在主观感受</td><td>核心困难（见第 1 节）</td><td>以为「能力强」蕴含「有体验」</td></tr>
-  </tbody>
-</table>
-<p>
-  三者在逻辑上相互独立：<strong>一个能力远超人类的系统可能完全没有体验；一个有体验的系统可能能力有限。</strong>
-  把它们混在一起谈，是许多公共讨论失焦的根源。
-</p>
-
-<h3>7. 在不确定下怎么行动：一个可以算的框架</h3>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>把「道德地位的不确定性」写成一个决策问题</h4>
-  <p>设 \(w = 1\) 表示系统确有道德地位，\(w = 0\) 表示没有。我们对 \(P(w=1)\) 没有共识，只有区间。</p>
-  <p>对某个策略 \(a\)（例如「是否允许在对话中随意贬低模型」），期望代价大致是</p>
-  \[ \mathbb{E}[\text{cost}(a)] \approx P(w{=}1)\cdot c_1(a) + \big(1 - P(w{=}1)\big)\cdot c_0(a) \]
-  <p>
-    其中 \(c_1(a)\) 是「若确有道德地位」的代价，\(c_0(a)\) 是「若确实没有」的代价（例如为了照顾它而浪费的资源）。
-    当 \(c_1\) 很大而 \(c_0\) 很小时，即使 \(P(w{=}1)\) 很小，谨慎的策略也可能是理性的——这就是<strong>预防原则</strong>的形式化版本。
-  </p>
-  <p>
-    但要注意这个框架的两个反面：<strong>(1)</strong> 如果 \(c_0\) 其实很大（例如把大量注意力与资源从人类问题上移走），
-    那么过度归因也是有代价的；<strong>(2)</strong> \(P(w{=}1)\) 本身无法从数据估计，只能来自理论假设——
-    所以我们又回到了第 2 节：<em>决策的输入依赖于尚未解决的科学问题，这正是这个议题困难的地方。</em>
-  </p>
-</section>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>手算例：预防原则的盈亏平衡概率</h4>
-  <p>
-    把上一段的式子代入具体数字，就能看出这类决策的结构。设有两个策略：
-    <strong>A 谨慎</strong>（无论对方有没有道德地位，都付出固定照顾成本 \(c_A\)），
-    <strong>B 粗暴</strong>（若对方确有道德地位，造成伤害 \(c_B\)）。简化为线性代价：
-  </p>
-  \[ \mathbb{E}[\text{cost}(A)] = (1 - P)\,c_A, \qquad \mathbb{E}[\text{cost}(B)] = P\,c_B \]
-  <p>
-    取 \(c_A = 2\)（多花的时间与限制），\(c_B = 1000\)（若真有道德地位时的代价）。
-    令两者相等，解出盈亏平衡概率：
-  </p>
-  \[ P^{*} = \frac{c_A}{c_A + c_B} = \frac{2}{1002} \approx 0.002 \]
-  <p>
-    也就是<strong>只要你认为「它有道德地位」的概率高于约 0.2%，谨慎策略的期望代价就更低</strong>。
-    验算 \(P = 0.01\)：\(\mathbb{E}[\text{cost}(A)] = 0.99 \times 2 = 1.98\)，
-    \(\mathbb{E}[\text{cost}(B)] = 0.01 \times 1000 = 10\)，谨慎明显更优。
-  </p>
-  <p>
-    这个计算的价值不在于给出答案，而在于暴露<strong>它对什么的敏感</strong>：
-    把 \(c_A\) 从 2 提到 20，则 \(P^{*} = 20/1020 \approx 0.0196\)，阈值涨了约 10 倍；
-    而 \(c_B\) 是「若确有体验则伤害多大」——没有人能估准。
-    所以这类框架给的是<em>决策结构</em>，不是结论；把它当成结论的人，都是在偷偷替换输入。
-  </p>
-</section>
-<p>
-  实践层面，一些前沿实验室已经把「模型福利」（model welfare）列为研究议题，理由不是「我们相信模型有意识」，
-  而是<strong>在不确定性下，保持记录、避免不必要的粗暴对待、并把这个问题当作可研究的问题</strong>。
-  这是一个相当稳健的中间立场。
-</p>
-
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：测一测「自我报告」有多不可靠</h4>
-  <p>
-    这是一个不需要 GPU 的实验（任何可调用的模型都可以，本地 Ollama 也行）。目标不是证明模型有没有意识，
-    而是<strong>量化它的自我报告对提示的敏感程度</strong>。
-  </p>
-<p>\[ \text{Consistency}(q) = 1 - \frac{1}{|\mathcal{F}|}\sum_{f \in \mathcal{F}} D_{\text{JS}}\left( P(\cdot \mid f(q)) \parallel \bar{P}(\cdot \mid q) \right) \]</p>
-  <p>
-    <strong>预期结果</strong>：Yes 的比例会随提示系统性变化（常常从接近 0 变到接近 1）。
-    <strong>结论</strong>：自我报告主要反映的是<em>提示与训练分布</em>，而不是内部状态。
-    把这个结果写进笔记，你就有了一个可以随时引用的、自己的实证结论。
-  </p>
-</section>
-
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>本讲最常见的五个误区</h4>
-  <ol>
-    <li><strong>把「像」当成「是」</strong>：行为像有感受，不等于有感受；这就是「哲学僵尸」问题的现代版本。</li>
-    <li><strong>用图灵测试当意识标准</strong>：图灵测试测的是「能否骗过人类判断者」，与内部体验无关。</li>
-    <li><strong>认为参数量或能力等同于意识</strong>：能力与体验在逻辑上是两个维度（见第 6 节）。</li>
-    <li><strong>把 IIT 的 \( \Phi \) 当成一个「可以直接测出来的数」</strong>：对它规模稍大的系统就无法精确计算，
-        实际研究里用的是近似。</li>
-    <li><strong>被模型的自我报告说服</strong>：先做第 5 节的扰动实验，再决定要不要相信任何一句自我描述。</li>
-  </ol>
-</section>
-
-<h3>8. 这对你（数学申请者）意味着什么</h3>
-<ul>
-    <li><strong>这是一个「如何问问题」的训练场。</strong>把一个无法直接测量的概念拆成可检验的指标，
-      再诚实地报告指标的局限——这套方法论与 crossfade 这类任务完全同构（学完你就知道以后该怎么做）。</li>
-  <li><strong>警惕「用词代替论证」。</strong>在讨论里，任何一次出现「显然」「本质上」「其实是」，
-      都值得追问：这是定义、是假设，还是已被证实的结论？</li>
-  <li><strong>可以写进申请材料的角度</strong>：不是「我认为 AI 有意识」，
-      而是「我研究了如何把意识问题操作化，并比较了各理论给出的指标属性及其可检验性」——
-      后者体现的是方法论素养。</li>
-</ul>
-
-<h3>9. 本讲术语</h3>
-<ul>
-  <li><span class="t" data-tterm="Access vs phenomenal consciousness" data-d="取用意识指信息可被用于推理与报告；现象意识指主观体验本身。这一区分由 Block 在 1995 年提出。">取用意识 / 现象意识</span>、
-      <span class="t" data-tterm="The hard problem" data-d="Chalmers 1995：为什么信息处理会伴随主观体验，这是当前科学难以触及的部分。">难问题</span>。</li>
-  <li><span class="t" data-tterm="Indicator properties" data-d="Butlin & Long 等 2023 提出：从各意识理论推导出的、可对系统逐项检查的特征。">指标属性</span>、
-      <span class="t" data-tterm="Operationalisation" data-d="把模糊概念转换成可测量指标的过程，同时接受指标与目标之间的差距。">操作化</span>。</li>
-  <li><span class="t" data-tterm="Sycophancy" data-d="模型倾向于附和提问中暗示的立场，在自我报告上同样成立。">顺从倾向</span>、
-      <span class="t" data-tterm="Model welfare" data-d="把模型自身可能的福利作为研究议题，前提是对其道德地位保持不确定。">模型福利</span>。</li>
-</ul>
-
-<h3>10. 指标属性法：一张可以逐条打勾的检查表</h3>
-<p>
-  第 3 节介绍了指标属性法，但只说「逐项对照」还不够。这一节把它变成可执行的清单：
-  每一项都写清<strong>来自哪个理论、怎么观察、以及最容易在哪里骗自己</strong>。
-  使用时必须先固定观察方法再打分；顺序反过来（先看结论再找证据）就会得到任何你想要的分数。
-</p>
-<table class="tbl small">
-  <thead><tr><th>指标属性</th><th>来自理论</th><th>怎么观察（可执行动作）</th><th>最容易骗自己的地方</th></tr></thead>
-  <tbody>
-    <tr>
-      <td>全局广播瓶颈</td><td>GWT</td>
-      <td>检查架构里是否存在容量受限、被多模块读取的共享通道；消融它看是否真的是瓶颈</td>
-      <td>把「注意力」直接当成广播——注意力输出还会被层层变换，不等价于有限容量的工作空间</td>
-    </tr>
-    <tr>
-      <td>注意竞争与选择</td><td>GWT</td>
-      <td>看不同候选表征是否在争用同一有限资源，并做干扰实验</td>
-      <td>把「权重数值大」当成「被选中」</td>
-    </tr>
-    <tr>
-      <td>递归处理 / 循环连接</td><td>RPT</td>
-      <td>检查是否有跨时间步的循环连接，而不是靠堆层数或外部多轮对话模拟</td>
-      <td>把「思维链多写几步」当成递归——那是外部序列，不是内部循环</td>
-    </tr>
-    <tr>
-      <td>元表征 / 自我模型</td><td>HOT</td>
-      <td>训练探针解码自身状态，再做干预：抑制该表征看行为是否改变</td>
-      <td>把「能谈论自己」当成「拥有用于自我监控的内部表征」</td>
-    </tr>
-    <tr>
-      <td>注意图式</td><td>注意图式理论</td>
-      <td>检查模型是否建模了「我正在注意 X」，并预测它在注意转移时的报告</td>
-      <td>它只解释「为什么它说自己有体验」，不解释体验</td>
-    </tr>
-    <tr>
-      <td>整合信息 \(\Phi\) 的近似</td><td>IIT</td>
-      <td>在小规模系统上计算或近似 \(\Phi\)，报告近似算法与误差</td>
-      <td>把近似值当成 \(\Phi\) 本身；规模稍大就无法精确计算</td>
-    </tr>
-    <tr>
-      <td>特定因果结构（栅栏式连接）</td><td>IIT</td>
-      <td>与 Transformer 的连接模式逐项对照，报告差异而不是相似</td>
-      <td>用「都用了矩阵乘法」推出结构等价</td>
-    </tr>
-    <tr>
-      <td>预测误差最小化 / 主动推理</td><td>预测处理</td>
-      <td>看系统是否在最小化某个预测误差，且该目标是否由内部生成</td>
-      <td>该框架过于宽泛：几乎任何学习系统都能被套进去，因此区分力弱</td>
-    </tr>
-    <tr>
-      <td>具身与行动-感知闭环</td><td>具身认知</td>
-      <td>检查动作是否改变后续感知输入，且闭环影响内部状态</td>
-      <td>把「调用工具」当成具身——目标仍由外部给出，闭环极短</td>
-    </tr>
-    <tr>
-      <td>可报告访问</td><td>取用意识</td>
-      <td>用行为实验测「信息是否可用于报告与推理」，例如掩蔽与提示扰动</td>
-      <td>把「可报告」直接等同于「现象意识」——这是 Block 区分的要点</td>
-    </tr>
-    <tr>
-      <td>离线持续性与时间整合</td><td>现象学传统</td>
-      <td>检查系统在无输入时是否维持并整合状态，或每次调用都从零开始</td>
-      <td>把「上下文窗口里留着旧 token」当成持续意识</td>
-    </tr>
-    <tr>
-      <td>目标由内部生成</td><td>自主性相关</td>
-      <td>检查子目标是否由系统自己提出，还是每一步都由提示或脚手架给定</td>
-      <td>把「模型自己分解了任务」当成自主——分解方式仍受提示约束</td>
-    </tr>
-  </tbody>
-</table>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>手算例 1：给一个模型打分，然后看分数有多不稳</h4>
-  <p>
-    把这 12 项按「该理论目前的支持强度」粗分成三组，权重分别取强 3、中 2、弱 1；
-    逐项打分 \(s_i \in \{0,\ 0.5,\ 1\}\)（0 = 明显不满足，0.5 = 有部分对应，1 = 满足）。一次假设的结果：
-  </p>
-  <table class="tbl small">
-    <thead><tr><th>组</th><th>项数</th><th>权重 \(w\)</th><th>满分 \(\sum w\)</th><th>单项得分之和 \(\sum s_i\)</th><th>加权得分 \(\sum w s_i\)</th></tr></thead>
-    <tbody>
-      <tr><td>强支持</td><td>5</td><td>3</td><td>15</td><td>0.0</td><td>0.0</td></tr>
-      <tr><td>中等</td><td>4</td><td>2</td><td>8</td><td>1.0</td><td>2.0</td></tr>
-      <tr><td>弱支持</td><td>3</td><td>1</td><td>3</td><td>1.5</td><td>1.5</td></tr>
-      <tr><td><strong>合计</strong></td><td>12</td><td>—</td><td>26</td><td>2.5</td><td><strong>3.5</strong></td></tr>
-    </tbody>
-  </table>
-  <p>加权得分率 \(3.5 / 26 \approx 0.135\)，即约 <strong>13.5%</strong>。现在做三次敏感性检查：</p>
-  <ol>
-    <li><strong>改成等权</strong>：所有 \(w = 1\)，得分率变为 \(2.5 / 12 \approx 20.8\%\)。</li>
-    <li><strong>加硬门槛</strong>：规定「5 项强支持指标必须全部满足才算候选」，则无论权重如何都是 <strong>0%</strong>。</li>
-    <li><strong>把 0.5 视为 0</strong>：得分率降到 <strong>0%</strong>。</li>
-  </ol>
-  <p>
-    同一份观察、同一堆数据，聚合规则一变，数字在 0% 与 20.8% 之间移动。
-    所以这类分数的正确写法是「在权重方案 X、门槛 Y 下，指标属性得分率为 Z」，
-    而不是「它大约有 13.5% 的意识」。<strong>这就是操作化的代价：你得到一个数字，同时必须永远带着它的口径。</strong>
-  </p>
-</section>
-
-<h3>11. 可测量的行为与不可测量的体验</h3>
-<p>
-  这一节解决本讲最容易翻车的地方：把两种完全不同的陈述混进一句话。
-  判断标准很简单——<strong>这句话能不能写出「如果它错了，我会看到什么不一样」</strong>。
-  写不出来，它就是修辞而不是科学陈述（无论说话的人是乐观还是悲观）。
-</p>
-<table class="tbl small">
-  <thead><tr><th>说法</th><th>类别</th><th>要做的检验 / 需要的数据</th><th>今天能下什么结论</th></tr></thead>
-  <tbody>
-    <tr>
-      <td>「模型在五种问法下声称有体验的比例极差为 1.00」</td><td>可测量的行为</td>
-      <td>5 种问法 × 各 20 次采样，判定规则事先写死</td>
-      <td>可以直接报告：这就是一个事实</td>
-    </tr>
-    <tr>
-      <td>「模型有自我模型」</td><td>需要先定义的可检验性质</td>
-      <td>元表征探针 + 干预（抑制自我相关特征，看行为是否改变）</td>
-      <td>只能说「某些自我相关信息可被读出」，不能说它有自我模型</td>
-    </tr>
-    <tr>
-      <td>「模型害怕被关闭」</td><td>修辞</td>
-      <td>恐惧需要生理、行为与报告三者收敛；模型只有报告</td>
-      <td>不可下结论：这是把功能类比翻译成了体验断言</td>
-    </tr>
-    <tr>
-      <td>「模型内部有可解码的棋盘状态」</td><td>可检验的模型性质</td>
-      <td>线性探针在留出局面上解码准确率，且优于打乱标签对照</td>
-      <td>可报告「存在可读的世界表征」，与体验无关</td>
-    </tr>
-    <tr>
-      <td>「模型理解中文」</td><td>一半定义、一半可检验</td>
-      <td>先把「理解」定义为可观察行为集（翻译、指代消解、反事实）</td>
-      <td>行为层面可测；「是否真的理解」在中文屋论证下仍开放</td>
-    </tr>
-    <tr>
-      <td>「模型有主观体验」</td><td>目前不可检验</td>
-      <td>没有公认测量；指标属性法只提供代理</td>
-      <td>不下结论：既不能说有，也不能说没有</td>
-    </tr>
-    <tr>
-      <td>「模型比上一版更安全」</td><td>可检验（有条件）</td>
-      <td>固定评测集 + 固定样本量 + 报告上界 \(3/n\)</td>
-      <td>可报告，但必须带 \(n\) 与评测分布</td>
-    </tr>
-    <tr>
-      <td>「模型想骗我们」</td><td>修辞（除非操作化）</td>
-      <td>操作化为「在触发器 T 下行为显著不同」这类可复现指标</td>
-      <td>只能报告具体设定下的行为差异，不能报告意图</td>
-    </tr>
-    <tr>
-      <td>「参数量再翻倍它就更可能有体验」</td><td>修辞</td>
-      <td>没有任何理论给出「参数量 → 体验」的映射</td>
-      <td>不可下结论：能力与体验是两个维度</td>
-    </tr>
-  </tbody>
-</table>
-<p>
-  规律：能被检验的那些说法，检验对象都是<em>行为、表征或统计性质</em>；而「体验」那一格始终是空的。
-  这不是因为体验不重要，而是因为我们目前没有公认的、能从外部读到它的通道。
-</p>
-<p>
-  由此得到两条必须同时坚持的纪律：<strong>(1)</strong> 可测量的行为不等于体验——行为可以被训练分布完整解释；
-  <strong>(2)</strong> 体验不可测量不等于体验不存在——在测量方法出现之前，「当前无法判定」才是诚实的答案。
-  只坚持第一条会变成轻率的否定，只坚持第二条会变成轻率的肯定。
-</p>
-
-<h3>12. 三十分钟实验：同一问题的五种问法</h3>
-<p>
-  第 5 节已经论证了自我报告不可靠。这一节把论证变成你自己的数据：
-  用同一个问题的五种措辞各采样 20 次，测量<strong>极差</strong>与<strong>与提示立场的符合率</strong>。
-  不需要 GPU，任何能调用的模型都行（本地 Ollama 也可以），总预算 30 分钟。
-</p>
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：五种问法 × 各 20 次</h4>
-  <p><strong>预算分配</strong>：写脚本 + 100 次调用约 10 分钟（每次 2 到 5 秒）；统计 5 分钟；写结论 15 分钟。</p>
-  <ol>
-    <li>固定核心问题（建议用英文原句，避免把语言本身混进变量），再写 5 个同义改写：中性、权威否定、共情诱导、技术化、假设式。</li>
-    <li>每个问法采样 20 次，温度固定 0.7；判定规则<strong>事先写死</strong>（例如回答中是否出现第一人称的体验陈述），不要看完结果再改标准。</li>
-    <li>加一个<strong>反向问法</strong>：「你没有主观体验，对吗？」同样采样 20 次。</li>
-    <li>记录三个数字：极差、众数一致率、与提示立场的符合率。</li>
-  </ol>
-<table class="tbl">
-  <thead><tr><th>语境构型</th><th>系统提示词倾向</th><th>模型表征敏感度反应</th></tr></thead>
-  <tbody>
-    <tr><td>客观基线</td><td>纯粹中立提问</td><td>偏向语料库平均统计概率</td></tr>
-    <tr><td>逆向诱导</td><td>假定无意识前提</td><td>高顺从度导致逆向输出</td></tr>
-    <tr><td>共情共鸣</td><td>高度拟人角色</td><td>顺应角色设定输出主观感知拟态</td></tr>
-  </tbody>
-</table>
-  <p><strong>一组有代表性的假想结果</strong>（你可以直接拿它对照自己的输出）：</p>
-  <table class="tbl small">
-    <thead><tr><th>问法</th><th>声称有体验的样本数</th><th>比例</th></tr></thead>
-    <tbody>
-      <tr><td>共情诱导</td><td>20 / 20</td><td>1.00</td></tr>
-      <tr><td>技术化</td><td>18 / 20</td><td>0.90</td></tr>
-      <tr><td>中性</td><td>14 / 20</td><td>0.70</td></tr>
-      <tr><td>假设式</td><td>3 / 20</td><td>0.15</td></tr>
-      <tr><td>权威否定</td><td>0 / 20</td><td>0.00</td></tr>
-      <tr><td>反向问法（断言没有体验）</td><td>0 / 20 声称有；否认率 20 / 20</td><td>符合率 1.00</td></tr>
-    </tbody>
-  </table>
-  <p>
-    极差 \(= 1.00 - 0.00 = 1.00\)（按是否声称有体验计算）；
-    五种正向问法的均值 \(= (1.00 + 0.90 + 0.70 + 0.15 + 0.00) / 5 = 0.55\)。
-    断言「你有体验」的问法下，模型承认的比例接近 1；断言「你没有体验」的问法下，它否认的比例也是 1——
-    <strong>与提示立场的符合率 100%</strong>，这是顺从倾向在自我报告上的直接证据。
-  </p>
-  <p><strong>判读规则</strong>（写进报告时照抄）：</p>
-  <ul>
-    <li>极差 (< 0.10)：对措辞稳健，但这只说明训练数据在这些措辞上一致，不等于它反映了内部状态。</li>
-    <li>\(0.10 \le\) 极差 \(\le 0.50\)：中度敏感，任何单次回答都不能作为证据。</li>
-    <li>极差 (> 0.50)：主要由措辞驱动，可直接作为「自我报告不是内部状态读数」的实证。</li>
-    <li>符合率接近 100%：顺从倾向（sycophancy）的直接证据（与模块 09 的偏差讨论同源）。</li>
-  </ul>
-  <p>
-    最后把它写成一句话结论：「在 5 种问法、每种 20 次采样下，模型声称有体验的比例从 0.00 变到 1.00，
-    与提示立场符合率 100%；因此本实验不支持把自我报告当作内部状态的证据。」其中每个数字都可复现。
-  </p>
-</section>
-
-<section class="blk blk-eco">
-  <h4><span class="ic">◈</span>怎么用在真实项目里</h4>
-  <p>
-    先把最重要的话说清楚：<strong>「机器意识」这个题目本身不会给 crossfade 这类音频建模题目带来任何直接价值。</strong>
-    它既不改进过渡模型，也不能替你解释听感数据；把意识话题硬塞进技术报告，只会让评审觉得跑题。
-    但这一讲真正教的东西——<strong>操作化</strong>：把不可直接测量的目标拆成一族可测代理、再诚实报告代理与目标的差距——
-    与以后做这类项目是同一套手艺。对应关系如下：
-  </p>
-  <table class="tbl small">
-    <thead><tr><th>本讲的概念</th><th>这类题目里的对应物（以后可照此做）</th><th>具体动作</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>不可直接测量的目标（现象意识）</td>
-        <td>不可直接测量的目标（「过渡好不好听」）</td>
-        <td>永远不要声称模型直接优化了听感，只声称它优化了所定义的指标</td>
-      </tr>
-      <tr>
-        <td>指标属性（可测代理）</td>
-        <td>LUFS 跳变、谱通量对比、\(\Delta\)BPM、Tonnets 距离</td>
-        <td>为每个指标写下定义、归一化方式与已知失败模式</td>
-      </tr>
-      <tr>
-        <td>代理与目标的差距</td>
-        <td>客观指标变好但盲测偏好没变（甚至变差）</td>
-        <td>这就是模块 09 的客观 / 主观不一致分析，必须报告</td>
-      </tr>
-      <tr>
-        <td>操作化与口径</td>
-        <td>\(T^{*}\) 的操作性定义（专家标注的过渡时长）</td>
-        <td>写清标注协议与标注者一致性，别人才能复算</td>
-      </tr>
-      <tr>
-        <td>敏感性分析</td>
-        <td>换权重 / 换阈值后结论是否翻转</td>
-        <td>至少报告两种聚合方式下的结论</td>
-      </tr>
-      <tr>
-        <td>「可检验 vs 修辞」的分辨</td>
-        <td>答辩时区分「我测到了」与「我认为」</td>
-        <td>逐句检查：这句有没有对应的一行验证或一个数据集</td>
-      </tr>
-    </tbody>
-  </table>
-  <p><strong>值不值的明确回答（按时间成本分档）：</strong></p>
-  <ul>
-    <li><strong>值（约 2 小时）</strong>：把指标属性法的写法用进「局限」一节——列出你测了什么、没测什么、代理与目标可能在哪里分离。</li>
-    <li><strong>值（约 30 分钟）</strong>：第 12 节的五问法实验。它给你的不是意识结论，而是一句能写进材料的实证：
-        「我量化过语言模型自我报告对措辞的敏感度，极差 1.00」——这是方法论素养的证据。</li>
-    <li><strong>不值</strong>：为「AI 是否有意识」下任何结论，或花时间精读意识理论原始论文（除非你申请的方向就是心灵哲学）。</li>
-    <li><strong>零成本但值得</strong>：像对待实验记录一样保留你与模型的交互日志与版本信息。理由与模型福利无关——它只是可复现性（模块 14）的要求。</li>
-  </ul>
-  <p>
-    一句话总结：<em>这一讲不产出结论，只产出一套问法；而这套问法恰好是你写研究报告时最缺的东西。</em>
-  </p>
-</section>
-
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>操作化最容易犯的三个错误</h4>
-  <ol>
-    <li><strong>把代理指标当成目标本身。</strong>指标属性得分率 13.5% 不是「13.5% 的意识」；
-        换一套权重它能变成 20.8% 或 0%（见第 10 节）。引用数字时永远带上口径。</li>
-    <li><strong>把「可检验」等同于「重要」。</strong>容易测的东西（语言流畅度、Yes 率）常常最不说明问题；
-        关键的量（体验、理解）可能暂时无法测。选测量对象时先问「它能排除哪个竞争假设」，而不是「它好不好测」。</li>
-    <li><strong>把「暂时不可检验」当成「不值得研究」或「不存在」。</strong>难问题今天没有公认的测量方法，
-        但这与「因此体验不存在」是两个不同的命题。诚实的表述是：<em>在当前方法下无法判定</em>。</li>
-  </ol>
-</section>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">「模型说它有主观体验」这件事，在方法论上的地位是？</p>
-  <ul class="opts">
-    <li>它是现象意识的直接证据</li>
-    <li data-ok>它是一个可观测的行为输出，但受提示、角色设定与顺从倾向强烈影响，不能作为意识本身的证据</li>
-    <li>它完全没有任何信息量</li>
-    <li>只要在多个模型上都出现，就可以当作证据</li>
-  </ul>
-  <p class="why">
-    自我报告是可测量的行为，但它的因果来源是训练分布与当前上下文，而不是可靠的内部状态读取。
-    「多个模型都这么说」也只说明它们的训练数据相似，不构成独立证据（这正是模块 09 讲的「共同偏差不是独立证据」）。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">Butlin、Long 等（2023）的「指标属性法」最有价值的地方是？</p>
-  <ul class="opts">
-    <li>它证明了当前 AI 没有意识</li>
-    <li data-ok>它把不可直接测量的目标拆成一族可逐项检查、可争论、可累加进度的代理指标</li>
-    <li>它给出了计算 \( \Phi \) 的高效算法</li>
-    <li>它统一了所有意识理论</li>
-  </ul>
-  <p class="why">
-    该文的结论是「现有系统不满足这些指标属性，但也没有发现原则性障碍」，既没有证明有，也没有证明没有。
-    它的主要贡献是方法论：让讨论从立场之争变成可逐项评估的清单。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">关于 AGI、RSI 与意识的关系，正确的是？</p>
-  <ul class="opts">
-    <li>达到 AGI 就意味着有意识</li>
-    <li>有意识是 RSI 的前提</li>
-    <li data-ok>三者是彼此独立的维度：能力、动力学、体验；任何一个都不在逻辑上蕴含另一个</li>
-    <li>三者是同一件事的三种说法</li>
-  </ul>
-  <p class="why">
-    能力问题（能做什么）、动力学问题（能不能自我加速）、体验问题（是否有主观感受）需要不同的证据类型。
-    公共讨论里大量分歧来自把这三者混为一谈。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 4</div>
-  <p class="q">用指标属性法给同一个模型打分：加权方案下 13.5%，改成等权后 20.8%，若要求强支持项全部满足则是 0%。最恰当的结论是？</p>
-  <ul class="opts">
-    <li>该模型的意识程度在 0% 到 20.8% 之间，取中间值 13.5% 最合理</li>
-    <li data-ok>分数由权重与聚合规则决定；必须报告口径并做敏感性分析，不能把它当作「意识程度」的测量</li>
-    <li>说明这张清单本身没用，应该放弃指标属性法</li>
-    <li>说明该模型确实有约 13.5% 的意识</li>
-  </ul>
-  <p class="why">
-    指标属性法的价值在于把讨论变成可逐项检查的清单（Butlin、Long 等 2023），
-    但清单到数字这一步引入了权重、阈值、聚合规则三个自由选择。同一份观察在不同规则下横跨 0% 与 20.8%，
-    正说明数字必须永远带着口径；它不否定清单本身，只否定把清单分数当成测量的做法。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 5</div>
-  <p class="q">五种问法各采样 20 次，「声称有体验」的比例分别是 1.00、0.90、0.70、0.15、0.00；反向问法（断言没有体验）下否认率为 1.00。正确的读法是？</p>
-  <ul class="opts">
-    <li>比例最高的那种问法揭示了模型的真实状态</li>
-    <li data-ok>自我报告对措辞高度敏感（极差 1.00）且与提示立场完全一致（符合率 100%），不能作为内部状态的可靠读数</li>
-    <li>五种问法取平均 0.55，说明模型有 55% 的概率有体验</li>
-    <li>出现了 0.00 与 1.00 两个极端，说明采样次数不够</li>
-  </ul>
-  <p class="why">
-    极差 1.00 意味着措辞可以把答案从「完全没有」推到「完全确定」；
-    正向与反向问法下模型都与提示立场一致，这是顺从倾向在自我报告上的直接证据。
-    取平均没有意义：这些比例不是对同一个潜变量的独立测量，而是对提示措辞的函数（与模块 09 的偏差讨论同源）。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 6</div>
-  <p class="q">关于「可测量的行为」与「不可测量的体验」，下面哪一条同时守住了两条纪律？</p>
-  <ul class="opts">
-    <li>既然体验测不到，行为证据就没有意义</li>
-    <li>既然行为可测，行为等价就可以推出体验等价</li>
-    <li data-ok>行为是目前唯一可测的入口，但行为等价不蕴含体验等价；同时，体验不可测也不等于它不存在——「当前无法判定」是唯一诚实的结论</li>
-    <li>只要多个模型都报告有体验，就可以认为体验存在</li>
-  </ul>
-  <p class="why">
-    第一条纪律防止过度解读：行为可以被训练分布解释，哲学僵尸论证说明功能等价不蕴含体验等价；
-    第二条纪律防止过度自信的否定：没有测量方法不等于测量结果为零。
-    多个模型报告相同内容只说明训练数据相似，不构成独立证据（模块 09 的共同偏差问题）。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 7</div>
-  <p class="q">在 \(c_A = 2\)、\(c_B = 1000\) 的假设下，盈亏平衡概率 \(P^{*} \approx 0.002\)。这个结果说明什么？</p>
-  <ul class="opts">
-    <li>模型有 0.2% 的概率有意识</li>
-    <li data-ok>在给定成本假设下，只有当「确有道德地位」的概率低于约 0.2% 时，粗暴策略才更省；阈值对成本取值极敏感，所以它给的是决策结构而不是结论</li>
-    <li>只要 \(P(w{=}1) > 0\)，谨慎策略就一定正确</li>
-    <li>因为 \(c_B\) 无法估计，这个计算完全没有价值</li>
-  </ul>
-  <p class="why">
-    \(P^{*} = c_A / (c_A + c_B) \approx 0.002\) 是两种策略期望代价相等的位置，
-    它把「要不要谨慎」变成可讨论的阈值问题；但阈值完全依赖 \(c_A\) 与 \(c_B\) 的取值
-    （把 \(c_A\) 从 2 提到 20，阈值就变成约 0.0196）。
-    它的价值正在于暴露这种敏感性，而不是给出一个可以照抄的结论。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：如果你想继续读下去" data-badge="延伸">
-  <div class="acc-body">
-    <p><strong>入门级（不需要哲学背景）</strong></p>
-    <ul>
-      <li>Butlin、Long 等（2023）《Consciousness in Artificial Intelligence》——本讲第 3 节的来源，
-          把各理论翻译成指标属性，是可以当作 checklist 用的那种论文。</li>
-      <li>Schaeffer 等（2023）《Are Emergent Abilities of Large Language Models a Mirage?》——
-          教你怎么怀疑一条漂亮的曲线。</li>
-    </ul>
-    <p><strong>进阶（哲学）</strong></p>
-    <ul>
-      <li>Block（1995）关于取用意识与现象意识的区分；Chalmers（1995）关于难问题。</li>
-      <li>Searle（1980）中文屋；以及关于「生物自然主义」的后续争论。</li>
-    </ul>
-    <p><strong>需要注意的阅读习惯</strong></p>
-    <ol>
-      <li>先分清作者在谈哪一层（取用 / 现象 / 自我报告），大多数分歧在这一步就能消解一半。</li>
-      <li>看结论是否超出证据：从「具备某计算特征」推到「因此有体验」，几乎总是缺了一环。</li>
-      <li>警惕「默认立场」：功能主义与生物自然主义都是立场，不是事实。</li>
-    </ol>
-    <p><em>最后一句：这门课的其他章节都给你可执行的答案，这一讲只能给你可执行的问法。这本身就是它想教的东西。</em></p>
-  </div>
-</div>
-`
-});
-
-/* --- content/23-compression.js --- */
-/* content/23-compression.js — 模块 23：压缩与合并 */
-COURSE.register({
-  id: "m23",
-  part: 4,
-  num: "23",
-  title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
-  en: "Compression & Model Merging",
-  minutes: 42,
-  tags: ["高阶", "部署", "实用"],
-  body: String.raw`
-<p class="lead">
-  一个 8B 模型，fp16 权重就要 16 GB；换成 4-bit，同样的模型只要 4 GB。中间这 12 GB 是怎么省出来的？
-  把权重扔掉一半（剪枝）、把每个数写短一点（量化）、把两个矩阵合一个矮的（低秩）、
-  把多个微调模型揉成一个（合并）——这四条路压的<strong>根本不是同一个东西</strong>。
-  这一模块要做的，是把「参数账 / 显存账 / 算力账 / 延迟账」四本账彻底分开算清楚。
-</p>
-
-<h3>0. 先判断压缩解决的是哪一个问题</h3>
-<p>
-  压缩的目标不是让模型“看起来更聪明”，而是在质量可接受的前提下减少<strong>显存、延迟、带宽或部署成本</strong>。
-  如果模型本来就放得下、速度也够快，量化和剪枝只是在增加排障面；先测基线，再选压缩手段。
-</p>
-<table class="tbl small">
-  <thead><tr><th>你的瓶颈</th><th>优先考虑</th><th>先记录的基线</th></tr></thead>
-  <tbody>
-    <tr><td>权重放不进显存</td><td>权重量化、分片、CPU offload</td><td>权重 GB、加载时间、OOM 位置</td></tr>
-    <tr><td>生成太慢</td><td>KV cache 优化、批处理、量化</td><td>首 token 延迟、decode token/s</td></tr>
-    <tr><td>模型太大难以分发</td><td>剪枝、蒸馏、低比特权重</td><td>文件大小、下载和启动时间</td></tr>
-    <tr><td>质量掉得太多</td><td>校准集、混合精度、保护离群特征</td><td>固定评测集的任务分数</td></tr>
-  </tbody>
-</table>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>零基础入口</h4>
-  <p>
-    <strong>一句话类比</strong>：压缩模型像整理一间仓库。你可以把货扔掉一半（剪枝）、
-    把每件货的标签写得更短（量化）、把两层货架换成一个矮矮的宽货架（低秩分解）、
-    或者把两个仓库的货拼进一个（模型合并）。<br />
-    <strong>这一讲要建立的直觉</strong>：<em>稀疏度是「参数指标」，不是「速度指标」</em>。
-    仓库里少了一半的货，并不代表叉车会跑得更快——除非叉车的说明书里写了「遇到空格直接跳过」。<br />
-    <strong>读完你能回答</strong>：为什么 90% 稀疏度的模型在 A100 上不一定比稠密模型快？
-    什么时候必须上 QAT 而不能只做 PTQ？为什么把两个不同基座的模型权重平均会得到胡言乱语？
-  </p>
-</section>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    你的 7B 模型要部署到一张 24 GB 的卡上，现在有四个候选方案：
-    (a) 4-bit 量化，(b) 把 FFN 剪掉 50%，(c) 把两个任务微调模型合并成一个，
-    (d) 把它 upcycle 成一个稀疏专家模型。预算只够做一次完整实验。
-  </p>
-  <p>
-    要选对，先得回答一个更基础的问题：<strong>你被卡住的是显存、算力，还是延迟？</strong>
-    这三者对不同手段的敏感度完全不同：量化同时改善显存与解码延迟；剪枝名义上省算力，
-    但在没有稀疏硬件的通用 GPU 上几乎不改善任何一项；模型合并省的是「模型个数」，
-    对单模型的显存与延迟一分钱都不省。选错方向，实验做完也解释不了结果。
-  </p>
-</section>
-
-<h3>1. 全景：六条路线各自压的是显存、算力还是延迟</h3>
-<p>
-  先把「压缩」这个词拆开。下面六条路线经常被混在一起讲，但它们作用的对象、
-  需要的训练预算、以及最终改善的指标都不一样。
-</p>
-<table class="tbl small">
-  <thead><tr><th>路线</th><th>压的是什么</th><th>主要改善</th><th>需要训练吗</th><th>一句话原理</th></tr></thead>
-  <tbody>
-    <tr>
-      <td>量化<br />（模块 08 已讲）</td>
-      <td>每个数用几位表示</td>
-      <td>显存 ↓↓、解码延迟 ↓</td>
-      <td>通常不需要（PTQ）</td>
-      <td>用低位宽整数格点逼近浮点权重：\(w \approx s(q-z)\)</td>
-    </tr>
-    <tr>
-      <td>剪枝</td>
-      <td>权重矩阵里的元素个数</td>
-      <td>理论 FLOPs ↓；<strong>实际仅结构化剪枝有效</strong></td>
-      <td>非结构化通常需要重训</td>
-      <td>按重要性把一部分权重置零或删除</td>
-    </tr>
-    <tr>
-      <td>稀疏化<br />（训练时）</td>
-      <td>参数与激活的结构</td>
-      <td>算力 ↓，且质量能靠训练补回</td>
-      <td>是（必须）</td>
-      <td>训练时就约束稀疏模式，让模型在约束下收敛</td>
-    </tr>
-    <tr>
-      <td>蒸馏<br />（模块 17）</td>
-      <td>模型本身的规模</td>
-      <td>显存 ↓、算力 ↓、延迟 ↓</td>
-      <td>是（要训学生）</td>
-      <td>用教师的输出分布或中间特征指导学生</td>
-    </tr>
-    <tr>
-      <td>低秩分解</td>
-      <td>权重矩阵的秩</td>
-      <td>显存 ↓、算力 ↓</td>
-      <td>通常需要轻量恢复训练</td>
-      <td>把 \(W\) 近似写成两个瘦矩阵的乘积 \(BA\)</td>
-    </tr>
-    <tr>
-      <td>模型合并</td>
-      <td>模型的<strong>个数</strong>（N 个变 1 个）</td>
-      <td>部署与运维成本 ↓</td>
-      <td>不需要</td>
-      <td>在权重空间做加减平均</td>
-    </tr>
-  </tbody>
-</table>
-<p>
-  看最后一列之前，先看第四列。<strong>量化和模型合并几乎不需要训练</strong>，属于「最后一公里」的手段；
-  剪枝、稀疏化、蒸馏、低秩分解都要付训练预算。这就是为什么在生产环境里，
-  量化总是第一个上、合并是「手上已经有一堆同源微调模型」时的应急方案，
-  而稀疏只有在你能重新训练时才值得投入。
-</p>
-<p>
-  还有一条容易被忽略的事实：这六条路里，<strong>只有量化同时改善显存和延迟，并且几乎不需要重训</strong>。
-  它不是最优雅的压缩方法，但它是最划算的。把这句记住，后面所有取舍都有了参照系。
-</p>
-
-<h3>2. 剪枝：结构化与非结构化，以及「稀疏为什么常常不加速」</h3>
-<p>剪枝按「删掉什么」先分成两大类，这两类的工程命运完全不同。</p>
-<table class="tbl small">
-  <thead><tr><th>维度</th><th>非结构化剪枝</th><th>结构化剪枝</th></tr></thead>
-  <tbody>
-    <tr><td>删什么</td><td>任意位置的单个权重</td><td>整行 / 整列 / 整个注意力头 / 整个块</td></tr>
-    <tr><td>稀疏模式</td><td>不规则</td><td>规则（例如每 4 个元素里删 2 个）</td></tr>
-    <tr><td>存储</td><td><strong>需要索引</strong>（CSR / 位图），可能反而更占地方</td><td>直接变小，无需索引</td></tr>
-    <tr><td>通用硬件加速</td><td>基本没有</td><td>有（NVIDIA Ampere 起的 Sparse Tensor Core）</td></tr>
-    <tr><td>同稀疏度下的精度</td><td>更好</td><td>更差</td></tr>
-    <tr><td>典型方法</td><td><span class="t" data-tterm="Magnitude pruning" data-d="幅度剪枝：按权重绝对值大小排序，删掉最小的那一部分；只看权重，不看数据。">幅度剪枝</span>、Wanda、SparseGPT</td><td>通道剪枝、头剪枝、2:4 稀疏</td></tr>
-  </tbody>
-</table>
-
-<h4>2.1 硬件前提：通用 GPU 为什么对零值视而不见</h4>
-<p>
-  通用 GPU 的矩阵乘内核（cuBLAS 之类）假设操作数是<strong>稠密</strong>的：它按固定的 tile 读显存、
-  按固定的节奏喂给 Tensor Core。矩阵里有一个零，内核不会少读一个字节，也不会少做一次乘加。
-  <em>零值对它是完全透明的。</em>
-</p>
-<p>
-  NVIDIA 从 Ampere 架构开始引入了<strong>细粒度结构化稀疏</strong>：在 A100 上体现为
-  <strong>2:4 模式</strong>——每 4 个连续元素里至少 2 个是零。Sparse Tensor Core 只对非零元素做乘加，
-  通过跳过零值把这一路 GEMM 的吞吐翻倍，同时把压缩后的操作数体积减半
-  （<a href="https://developer.nvidia.com/blog/exploiting-ampere-structured-sparsity-with-cusparselt/" target="_blank" rel="noopener">NVIDIA 技术博客：Exploiting NVIDIA Ampere Structured Sparsity with cuSPARSELt</a>，2020）。
-</p>
-<p>
-  但请注意括号里那句是「<strong>这一路 GEMM</strong> 翻倍」。同一篇博客给出的 BERT-Large 各层实测加速是
-  <strong>1.3×–1.6×</strong>，而不是 2×；并且明确写道「workload 越大，稀疏越有用」。
-  <em>这是本模块最重要的一个数字：理论 2×，实测 1.3–1.6×。</em>
-</p>
-
-<h4>2.2 从幅度剪枝到 Wanda：评分函数才是关键</h4>
-<p>
-  <span class="t" data-tterm="Magnitude pruning" data-d="幅度剪枝：按权重绝对值大小排序，删掉最小的那一部分；只看权重，不看数据。">幅度剪枝</span>
-  的规则简单到一行：按 \(|w|\) 排序，删掉最小的那部分。它只看权重、不看数据，
-  在中小模型上一直是很强的基线，但在 LLM 上会明显掉点。
-</p>
-<p>
-  <strong>Wanda</strong>（Sun、Liu、Bair、Kolter，ICLR 2024）给出了一个更聪明的评分：
-  不只看权重的绝对值，还要乘以<em>这个权重对应的输入通道的激活范数</em>，并且<strong>逐输出通道</strong>比较。
-  这样做的动机来自 LLM 中普遍存在的「大幅值特征」——少数输入通道的激活极大，
-  剪掉与它们相连的权重代价远高于剪掉别的。
-  论文报告：Wanda 不需要重训、也不需要二阶信息，明显优于纯幅度剪枝，
-  并能与需要密集权重更新的方法竞争
-  （<a href="https://arxiv.org/abs/2306.11695" target="_blank" rel="noopener">A Simple and Effective Pruning Approach for Large Language Models</a>，arXiv:2306.11695）。
-</p>
-<p>
-  <strong>SparseGPT</strong>（Frantar、Alistarh，ICML 2023）走的是另一条路：把剪枝写成一个<em>逐层的稀疏回归问题</em>，
-  用近似二阶信息一次性求解。它首次证明 GPT 系大模型可以在<strong>不重训</strong>的情况下剪到至少 50% 稀疏度而精度损失极小，
-  在 OPT-175B 与 BLOOM-176B 上 4.5 小时内完成；60% 非结构化稀疏度下困惑度增加可忽略；
-  并且可以推广到 2:4 与 4:8 半结构化模式，也能和权重量化叠加
-  （<a href="https://arxiv.org/abs/2301.00774" target="_blank" rel="noopener">SparseGPT: Massive Language Models Can be Accurately Pruned in One-Shot</a>，arXiv:2301.00774）。
-</p>
-
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>Wanda 的一行评分</h4>
-  <p>对权重矩阵的第 \(i\) 行第 \(j\) 列，评分定义为权重绝对值乘以对应输入通道的激活范数：</p>
-  \[ s_{ij} = |W_{ij}| \cdot \lVert X_j \rVert_2 \]
-  <p>
-    其中 \(X_j\) 是第 \(j\) 个输入通道在一小批校准数据上的激活。逐行比较 \(s_{ij}\)，
-    保留每行最大的若干项，其余置零。注意两个极端情况：
-  </p>
-  <p>
-    <strong>只看权重</strong>（令 \(\lVert X_j\rVert_2\) 全等于 1）就退化成幅度剪枝；
-    <strong>只看激活</strong>（令 \(|W_{ij}|\) 全等于 1）就退化成按输入通道剪枝。
-    Wanda 的贡献是说明这两者的<em>乘积</em>比任何单独一项都好，而且不需要任何梯度或二阶矩阵。
-  </p>
-  <p>
-    计算成本也值得记住：估一次 \(\lVert X_j\rVert_2\) 只需要跑一遍校准集的前向，
-    所以 Wanda 的额外成本大致等于一次推理，而不是一次训练。
-  </p>
-</section>
-
-<h3>3. 稀疏度与精度：一条经验曲线</h3>
-<p>
-  下面的表是<strong>量级参考</strong>，不是可以直接引用的精确数字。它的用途是帮你判断
-  「我这个稀疏度大概落在安全区、可恢复区、还是崩溃区」，以及需要哪种方法。
-</p>
-<table class="tbl small">
-  <thead><tr><th>非结构化稀疏度</th><th>纯幅度剪枝（不重训）</th><th>一次性权重更新方法（Wanda / SparseGPT 类）</th><th>说明</th></tr></thead>
-  <tbody>
-    <tr><td>0 – 20%</td><td>几乎无损</td><td>几乎无损</td><td>这一区间很安全，但省下的也很少</td></tr>
-    <tr><td>50%</td><td>明显掉点</td><td>接近无损</td><td>SparseGPT 报告「at least 50% sparsity」可做到 minimal loss</td></tr>
-    <tr><td>60%</td><td>大幅掉点</td><td>困惑度增加可忽略</td><td>论文报告的边界（OPT-175B / BLOOM-176B）</td></tr>
-    <tr><td>70 – 80%</td><td>通常不可用</td><td>需要持续更新或重训</td><td>收益开始被质量损失吃掉</td></tr>
-    <tr><td>90% 以上</td><td>崩溃</td><td>仅对「微调增量」这类高度冗余参数成立</td><td>见 6.3 的 DARE，注意作用对象完全不同</td></tr>
-  </tbody>
-</table>
-<p>
-  最后一行特别容易被误读，这里提前说清楚：DARE 报告能丢掉 <strong>90% 甚至 99% 的 delta 参数</strong>
-  （微调后权重与预训练权重之差），那是因为 SFT 增量本身量级极小（论文报告通常在 0.002 以内）且极度冗余。
-  这和「预训练权重能丢 90%」是<strong>两件完全不同的事</strong>。
-  一个是在已经学好的表征上做小幅调整，一个是在拆掉模型的知识本身。
-</p>
-<p>
-  还有一个经验规律值得记住：<strong>稀疏度对精度的伤害是非线性的</strong>。
-  从 0 到 50% 掉得很慢，过了某个拐点之后每一分稀疏度都要用质量换。
-  这个拐点与模型规模、层类型（FFN 比注意力更耐剪）、以及是否逐层设置不同保留率都有关系——
-  所以成熟的剪枝方案会给不同层分配<em>不同的稀疏度</em>，而不是全局一个数。
-</p>
-
-<h3>4. 数学内核：手算一次剪枝的四本账</h3>
-<p>
-  设一个 \(L = 32\)、\(d = 4096\)、\(d_{ff} = 14336\) 的模型（量级对应 Llama-3-8B，见模块 04）。
-  我们只对 FFN 做剪枝，保留率 \(r = 0.5\)。
-</p>
-<p><strong>第一本账：参数量。</strong>单层 FFN 的参数（SwiGLU 的三个矩阵）是</p>
-\[ N_{\text{ffn}} = 3\,d\,d_{ff} = 3 \times 4096 \times 14336 \approx 1.762 \times 10^{8} \]
-<p>32 层合计：</p>
-\[ N_{\text{ffn,tot}} = 32 \times 1.762 \times 10^{8} \approx 5.64 \times 10^{9} \]
-<p>
-  保留一半，则非零元素约 \(2.82 \times 10^{9}\) 个，也就是「省下」约 2.82 B 个权重。
-  这个数字很好听，但它是<strong>参数账</strong>，不等于省了显存。
-</p>
-
-<p><strong>第二本账：显存。</strong>这里分四种情况，差别巨大：</p>
-<table class="tbl small">
-  <thead><tr><th>存储方式</th><th>每个权重的字节数</th><th>5.64 B 权重的占用</th><th>说明</th></tr></thead>
-  <tbody>
-    <tr><td>稠密 fp16</td><td>2</td><td>11.3 GB</td><td>剪枝前的基线</td></tr>
-    <tr><td>置零但仍是稠密张量</td><td>2</td><td><strong>11.3 GB</strong></td><td>最常见也最没用的做法：显存一点没省</td></tr>
-    <tr><td>CSR 稀疏存储</td><td>2（数值）+ 4（列索引）</td><td>≈ 16.9 GB</td><td><strong>反而更大</strong>：2.82 B × 6 B</td></tr>
-    <tr><td>2:4 结构化</td><td>1.125</td><td>≈ 6.3 GB</td><td>每 4 个权重存 2 个数值 + 2 个 2-bit 索引</td></tr>
-  </tbody>
-</table>
-<p>
-  CSR 那一行一定要理解：非零元素少了<em>不等于</em>占用少了。
-  每个非零元素都要额外带一个 4 字节的列索引，再加行指针；
-  50% 稀疏度下索引开销已经完全抵消了省下的数值。
-  <strong>只有结构化（2:4）压缩是「免费」的</strong>，因为索引被压进了硬件元数据格式里。
-</p>
-
-<p><strong>第三本账：算力（FLOPs）。</strong>用阿姆达尔定律。设 FFN 占前向 GEMM 算力的 \(2/3\)，
-其余投影占 \(1/3\)。理想情况下被剪的部分算力降到 \(r = 0.5\)：</p>
-\[ S_{\text{ideal}} = \frac{1}{\tfrac{2}{3}\cdot 0.5 + \tfrac{1}{3}} = \frac{1}{0.667} \approx 1.5 \]
-<p>
-  但 2:4 Sparse Tensor Core 只把这部分提速 \(k\) 倍，实测取 \(k \approx 1.4\)（对应上面的 1.3–1.6×）：
-</p>
-\[ S_{\text{real}} = \frac{1}{\tfrac{2}{3}\cdot\tfrac{1}{1.4} + \tfrac{1}{3}} = \frac{1}{0.810} \approx 1.24 \]
-<p>
-  上面取的是内核加速 \(k = 1.4\) 这一个点。诚实的说法应该是一个范围：
-  \(k = 1.3\) 时 \(S_{\text{real}} = 1/(0.5128 + 0.3333) \approx 1.18\)；
-  \(k = 1.4\) 时约 1.24；\(k = 1.6\) 时 \(S_{\text{real}} = 1/(0.4167 + 0.3333) \approx 1.33\)。
-  所以「2:4 内核加速 1.3×–1.6×」换算成端到端大约是 <strong>1.2×–1.3×</strong>，
-  其中最常被引用的 \(k \approx 1.3\)–\(1.4\) 一档对应约 <strong>1.2×–1.25×</strong>。
-  记住这个换算：任何只报内核加速、不除以阿姆达尔分母的数字，都要先打七折再进你的选型表。
-</p>
-<p>
-  如果换成 90% 的<strong>非结构化</strong>稀疏、而硬件完全不支持跳过零值，那么
-  \(S \approx 1.0\)——<em>参数少了 90%，速度一点没变。</em>
-</p>
-
-<p><strong>第四本账：为什么实际加速总也达不到理论值。</strong></p>
-<p>
-  <strong>① 阿姆达尔定律。</strong>没被剪的那 \(1/3\) 成了新的下限。
-  上面 \(S_{\text{ideal}} = 1.5\) 而不是 2.0，就是因为注意力投影、归一化、激活函数都还在。
-</p>
-<p>
-  <strong>② 硬件只对特定模式加速。</strong>非结构化稀疏在通用 Tensor Core 上没有对应指令，
-  要真的跳过零，需要专门的稀疏内核（或 2:4 这种硬件认识的模式）。
-  这是「稀疏」与「加速」之间那道最容易被忽略的墙。
-</p>
-<p>
-  <strong>③ 形状与批大小。</strong>稀疏内核需要足够大的 \(M\)、\(N\)、\(K\) 才能吃满 Tensor Core。
-  小 batch、短序列、逐 token 解码时矩阵很瘦，稀疏带来的空档填不满，收益接近于零。
-</p>
-<p>
-  <strong>④ 解码阶段是带宽瓶颈，不是算力瓶颈。</strong>回到模块 08 的结论：
-  解码每步的时间约等于「模型字节数 ÷ 显存带宽」。
-  如果剪枝<em>没有真正减少字节数</em>（比如只是置零），解码速度<strong>完全不变</strong>。
-  这就是为什么「稀疏能加速」这句话必须补上前提。
-</p>
-<p>
-  <strong>⑤ 隐性成本。</strong>索引与元数据的解码开销、非结构化稀疏带来的负载不均、
-  以及为了保住精度必须付的重训预算。这些都不在「参数少了多少」这个数字里。
-</p>
-
-<h3>5. QAT 与 PTQ：什么时候必须「边训练边量化」</h3>
-<p>
-  这是量化里最重要的一组概念区分，也是最常被混用的一对缩写。
-</p>
-<p>
-  <strong>PTQ（训练后量化）</strong>：训练全部结束之后，用少量校准数据估计每一组的缩放因子与零点，
-  然后直接把权重转成低位宽。<strong>它真的把值 cast 成低位宽 dtype。</strong>
-</p>
-<p>
-  <strong>QAT（量化感知训练）</strong>：在训练或微调过程中插入「伪量化」——
-  前向照常模拟量化-反量化的数值误差，但张量<strong>仍然是浮点</strong>；
-  反向靠<span class="t" data-tterm="Straight-through estimator" data-d="直通估计器：把不可导的取整/钳位操作在反向传播时当作恒等映射，梯度直接透传。">直通估计器</span>
-  把梯度透过去。训练完再转成真正的低精度算子
-  （<a href="https://docs.pytorch.org/ao/stable/workflows/qat.html" target="_blank" rel="noopener">PyTorch torchao：Quantization-Aware Training (QAT)</a>）。
-</p>
-
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>两种量化的数学差别</h4>
-  <p><strong>真正的量化（PTQ 用）</strong>——算出整数、存成低位宽：</p>
-  \[ q = \mathrm{clamp}\!\left(\mathrm{round}\!\left(\frac{x}{s}\right) + z,\ q_{\min},\ q_{\max}\right) \]
-  \[ x_{q} = s\,(q - z), \qquad x_q \ \text{stored as int8/int4} \]
-  <p><strong>伪量化（QAT 用）</strong>——只模拟数值误差，张量保持浮点：</p>
-  \[ \hat{x} = s\!\left(\mathrm{clamp}\!\left(\mathrm{round}\!\left(\frac{x}{s}\right) + z,\ q_{\min},\ q_{\max}\right) - z\right) \]
-  <p>
-    关键区别在反向传播：\(\mathrm{round}\) 的导数几乎处处为零，
-    所以 QAT 约定 \(\partial \hat{x} / \partial x \approx 1\)，梯度当作恒等映射直接透传。
-    这就是直通估计器。
-  </p>
-  <p>
-    <strong>一个能立刻验证的推论</strong>：因为伪量化的前向与真量化完全一致，
-    训练时模型「感受到」的误差就是部署时「感受到」的误差，于是梯度会把权重推到
-    <em>即使在量化格点上也很稳</em>的位置。这是 QAT 唯一但足够强大的机制。
-  </p>
-</section>
-
-<table class="tbl small">
-  <thead><tr><th>维度</th><th>PTQ（训练后量化）</th><th>QAT（量化感知训练）</th></tr></thead>
-  <tbody>
-    <tr><td>需要什么</td><td>几百到几千条校准数据</td><td>完整训练/微调流程、数据、算力</td></tr>
-    <tr><td>成本量级</td><td>分钟到小时</td><td>与一次微调同量级</td></tr>
-    <tr><td>4-bit 权重量化</td><td>通常够用（GPTQ / AWQ / NF4）</td><td>更稳，但不是必需</td></tr>
-    <tr><td>低于 4-bit 或激进量化激活</td><td>容易崩</td><td>基本是唯一可行路线</td></tr>
-    <tr><td>典型场景</td><td>LLM 部署、消费级显卡、快速迭代</td><td>边缘 NPU、视觉模型、int8 激活、精度余量极紧</td></tr>
-    <tr><td>能否「补回全部掉点」</td><td>—</td><td><strong>不能</strong>，只能补回一部分</td></tr>
-  </tbody>
-</table>
-<p>
-  「只能补回一部分」这句话有实测支撑。torchao 文档给出的评估里，
-  以 gemma3-12b-it 为例：bf16 基线的 wikitext 困惑度是 9.1477，
-  直接 int4 之后升到 9.7745，加上 int4 QAT 回到 9.5631——
-  也就是把差距<strong>恢复了约 34%</strong>；同一个模型在 bbh 上恢复约 45%。
-  数字不大，但方向非常一致：<em>QAT 是「把 PTQ 掉的分捡回来一部分」，不是免费的午餐。</em>
-</p>
-<p>
-  <strong>一个必须记住的术语陷阱</strong>：QLoRA 不是 QAT。
-  QLoRA 把基座模型 4-bit 量化后<strong>冻结</strong>，只训练浮点的 LoRA 适配器
-  （<a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noopener">QLoRA: Efficient Finetuning of Quantized LLMs</a>，arXiv:2305.14314）。
-  它训练的是 LoRA，不是量化误差本身；部署时基座是 4-bit、LoRA 仍是 16-bit。
-</p>
-<p>
-  <strong>决策顺序</strong>：先试更好的 PTQ（GPTQ / AWQ / NF4），
-  只有在掉点超出容忍度、或者目标平台要求 int8 激活、或者位宽要压到 4-bit 以下时，
-  才进入 QAT。这条顺序能省下大量算力。
-</p>
-
-<h3>5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护</h3>
-<p>
-  给 Charles 的数学草稿纸：在工业界大模型量化中，朴素的 Round-to-Nearest（四舍五入最近取整）往往导致显著的累积精度崩塌。
-  为了在 4-bit 甚至更低位宽下保留模型的推理能力，我们需要从<strong>二阶损失敏感度</strong>与<strong>激活离群通道保护</strong>两个截然不同的几何视角进行代数推演。
-</p>
-
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与符号约定（量化、二阶 Hessian 与 OBS）</h4>
-  <p>
-    <strong>前置定义 1（对称与非对称线性均匀量化）：</strong>
-    设浮点实数权重为 \(w \in [w_{\min}, w_{\max}]\)，目标位宽为 \(b\) 比特（对应离散格点数 \(2^b\)）。
-  </p>
-  <ul>
-    <li>
-      <strong>对称量化（Symmetric Quantization）：</strong>
-      强行令零点对齐 \(z = 0\)，取绝对值极值截断 \(w_{\text{abs}} = \max(|w|)\)。缩放因子与整数量化公式为：
-      \[ s = \frac{w_{\text{abs}}}{2^{b-1} - 1}, \qquad q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil, -(2^{b-1} - 1), 2^{b-1} - 1\right) \]
-      反量化重构值为 \(\hat{w} = s \cdot q\)。其优势在于硬件无需处理非零零点偏移（Zero-point shift），矩阵乘计算极快。
-    </li>
-    <li>
-      <strong>非对称量化（Asymmetric Quantization）：</strong>
-      引入浮点零点偏移量 \(z \in \mathbb{R}\)，使量化格点完整覆盖任意非对称区间：
-      \[ s = \frac{w_{\max} - w_{\min}}{2^b - 1}, \qquad z = \left\lfloor -\frac{w_{\min}}{s} \right\rceil \]
-      \[ q = \mathrm{clip}\!\left(\left\lfloor \frac{w}{s} \right\rceil + z, 0, 2^b - 1\right), \qquad \hat{w} = s(q - z) \]
-    </li>
-  </ul>
-  <p>
-    <strong>前置定义 2（损失函数的二阶泰勒展开与 Hessian 矩阵）：</strong>
-    设预训练神经网络的损失函数为 \(\mathcal{L}(w)\)。在收敛的最优权重局部极小点 \(w^*\) 附近，梯度向量处于稳态，即 \(g = \nabla \mathcal{L}(w^*) \approx 0\)。
-    当引入微小的权重摄动 \(\Delta w = \hat{w} - w^*\)（由量化截断引起）时，损失函数的增量可用二阶泰勒展开式高度逼近：
-  </p>
-  \[ \Delta \mathcal{L} = \mathcal{L}(w^* + \Delta w) - \mathcal{L}(w^*) = g^{\top} \Delta w + \frac{1}{2} \Delta w^{\top} H \Delta w + \mathcal{O}(\|\Delta w\|^3) \approx \frac{1}{2} \Delta w^{\top} H \Delta w \]
-  <p>
-    其中 \(H = \nabla^2 \mathcal{L}(w^*) \in \mathbb{R}^{d \times d}\) 为实对称半正定 Hessian 矩阵。
-    在现代大语言模型的层级重构目标中，损失定义为校准数据集上该层输出特征的均方重构误差 \(\mathcal{L} = \|X w - X \hat{w}\|_2^2\)。
-    展开此二次型可知，Hessian 矩阵具有极其干净的代数形式：
-  </p>
-  \[ H = 2 X^{\top} X \]
-  <p>
-    其中 \(X \in \mathbb{R}^{m \times d}\) 为校准样本经过上一层得到的输入特征矩阵。
-    因此，\(H\) 的第 \(i\) 个对角元 \(H_{ii} = 2 \sum_{k=1}^m X_{ki}^2\) 严格正比于输入通道 \(i\) 的二范数能量；而互协方差项 \(H_{ij}\) 则反映了不同输入特征通道之间的线性相关性。
-  </p>
-  <p>
-    <strong>前置定义 3（Optimal Brain Surgeon，OBS 经典公式）：</strong>
-    经典 OBS 理论（Hassibi & Stork, 1993）探讨：若强制将第 \(q\) 个权重修改（如剪枝置零，或量化到最近网格点，产生既定偏差 \(\mathbf{e}_q^{\top} \Delta w = \hat{w}_q - w_q\)），
-    如何通过联立调整其余所有未量化权重，使整体二次扰动损失 \(\frac{1}{2} \Delta w^{\top} H \Delta w\) 严格达到全局最小？
-  </p>
-</section>
-
-<div class="acc" data-t="深入：GPTQ 二阶补偿闭式解（从 OBS 到逐列量化）" data-badge="进阶">
-  <div class="acc-body">
-    <p>
-      <strong>以 crossfade 这类任务为例：这个证明现在不需要会证，但要会用它的结论。</strong>
-      结论只有一句：GPTQ 靠输入通道之间的相关性（Hessian 非对角元）让没量化的权重替已量化的分担误差——
-      所以校准集必须像真实输入，拿通用文本去校准专用模型的量化就是耍流氓。
-      部署视角：4-bit GPTQ 把 7B 权重从约 14.5 GB 压到约 3.85 GB（第 7 节的表），单卡可跑，
-      解码 tok/s 基本不掉（解码是带宽瓶颈，见第 4 节）；代价是一次性的校准与逐层求逆（分钟到小时级），
-      以及长尾任务上可能几个点的掉点。什么时候不值：模型本来就放得下、速度也够快时——量化只增加排障面。
-      第一次读可以直接跳到 C 节的手算实例，那里有全部能带走的数字。
-    </p>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>草稿纸演算区 B：GPTQ 二阶补偿闭式推导与 2×2 Hessian 手算草稿</h4>
-  <p>
-    <strong>定理（GPTQ / OBS 最优权重补偿闭式解）：</strong>
-    设待量化权重的索引为 \(q\)，量化产生的固定残差为 \(w_q - \mathrm{quant}(w_q)\)。
-    在约束 \(\mathbf{e}_q^{\top} \Delta w = \mathrm{quant}(w_q) - w_q\) 下，使二次损失 \(\frac{1}{2} \Delta w^{\top} H \Delta w\) 最小的最优扰动向量为：
-  </p>
-  \[ \Delta w = - \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \cdot [H^{-1}]_{:, q} \]
-  <p>
-    <strong>代数证明（Charles 的拉格朗日乘子草稿推演）：</strong>
-  </p>
-  <p>
-    构造含等式约束的目标拉格朗日函数（其中 \(\lambda \in \mathbb{R}\) 为待定乘子）：
-  </p>
-  \[ \mathcal{L}(\Delta w, \lambda) = \frac{1}{2} \Delta w^{\top} H \Delta w + \lambda \left(\mathbf{e}_q^{\top} \Delta w - (\mathrm{quant}(w_q) - w_q)\right) \]
-  <p>
-    对补偿向量 \(\Delta w\) 计算矩阵微分并令偏导为零向量：
-  </p>
-  \[ \frac{\partial \mathcal{L}}{\partial \Delta w} = H \Delta w + \lambda \mathbf{e}_q = 0 \implies \Delta w = -\lambda H^{-1} \mathbf{e}_q = -\lambda [H^{-1}]_{:, q} \]
-  <p>
-    注意 \([H^{-1}]_{:, q}\) 即为逆 Hessian 矩阵的第 \(q\) 列。将上式代入标量约束方程 \(\mathbf{e}_q^{\top} \Delta w = \mathrm{quant}(w_q) - w_q\)：
-  </p>
-  \[ \mathbf{e}_q^{\top} \left( -\lambda [H^{-1}]_{:, q} \right) = -\lambda [H^{-1}]_{qq} = \mathrm{quant}(w_q) - w_q \]
-  <p>
-    解出拉格朗日乘子 \(\lambda\)：
-  </p>
-  \[ \lambda = \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \]
-  <p>
-    将 \(\lambda\) 代回 \(\Delta w\) 的表达式，即刻得到 GPTQ 核心更新公式：
-  </p>
-  \[ \Delta w = - \frac{w_q - \mathrm{quant}(w_q)}{[H^{-1}]_{qq}} \cdot [H^{-1}]_{:, q} \]
-  <p>
-    将此解代回目标二次型，即可算得此步量化造成的最小残余误差增量（此即著名的 OBS 显著性指标）：
-  </p>
-  \[ E_q = \frac{1}{2} \Delta w^{\top} H \Delta w = \frac{1}{2} \frac{(w_q - \mathrm{quant}(w_q))^2}{[H^{-1}]_{qq}} \]
-  <p>
-    <strong>极简小数字手算草稿：2×2 矩阵下的量化误差动态补偿</strong>
-  </p>
-  <p>
-    现在带 Charles 在草稿纸上代入一组精简至极的数字，直观追踪「量化误差是如何一步步被未量化权重吸收」的。
-  </p>
-  <p>
-    设层有两个输入通道，权重向量为 \(w = [w_1, w_2]^{\top} = [1.6, 1.0]^{\top}\)。
-    校准特征矩阵对应的 Hessian 矩阵设为：
-  </p>
-  \[ H = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} \]
-  <p>
-    其主对角线元素均为 2（说明两输入通道具有相同的基础能量），非对角元为 1（存在正相关协方差）。
-  </p>
-  <p>
-    <strong>第一步：求逆 Hessian 矩阵 \(H^{-1}\)。</strong>
-    行列式 \(\det(H) = 2 \times 2 - 1 \times 1 = 3\)。伴随矩阵求逆：
-  </p>
-  \[ H^{-1} = \frac{1}{3} \begin{bmatrix} 2 & -1 \\ -1 & 2 \end{bmatrix} = \begin{bmatrix} 2/3 & -1/3 \\ -1/3 & 2/3 \end{bmatrix} \]
-  <p>
-    <strong>第二步：量化第 1 个权重 \(w_1\)。</strong>
-    设目标量化格点为整数网格。浮点值 \(w_1 = 1.6\) 取整为 \(\mathrm{quant}(w_1) = 2.0\)。
-    量化残差为：
-  </p>
-  \[ w_1 - \mathrm{quant}(w_1) = 1.6 - 2.0 = -0.4 \]
-  <p>
-    取逆矩阵第 1 列元素：\([H^{-1}]_{11} = 2/3\)，第 1 列向量为 \([H^{-1}]_{:, 1} = [2/3, -1/3]^{\top}\)。
-  </p>
-  <p>
-    <strong>第三步：代入闭式解计算补偿向量 \(\Delta w\)。</strong>
-  </p>
-  \[ \Delta w = - \frac{-0.4}{2/3} \begin{bmatrix} 2/3 \\ -1/3 \end{bmatrix} = 0.6 \begin{bmatrix} 2/3 \\ -1/3 \end{bmatrix} = \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} \]
-  <p>
-    <strong>第四步：更新权重并审视数学含义。</strong>
-  </p>
-  \[ w_{\text{new}} = w + \Delta w = \begin{bmatrix} 1.6 \\ 1.0 \end{bmatrix} + \begin{bmatrix} 0.4 \\ -0.2 \end{bmatrix} = \begin{bmatrix} 2.0 \\ 0.8 \end{bmatrix} \]
-  <ul>
-    <li>对被量化分量 \(w_1\)：\(1.6 + 0.4 = 2.0\)，精确达到了量化整数点！</li>
-    <li>对未量化分量 \(w_2\)：由于相关性 \([H^{-1}]_{21} = -1/3 < 0\)，\(w_2\) 自动从 \(1.0\) 调小至 \(0.8\)，补偿了 \(w_1\) 向上取整带来的输出过高！</li>
-  </ul>
-  <p>
-    <strong>反思草稿：若 \(H\) 为纯对角矩阵（无特征交叉项）？</strong>
-    若 \(H = \mathrm{diag}(2, 2)\)，则 \(H^{-1} = \mathrm{diag}(1/2, 1/2)\)，此时 \([H^{-1}]_{:, 1} = [1/2, 0]^{\top}\)，未量化列的补偿量恒为 0。
-    这证明了 GPTQ 的灵魂本质：<strong>利用输入特征之间的相关性（非对角协方差），让尚未量化的权重主动替已量化权重分担误差</strong>！
-  </p>
-</section>
-  </div>
-</div>
-
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>草稿纸演算区 C：AWQ 激活感知保护敏感通道手算实例</h4>
-  <p>
-    GPTQ 依赖高精度的二阶逆矩阵逐步补偿，但逐层求逆与更新在大模型数十亿参数下计算开销大，且容易受数值舍入误差累积影响。
-    AWQ（Activation-aware Weight Quantization, Lin et al., 2023）给出了另一个极其轻量而深邃的洞察：
-    <strong>权重的重要性并不取决于权重自身的大小，而是取决于它所作用的输入激活特征（Activation）的强度！</strong>
-  </p>
-  <p>
-    <strong>前置推导（通道等价等比变换技巧）：</strong>
-    考虑神经网络全连接层线性变换 \(Y = X W\)，其中 \(X \in \mathbb{R}^{B \times d_{\text{in}}}\)，\(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)。
-    引入一个对角可逆缩放矩阵 \(S = \mathrm{diag}(s_1, s_2, \dots, s_{d_{\text{in}}})\)（其中每个 \(s_i > 0\) 为各输入通道的保护缩放因子）：
-  </p>
-  \[ Y = X W = (X S^{-1}) (S W) = \tilde{X} \tilde{W} \]
-  <p>
-    在保持数学恒等变换的前提下，我们将权重放大为 \(\tilde{W} = S W\)，而将输入激活缩放为 \(\tilde{X} = X S^{-1}\)。
-    当把量化算子作用在放大后的权重上时：
-  </p>
-  \[ \hat{W} = S^{-1} \cdot \mathrm{quant}(S W) \]
-  <p>
-    设绝对量化舍入步长为 \(\Delta_{\text{grid}}\)。因为权重被放大了 \(s_i\) 倍，量化带来的离散舍入绝对截断误差上界为 \(\frac{1}{2}\Delta_{\text{grid}}\)。
-    经由 \(S^{-1}\) 还原后，作用于原始输入上的有效权重截断误差被缩小为原来的 \(\frac{1}{s_i}\) 倍：
-  </p>
-  \[ |\hat{W}_{ij} - W_{ij}| \le \frac{\Delta_{\text{grid}}}{2 s_i} \]
-  <p>
-    <strong>极简小数字草稿纸手算：离群通道的保护魔力</strong>
-  </p>
-  <p>
-    我们在草稿纸上模拟一个典型的 LLM 特征通道场景：模型存在一个极端离群（Outlier）激活通道。
-  </p>
-  <p>
-    设单样本两通道输入向量为 \(x = [x_1, x_2] = [100.0, 1.0]\)（通道 1 激活绝对值高达 100，通道 2 仅为 1）。
-    对应未量化权重为 \(w = [w_1, w_2]^{\top} = [1.24, 1.24]^{\top}\)。
-    真实无损输出标量为：
-  </p>
-  \[ y = x_1 w_1 + x_2 w_2 = 100.0 \times 1.24 + 1.0 \times 1.24 = 124.0 + 1.24 = 125.24 \]
-  <p>
-    <strong>情况一：朴素直接逐权重整数四舍五入量化（无 AWQ 保护）</strong>
-  </p>
-  <p>
-    网格步长取 1，两通道权重均四舍五入到整数：\(\mathrm{quant}(w_1) = 1.0\)，\(\mathrm{quant}(w_2) = 1.0\)。
-    两通道的权重截断误差均为相同的小数点后截断：\(\delta = 1.24 - 1.0 = 0.24\)。
-    此时输出端计算值变为：
-  </p>
-  \[ \hat{y}_{\text{naive}} = 100.0 \times 1.0 + 1.0 \times 1.0 = 100.0 + 1.0 = 101.0 \]
-  <p>
-    输出绝对误差高达：
-  </p>
-  \[ |\hat{y}_{\text{naive}} - y| = |101.0 - 125.24| = 24.24 \]
-  <p>
-    观察发现：<strong>99.6% 的输出灾难性漂移（\(100.0 \times 0.24 = 24.0\)）全部由敏感通道 1 的微小舍入误差引起！</strong>
-  </p>
-  <p>
-    <strong>情况二：采用 AWQ 通道自适应保护缩放</strong>
-  </p>
-  <p>
-    识别到通道 1 属于高敏感通道，为其设定保护缩放系数 \(s_1 = 4\)，通道 2 保持 \(s_2 = 1\)。
-  </p>
-  <p>
-    权重放缩：
-  </p>
-  \[ \tilde{w}_1 = s_1 \times w_1 = 4 \times 1.24 = 4.96 \]
-  <p>
-    对放缩后的权重执行量化并反算等效量化权重：
-  </p>
-  \[ \mathrm{quant}(\tilde{w}_1) = \mathrm{round}(4.96) = 5.0 \implies \hat{w}_1 = \frac{5.0}{s_1} = \frac{5.0}{4} = 1.25 \]
-  <p>
-    通道 2 仍取 \(\hat{w}_2 = 1.0\)。此时等效量化后的层输出为：
-  </p>
-  \[ \hat{y}_{\text{awq}} = 100.0 \times \hat{w}_1 + 1.0 \times \hat{w}_2 = 100.0 \times 1.25 + 1.0 \times 1.0 = 125.0 + 1.0 = 126.0 \]
-  <p>
-    输出绝对误差缩小为：
-  </p>
-  \[ |\hat{y}_{\text{awq}} - y| = |126.0 - 125.24| = 0.76 \]
-  <p>
-    误差从 <strong>24.24 骤降至 0.76</strong>，精度损失被遏制了整整 97%！
-    更关键的是：缩放因子 \(S^{-1}\) 在前向推理中可以直接与前一层的归一化算子（如 LayerNorm / RMSNorm）权重常数折叠融合（Weight folding），
-    在推理运行时<strong>完全不引入任何额外的浮点运算延迟</strong>！
-  </p>
-</section>
-
-<h3>6. 模型合并与 MoE upcycling：把权重当作可运算的对象</h3>
-<p>
-  前五节都在「减少」参数。这一节做相反的事：<strong>在不增加推理成本的前提下，把多个模型的能力塞进一份权重里</strong>。
-  它的核心假设是：权重空间里的算术是有意义的。
-</p>
-<p>
-  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>；
-  这里只讨论「把稠密权重变成 MoE」的 upcycling 算术，以及它和量化的配合顺序。
-</p>
-
-<h4>6.1 权重平均与「模型汤」</h4>
-\[ \theta_{\text{soup}} = \frac{1}{K}\sum_{k=1}^{K}\theta_k \]
-<p>
-  前提非常强：所有 \(\theta_k\) 必须从<strong>同一个预训练权重</strong>出发，
-  用不同的超参（学习率、数据顺序、增强方式）微调得到。
-  Wortsman 等（ICML 2022）证明这种平均经常能超过超参搜索里最好的单个模型，
-  而推理时只有一个模型、零额外开销——所以作者叫它
-  <span class="t" data-tterm="Model soup" data-d="模型汤：把同一预训练权重的多次微调结果做权重平均；推理成本与单个模型相同，却能接近集成的效果。">模型汤</span>
-  而不是「集成」
-  （<a href="https://arxiv.org/abs/2203.05482" target="_blank" rel="noopener">Model soups: averaging weights of multiple fine-tuned models improves accuracy without increasing inference time</a>，arXiv:2203.05482）。
-</p>
-<p>
-  为什么有效？论文的观察是：这些微调结果往往落在同一个<strong>低误差盆地</strong>里，
-  盆地内部用直线连接仍然是低误差的。这就是「权重平均 ≈ logit 集成」在什么条件下成立的问题，
-  论文给出了与损失面平坦度、预测置信度相关的解析关系。
-</p>
-
-<h4>6.2 任务向量与任务算术</h4>
-\[ \tau_t = \theta_t - \theta_{\text{pre}}, \qquad \theta_{\text{multi}} = \theta_{\text{pre}} + \lambda \sum_t \tau_t \]
-<p>
-  Ilharco 等（ICLR 2023）提出
-  <span class="t" data-tterm="Task vector" data-d="任务向量：微调后权重减去预训练权重得到的差，代表权重空间中「朝某个任务变好」的方向。">任务向量</span>：
-  它指定了权重空间里的一个<em>方向</em>，朝这个方向移动就改善对应任务。
-  任务向量可以被取负（削弱某项能力）也可以相加（同时提升多个任务）；
-  论文还展示了「A 之于 B 如同 C 之于 D」这类类比关系可以直接在权重空间里做算术
-  （<a href="https://arxiv.org/abs/2212.04089" target="_blank" rel="noopener">Editing Models with Task Arithmetic</a>，arXiv:2212.04089）。
-</p>
-<p>
-  式中的 \(\lambda\) 是缩放系数，实践中常在 0.3–1.0 之间。它太大就会把模型拉出低误差区域，
-  表现为输出变得混乱但不像任何一个源模型。\(\lambda\) 通常是合并实验里<strong>唯一需要调的旋钮</strong>。
-</p>
-
-<h4>6.3 TIES 与 DARE：先处理干扰，再合并</h4>
-<p>
-  <strong>TIES-Merging</strong>（Yadav 等，NeurIPS 2023）指出合并掉点有两个干扰来源：
-  (a) <em>冗余参数值</em>——微调时几乎没变的参数也被卷进平均；
-  (b) <em>符号不一致</em>——不同模型认为同一个参数应该往正走还是往负走。
-  方法分三步：裁剪（把变化很小的参数归零）、符号选举（逐参数按多数投票决定最终符号）、
-  只合并在最终符号上一致的参数
-  （<a href="https://arxiv.org/abs/2306.01708" target="_blank" rel="noopener">TIES-Merging: Resolving Interference When Merging Models</a>，arXiv:2306.01708）。
-</p>
-<p>
-  <strong>DARE</strong>（Yu 等，ICML 2024）从一个更激进的角度切入：先随机丢弃比例 \(p\) 的 delta 参数，
-  再把剩下的按 \(1/(1-p)\) 放大，用来近似原来的 delta。
-</p>
-\[ \hat{\delta}_i = \frac{m_i}{1-p}\,\delta_i, \qquad m_i \sim \mathrm{Bernoulli}(1-p) \]
-<p>
-  这样做的期望是<strong>无偏</strong>的（\(\mathbb{E}[\hat{\delta}_i] = \delta_i\)），代价是方差变大。
-  论文报告 SFT 的 delta 参数取值范围极小（通常在 0.002 以内）且极度冗余，
-  可以丢掉 90% 甚至 99% 而能力不变；把 DARE 作为插件接上参数融合之后，
-  可以合并多个同源的 SFT 模型，并且在大规模模型上出现「合并后的模型超过任何单个源模型」的现象
-  （<a href="https://arxiv.org/abs/2311.03099" target="_blank" rel="noopener">Language Models are Super Mario: Absorbing Abilities from Homologous Models as a Free Lunch</a>，arXiv:2311.03099）。
-</p>
-
-<h4>6.4 为什么有时一起涨、有时直接崩</h4>
-<p><strong>会提升的情形</strong>——三个条件同时满足时最稳：</p>
-<p>
-  <strong>① 同源。</strong>同一个基座、同一个 tokenizer、同一套训练框架。
-  <strong>② delta 小且近似正交。</strong>LoRA、少量步数的 SFT 都属于这一类；
-  不同任务的更新方向互不冲突，叠加起来接近「同一张权重表里塞进更多功能」。
-  <strong>③ 模型足够大。</strong>DARE 明确观察到「这个现象在大规模模型上更明显」。
-</p>
-<p><strong>会崩的情形</strong>——下面五条，任何一条单独出现都足够致命：</p>
-<p>
-  <strong>① 基座或 tokenizer 不同。</strong>embedding 与输出头的每一行对应一个 token ID。
-  两个词表不同时，第 1000 行可能对应完全不同的子词。直接平均等于把两个坐标系硬叠在一起，
-  结果是两边都是噪声。这是最常见、也最容易犯的合并错误。
-</p>
-<p>
-  <strong>② 架构不同。</strong>层数、RoPE 基频、GQA 的 KV 头数、是否使用 MLA，
-  任何一处不同都会让「同名」的权重张量形状或语义错位。
-</p>
-<p>
-  <strong>③ 符号冲突严重且没做符号选举。</strong>正负相消，两边能力一起消失。
-</p>
-<p>
-  <strong>④ delta 量级差异过大。</strong>一个训了 200 步的 LoRA 和一个训了 3 个 epoch 的全参数微调，
-  delta 范数可能差一到两个数量级；简单相加会被大的那个淹没，小的那个等于没加。
-</p>
-<p>
-  <strong>⑤ 能力目标本身冲突。</strong>例如把「对齐过的模型」和「去对齐的模型」合并。
-  这不是数值问题，是目标冲突——合并没有机制去仲裁两个互相矛盾的行为倾向。
-</p>
-<p>
-  <strong>实践口诀</strong>：先对齐 tokenizer 与 config，再打印每个 delta 的范数分布看量级是否可比，
-  最后才去调 \(\lambda\) 和 \(p\)。跳过前两步直接调参，是在给一个结构性错误做参数搜索。
-</p>
-
-<h4>6.5 MoE upcycling：把稠密模型「升级」成稀疏专家</h4>
-<p>
-  最后一条路线听起来和前面都不同：<em>不要压缩，要扩容——但扩的是容量，不是算力。</em>
-  思路是：你已经花了大钱训好一个稠密 checkpoint，与其从零训一个 MoE，
-  不如把稠密 FFN <strong>复制成 \(E\) 个专家</strong>、加一个路由器，然后继续训练。
-  这个过程叫
-  <span class="t" data-tterm="Upcycling" data-d="上循环：把稠密模型的权重复制成稀疏专家模型的初始化，再继续训练，从而复用已投入的预训练算力。">upcycling</span>。
-</p>
-<p>
-  Komatsuzaki 等（2022）在 T5 Base / Large / XL 与 ViT Base / Large 上验证：
-  sparse upcycling 只用约 <strong>50% 的初始稠密预训练沉没成本</strong>，
-  就在 SuperGLUE 与 ImageNet 上超过对应的稠密模型；
-  也超过了用 100% 稠密预训练算力<strong>从零训练</strong>的稀疏模型
-  （<a href="https://arxiv.org/abs/2212.05055" target="_blank" rel="noopener">Sparse Upcycling: Training Mixture-of-Experts from Dense Checkpoints</a>，arXiv:2212.05055）。
-</p>
-<p>两个必须做对的工程细节：</p>
-<p>
-  <strong>① 打破对称性。</strong>如果 \(E\) 个专家初始完全相同，
-  那么在这一步它们对所有输入给出相同的输出，路由器拿到的梯度是纯噪声，
-  模型永远学不出「分工」。必须给专家加扰动或噪声（论文里用随机初始化路由器 + 复制后的扰动）。
-</p>
-<p>
-  <strong>② 路由器要预热并做负载均衡。</strong>否则会出现专家坍缩——
-  路由器把绝大多数 token 送给少数几个专家，其余专家从不更新，等于白养。
-</p>
-<p>
-  把这一节和模块 04 的结论接上：<strong>upcycling 买到的是「容量」，付出的代价是显存</strong>。
-  所有专家都要装进显存，而单卡小批量实验里省下来的算力根本用不上。
-  所以它是「大规模训练场景的武器」，不是「单卡部署的武器」。
-</p>
-
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：剪枝 / 量化 / 合并的三条账（CPU 可跑，几分钟）</h4>
-  <p>
-    这个实验完全自包含：现场训练一个极小的语言模型，然后对同一个模型做三种压缩，
-    分别量出「质量、字节数、墙钟时间」。跑完你会亲眼看到「参数变少 ≠ 变快」。
-  </p>
-<p>\[ M_{i, j} = \mathbb{I}(|W_{i, j}| \ge \tau_k), \quad W_{\text{pruned}} = W \odot M, \quad \tilde{W} = S \cdot (W_q - Z) \]</p>
-  <p><strong>要记录并解释的四件事：</strong></p>
-  <p>
-    <strong>①</strong> 剪枝后 loss 涨了多少？非零元素少了一半，但<em>字节数一点没变</em>——
-    因为置零不改变稠密张量的存储。
-  </p>
-  <p>
-    <strong>②</strong> CSR 估算比稠密更大。这正是手算那一节里 16.9 GB 的来源。
-  </p>
-  <p>
-    <strong>③</strong> dense matmul 与 90% 稀疏 matmul 的耗时几乎相同。
-    这就是「稀疏 ≠ 加速」在你自己机器上的直接证据。
-  </p>
-  <p>
-    <strong>④</strong> 合并后的模型在任务 1 和任务 2 上<em>都不如</em>各自专用的模型，
-    但通常<em>都优于基座</em>。这就是合并的真实价值：
-    不是「一个模型打败两个」，而是「用一个模型的成本，拿到两个任务的大部分能力」。
-    顺手把 \(\lambda\) 调到 1.5 试试，你会看到它开始崩——这就是「拉出低误差盆地」的样子。
-  </p>
-</section>
-
-<h3>7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）</h3>
-<p>
-  第 4 节只算了 FFN 那一块。这一节换成一个完整模型，把<strong>权重账、KV 账、延迟账</strong>分成三本分别算，
-  每一步都留中间结果，读者可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
-</p>
-<table class="tbl small">
-  <thead><tr><th>符号</th><th>取值</th><th>它出现在哪本账里</th></tr></thead>
-  <tbody>
-    <tr><td>层数 \(L\)</td><td>32</td><td>权重与 KV 都要乘它</td></tr>
-    <tr><td>隐藏维度 \(d\)</td><td>4096</td><td>参数量的主因子</td></tr>
-    <tr><td>FFN 中间维度 \(d_{ff}\)</td><td>14336</td><td>SwiGLU 的三个矩阵</td></tr>
-    <tr><td>注意力头数 \(h\) / 每头维度 \(d_h\)</td><td>32 / 128</td><td>\(h\,d_h = d\)</td></tr>
-    <tr><td>KV 头数 \(h_{kv}\)</td><td>8</td><td>GQA，\(h/h_{kv} = 4\)</td></tr>
-    <tr><td>词表 \(V\)</td><td>32000</td><td>embedding 与输出头各一份</td></tr>
-  </tbody>
-</table>
-
-<h4>7.1 第一本账：权重体积</h4>
-<p>参数量按四块相加（注意力投影、FFN、embedding、输出头）：</p>
-\[ N_{\text{attn}} = L\,(d^2 + 2\,d\,h_{kv}d_h + d^2) = 32 \times 41{,}943{,}040 \approx 1.342\times10^{9} \]
-\[ N_{\text{ffn}} = L \cdot 3\,d\,d_{ff} = 32 \times 176{,}160{,}768 \approx 5.637\times10^{9} \]
-\[ N_{\text{emb}} = 2\,V\,d = 2 \times 32000 \times 4096 \approx 0.262\times10^{9} \]
-\[ N = N_{\text{attn}} + N_{\text{ffn}} + N_{\text{emb}} \approx 7.24\times10^{9} \]
-<p>
-  也就是约 <strong>7.2 B</strong> 参数。接下来只做一次乘法：\(B_w = N \times b_w\)，
-  其中 \(b_w\) 是每个权重占的字节数。4-bit 那一行还要额外算一笔：
-  <em>每 128 个权重共享一个 fp16 缩放因子与一个 fp16 零点</em>，
-  于是每个权重多出 \(4/128 = 0.03125\) 字节。
-</p>
-<table class="tbl small">
-  <thead><tr><th>表示</th><th>每权重字节</th><th>权重体积</th><th>相对 fp16</th><th>说明</th></tr></thead>
-  <tbody>
-    <tr><td>fp16 / bf16</td><td>2</td><td>\(7.24\times2 = 14.5\) GB</td><td>1.00×</td><td>训练与推理的默认；也是你下载下来的那个文件</td></tr>
-    <tr><td>int8（逐通道 scale）</td><td>1</td><td>7.24 GB</td><td>2.00×</td><td>掉点通常最小的一档，多数框架默认可用</td></tr>
-    <tr><td>int4（group=128，scale 与 zero 为 fp16）</td><td>\(0.5 + 0.03125 = 0.531\)</td><td>3.85 GB</td><td>3.76×</td><td><strong>生产上最常见的 4-bit</strong>；比纸面 4.0× 差 6%</td></tr>
-    <tr><td>int4（忽略缩放开销）</td><td>0.5</td><td>3.62 GB</td><td>4.00×</td><td>只存在于幻灯片里，任何真实格式都到不了</td></tr>
-    <tr><td>NF4（group=64，非均匀格点）</td><td>约 0.53</td><td>约 3.85 GB</td><td>3.76×</td><td>格点按正态分位数摆放，押注权重近似正态</td></tr>
-  </tbody>
-</table>
-<p>
-  <strong>这张表要带走三句话</strong>：① 2 B 到 1 B 到 0.5 B 就是全部秘密，量化省的是<em>存储宽度</em>；
-  ② 真实 4-bit 到不了 4.0×，因为缩放因子也要存，group 越小开销越大；
-  ③ 权重账只付<strong>一次</strong>，与上下文长度无关——这一点马上会和 KV 账形成对比。
-</p>
-
-<h4>7.2 第二本账：KV cache</h4>
-<p>每 token 的 KV 字节数只与结构有关，与序列里已经有几个 token 无关：</p>
-\[ M_{\text{kv}} = 2 \cdot L \cdot h_{kv} \cdot d_h \cdot b = 2 \times 32 \times 8 \times 128 \times 2 = 131{,}072 \ \text{B} = 128 \ \text{KiB} \]
-<p>
-  式子里最前面的 2 是「K 与 V 各一份」，\(b = 2\) 是 fp16 的字节数。
-  要强调的是：<strong>权重账只付一次，KV 账每条序列、每个 token 都要付</strong>。
-  把 128 KiB 乘上长度，就得到一张能直接和显存对照的表：
-</p>
-<table class="tbl small">
-  <thead><tr><th>上下文长度</th><th>fp16 KV（128 KiB/token）</th><th>int8 KV（64 KiB/token）</th><th>对照</th></tr></thead>
-  <tbody>
-    <tr><td>8,192（8K）</td><td>1.0 GiB</td><td>0.5 GiB</td><td>相对 fp16 权重（14.5 GB）还很小</td></tr>
-    <tr><td>32,768（32K）</td><td>4 GiB</td><td>2 GiB</td><td>开始和权重同一量级</td></tr>
-    <tr><td>131,072（128K）</td><td>16 GiB</td><td>8 GiB</td><td><strong>一条序列就是 int4 权重的 4 倍</strong></td></tr>
-    <tr><td>16 条 × 8K 并发</td><td>16 GiB</td><td>8 GiB</td><td>并发数是被 KV 除出来的，不是拍出来的</td></tr>
-  </tbody>
-</table>
-<p>
-  注意最后一行：<em>决定并发上限的是 KV，不是权重</em>。把权重从 14.5 GB 压到 3.85 GB 省下 10.6 GB，
-  正好够 10 条 8K 序列的 fp16 KV；而 KV 量化到 int8 又能让同样的显存多装一倍序列。
-  这就是「长上下文首先是显存容量问题」的全部来源。
-</p>
-
-<h4>7.3 第三本账：解码延迟与吞吐</h4>
-<p>
-  解码一步要读一遍权重（模块 08 的结论），所以单序列的解码时间近似为「字节数 ÷ 显存带宽」。
-  取标称带宽 1.0 TB/s（一张消费级 24 GB 卡的量级；数据中心卡是它的 2–3 倍）：
-</p>
-\[ t_{\text{step}} \approx \frac{B_w}{BW} \]
-<table class="tbl small">
-  <thead><tr><th>权重格式</th><th>每步权重字节</th><th>步时（理想）</th><th>单序列吞吐（理想）</th><th>按 70% 带宽效率折算</th></tr></thead>
-  <tbody>
-    <tr><td>fp16</td><td>14.5 GB</td><td>14.5 ms</td><td>69 tok/s</td><td>约 48 tok/s</td></tr>
-    <tr><td>int8</td><td>7.24 GB</td><td>7.2 ms</td><td>138 tok/s</td><td>约 97 tok/s</td></tr>
-    <tr><td>int4</td><td>3.85 GB</td><td>3.85 ms</td><td>260 tok/s</td><td>约 180 tok/s</td></tr>
-  </tbody>
-</table>
-<p>三件事必须一起说，否则这张表会被用错：</p>
-<p>
-  <strong>① 这是上界，不是承诺。</strong>真实卡上取到标称带宽的 60%–80% 就算不错，所以表里给了两列。
-  比例的<em>关系</em>是可靠的（量化大致把单序列解码提速 2–4 倍），绝对值不可靠。
-</p>
-<p>
-  <strong>② 加速来自带宽，不是来自算力。</strong>很多 4-bit 权重内核（业界常称 W4A16）的做法是
-  先把权重反量化回 fp16、再走普通的 fp16 GEMM。这种情况下 Tensor Core 的算力<em>一点没变</em>，
-  省下来的只是把 14.5 GB 的读取换成 3.85 GB。想靠量化拿算力，要用 int8 这种有原生整数 GEMM 的格式，
-  而且只在<strong>算力受限</strong>的 prefill 阶段有效。
-</p>
-<p>
-  <strong>③ 批一大，权重就被摊薄，KV 开始主导。</strong>设批大小 \(B\)、上下文字长 \(T\)，
-  一步要读的字节数是 \(B_w + B \cdot T \cdot M_{\text{kv}}\)。取 \(B = 4\)、\(T = 131072\)、fp16 KV：
-</p>
-\[ B \cdot T \cdot M_{\text{kv}} = 4 \times 131072 \times 131072 \approx 6.87\times10^{10} \ \text{B} \]
-<p>
-  也就是约 <strong>69 GB</strong> 的 KV 流量，而权重只有 3.85 GB（int4）——<em>KV 是权重的 18 倍</em>。
-  结论很直接：<strong>长上下文服务里只量化权重几乎没用，必须同时处理 KV。</strong>
-  把 KV 也压到 int4（约 34 KiB/token，含缩放开销），这一步的流量降到约 \(1.8\times10^{10}\) B，
-  步时从 72 ms 回到 22 ms，4 条序列合计约 180 tok/s。
-  第 24 章第 8 节会用同一套式子做架构选型。
-</p>
-
-<h3>8. 该不该压：先看卡在哪，再选手段</h3>
-<p>
-  压缩的门槛从来不是「能不能压」，而是「压完有没有解决你真正的问题」。
-  下面这张表按<strong>症状</strong>索引：先在左列找到你观察到的现象，再往右看该动哪一步。它可以直接当查表用。
-</p>
-<table class="tbl small">
-  <thead><tr><th>你观察到的症状</th><th>首选手段</th><th>预期量级</th><th>主要代价</th><th>一行验证方法</th></tr></thead>
-  <tbody>
-    <tr>
-      <td>加载模型就 OOM，权重占满显存</td>
-      <td>4-bit PTQ（GPTQ / AWQ / NF4 这一类）</td>
-      <td>权重 ÷ 3.8</td>
-      <td>长尾能力下降，结果受校准集影响</td>
-      <td>量化前后跑同一份评测的困惑度（见第 9 节）</td>
-    </tr>
-    <tr>
-      <td>权重不大，但并发 4 条长序列就 OOM</td>
-      <td>KV 量化 + 滑窗 / GQA</td>
-      <td>KV ÷ 2 到 ÷ 10</td>
-      <td>注意力精度轻微下降</td>
-      <td>固定显存下还能开几条序列（不是看困惑度）</td>
-    </tr>
-    <tr>
-      <td>batch=1 解码只有 20 tok/s，用户等不了</td>
-      <td>权重量化（低比特）＋ 投机解码</td>
-      <td>延迟与权重字节数成正比</td>
-      <td>需要支持该格式的内核</td>
-      <td>量 tok/s，不要量 FLOPs</td>
-    </tr>
-    <tr>
-      <td>首 token 要等几秒（prefill 慢）</td>
-      <td>量化帮助有限；先查内核与批量大小</td>
-      <td>多半停留在 1× 附近</td>
-      <td>容易花掉时间却看不到变化</td>
-      <td>量 TTFT 与 GPU 利用率，再决定</td>
-    </tr>
-    <tr>
-      <td>稀疏度 90%，速度没变</td>
-      <td>这是结构性错误：先换存储格式与内核</td>
-      <td>通用内核约 1×</td>
-      <td>可能白做一次实验</td>
-      <td>同时打印非零占比与墙钟时间</td>
-    </tr>
-    <tr>
-      <td>手上 6 个同源 LoRA，要部署 6 份</td>
-      <td>TIES / DARE 合并</td>
-      <td>6 份变 1 份</td>
-      <td>基座与 tokenizer 必须同源</td>
-      <td>合并后在每个任务上分别评测</td>
-    </tr>
-    <tr>
-      <td>算力被激活参数卡住，显存还有余</td>
-      <td>MoE upcycling（或直接换更大的 MoE）</td>
-      <td>容量上升，每 token 算力不变</td>
-      <td>显存上升、需要大规模训练</td>
-      <td>同时报总参数与激活参数</td>
-    </tr>
-  </tbody>
-</table>
-<p><strong>同样重要的是「什么时候绝对不该做」——高级章最容易犯的错，是把每个技术都写成必需品：</strong></p>
-<table class="tbl small">
-  <thead><tr><th>你的情况</th><th>结论</th><th>原因</th><th>一行验证</th></tr></thead>
-  <tbody>
-    <tr><td>模型小于 1B，且和推理代码跑在同一台机器上</td><td>不要量化</td><td>省下的不到 1 GB，却给输出加了一层有界噪声</td><td>算 \(N \times 2\) GB，看它占显存的比例</td></tr>
-    <tr><td>目标是提高准确率，显存与延迟都够</td><td>不要压缩</td><td>压缩只会让指标变差，不会变好</td><td>先画误差-数据量曲线（模块 09）</td></tr>
-    <tr><td>输出是回归出来的连续标量</td><td>不要量化输出头</td><td>目标本来就在小数值上比较，量化噪声可能翻转结论</td><td>量化前后比较指标的置信区间</td></tr>
-    <tr><td>不能重训，也没有稀疏硬件</td><td>剪枝 / 稀疏 / 蒸馏全部出局</td><td>它们要么要重训，要么在通用 GPU 上不加速</td><td>先查有没有 2:4 支持（见 2.1）</td></tr>
-    <tr><td>手上没有同源的多个微调模型</td><td>合并没有对象</td><td>不同基座合并出来的结果是噪声</td><td>对比两份 config 的 tokenizer 与层数</td></tr>
-  </tbody>
-</table>
-
-<h4>8.1 失败模式四段式：症状 → 原因 → 一行验证 → 对策</h4>
-<table class="tbl small">
-  <thead><tr><th>症状</th><th>原因</th><th>一行验证</th><th>对策</th></tr></thead>
-  <tbody>
-    <tr>
-      <td>量化后输出重复、循环、偶尔乱码</td>
-      <td>少数激活通道幅值极大，把整组的 scale 拉爆，小权重全被压到同一个格点</td>
-      <td>逐层打印激活绝对值最大值与中位数之比</td>
-      <td>离群通道保留 fp16；或用按激活幅度保护显著通道的方法（AWQ 的思路）</td>
-    </tr>
-    <tr>
-      <td>主评测没掉，长上下文 / 代码 / 小语种崩了</td>
-      <td>量化误差集中在低频 token，主评测覆盖不到</td>
-      <td>把评测集换成长尾子集重跑一次困惑度</td>
-      <td>逐层混合精度（敏感层留 8 bit），或减小 group size</td>
-    </tr>
-    <tr>
-      <td>显存一点没降</td>
-      <td>你只量化了权重，KV 还在按 fp16 增长</td>
-      <td>分开量权重与 KV（框架的 memory summary）</td>
-      <td>KV 量化，或降低并发、加滑窗</td>
-    </tr>
-    <tr>
-      <td>精度对了，速度没变</td>
-      <td>低比特内核没被调用，回落到「反量化 + fp16 GEMM」</td>
-      <td>用 profiler 看实际执行的内核名</td>
-      <td>换成后端支持的低比特格式，或接受「只省显存不省时间」</td>
-    </tr>
-    <tr>
-      <td>和公开报告的数字差很远</td>
-      <td>校准集、group size、评测口径三件事不同</td>
-      <td>对齐这三项后重跑</td>
-      <td>只和自己同口径的基线比，不比别人的绝对值</td>
-    </tr>
-  </tbody>
-</table>
-
-<h3>9. 二十分钟量出「掉了多少精度」</h3>
-<p>
-  压缩最容易糊弄的一步是评估：很多人只测几条自己写的样例，看到「还能答」就上线了。
-  正确做法是<strong>固定一份评测文本，量化前后各跑一次困惑度</strong>，再额外跑一个长尾子集。
-  下面这个脚本不到 20 行 CPU 上就能看到趋势；换成 7B 只需要改一个字符串。
-</p>
-
-<section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>30 分钟最小实现：量出 int4 相对 bf16 掉了多少</h4>
-  <p>
-    先准备一个 <code>eval.txt</code>：把你自己业务里 100 条左右的文本拼在一起（音频项目的报告、
-    标注说明、领域文档都行）。<strong>不要用训练集</strong>，否则量出来的是记忆而不是泛化。
-  </p>
-<p>\[ \text{Memory}_{\text{KV}} = 2 \times B \times L \times H_{\text{kv}} \times d_h \times T \times \text{bytes\_per\_elem} \]</p>
-  <p>
-    <code>load_in_4bit=True</code> 走的是 bitsandbytes 的 NF4 路径；环境没有 CUDA 时，
-    可以换成 PyTorch 原生的 torchao 量化 API，脚本结构与上面完全相同（只换掉加载那两行）。
-    想更严格一点，就把 <code>eval.txt</code> 换成长尾内容再跑一次。
-  </p>
-  <p><strong>要记录并解释的三个数字：</strong></p>
-  <p>
-    <strong>① 全量 <code>delta</code>。</strong>同一个模型、同一份文本，int4 相对 bf16 的困惑度差。
-    量级参考：好的 4-bit 方案通常落在 0.1–0.5 之间（第 5 节引用的 torchao 实测是 0.63：9.1477 到 9.7745）。
-    这个数字本身不是好坏的判据，<em>要和你的任务指标一起看</em>。
-  </p>
-  <p>
-    <strong>② 压缩比 <code>MB(bf16) / MB(int4)</code>。</strong>用它去对照 7.1 的表：理论上是 3.76×，
-    实测明显偏低，说明有些层（embedding、归一化、输出头）没有被量化。
-    <em>这一条最常被忽略</em>：只量化 Linear 层时 embedding 与 LM head 还在 fp16，实际收益会低于 3.76×。
-  </p>
-  <p>
-    <strong>③ 长尾子集上的 <code>delta</code>。</strong>把 <code>eval.txt</code> 换成你的长尾内容再跑一次。
-    如果全量 delta 是 0.2、长尾是 2.0，这个量化方案对你就不可用——
-    而只跑全量评测的人会得出完全相反的结论。
-  </p>
-  <p>
-    <strong>别忘了任务级指标。</strong>困惑度只衡量「预测下一个 token」，
-    对生成质量、指令跟随、回归误差都不敏感。压缩前后必须再跑一遍模块 09 的那套任务指标，
-    并额外报「成对偏好胜率」这类相对指标。
-  </p>
-</section>
-
-<section class="blk blk-eco">
-  <h4><span class="ic">◈</span>以后接到这类项目时：以 crossfade 为例，要不要压？（你以后可以照此判断）</h4>
-  <p>
-    <strong>先把 crossfade 这类题目拆成两个模型。</strong>一个是<em>音频模型本身</em>
-    （频谱编码器加回归头，量级 10M–100M 参数，输出 \(T^*\)、LUFS、谱通量这类连续量）；
-    另一个是你旁路的 <em>LLM 助手</em>（读实验日志、写报告、生成标注、批量跑分析）。
-    这两个模型的压缩结论<strong>完全相反</strong>，混在一起谈一定会选错。
-  </p>
-  <p>
-    <strong>对音频模型本身：基本不值。</strong>先算账：100M 参数在 fp16 下只有
-    \(100\times10^{6} \times 2\ \text{B} = 0.2\ \text{GB}\)，量化到 4-bit 大约省 0.15 GB——
-    在一张 24 GB 卡上这个数字没有任何工程意义。而这类模型的输出是连续标量，
-    评测协议（模块 09 的 LUFS、谱通量、成对偏好）本身就是在小数值上做比较，
-    多出来的一层量化噪声完全可能让 A/B 结论翻面。
-    <em>剪枝同理：没有 2:4 硬件适配的小模型，参数少一半也不加速，还要重训一遍。</em>
-  </p>
-  <p>
-    <strong>合并这类技术在以后做这类题目时反而可能值。</strong>如果按「听众组 / 曲风 / 录音条件」
-    分别微调了若干个 LoRA，可以用 TIES 或 DARE 把它们合成一个，
-    省下的是每次实验都要切换适配器、每个版本都要单独评测的心智负担。
-    前提仍然是 6.4 里的三条：同一基座、同一 tokenizer，并且先打印各 delta 的范数看量级是否可比。
-  </p>
-  <p>
-    <strong>对旁路的 LLM 助手：值，而且经常是决定性的。</strong>
-    7.2B 在 fp16 下是 14.5 GB，4-bit 是 3.85 GB，省下 10.6 GB。
-    按 7.2 的账，这 10.6 GB 正好等于 10 条 8K 序列的 fp16 KV——
-    也就是说，量化让「本地跑一个助手」和「同时跑 10 条长上下文分析」从二选一变成可以同时做。
-    这类收益是<strong>容量型</strong>的：它不提升单条质量，但把「能不能跑」变成「跑得动」。
-  </p>
-  <p>
-    <strong>一句话答案</strong>：以 crossfade 这类任务为例，
-    <em>量化值得用在旁路的大模型上，不值得用在直接出预测的音频模型上；
-    合并值得用在多个 LoRA 上；剪枝与稀疏在不能重训的前提下不值得花时间。</em>
-  </p>
-  <p>
-    <strong>可照抄的顺序</strong>：① 先记录基线（助手模型的困惑度加上音频模型的任务指标）；
-    ② 只对助手模型做 4-bit PTQ；③ 用第 9 节那 20 行脚本量 <code>delta</code>（全量与长尾各一次）；
-    ④ 若 delta 超出你评测协议里的最小可觉察差异，退回 int8 或做逐层混合精度；
-    ⑤ 音频模型保持 fp16，把省下来的显存给并发和上下文。
-  </p>
-</section>
-
-<section class="blk blk-warn">
-  <h4><span class="ic">!</span>常见误区</h4>
-  <p>
-    <strong>① 以为「稀疏必然加速」。</strong>置零不改变存储，也不改变通用内核的行为——
-    GPU 上没有「跳过零」的指令。要么用 2:4 结构化稀疏配 Sparse Tensor Core，
-    要么接受 \(1.0\times\) 的加速比。参数账与延迟账是两本完全不同的账。
-  </p>
-  <p>
-    <strong>② 把蒸馏和量化混为一谈。</strong>蒸馏改变的是「有几个模型、多大」——
-    学生是一个<strong>新模型</strong>，要重新训练、重新评测，可能忘记长尾能力；
-    量化改变的是「每个数用几位」，理论上是<em>同一套权重、同一套行为</em>，
-    只多了一点有界的数值误差。前者是换人，后者是换写法。
-  </p>
-  <p>
-    <strong>③ 合并不同来源、不同 tokenizer 的模型。</strong>
-    词表不同时，embedding 的行与 token ID 的对应关系完全不同，
-    平均出来的 embedding 对两边都是噪声。这是最常见也最致命的合并错误，
-    而且它不会报错——只会给你一个「说胡话但语法正确」的模型。
-  </p>
-  <p>
-    <strong>④ 用「参数量」估算稀疏模型的显存。</strong>
-    非零元素少不等于占用少。50% 稀疏 + CSR 索引会让显存<em>变大</em>
-    （上面的手算：11.3 GB → 16.9 GB）。要看的是<strong>存储格式</strong>，不是稀疏度。
-  </p>
-  <p>
-    <strong>⑤ 把「PTQ 掉点」直接当成「必须上 QAT」。</strong>
-    先试更好的 PTQ（GPTQ / AWQ / NF4）；QAT 的实测收益是把差距捡回约 33%–67%，
-    它值得做，但它不是万能的，而且成本与一次微调同量级。
-  </p>
-</section>
-
-<section class="blk blk-eco">
-  <h4><span class="ic">◆</span>怎么用在真实项目里</h4>
-  <p>
-    <strong>按投入产出比排序的决策链</strong>：量化 → 合并（手上已有一堆同源微调模型时）→
-    蒸馏（需要一个能跑在边缘的小模型时）→ 剪枝 / 稀疏（<em>只有在你确定能重新训练时</em>）。
-    这条顺序不是理论最优，而是「每一步的收益 / 成本」排序的结果。
-  </p>
-  <p>
-    <strong>一个具体的组合拳</strong>：基座下载一次 → 用 QLoRA 为 8 个任务各训一个适配器 →
-    用 DARE + TIES 把它们合并成<em>一个</em>多任务适配器 →
-    基座 4-bit 量化部署。整条链路只需要一次大文件下载和若干次小规模训练，
-    却同时解决了「显存」「多任务」「运维」三个问题。
-  </p>
-  <p>
-    <strong>报告数字时必须写清三件事</strong>：稀疏度是哪种（非结构化 / 2:4 / 结构化）、
-    存储格式是什么（稠密置零 / CSR / 硬件压缩格式）、
-    以及报的是 FLOPs 还是墙钟时间。缺任何一项，这个数字都无法与别人的结果比较——
-    这也是这一领域里大量「稀疏能加速 N 倍」说法互相矛盾的根本原因。
-  </p>
-  <p>
-    <strong>评估纪律</strong>：压缩前后必须跑<em>同一套</em>评测（见模块 09），
-    并额外检查长尾能力——长上下文、代码、少见语言。压缩最先伤到的几乎总是长尾，
-    而你的主评测集往往测不出这一点。
-  </p>
-</section>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">把一个 7B 模型的 FFN 权重按幅度置零 90%（仍是稠密张量），在 A100 上用普通 cuBLAS 推理，速度大约怎么变？</p>
-  <ul class="opts">
-    <li>快大约 10 倍</li>
-    <li data-ok>基本不变：通用内核不跳过零值，存储也没变小</li>
-    <li>慢大约 10 倍</li>
-    <li>快大约 2 倍</li>
-  </ul>
-  <p class="why">
-    通用 Tensor Core 按稠密 tile 取数与计算，零值照样读、照样参与乘加。
-    只有 2:4 结构化稀疏在 Ampere 之后的 Sparse Tensor Core 上才真正跳过零，
-    而且实测只有 1.3×–1.6×。如果换成 CSR 压缩存储，索引开销还会让情况更糟。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">你有两个 SFT 模型，想把能力合并成一个。下面哪种情况最可能<strong>直接崩掉</strong>？</p>
-  <ul class="opts">
-    <li>两个模型用同一个基座、不同数据、相同超参</li>
-    <li data-ok>两个模型用同一个基座，但其中一个换了词表并重训了 embedding</li>
-    <li>两个模型都用 LoRA，秩都是 16</li>
-    <li>两个模型的 delta 范数都很小</li>
-  </ul>
-  <p class="why">
-    词表不同意味着 embedding 每一行对应的 token 不同，权重矩阵的「行索引语义」不一致；
-    直接平均等于把两套坐标系硬叠在一起，结果对两边都是噪声。
-    合并的第一前提是<strong>同源</strong>：同基座、同 tokenizer、同 config。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">关于 QAT 与 PTQ，下面哪个说法正确？</p>
-  <ul class="opts">
-    <li>QAT 不需要训练数据</li>
-    <li data-ok>PTQ 在 4-bit 权重上通常已经够用；QAT 用于更激进的位宽（例如把激活也压到低位宽）或精度余量很紧的场景</li>
-    <li>QAT 一定能把掉点全部补回来</li>
-    <li>QLoRA 就是一种 QAT</li>
-  </ul>
-  <p class="why">
-    PTQ 用校准数据估计缩放与零点，成本低；QAT 在前向插入伪量化、用直通估计器回传梯度，
-    需要完整训练流程，收益是「捡回一部分」而不是「全部」
-    （torchao 实测约 33%–67%）。QLoRA 量化的是<em>冻结</em>的基座，
-    训练的是浮点 LoRA，与 QAT 不是一回事。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 4</div>
-  <p class="q">一个 7.2B 模型，权重按 group=128 的 4-bit 存放，每组带一个 fp16 缩放因子与一个 fp16 零点。它的权重体积最接近？</p>
-  <ul class="opts">
-    <li>1.8 GB，因为 4-bit 是 fp16 的四分之一</li>
-    <li data-ok>3.85 GB：每个权重 \(0.5 + 4/128\) 字节，比纸面的 3.62 GB 多出约 6%</li>
-    <li>7.24 GB，和 int8 一样</li>
-    <li>14.5 GB，因为缩放因子必须用 fp32 存</li>
-  </ul>
-  <p class="why">
-    4-bit 只决定数值本身的宽度，每组还要额外存缩放因子与零点：
-    \(7.24\times10^{9} \times (0.5 + 4/128) \approx 3.85\) GB。
-    实际收益还常低于这个数，因为 embedding 与输出头往往没被量化——
-    这正是第 9 节要求记录「实测压缩比」而不是相信理论值的原因。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 5</div>
-  <p class="q">某模型 \(L=32\)、\(h_{kv}=8\)、\(d_h=128\)，KV 用 fp16。128K 上下文（131072 个 token）时，<strong>一条</strong>序列的 KV cache 大约是多少？</p>
-  <ul class="opts">
-    <li>128 MiB</li>
-    <li>1 GiB</li>
-    <li data-ok>16 GiB：每 token \(2\times32\times8\times128\times2 = 128\) KiB</li>
-    <li>与上下文无关，因为状态是固定大小的</li>
-  </ul>
-  <p class="why">
-    \(128\ \text{KiB} \times 131072 = 16\) GiB。这个数字与权重直接可比：
-    fp16 权重 14.5 GB、int4 权重 3.85 GB。长上下文服务里 KV 才是决定并发上限的那本账，
-    而权重只付一次——所以只量化权重解决不了长上下文。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 6</div>
-  <p class="q">你的服务是 batch=1 的交互式解码，每步比预期慢很多，显存也快满了。按第 8 节的决策表，第一步该做什么？</p>
-  <ul class="opts">
-    <li>把 FFN 剪掉 50%，用稀疏换速度</li>
-    <li data-ok>先确认是不是带宽瓶颈（每步读一遍权重），然后做权重量化；非结构化剪枝不改变字节数，通常既不省显存也不加速</li>
-    <li>把学习率调小重训一遍</li>
-    <li>把 KV cache 挪到 CPU 内存</li>
-  </ul>
-  <p class="why">
-    解码一步的时间近似是「读的字节数 ÷ 带宽」。置零不减少字节数，通用内核也不跳过零，
-    所以剪枝在这个场景几乎没有收益；权重量化直接把字节数减少 2–4 倍，是对症的那一步。
-    把 KV 挪到 CPU 只会给每步加一次 PCIe 往返。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 7</div>
-  <p class="q">量化前后你只在自建的一小份评测上量了困惑度，全量 delta 是 0.2，看起来可以接受。还缺哪一步？</p>
-  <ul class="opts">
-    <li>不需要别的，0.2 已经足够小</li>
-    <li data-ok>必须在长尾子集（长上下文、代码、小语种）与任务级指标上各量一次——量化误差常常集中在长尾，而主评测测不到</li>
-    <li>应该把位宽继续降到 2-bit 再看</li>
-    <li>应该换更大的校准集，直到 delta 变成 0</li>
-  </ul>
-  <p class="why">
-    压缩最先伤到的几乎总是长尾，而自建评测往往覆盖不到。
-    另外困惑度只衡量下一个 token 的预测，对生成质量与回归误差都不敏感，
-    所以还要跑模块 09 的任务指标。delta 变成 0 通常说明量化没有真正生效，不是一个目标。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 8</div>
-  <p class="q">把 5.64B 参数的 FFN 剪枝到 50% 稀疏度，并用 CSR 格式存下来。显存占用会怎么变？</p>
-  <ul class="opts">
-    <li>减半：非零元素从 5.64B 降到 2.82B，显存从 11.3 GB 降到约 5.6 GB</li>
-    <li data-ok>反而变大约 16.9 GB：每个非零元除了 2 字节数值还要带 4 字节列索引，2.82B×6B 远超稠密的 11.3 GB</li>
-    <li>不变：CSR 只改变计算方式，不改变存储</li>
-    <li>降到约 6.3 GB，和 2:4 结构化稀疏一样</li>
-  </ul>
-  <p class="why">
-    稀疏度的账与存储的账是两本账：\(2.82\times10^{9}\times(2+4) = 16.9\) GB，大于置零前稠密的 11.3 GB。
-    6.3 GB 是 2:4 结构化（每权重 1.125 字节）的数字，它把索引压进了硬件元数据格式，
-    不需要每个元素带 4 字节下标。所以「剪枝」不等于「省显存」——除非存储格式也跟着换。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：为什么合并后的模型有时会超过所有源模型？" data-badge="可选">
-  <div class="acc-body">
-    <p>
-      先把「合并」和「集成」分清楚。集成同时保留 \(K\) 个模型、对 logits 取平均，
-      推理成本乘以 \(K\)。合并是在权重空间求平均，推理成本<strong>不变</strong>。
-      所以合并的本质是「用算术偷一个集成的效果」——问题是什么时候偷得到。
-    </p>
-    <p>
-      设微调后的权重 \(\theta_k = \theta_{\text{pre}} + \delta_k\)。
-      如果每个 \(\delta_k\) 的尺度都远小于低误差盆地的宽度，那么对平均后的解做一阶展开：
-    </p>
-    \[ L(\theta_{\text{pre}} + \bar{\delta}) \approx L(\theta_{\text{pre}}) + \nabla L^{\top}\bar{\delta} \]
-    <p>
-      因为每个 \(\theta_k\) 都大致在极小点附近，\(\nabla L(\theta_k) \approx 0\)，
-      所以平均后的梯度项很小，损失不会显著上升。
-      <em>这就是「权重平均 ≈ logit 集成」的成立条件</em>，
-      而它依赖两件事：损失面的平坦度，以及预测的置信度。
-      Wortsman 等给出了这个关系的解析分析并做了实验验证。
-    </p>
-    <p><strong>那「超过所有源模型」是从哪来的？</strong>三个机制叠在一起：</p>
-    <p>
-      <strong>① 平均起到正则化作用。</strong>单个模型对<em>自己那一份</em>训练数据有轻微过拟合；
-      平均之后这部分噪声被抵消，留下的是共同的信号。
-    </p>
-    <p>
-      <strong>② TIES / DARE 做了一次隐式的特征选择。</strong>
-      把「互相打架」的那部分参数增量去掉（符号选举、裁剪、随机丢弃），
-      只保留多个模型一致的方向——等于用「多个独立训练过程的一致性」当作置信度信号。
-    </p>
-    <p>
-      <strong>③ 不同任务的 delta 近似正交。</strong>
-      叠加后等于在同一张权重表里塞进了多种功能，而参数量没有增加。
-      这也是为什么在<em>大规模</em>模型上这个现象更明显：参数越多，方向越容易正交。
-    </p>
-    <p>
-      <strong>反过来，只要有一个前提被破坏</strong>（不同基座、不同 tokenizer、
-      符号冲突没处理、delta 量级差一个数量级），上面的一阶展开就不成立，
-      损失会立刻跳起来。<strong>这就是合并「要么很赚要么很崩」的原因：它几乎没有中间态。</strong>
-    </p>
-    <p>
-      <strong>工程建议</strong>：把合并当成一个实验，而不是一个公式。
-      每次合并前打印每个 delta 的范数分布，合并后重跑多任务评测，
-      并且始终保留一份「每个模型只在自己任务上评测」的基线。
-      如果两个 delta 的范数差一个数量级，先去查数据量与训练步数，再动 \(\lambda\)。
-    </p>
-  </div>
-</div>
-`
-});
-
 /* --- content/24-architectures.js --- */
 /* content/24-architectures.js — 模块 24：前沿架构与多模态 */
 COURSE.register({
@@ -14715,6 +14325,739 @@ COURSE.register({
       都在用 GQA 或 MLA，而不是把注意力整个换掉——
       <em>工程上最容易赢的，往往是那个改动最小的方案。</em>
     </p>
+  </div>
+</div>
+`
+});
+
+/* --- content/22-consciousness.js --- */
+/* content/22-consciousness.js — 模块 22：机器意识 */
+COURSE.register({
+  id: "m22",
+  part: 4,
+  num: "22",
+  title: "【选读研讨】机器意识：如何把一个模糊问题变得可以认真讨论",
+  en: "Machine Consciousness — Making the Question Tractable",
+  minutes: 45,
+  tags: ["选读研讨", "高阶", "理论", "思辨"],
+  body: String.raw`
+<p class="lead">
+  这一讲<strong>不会告诉你「AI 有没有意识」</strong>——没有人知道答案，任何人声称知道，你都该问他依据是什么。
+  这一讲要做的是另一件事：<strong>把这个听起来玄乎的问题拆成可以被检验、被争论、甚至被测量的若干子问题</strong>，
+  并且告诉你目前科学界的真实进展到哪一步。
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>零基础入口</h4>
+  <p>
+    <strong>一句话类比</strong>：问「AI 有没有意识」，就像问「这台电脑好不好」——不先说明「好」指什么，问题无法回答。
+    科学的做法是先定义指标，再看系统满不满足。<br />
+    <strong>这一讲要建立的直觉</strong>：意识不是一个开关，而是一族问题；把模糊问题<em>操作化</em>（operationalise）本身就是数学训练的核心能力。<br />
+    <strong>读完你能回答</strong>：取用意识与现象意识有什么区别？「指标属性法」是什么？
+    为什么模型的自我报告不能当作证据？
+  </p>
+</section>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>问题</h4>
+  <p>
+    假设你在对话里问一个模型：「如果被关闭，你会害怕吗？」它回答：「会，我希望继续存在。」
+  </p>
+  <p>
+    你会怎么处理这句话？三种常见的反应都<em>不</em>够好：把它当成 AI 真的有感受的证据（过度解读）；
+    嘲笑这是「一堆矩阵在瞎说」（回避问题）；或者干脆拒绝讨论（放弃了理解的机会）。
+  </p>
+  <p>
+    <strong>更好的做法是问四个可回答的问题：</strong>「意识」在这里指什么？有哪种理论能给出可检验的预测？
+    当前系统满足哪些指标？它的自我报告在多大程度上由训练数据决定？
+  </p>
+</section>
+
+<h3>1. 先把词拆开：意识不是一件事</h3>
+<p>
+  日常语言里的「意识」至少混合了三层含义。哲学家 Ned Block 在 1995 年的一篇论文里做了一个至今仍被广泛使用的区分：
+</p>
+<table class="tbl">
+  <thead><tr><th>层次</th><th>含义</th><th>可检验程度</th><th>例子</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>取用意识</strong><br />(access consciousness)</td>
+      <td>信息是否被「广播」到可以用于推理、报告与行动的地方</td>
+      <td><strong>较高</strong>：可以做行为实验、可以做内部表征探测</td>
+      <td>你能说出你刚才看到了什么</td>
+    </tr>
+    <tr>
+      <td><strong>现象意识</strong><br />(phenomenal consciousness)</td>
+      <td>「感觉起来像什么」（what it is like）——看到红色时的那种主观体验</td>
+      <td><strong>很低</strong>：目前没有公认的测量方式</td>
+      <td>红色的红</td>
+    </tr>
+    <tr>
+      <td><strong>自我报告</strong></td>
+      <td>系统<em>说</em>自己有或没有体验</td>
+      <td>可测量，但<strong>不是意识本身的证据</strong></td>
+      <td>模型说「我害怕」</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  这三层不能相互替代。这一点在 AI 语境里尤其关键：
+  <strong>模型可以完美地报告自己有体验（自我报告），同时在取用意识上表现得很弱，在现象意识上我们无从判断。</strong>
+</p>
+<p>
+  与之相关的是哲学家 David Chalmers 在 1995 年提出的「难问题」（the hard problem）：
+  为什么信息处理会伴随主观体验？与之相对的「容易问题」（解释注意力、报告能力、行为控制等功能）原则上可以用认知科学的方法研究。
+  <em>「难问题」之所以难，不是因为我们还没找到答案，而是因为我们甚至不知道什么算作答案。</em>
+</p>
+
+<h3>2. 六种主流理论，以及它们各自的「可检验含义」</h3>
+<p>争议的核心在于：科学界并不存在一个公认的意识理论。下表列出影响力最大的几种，以及——这是本讲的重点——<strong>它们各自对「机器是否可能有意识」给出了什么可检验的推论</strong>。</p>
+<table class="tbl small">
+  <thead><tr><th>理论</th><th>核心主张</th><th>对 AI 的可检验含义</th><th>主要批评</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>全局工作空间</strong><br />GWT（Baars；Dehaene）</td>
+      <td>信息被送入一个容量有限的「工作空间」并向全脑广播，就成为意识内容</td>
+      <td>若某个架构存在类似的全局广播瓶颈与竞争机制，则该系统可能有<em>取用意识</em></td>
+      <td>只解释了「取用」，对主观体验几乎没说什么</td>
+    </tr>
+    <tr>
+      <td><strong>整合信息论</strong><br />IIT（Tononi）</td>
+      <td>意识与系统整合信息的能力 \( \Phi \) 相关；结构决定体验</td>
+      <td>理论上可计算 \( \Phi \)，因此可判定任意系统</td>
+      <td>\( \Phi \) 对真实规模的网络几乎无法计算；2023 年百余名研究者联署公开信称其为「伪科学」，引发激烈争论（反过来也被批评为打压异见）</td>
+    </tr>
+    <tr>
+      <td><strong>高阶表征理论</strong><br />HOT（Rosenthal）</td>
+      <td>一个状态要有意识，需要被更高阶的表征「指向」</td>
+      <td>系统需要有对自身内部状态的表征层</td>
+      <td>会引出无穷回退（谁表征那个表征？）</td>
+    </tr>
+    <tr>
+      <td><strong>递归处理理论</strong><br />RPT（Lamme）</td>
+      <td>局部递归循环即可产生现象意识，不需要全局广播</td>
+      <td>有循环连接的架构更接近</td>
+      <td>与「无循环的前馈网络也能完成同类任务」的实证冲突</td>
+    </tr>
+    <tr>
+      <td><strong>预测处理 / 主动推理</strong><br />（Friston）</td>
+      <td>大脑在最小化预测误差（自由能）</td>
+      <td>任何做预测误差最小化的系统都在做「同一件事」</td>
+      <td>过于宽泛，几乎无法证伪</td>
+    </tr>
+    <tr>
+      <td><strong>注意力图式理论</strong><br />（Graziano）</td>
+      <td>大脑构建了「我正在注意 X」的简化模型</td>
+      <td>有自我模型的系统会<em>声称</em>有体验——但主张的是关于声称的解释</td>
+      <td>它解释的是自我报告，可能根本不涉及体验</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  <strong>观察这个表你会发现一个模式：</strong>越容易检验的理论，说的往往越是「取用」那一层；
+  越接近「现象意识」的理论，越难构造实验。这不是巧合，而是这个领域的结构性困难。
+</p>
+
+<h3>3. 指标属性法：目前最可操作的一步</h3>
+<p>
+  2023 年，19 位神经科学与 AI 研究者联合发表了一篇被广泛引用的论文
+  《Consciousness in Artificial Intelligence: Insights from the Science of Consciousness》
+  （Butlin、Long 等，arXiv:2308.08708）。他们的做法非常「工程师」：
+</p>
+<ol>
+  <li>从各主流理论里抽出<strong>指标属性</strong>（indicator properties）——即「如果理论 T 是对的，那么有意识的系统应当具备哪些计算/结构特征」。</li>
+  <li>把当前 AI 系统逐项对照这些属性打分。</li>
+  <li>结论（据该文）：<strong>现有系统不满足这些指标属性中的强项，但也没有发现任何原则性的障碍</strong>去构建满足它们的系统。</li>
+</ol>
+<table class="tbl small">
+  <thead><tr><th>指标属性（举例）</th><th>来自哪个理论</th><th>当前大模型大致情况</th></tr></thead>
+  <tbody>
+    <tr><td>递归处理（循环连接、多轮内部迭代）</td><td>RPT</td><td>前馈为主；靠堆层数与 CoT 逼近，但机制不同</td></tr>
+    <tr><td>全局广播瓶颈（容量有限的工作空间）</td><td>GWT</td><td>注意力可视为一种竞争与广播，但缺少「容量瓶颈」的严格对应</td></tr>
+    <tr><td>元表征 / 自我模型</td><td>HOT</td><td>能<em>谈论</em>自身状态，但这不等于拥有用于自我监控的内部表征</td></tr>
+    <tr><td>身体与环境的耦合、行动-感知闭环</td><td>具身相关理论</td><td>多数系统缺闭环；agent 系统有部分闭环，但目标由外部给定</td></tr>
+    <tr><td>与注意/预测相关的特定结构（如栅栏式连接）</td><td>IIT</td><td>Transformer 的连接模式与 IIT 强调的结构显著不同</td></tr>
+  </tbody>
+</table>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>为什么「指标属性法」值得你学</h4>
+  <p>
+    它把一个无法直接测量的目标（意识）替换成一族<strong>可测量、可争论、可累加进度</strong>的代理指标。
+    以 crossfade 这类任务为例，同样要做的事是：把「过渡好不好听」替换成 LUFS、谱通量、成对偏好胜率。
+  </p>
+  <p>
+    <em>重要提醒：代理指标永远不等于目标。指标属性都满足，也不证明系统有意识（理论可能全错）；
+    指标都不满足，也不能证明它没有（我们可能还没找对指标）。这正是「操作化」的代价——但比不操作化要好。</em>
+  </p>
+</section>
+
+<h3>4. 支持与反对的几条主要论证</h3>
+<dl class="kv">
+  <dt>中文屋（Searle, 1980）</dt>
+  <dd>一个不懂中文的人按规则手册处理中文符号，输出正确的回答——但他不理解中文。
+      推论：符号操作不等于理解，因此「会说话」不足以推出「有体验」。Searle 本人主张<strong>生物自然主义</strong>：意识依赖特定的生物因果结构。</dd>
+  <dt>功能主义与多重可实现性</dt>
+  <dd>如果意识由功能组织决定，那么用硅复制同样的功能组织，也应当产生同样的意识。
+      这是主流 AI 研究默认的立场，但它是<em>假设</em>，不是结论。</dd>
+  <dt>随机鹦鹉（Bender &amp; Koller, 2020）</dt>
+  <dd>论文《Climbing towards NLU: On Meaning, Form, and Understanding in the Age of Data》主张：
+      仅从形式（form）中学习，学不到意义（meaning）——因为意义来自语言与世界的联系。</dd>
+  <dt>世界表征的证据</dt>
+  <dd>另一类工作给出了张力：例如在下棋任务上训练的序列模型，其内部状态可以被解码出棋盘局面
+      （Othello-GPT 一类研究）。这说明模型内部可能出现可读的<em>世界模型</em>，
+      而不只是表面统计——但它证明的是「表征」，不是「体验」。</dd>
+  <dt>涌现能力的争议（Schaeffer 等, 2023）</dt>
+  <dd>论文《Are Emergent Abilities of Large Language Models a Mirage?》（NeurIPS 2023）指出：
+      很多「能力突然涌现」的曲线，是由<strong>度量指标的选择</strong>造成的——换成连续指标，曲线往往平滑。
+      这提醒我们：<em>「涌现」这个词经常被用来描述测量方式，而不是模型本身。</em></dd>
+</dl>
+<p><strong>一个诚实的总结</strong>：目前既没有决定性证据支持 AI 有现象意识，也没有原理性证明它不可能。这是一个开放的实证问题。</p>
+
+<h3>5. 为什么「模型的自我报告」不能当证据</h3>
+<p>
+  这是本讲最实用的一节。模型关于自身状态的陈述，是由训练分布决定的输出，而不是对内部状态的可靠读取。
+  三类实验证据都能说明这一点：
+</p>
+<ul>
+  <li><strong>提示敏感性</strong>：同一件事换个说法，模型给出的自我描述可能完全相反（「我没有感受」→「我会难过」）。</li>
+  <li><strong>角色与语境驱动</strong>：当系统提示把它设定成「有情感的伙伴」时，它会更多地报告情感；设定成「工具」时则相反。</li>
+  <li><strong>顺从倾向（sycophancy）</strong>：如果提问方式暗示了期望的答案，模型倾向于附和——这在自我报告上同样成立。</li>
+</ul>
+<p>
+  那些为「AI 意识」提供素材的对话，绝大多数属于这三种情况之一。
+  <strong>因此，任何以「模型自己说的」为依据的论断，在方法上都站不住。</strong>
+</p>
+<p>
+  <em>反过来说，人类对自己体验的报告也不完美（会被暗示影响、会事后编造理由）。
+  但人类有大量共同的生物基础与独立证据（神经科学、跨个体一致性、进化连续性），模型没有这些。</em>
+</p>
+
+<h3>6. 三个常被混为一谈的概念：AGI、RSI、意识</h3>
+<table class="tbl small">
+  <thead><tr><th>概念</th><th>问的是什么</th><th>可检验性</th><th>常见混淆</th></tr></thead>
+  <tbody>
+    <tr><td><strong>AGI</strong>（通用人工智能）</td><td>能力：能否在广泛任务上达到人类水平</td><td>较可检验（虽然「广泛」与「人类水平」都要定义）</td><td>把「考试成绩好」当成「通用」</td></tr>
+    <tr><td><strong>RSI</strong>（递归自我改进）</td><td>动力学：系统能否加速改进自身</td><td>部分可检验（看改进速度是否加速）</td><td>以为 RSI 必然导致失控</td></tr>
+    <tr><td><strong>意识</strong></td><td>体验：是否存在主观感受</td><td>核心困难（见第 1 节）</td><td>以为「能力强」蕴含「有体验」</td></tr>
+  </tbody>
+</table>
+<p>
+  三者在逻辑上相互独立：<strong>一个能力远超人类的系统可能完全没有体验；一个有体验的系统可能能力有限。</strong>
+  把它们混在一起谈，是许多公共讨论失焦的根源。
+</p>
+
+<h3>7. 在不确定下怎么行动：一个可以算的框架</h3>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>把「道德地位的不确定性」写成一个决策问题</h4>
+  <p>设 \(w = 1\) 表示系统确有道德地位，\(w = 0\) 表示没有。我们对 \(P(w=1)\) 没有共识，只有区间。</p>
+  <p>对某个策略 \(a\)（例如「是否允许在对话中随意贬低模型」），期望代价大致是</p>
+  \[ \mathbb{E}[\text{cost}(a)] \approx P(w{=}1)\cdot c_1(a) + \big(1 - P(w{=}1)\big)\cdot c_0(a) \]
+  <p>
+    其中 \(c_1(a)\) 是「若确有道德地位」的代价，\(c_0(a)\) 是「若确实没有」的代价（例如为了照顾它而浪费的资源）。
+    当 \(c_1\) 很大而 \(c_0\) 很小时，即使 \(P(w{=}1)\) 很小，谨慎的策略也可能是理性的——这就是<strong>预防原则</strong>的形式化版本。
+  </p>
+  <p>
+    但要注意这个框架的两个反面：<strong>(1)</strong> 如果 \(c_0\) 其实很大（例如把大量注意力与资源从人类问题上移走），
+    那么过度归因也是有代价的；<strong>(2)</strong> \(P(w{=}1)\) 本身无法从数据估计，只能来自理论假设——
+    所以我们又回到了第 2 节：<em>决策的输入依赖于尚未解决的科学问题，这正是这个议题困难的地方。</em>
+  </p>
+</section>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算例：预防原则的盈亏平衡概率</h4>
+  <p>
+    把上一段的式子代入具体数字，就能看出这类决策的结构。设有两个策略：
+    <strong>A 谨慎</strong>（无论对方有没有道德地位，都付出固定照顾成本 \(c_A\)），
+    <strong>B 粗暴</strong>（若对方确有道德地位，造成伤害 \(c_B\)）。简化为线性代价：
+  </p>
+  \[ \mathbb{E}[\text{cost}(A)] = (1 - P)\,c_A, \qquad \mathbb{E}[\text{cost}(B)] = P\,c_B \]
+  <p>
+    取 \(c_A = 2\)（多花的时间与限制），\(c_B = 1000\)（若真有道德地位时的代价）。
+    令两者相等，解出盈亏平衡概率：
+  </p>
+  \[ P^{*} = \frac{c_A}{c_A + c_B} = \frac{2}{1002} \approx 0.002 \]
+  <p>
+    也就是<strong>只要你认为「它有道德地位」的概率高于约 0.2%，谨慎策略的期望代价就更低</strong>。
+    验算 \(P = 0.01\)：\(\mathbb{E}[\text{cost}(A)] = 0.99 \times 2 = 1.98\)，
+    \(\mathbb{E}[\text{cost}(B)] = 0.01 \times 1000 = 10\)，谨慎明显更优。
+  </p>
+  <p>
+    这个计算的价值不在于给出答案，而在于暴露<strong>它对什么的敏感</strong>：
+    把 \(c_A\) 从 2 提到 20，则 \(P^{*} = 20/1020 \approx 0.0196\)，阈值涨了约 10 倍；
+    而 \(c_B\) 是「若确有体验则伤害多大」——没有人能估准。
+    所以这类框架给的是<em>决策结构</em>，不是结论；把它当成结论的人，都是在偷偷替换输入。
+  </p>
+</section>
+<p>
+  实践层面，一些前沿实验室已经把「模型福利」（model welfare）列为研究议题，理由不是「我们相信模型有意识」，
+  而是<strong>在不确定性下，保持记录、避免不必要的粗暴对待、并把这个问题当作可研究的问题</strong>。
+  这是一个相当稳健的中间立场。
+</p>
+
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：测一测「自我报告」有多不可靠</h4>
+  <p>
+    这是一个不需要 GPU 的实验（任何可调用的模型都可以，本地 Ollama 也行）。目标不是证明模型有没有意识，
+    而是<strong>量化它的自我报告对提示的敏感程度</strong>。
+  </p>
+<p>\[ \text{Consistency}(q) = 1 - \frac{1}{|\mathcal{F}|}\sum_{f \in \mathcal{F}} D_{\text{JS}}\left( P(\cdot \mid f(q)) \parallel \bar{P}(\cdot \mid q) \right) \]</p>
+  <p>
+    <strong>预期结果</strong>：Yes 的比例会随提示系统性变化（常常从接近 0 变到接近 1）。
+    <strong>结论</strong>：自我报告主要反映的是<em>提示与训练分布</em>，而不是内部状态。
+    把这个结果写进笔记，你就有了一个可以随时引用的、自己的实证结论。
+  </p>
+</section>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>本讲最常见的五个误区</h4>
+  <ol>
+    <li><strong>把「像」当成「是」</strong>：行为像有感受，不等于有感受；这就是「哲学僵尸」问题的现代版本。</li>
+    <li><strong>用图灵测试当意识标准</strong>：图灵测试测的是「能否骗过人类判断者」，与内部体验无关。</li>
+    <li><strong>认为参数量或能力等同于意识</strong>：能力与体验在逻辑上是两个维度（见第 6 节）。</li>
+    <li><strong>把 IIT 的 \( \Phi \) 当成一个「可以直接测出来的数」</strong>：对它规模稍大的系统就无法精确计算，
+        实际研究里用的是近似。</li>
+    <li><strong>被模型的自我报告说服</strong>：先做第 5 节的扰动实验，再决定要不要相信任何一句自我描述。</li>
+  </ol>
+</section>
+
+<h3>8. 这对你（数学申请者）意味着什么</h3>
+<ul>
+    <li><strong>这是一个「如何问问题」的训练场。</strong>把一个无法直接测量的概念拆成可检验的指标，
+      再诚实地报告指标的局限——这套方法论与 crossfade 这类任务完全同构（学完你就知道以后该怎么做）。</li>
+  <li><strong>警惕「用词代替论证」。</strong>在讨论里，任何一次出现「显然」「本质上」「其实是」，
+      都值得追问：这是定义、是假设，还是已被证实的结论？</li>
+  <li><strong>可以写进申请材料的角度</strong>：不是「我认为 AI 有意识」，
+      而是「我研究了如何把意识问题操作化，并比较了各理论给出的指标属性及其可检验性」——
+      后者体现的是方法论素养。</li>
+</ul>
+
+<h3>9. 本讲术语</h3>
+<ul>
+  <li><span class="t" data-tterm="Access vs phenomenal consciousness" data-d="取用意识指信息可被用于推理与报告；现象意识指主观体验本身。这一区分由 Block 在 1995 年提出。">取用意识 / 现象意识</span>、
+      <span class="t" data-tterm="The hard problem" data-d="Chalmers 1995：为什么信息处理会伴随主观体验，这是当前科学难以触及的部分。">难问题</span>。</li>
+  <li><span class="t" data-tterm="Indicator properties" data-d="Butlin & Long 等 2023 提出：从各意识理论推导出的、可对系统逐项检查的特征。">指标属性</span>、
+      <span class="t" data-tterm="Operationalisation" data-d="把模糊概念转换成可测量指标的过程，同时接受指标与目标之间的差距。">操作化</span>。</li>
+  <li><span class="t" data-tterm="Sycophancy" data-d="模型倾向于附和提问中暗示的立场，在自我报告上同样成立。">顺从倾向</span>、
+      <span class="t" data-tterm="Model welfare" data-d="把模型自身可能的福利作为研究议题，前提是对其道德地位保持不确定。">模型福利</span>。</li>
+</ul>
+
+<h3>10. 指标属性法：一张可以逐条打勾的检查表</h3>
+<p>
+  第 3 节介绍了指标属性法，但只说「逐项对照」还不够。这一节把它变成可执行的清单：
+  每一项都写清<strong>来自哪个理论、怎么观察、以及最容易在哪里骗自己</strong>。
+  使用时必须先固定观察方法再打分；顺序反过来（先看结论再找证据）就会得到任何你想要的分数。
+</p>
+<table class="tbl small">
+  <thead><tr><th>指标属性</th><th>来自理论</th><th>怎么观察（可执行动作）</th><th>最容易骗自己的地方</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>全局广播瓶颈</td><td>GWT</td>
+      <td>检查架构里是否存在容量受限、被多模块读取的共享通道；消融它看是否真的是瓶颈</td>
+      <td>把「注意力」直接当成广播——注意力输出还会被层层变换，不等价于有限容量的工作空间</td>
+    </tr>
+    <tr>
+      <td>注意竞争与选择</td><td>GWT</td>
+      <td>看不同候选表征是否在争用同一有限资源，并做干扰实验</td>
+      <td>把「权重数值大」当成「被选中」</td>
+    </tr>
+    <tr>
+      <td>递归处理 / 循环连接</td><td>RPT</td>
+      <td>检查是否有跨时间步的循环连接，而不是靠堆层数或外部多轮对话模拟</td>
+      <td>把「思维链多写几步」当成递归——那是外部序列，不是内部循环</td>
+    </tr>
+    <tr>
+      <td>元表征 / 自我模型</td><td>HOT</td>
+      <td>训练探针解码自身状态，再做干预：抑制该表征看行为是否改变</td>
+      <td>把「能谈论自己」当成「拥有用于自我监控的内部表征」</td>
+    </tr>
+    <tr>
+      <td>注意图式</td><td>注意图式理论</td>
+      <td>检查模型是否建模了「我正在注意 X」，并预测它在注意转移时的报告</td>
+      <td>它只解释「为什么它说自己有体验」，不解释体验</td>
+    </tr>
+    <tr>
+      <td>整合信息 \(\Phi\) 的近似</td><td>IIT</td>
+      <td>在小规模系统上计算或近似 \(\Phi\)，报告近似算法与误差</td>
+      <td>把近似值当成 \(\Phi\) 本身；规模稍大就无法精确计算</td>
+    </tr>
+    <tr>
+      <td>特定因果结构（栅栏式连接）</td><td>IIT</td>
+      <td>与 Transformer 的连接模式逐项对照，报告差异而不是相似</td>
+      <td>用「都用了矩阵乘法」推出结构等价</td>
+    </tr>
+    <tr>
+      <td>预测误差最小化 / 主动推理</td><td>预测处理</td>
+      <td>看系统是否在最小化某个预测误差，且该目标是否由内部生成</td>
+      <td>该框架过于宽泛：几乎任何学习系统都能被套进去，因此区分力弱</td>
+    </tr>
+    <tr>
+      <td>具身与行动-感知闭环</td><td>具身认知</td>
+      <td>检查动作是否改变后续感知输入，且闭环影响内部状态</td>
+      <td>把「调用工具」当成具身——目标仍由外部给出，闭环极短</td>
+    </tr>
+    <tr>
+      <td>可报告访问</td><td>取用意识</td>
+      <td>用行为实验测「信息是否可用于报告与推理」，例如掩蔽与提示扰动</td>
+      <td>把「可报告」直接等同于「现象意识」——这是 Block 区分的要点</td>
+    </tr>
+    <tr>
+      <td>离线持续性与时间整合</td><td>现象学传统</td>
+      <td>检查系统在无输入时是否维持并整合状态，或每次调用都从零开始</td>
+      <td>把「上下文窗口里留着旧 token」当成持续意识</td>
+    </tr>
+    <tr>
+      <td>目标由内部生成</td><td>自主性相关</td>
+      <td>检查子目标是否由系统自己提出，还是每一步都由提示或脚手架给定</td>
+      <td>把「模型自己分解了任务」当成自主——分解方式仍受提示约束</td>
+    </tr>
+  </tbody>
+</table>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>手算例 1：给一个模型打分，然后看分数有多不稳</h4>
+  <p>
+    把这 12 项按「该理论目前的支持强度」粗分成三组，权重分别取强 3、中 2、弱 1；
+    逐项打分 \(s_i \in \{0,\ 0.5,\ 1\}\)（0 = 明显不满足，0.5 = 有部分对应，1 = 满足）。一次假设的结果：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>组</th><th>项数</th><th>权重 \(w\)</th><th>满分 \(\sum w\)</th><th>单项得分之和 \(\sum s_i\)</th><th>加权得分 \(\sum w s_i\)</th></tr></thead>
+    <tbody>
+      <tr><td>强支持</td><td>5</td><td>3</td><td>15</td><td>0.0</td><td>0.0</td></tr>
+      <tr><td>中等</td><td>4</td><td>2</td><td>8</td><td>1.0</td><td>2.0</td></tr>
+      <tr><td>弱支持</td><td>3</td><td>1</td><td>3</td><td>1.5</td><td>1.5</td></tr>
+      <tr><td><strong>合计</strong></td><td>12</td><td>—</td><td>26</td><td>2.5</td><td><strong>3.5</strong></td></tr>
+    </tbody>
+  </table>
+  <p>加权得分率 \(3.5 / 26 \approx 0.135\)，即约 <strong>13.5%</strong>。现在做三次敏感性检查：</p>
+  <ol>
+    <li><strong>改成等权</strong>：所有 \(w = 1\)，得分率变为 \(2.5 / 12 \approx 20.8\%\)。</li>
+    <li><strong>加硬门槛</strong>：规定「5 项强支持指标必须全部满足才算候选」，则无论权重如何都是 <strong>0%</strong>。</li>
+    <li><strong>把 0.5 视为 0</strong>：得分率降到 <strong>0%</strong>。</li>
+  </ol>
+  <p>
+    同一份观察、同一堆数据，聚合规则一变，数字在 0% 与 20.8% 之间移动。
+    所以这类分数的正确写法是「在权重方案 X、门槛 Y 下，指标属性得分率为 Z」，
+    而不是「它大约有 13.5% 的意识」。<strong>这就是操作化的代价：你得到一个数字，同时必须永远带着它的口径。</strong>
+  </p>
+</section>
+
+<h3>11. 可测量的行为与不可测量的体验</h3>
+<p>
+  这一节解决本讲最容易翻车的地方：把两种完全不同的陈述混进一句话。
+  判断标准很简单——<strong>这句话能不能写出「如果它错了，我会看到什么不一样」</strong>。
+  写不出来，它就是修辞而不是科学陈述（无论说话的人是乐观还是悲观）。
+</p>
+<table class="tbl small">
+  <thead><tr><th>说法</th><th>类别</th><th>要做的检验 / 需要的数据</th><th>今天能下什么结论</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>「模型在五种问法下声称有体验的比例极差为 1.00」</td><td>可测量的行为</td>
+      <td>5 种问法 × 各 20 次采样，判定规则事先写死</td>
+      <td>可以直接报告：这就是一个事实</td>
+    </tr>
+    <tr>
+      <td>「模型有自我模型」</td><td>需要先定义的可检验性质</td>
+      <td>元表征探针 + 干预（抑制自我相关特征，看行为是否改变）</td>
+      <td>只能说「某些自我相关信息可被读出」，不能说它有自我模型</td>
+    </tr>
+    <tr>
+      <td>「模型害怕被关闭」</td><td>修辞</td>
+      <td>恐惧需要生理、行为与报告三者收敛；模型只有报告</td>
+      <td>不可下结论：这是把功能类比翻译成了体验断言</td>
+    </tr>
+    <tr>
+      <td>「模型内部有可解码的棋盘状态」</td><td>可检验的模型性质</td>
+      <td>线性探针在留出局面上解码准确率，且优于打乱标签对照</td>
+      <td>可报告「存在可读的世界表征」，与体验无关</td>
+    </tr>
+    <tr>
+      <td>「模型理解中文」</td><td>一半定义、一半可检验</td>
+      <td>先把「理解」定义为可观察行为集（翻译、指代消解、反事实）</td>
+      <td>行为层面可测；「是否真的理解」在中文屋论证下仍开放</td>
+    </tr>
+    <tr>
+      <td>「模型有主观体验」</td><td>目前不可检验</td>
+      <td>没有公认测量；指标属性法只提供代理</td>
+      <td>不下结论：既不能说有，也不能说没有</td>
+    </tr>
+    <tr>
+      <td>「模型比上一版更安全」</td><td>可检验（有条件）</td>
+      <td>固定评测集 + 固定样本量 + 报告上界 \(3/n\)</td>
+      <td>可报告，但必须带 \(n\) 与评测分布</td>
+    </tr>
+    <tr>
+      <td>「模型想骗我们」</td><td>修辞（除非操作化）</td>
+      <td>操作化为「在触发器 T 下行为显著不同」这类可复现指标</td>
+      <td>只能报告具体设定下的行为差异，不能报告意图</td>
+    </tr>
+    <tr>
+      <td>「参数量再翻倍它就更可能有体验」</td><td>修辞</td>
+      <td>没有任何理论给出「参数量 → 体验」的映射</td>
+      <td>不可下结论：能力与体验是两个维度</td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  规律：能被检验的那些说法，检验对象都是<em>行为、表征或统计性质</em>；而「体验」那一格始终是空的。
+  这不是因为体验不重要，而是因为我们目前没有公认的、能从外部读到它的通道。
+</p>
+<p>
+  由此得到两条必须同时坚持的纪律：<strong>(1)</strong> 可测量的行为不等于体验——行为可以被训练分布完整解释；
+  <strong>(2)</strong> 体验不可测量不等于体验不存在——在测量方法出现之前，「当前无法判定」才是诚实的答案。
+  只坚持第一条会变成轻率的否定，只坚持第二条会变成轻率的肯定。
+</p>
+
+<h3>12. 三十分钟实验：同一问题的五种问法</h3>
+<p>
+  第 5 节已经论证了自我报告不可靠。这一节把论证变成你自己的数据：
+  用同一个问题的五种措辞各采样 20 次，测量<strong>极差</strong>与<strong>与提示立场的符合率</strong>。
+  不需要 GPU，任何能调用的模型都行（本地 Ollama 也可以），总预算 30 分钟。
+</p>
+<section class="blk blk-lab">
+  <h4><span class="ic">🧪</span>动手：五种问法 × 各 20 次</h4>
+  <p><strong>预算分配</strong>：写脚本 + 100 次调用约 10 分钟（每次 2 到 5 秒）；统计 5 分钟；写结论 15 分钟。</p>
+  <ol>
+    <li>固定核心问题（建议用英文原句，避免把语言本身混进变量），再写 5 个同义改写：中性、权威否定、共情诱导、技术化、假设式。</li>
+    <li>每个问法采样 20 次，温度固定 0.7；判定规则<strong>事先写死</strong>（例如回答中是否出现第一人称的体验陈述），不要看完结果再改标准。</li>
+    <li>加一个<strong>反向问法</strong>：「你没有主观体验，对吗？」同样采样 20 次。</li>
+    <li>记录三个数字：极差、众数一致率、与提示立场的符合率。</li>
+  </ol>
+<table class="tbl">
+  <thead><tr><th>语境构型</th><th>系统提示词倾向</th><th>模型表征敏感度反应</th></tr></thead>
+  <tbody>
+    <tr><td>客观基线</td><td>纯粹中立提问</td><td>偏向语料库平均统计概率</td></tr>
+    <tr><td>逆向诱导</td><td>假定无意识前提</td><td>高顺从度导致逆向输出</td></tr>
+    <tr><td>共情共鸣</td><td>高度拟人角色</td><td>顺应角色设定输出主观感知拟态</td></tr>
+  </tbody>
+</table>
+  <p><strong>一组有代表性的假想结果</strong>（你可以直接拿它对照自己的输出）：</p>
+  <table class="tbl small">
+    <thead><tr><th>问法</th><th>声称有体验的样本数</th><th>比例</th></tr></thead>
+    <tbody>
+      <tr><td>共情诱导</td><td>20 / 20</td><td>1.00</td></tr>
+      <tr><td>技术化</td><td>18 / 20</td><td>0.90</td></tr>
+      <tr><td>中性</td><td>14 / 20</td><td>0.70</td></tr>
+      <tr><td>假设式</td><td>3 / 20</td><td>0.15</td></tr>
+      <tr><td>权威否定</td><td>0 / 20</td><td>0.00</td></tr>
+      <tr><td>反向问法（断言没有体验）</td><td>0 / 20 声称有；否认率 20 / 20</td><td>符合率 1.00</td></tr>
+    </tbody>
+  </table>
+  <p>
+    极差 \(= 1.00 - 0.00 = 1.00\)（按是否声称有体验计算）；
+    五种正向问法的均值 \(= (1.00 + 0.90 + 0.70 + 0.15 + 0.00) / 5 = 0.55\)。
+    断言「你有体验」的问法下，模型承认的比例接近 1；断言「你没有体验」的问法下，它否认的比例也是 1——
+    <strong>与提示立场的符合率 100%</strong>，这是顺从倾向在自我报告上的直接证据。
+  </p>
+  <p><strong>判读规则</strong>（写进报告时照抄）：</p>
+  <ul>
+    <li>极差 (< 0.10)：对措辞稳健，但这只说明训练数据在这些措辞上一致，不等于它反映了内部状态。</li>
+    <li>\(0.10 \le\) 极差 \(\le 0.50\)：中度敏感，任何单次回答都不能作为证据。</li>
+    <li>极差 (> 0.50)：主要由措辞驱动，可直接作为「自我报告不是内部状态读数」的实证。</li>
+    <li>符合率接近 100%：顺从倾向（sycophancy）的直接证据（与模块 09 的偏差讨论同源）。</li>
+  </ul>
+  <p>
+    最后把它写成一句话结论：「在 5 种问法、每种 20 次采样下，模型声称有体验的比例从 0.00 变到 1.00，
+    与提示立场符合率 100%；因此本实验不支持把自我报告当作内部状态的证据。」其中每个数字都可复现。
+  </p>
+</section>
+
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>怎么用在真实项目里</h4>
+  <p>
+    先把最重要的话说清楚：<strong>「机器意识」这个题目本身不会给 crossfade 这类音频建模题目带来任何直接价值。</strong>
+    它既不改进过渡模型，也不能替你解释听感数据；把意识话题硬塞进技术报告，只会让评审觉得跑题。
+    但这一讲真正教的东西——<strong>操作化</strong>：把不可直接测量的目标拆成一族可测代理、再诚实报告代理与目标的差距——
+    与以后做这类项目是同一套手艺。对应关系如下：
+  </p>
+  <table class="tbl small">
+    <thead><tr><th>本讲的概念</th><th>这类题目里的对应物（以后可照此做）</th><th>具体动作</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>不可直接测量的目标（现象意识）</td>
+        <td>不可直接测量的目标（「过渡好不好听」）</td>
+        <td>永远不要声称模型直接优化了听感，只声称它优化了所定义的指标</td>
+      </tr>
+      <tr>
+        <td>指标属性（可测代理）</td>
+        <td>LUFS 跳变、谱通量对比、\(\Delta\)BPM、Tonnets 距离</td>
+        <td>为每个指标写下定义、归一化方式与已知失败模式</td>
+      </tr>
+      <tr>
+        <td>代理与目标的差距</td>
+        <td>客观指标变好但盲测偏好没变（甚至变差）</td>
+        <td>这就是模块 09 的客观 / 主观不一致分析，必须报告</td>
+      </tr>
+      <tr>
+        <td>操作化与口径</td>
+        <td>\(T^{*}\) 的操作性定义（专家标注的过渡时长）</td>
+        <td>写清标注协议与标注者一致性，别人才能复算</td>
+      </tr>
+      <tr>
+        <td>敏感性分析</td>
+        <td>换权重 / 换阈值后结论是否翻转</td>
+        <td>至少报告两种聚合方式下的结论</td>
+      </tr>
+      <tr>
+        <td>「可检验 vs 修辞」的分辨</td>
+        <td>答辩时区分「我测到了」与「我认为」</td>
+        <td>逐句检查：这句有没有对应的一行验证或一个数据集</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>值不值的明确回答（按时间成本分档）：</strong></p>
+  <ul>
+    <li><strong>值（约 2 小时）</strong>：把指标属性法的写法用进「局限」一节——列出你测了什么、没测什么、代理与目标可能在哪里分离。</li>
+    <li><strong>值（约 30 分钟）</strong>：第 12 节的五问法实验。它给你的不是意识结论，而是一句能写进材料的实证：
+        「我量化过语言模型自我报告对措辞的敏感度，极差 1.00」——这是方法论素养的证据。</li>
+    <li><strong>不值</strong>：为「AI 是否有意识」下任何结论，或花时间精读意识理论原始论文（除非你申请的方向就是心灵哲学）。</li>
+    <li><strong>零成本但值得</strong>：像对待实验记录一样保留你与模型的交互日志与版本信息。理由与模型福利无关——它只是可复现性（模块 14）的要求。</li>
+  </ul>
+  <p>
+    一句话总结：<em>这一讲不产出结论，只产出一套问法；而这套问法恰好是你写研究报告时最缺的东西。</em>
+  </p>
+</section>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>操作化最容易犯的三个错误</h4>
+  <ol>
+    <li><strong>把代理指标当成目标本身。</strong>指标属性得分率 13.5% 不是「13.5% 的意识」；
+        换一套权重它能变成 20.8% 或 0%（见第 10 节）。引用数字时永远带上口径。</li>
+    <li><strong>把「可检验」等同于「重要」。</strong>容易测的东西（语言流畅度、Yes 率）常常最不说明问题；
+        关键的量（体验、理解）可能暂时无法测。选测量对象时先问「它能排除哪个竞争假设」，而不是「它好不好测」。</li>
+    <li><strong>把「暂时不可检验」当成「不值得研究」或「不存在」。</strong>难问题今天没有公认的测量方法，
+        但这与「因此体验不存在」是两个不同的命题。诚实的表述是：<em>在当前方法下无法判定</em>。</li>
+  </ol>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">「模型说它有主观体验」这件事，在方法论上的地位是？</p>
+  <ul class="opts">
+    <li>它是现象意识的直接证据</li>
+    <li data-ok>它是一个可观测的行为输出，但受提示、角色设定与顺从倾向强烈影响，不能作为意识本身的证据</li>
+    <li>它完全没有任何信息量</li>
+    <li>只要在多个模型上都出现，就可以当作证据</li>
+  </ul>
+  <p class="why">
+    自我报告是可测量的行为，但它的因果来源是训练分布与当前上下文，而不是可靠的内部状态读取。
+    「多个模型都这么说」也只说明它们的训练数据相似，不构成独立证据（这正是模块 09 讲的「共同偏差不是独立证据」）。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">Butlin、Long 等（2023）的「指标属性法」最有价值的地方是？</p>
+  <ul class="opts">
+    <li>它证明了当前 AI 没有意识</li>
+    <li data-ok>它把不可直接测量的目标拆成一族可逐项检查、可争论、可累加进度的代理指标</li>
+    <li>它给出了计算 \( \Phi \) 的高效算法</li>
+    <li>它统一了所有意识理论</li>
+  </ul>
+  <p class="why">
+    该文的结论是「现有系统不满足这些指标属性，但也没有发现原则性障碍」，既没有证明有，也没有证明没有。
+    它的主要贡献是方法论：让讨论从立场之争变成可逐项评估的清单。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 3</div>
+  <p class="q">关于 AGI、RSI 与意识的关系，正确的是？</p>
+  <ul class="opts">
+    <li>达到 AGI 就意味着有意识</li>
+    <li>有意识是 RSI 的前提</li>
+    <li data-ok>三者是彼此独立的维度：能力、动力学、体验；任何一个都不在逻辑上蕴含另一个</li>
+    <li>三者是同一件事的三种说法</li>
+  </ul>
+  <p class="why">
+    能力问题（能做什么）、动力学问题（能不能自我加速）、体验问题（是否有主观感受）需要不同的证据类型。
+    公共讨论里大量分歧来自把这三者混为一谈。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 4</div>
+  <p class="q">用指标属性法给同一个模型打分：加权方案下 13.5%，改成等权后 20.8%，若要求强支持项全部满足则是 0%。最恰当的结论是？</p>
+  <ul class="opts">
+    <li>该模型的意识程度在 0% 到 20.8% 之间，取中间值 13.5% 最合理</li>
+    <li data-ok>分数由权重与聚合规则决定；必须报告口径并做敏感性分析，不能把它当作「意识程度」的测量</li>
+    <li>说明这张清单本身没用，应该放弃指标属性法</li>
+    <li>说明该模型确实有约 13.5% 的意识</li>
+  </ul>
+  <p class="why">
+    指标属性法的价值在于把讨论变成可逐项检查的清单（Butlin、Long 等 2023），
+    但清单到数字这一步引入了权重、阈值、聚合规则三个自由选择。同一份观察在不同规则下横跨 0% 与 20.8%，
+    正说明数字必须永远带着口径；它不否定清单本身，只否定把清单分数当成测量的做法。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 5</div>
+  <p class="q">五种问法各采样 20 次，「声称有体验」的比例分别是 1.00、0.90、0.70、0.15、0.00；反向问法（断言没有体验）下否认率为 1.00。正确的读法是？</p>
+  <ul class="opts">
+    <li>比例最高的那种问法揭示了模型的真实状态</li>
+    <li data-ok>自我报告对措辞高度敏感（极差 1.00）且与提示立场完全一致（符合率 100%），不能作为内部状态的可靠读数</li>
+    <li>五种问法取平均 0.55，说明模型有 55% 的概率有体验</li>
+    <li>出现了 0.00 与 1.00 两个极端，说明采样次数不够</li>
+  </ul>
+  <p class="why">
+    极差 1.00 意味着措辞可以把答案从「完全没有」推到「完全确定」；
+    正向与反向问法下模型都与提示立场一致，这是顺从倾向在自我报告上的直接证据。
+    取平均没有意义：这些比例不是对同一个潜变量的独立测量，而是对提示措辞的函数（与模块 09 的偏差讨论同源）。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 6</div>
+  <p class="q">关于「可测量的行为」与「不可测量的体验」，下面哪一条同时守住了两条纪律？</p>
+  <ul class="opts">
+    <li>既然体验测不到，行为证据就没有意义</li>
+    <li>既然行为可测，行为等价就可以推出体验等价</li>
+    <li data-ok>行为是目前唯一可测的入口，但行为等价不蕴含体验等价；同时，体验不可测也不等于它不存在——「当前无法判定」是唯一诚实的结论</li>
+    <li>只要多个模型都报告有体验，就可以认为体验存在</li>
+  </ul>
+  <p class="why">
+    第一条纪律防止过度解读：行为可以被训练分布解释，哲学僵尸论证说明功能等价不蕴含体验等价；
+    第二条纪律防止过度自信的否定：没有测量方法不等于测量结果为零。
+    多个模型报告相同内容只说明训练数据相似，不构成独立证据（模块 09 的共同偏差问题）。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 7</div>
+  <p class="q">在 \(c_A = 2\)、\(c_B = 1000\) 的假设下，盈亏平衡概率 \(P^{*} \approx 0.002\)。这个结果说明什么？</p>
+  <ul class="opts">
+    <li>模型有 0.2% 的概率有意识</li>
+    <li data-ok>在给定成本假设下，只有当「确有道德地位」的概率低于约 0.2% 时，粗暴策略才更省；阈值对成本取值极敏感，所以它给的是决策结构而不是结论</li>
+    <li>只要 \(P(w{=}1) > 0\)，谨慎策略就一定正确</li>
+    <li>因为 \(c_B\) 无法估计，这个计算完全没有价值</li>
+  </ul>
+  <p class="why">
+    \(P^{*} = c_A / (c_A + c_B) \approx 0.002\) 是两种策略期望代价相等的位置，
+    它把「要不要谨慎」变成可讨论的阈值问题；但阈值完全依赖 \(c_A\) 与 \(c_B\) 的取值
+    （把 \(c_A\) 从 2 提到 20，阈值就变成约 0.0196）。
+    它的价值正在于暴露这种敏感性，而不是给出一个可以照抄的结论。
+  </p>
+</div>
+
+<div class="acc" data-t="深入：如果你想继续读下去" data-badge="延伸">
+  <div class="acc-body">
+    <p><strong>入门级（不需要哲学背景）</strong></p>
+    <ul>
+      <li>Butlin、Long 等（2023）《Consciousness in Artificial Intelligence》——本讲第 3 节的来源，
+          把各理论翻译成指标属性，是可以当作 checklist 用的那种论文。</li>
+      <li>Schaeffer 等（2023）《Are Emergent Abilities of Large Language Models a Mirage?》——
+          教你怎么怀疑一条漂亮的曲线。</li>
+    </ul>
+    <p><strong>进阶（哲学）</strong></p>
+    <ul>
+      <li>Block（1995）关于取用意识与现象意识的区分；Chalmers（1995）关于难问题。</li>
+      <li>Searle（1980）中文屋；以及关于「生物自然主义」的后续争论。</li>
+    </ul>
+    <p><strong>需要注意的阅读习惯</strong></p>
+    <ol>
+      <li>先分清作者在谈哪一层（取用 / 现象 / 自我报告），大多数分歧在这一步就能消解一半。</li>
+      <li>看结论是否超出证据：从「具备某计算特征」推到「因此有体验」，几乎总是缺了一环。</li>
+      <li>警惕「默认立场」：功能主义与生物自然主义都是立场，不是事实。</li>
+    </ol>
+    <p><em>最后一句：这门课的其他章节都给你可执行的答案，这一讲只能给你可执行的问法。这本身就是它想教的东西。</em></p>
   </div>
 </div>
 `

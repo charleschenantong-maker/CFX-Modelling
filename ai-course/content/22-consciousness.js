@@ -3,10 +3,10 @@ COURSE.register({
   id: "m22",
   part: 4,
   num: "22",
-  title: "机器意识：如何把一个模糊问题变得可以认真讨论",
+  title: "【选读研讨】机器意识：如何把一个模糊问题变得可以认真讨论",
   en: "Machine Consciousness — Making the Question Tractable",
   minutes: 45,
-  tags: ["高阶", "理论", "思辨"],
+  tags: ["选读研讨", "高阶", "理论", "思辨"],
   body: String.raw`
 <p class="lead">
   这一讲<strong>不会告诉你「AI 有没有意识」</strong>——没有人知道答案，任何人声称知道，你都该问他依据是什么。

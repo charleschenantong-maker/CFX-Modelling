@@ -1,7 +1,7 @@
 import os
 
 files = [
-  # Part 0: 导读与心法
+  # Part 0: 心法
   "content/00-orientation.js",
   "content/00b-primer.js",
   # Part 1: 底座原理
@@ -15,20 +15,22 @@ files = [
   "content/07-finetuning.js",
   "content/08-inference.js",
   "content/09-evaluation.js",
-  # Part 3: 真实大模型体系与系统工程 (Real-world LLMs)
+  # Part 3: 真实大模型架构与系统工程 (Real-world Systems Engineering)
   "content/10-compute.js",
+  "content/10b-data-engineering.js",
   "content/15-moe.js",
   "content/16-long-context.js",
-  # Part 4: 前沿技术拓展 (Frontier · 纯理论)
+  "content/23-compression.js",
+  "content/16b-inference-serving.js",
+  # Part 4: 能力拓展、前沿方向与研讨 (Frontier)
   "content/17-distillation.js",
   "content/18-reasoning.js",
   "content/19-rag.js",
   "content/20-agents.js",
   "content/21-safety.js",
-  "content/22-consciousness.js",
-  "content/23-compression.js",
   "content/24-architectures.js",
-  # Part 5: 个人工程落地、算力实战与项目收束 (Implementation & Capstone)
+  "content/22-consciousness.js",
+  # Part 5: 个人算力、实战与项目收束 (Implementation & Capstone)
   "content/11-economics.js",
   "content/12-network.js",
   "content/13-resets.js",
