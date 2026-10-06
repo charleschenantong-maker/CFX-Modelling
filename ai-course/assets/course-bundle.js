@@ -2729,7 +2729,7 @@ COURSE.register({
   <table class="tbl small">
     <thead><tr><th>日志症状</th><th>常见原因</th><th>先做的一步检查</th></tr></thead>
     <tbody>
-      <tr><td>loss 变成 NaN</td><td>精度溢出、学习率过大、梯度异常</td><td>切到 bf16，打印梯度范数，暂时降低学习率</td></tr>
+      <tr><td>loss 变成 NaN</td><td>精度溢出、学习率过大、梯度异常</td><td>切换到 bf16，打印梯度范数，暂时降低学习率</td></tr>
       <tr><td>loss 突然尖峰</td><td>脏数据、异常长样本、恢复训练时状态不一致</td><td>记录尖峰 batch 的样本 ID、长度和 token 统计</td></tr>
       <tr><td>训练集下降，验证集不动</td><td>过拟合、数据泄漏或验证集太小</td><td>固定验证集，检查重复样本和 train/val 切分</td></tr>
       <tr><td>loss 几乎不动</td><td>标签错位、学习率太小、参数没有更新</td><td>确认 targets 是输入右移一位，并检查参数梯度非零</td></tr>
@@ -2774,6 +2774,19 @@ COURSE.register({
 </dl>
 
 <h3>2. 优化器：AdamW 与它的现代替代</h3>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：拆解 AdamW 优化器符号）</h4>
+  <ul>
+    <li><strong>\(\theta_t\) 与 \(\theta_{t-1}\)</strong>：模型在第 \(t\) 步与第 \(t-1\) 步的全部权重参数矩阵（如 Attention 与 FFN 矩阵）；</li>
+    <li><strong>\(g_t = \nabla_\theta \mathcal{L}\)</strong>：当前小批量数据上的瞬时梯度向量，指示损失上升最陡峭的方向；</li>
+    <li><strong>\(m_t\)（一阶动量）</strong>：类似「带惯性的滚珠」，按衰减率 \(\beta_1 = 0.9\) 平滑过滤单批次噪声，保留历史速度方向；</li>
+    <li><strong>\(v_t\)（二阶动量）</strong>：梯度的未中心化方差，按衰减率 \(\beta_2 = 0.95\) 累计各个坐标的摆动幅度；</li>
+    <li><strong>\(\frac{\hat m_t}{\sqrt{\hat v_t} + \epsilon}\)</strong>：自适应步长核心——经常剧烈震荡的参数除以较大的 \(\sqrt{\hat v_t}\)（小步走防炸），平缓稀疏的参数除以较小的 \(\sqrt{\hat v_t}\)（大步走加速），\(\epsilon = 10^{-8}\) 防止分母为零；</li>
+    <li><strong>\(\lambda \, \theta_{t-1}\) 与 \(\eta\)</strong>：\(\eta\) 为全局学习率，\(\lambda = 0.1\) 是解耦权重衰减系数（L2 正则化），温和拉低参数绝对值防过拟合。</li>
+  </ul>
+</section>
+
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>AdamW 更新式</h4>
   \[
@@ -2808,7 +2821,7 @@ COURSE.register({
   <p>偏置校正把它除回去：\(0.5 / (1 - 0.9) = 0.5 / 0.1 = 5\)，恰好还原。若不校正，warmup 前几百步的有效学习率会被人为压小一个量级，loss 曲线开头那段平坦多半是它。</p>
   <p>LLM 回报：这就是 warmup 必须和偏置校正一起看的原因——省的是训练前几千步炸掉重来的 GPU 小时数。</p>
 </section>
-<p>把递推展开就能看清偏差有多大：</p>
+<p>把递推展开就能看清偏差有多大（其中 \(\mathbb{E}[\cdot]\) 表示数学期望值）：</p>
 \[ m_t = (1-\beta_1)\sum_{i=1}^{t}\beta_1^{\,t-i}\,g_i
    \qquad\Longrightarrow\qquad
    \mathbb{E}[m_t] = \big(1-\beta_1^{\,t}\big)\,\mathbb{E}[g] \]
@@ -2876,6 +2889,17 @@ COURSE.register({
 </p>
 
 <h3>3. 学习率曲线：warmup + 余弦</h3>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：余弦退火分段函数）</h4>
+  <ul>
+    <li><strong>\(t\) 与 \(T\)</strong>：\(t\) 为当前训练步数，\(T\) 为全流程计划的总训练步数（如 100,000 步）；</li>
+    <li><strong>\(t_{\text{warm}}\)</strong>：预热步数，通常设定为总步数的 1% ~ 2%（如前 2,000 步）；</li>
+    <li><strong>\(\eta_{\max}\) 与 \(\eta_{\min}\)</strong>：峰值最大学习率（如 \(3 \times 10^{-4}\)）与退火下限最小学习率（通常为峰值的 10%，如 \(3 \times 10^{-5}\)）；</li>
+    <li><strong>为什么是 \(\frac{1}{2}(1 + \cos(\dots))\)</strong>：余弦函数在 \(\theta = 0\) 时值为 1，\(\frac{1}{2}(1+1) = 1\) 刚好从峰值平滑启程；在 \(\theta = \pi\) 时值为 \(-1\)，\(\frac{1}{2}(1-1) = 0\) 刚好平滑降至最低点，形成完美的 S 型缓降。</li>
+  </ul>
+</section>
+
 \[
 \eta(t) = \begin{cases}
 \eta_{\max}\cdot \dfrac{t}{t_{\text{warm}}} & t < t_{\text{warm}} \\
@@ -2926,7 +2950,11 @@ COURSE.register({
 
 <h3>5. 缩放律：该用多少数据、多少算力</h3>
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>参数量最优配比</h4>
+  <h4><span class="ic">∑</span>参数量最优配比与 6ND 物理来源</h4>
+  <p>
+    <strong>为什么训练总算力是 \(C \approx 6ND\)？</strong><br />
+    每个 Token 在模型前向传播时，每个参数发生 1 次乘法和 1 次加法，耗费 <strong>\(2ND\) FLOPs</strong>；而在反向传播计算梯度时，既要求对权重的梯度、又要求对上一层激活的梯度，计算量是前向的 2 倍，即 <strong>\(4ND\) FLOPs</strong>。前向与反向相加，单步完整迭代恰好是 \(2ND + 4ND = \mathbf{6ND}\) FLOPs！
+  </p>
   <p>Chinchilla 的核心结论：在固定算力预算下，最优的参数量与数据量满足</p>
   \[ N_{\text{opt}} \approx \frac{D}{20} \qquad\Longleftrightarrow\qquad D_{\text{opt}} \approx 20\,N \]
   <p>也就是说，一个 7B 模型大约需要 140B token 才算「算力最优」。但<strong>现代模型普遍远超这个比例</strong>：</p>
@@ -2959,7 +2987,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   \[ \frac{\partial\mathcal{J}}{\partial N}=-aA N^{-a-1}+\lambda D=0,\qquad \frac{\partial\mathcal{J}}{\partial D}=-bB D^{-b-1}+\lambda N=0 \]
   <p>两式分别乘以 \(N\) 与 \(D\)，再消去 \(\lambda ND\)：</p>
   \[ aA N^{-a}=bB D^{-b} \]
-  <p>代入 \(D=K/N\)，得到单变量方程：</p>
+  <p>带入 \(D=K/N\)，得到单变量方程：</p>
   \[ aA N^{-a}=bB K^{-b}N^b \Longrightarrow N^{a+b}=\frac{aA}{bB}K^b \]
   \[ N_{\text{opt}}=\left(\frac{aA}{bB}K^b\right)^{\!1/(a+b)},\qquad D_{\text{opt}}=\frac{K}{N_{\text{opt}}} \]
   <p>若经验上 \(a=b\) 且系数使最优比值为 \(D/N\approx20\)，就得到 Chinchilla 规则 \(D_{\text{opt}}\approx20N\)。再与 \(C=6ND\) 联立：</p>
@@ -2987,7 +3015,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 <p>
   但要记住这是<em>训练算力最优</em>，不是<em>总成本最优</em>。当模型要被反复推理时，
   把 \(N\) 调小、\(D\) 调大会让推理更便宜——这正是 Llama-3-8B 用约 15T token（\(D/N \approx 1900\)）
-  远超 Chinchilla 比例的原因。这个取舍在模块 11 的成本框架里会更清楚。
+  远超 Chinchilla 比例的原因。这个取舍在模块 23（算力物理与经济学）的成本框架里会更清楚。
 </p>
 
 <h4>5.2 MFU：把「跑得多快」换算成「用了多少算力」</h4>
@@ -3028,11 +3056,10 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 <p>按每小时 2 美元算，约 19 万美元。<strong>这就是为什么个人不可能预训练 7B 模型——这是本课程最重要的预算结论。</strong></p>
 
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>动手：在 Colab 上跑一次真实的预训练步骤</h4>
-  <p>免费层跑不了 7B，但可以完整跑通「从零预训练一个 10M 参数模型」的全流程（附录 B · E3 有完整代码）：</p>
-<p>
-  在预训练工程中，单步迭代的数学本质可以精简为两道微核心算子：
-</p>
+  <h4><span class="ic">∑</span>预训练单步迭代核心算子：交叉熵损失与梯度截断</h4>
+  <p>
+    在预训练工程底层中，单步迭代的计算本质可以提炼为两道极简的核心代数算子（注：Kaggle 平台的端到端完整显存实战位于第 V 板块模块 28）：
+  </p>
 
 <p><strong>1. 自回归交叉熵损失算子：</strong></p>
 <p>\[ \mathcal{L}_{\text{CE}} = -\frac{1}{N}\sum_{i=1}^N \log \frac{e^{z_{i, y_i}}}{\sum_{j=1}^V e^{z_{i, j}}} \]</p>
@@ -3086,7 +3113,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">训练中 loss 突然从 2.1 跳到 3.6，几步后仍不回落。最合理的处置是？</p>
+  <p class="q">训练中 loss 突然从 2.1 跳到 3.6，几步后仍不回落。最合理处置是？</p>
   <ul class="opts">
     <li>等待，通常会自动恢复</li>
     <li>立刻把学习率提高 10 倍冲出局部极小</li>
@@ -3094,7 +3121,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
     <li>重新初始化模型，从头训练</li>
   </ul>
   <p class="why">
-    Loss spike 通常由某个异常批次（脏数据、极端长度）触发，参数已经走入坏区域。
+    Loss spike 通常由某个异常批次（脏数据、极端长度）触发，参数已经走向坏区域。
     标准做法是「回滚 + 跳过 + 降 lr」，这也是<strong>检查点必须频繁保存</strong>的工程理由。
   </p>
 </div>
@@ -3130,7 +3157,6 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
     训练初期不用校正，有效步长会被压小一个量级，warmup 段的 loss 平坦多半源于此。
   </p>
 </div>
-
 
 <div class="quiz quiz-blank" data-ans="160" data-tol="5">
   <div class="qlabel">填空 · 计算推演</div>
