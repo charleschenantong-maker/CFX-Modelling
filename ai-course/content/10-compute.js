@@ -8,155 +8,34 @@ COURSE.register({
 
   num: "10",
 
-  title: "算力与工具链：在 Colab、Kaggle、HF 上能跑什么",
+  title: "真实大模型算力法则：Roofline 瓶颈模型、6N FLOPs 矩阵证明与 MFU 评测",
 
-  en: "Compute & Tooling (Colab / Kaggle / HF)",
+  en: "Real-world LLM Compute Scaling: Roofline Model, 6N FLOPs Matrix Proof & MFU Evaluation",
 
   minutes: 35,
 
-  tags: ["算力", "Colab", "动手"],
+  tags: ["工业集群", "Roofline", "6N FLOPs", "MFU"],
 
   body: String.raw`
 
 <p class="lead">
-
-  这一模块解决一个非常具体的问题：<strong>给定你手上的免费/低价算力，哪些实验今天就能跑，哪些必须改设计？</strong>
-
-  答案决定了你如何在有限的硬件约束下最科学地规划自训实验。同时为具有良好数学基础的高中生建立起坚固清晰的“算力心算底座”：从 Roofline 模型、算术强度，到经典 6N FLOPs 的严格矩阵微积分推导与 MFU 实战演算。
-
+  在真实的现代大语言模型系统工程中，算力不再是一个抽象的数字，而是由硬件极限（Memory Wall）、浮点计算密度（FLOPs）、以及集群利用率（MFU）严格决定的物理系统。本章彻底剥离个人小实验工具，带你建立起工业级真实大模型的“算力物理底座”：从 Roofline 模型与算术强度推演，到标准 Transformer 经典 6N FLOPs/token 的严格矩阵微积分推导，再到 8×A100 / H100 训练集群的 MFU 真实工程手算。
 </p>
 
-
-
-<section class="blk blk-q">
-
-  <h4><span class="ic">◆</span>问题</h4>
-
-  <p>
-
-    你最想要的是「训练一个自己的模型」。但真实约束是：Colab 免费层给的是单张 T4（16 GB）或单核 TPU，
-
-    会话会在空闲或到点后断开。于是正确的问题不是「我能训多大的模型」，而是
-
-    <em>「在会随时断线的 16 GB 显存上，什么实验能在 90 分钟内跑完并给出有意义的结论」</em>。
-
-  </p>
-
-</section>
-
-
-
-<h3>1. 算力地图</h3>
-
+<h3>1. 工业级真实大模型算力阶梯与集群规模</h3>
 <table class="tbl">
-
-  <thead><tr><th>平台</th><th>典型硬件</th><th>环境特点</th><th>最适合用途</th></tr></thead>
-
+  <thead><tr><th>模型规模</th><th>典型训练语料 (Token)</th><th>理论预训练计算量 (6ND FLOPs)</th><th>典型集群硬件规模</th><th>训练物理周期</th></tr></thead>
   <tbody>
-
-    <tr><td><strong>Kaggle Notebooks（核心主训平台）</strong></td><td><strong>双卡 T4 ×2（32 GB）/ 单卡 T4（16 GB）/ P100</strong></td><td>每周 30 小时免费 GPU，支持「Save & Run All」后台静默执行，输出自动持久化</td><td><strong>15M~45M miniGPT 从零预训练、0.5B/1.5B 开源基座 QLoRA 微调、双卡 DDP 并行探索</strong></td></tr>
-
-    <tr><td><strong>Hugging Face Spaces</strong></td><td>ZeroGPU / CPU 基础容器</td><td>面向社区的轻量 Web 交互展示</td><td>托管训练完成后的 Gradio / Streamlit 在线对话与试玩演示</td></tr>
-
-    <tr><td><strong>本地显卡（如有）</strong></td><td>8–24 GB（RTX 系列）</td><td>无需网络连接，本地单步断点调试极快</td><td>代码逻辑单步单测、自定义 Tokenizer 快速训练、微型矩阵维度验证</td></tr>
-
+    <tr><td><strong>7B (如 LLaMA-2/3-8B)</strong></td><td>2.0 ~ 15.0 万亿 (T)</td><td>\(8.4 \times 10^{22} \sim 6.3 \times 10^{23}\)</td><td>1,024 ~ 2,048 张 H100 SXM5</td><td>约 14 ~ 30 天</td></tr>
+    <tr><td><strong>70B (如 LLaMA-3-70B)</strong></td><td>15.0 万亿 (T)</td><td>\(6.3 \times 10^{24}\) FLOPs</td><td>4,096 ~ 8,192 张 H100 SXM5</td><td>约 25 ~ 45 天</td></tr>
+    <tr><td><strong>405B (如 LLaMA-3-405B)</strong></td><td>15.6 万亿 (T)</td><td>\(3.8 \times 10^{25}\) FLOPs</td><td>16,384 张 H100 SXM5（RoCEv2 / IB 互联）</td><td>约 54 天（集群 MFU ≈ 38%–41%）</td></tr>
   </tbody>
-
 </table>
-
-<section class="blk blk-warn">
-
-  <h4><span class="ic">⚠</span>Kaggle Notebooks 训练的三条核心工程原则（避坑指南）</h4>
-
-  <ol>
-
-    <li><strong>善用「Save Version → Save & Run All」后台提交</strong>：切勿全程开着网页前台干等。在 Kaggle 界面点击后台提交后，即便合上笔记本或遭遇断网，Kaggle 云端实例也会独立将整个脚本跑完，并在完成后将模型权重与完整日志自动归档保存在 Notebook Output 中。</li>
-
-    <li><strong>所有持久产出必须写入 <code>/kaggle/working/</code></strong>：Kaggle 只有写入该目录下的模型 Checkpoint、Loss 记录与量化 GGUF 文件会被持久保留并提供下载。脚本切勿把模型权重误写到 <code>/tmp</code>。</li>
-
-    <li><strong>单次实验控制在 30~90 分钟</strong>：虽然 Kaggle 单次执行最长可达数小时，但合理将预训练与微调任务切分为 30~90 分钟的紧凑颗粒度，能让你更快获取实验反馈，验证学习率衰减与 Loss 收敛趋势。</li>
-
-  </ol>
-
-  <p><em>掌握了 Kaggle 的持久化输出与 T4 物理算力法则，每周 30 小时的免费配额完全足够你训出自己的高质量模型。</em></p>
-
-</section>
-
-
-
-<h3>2. 显存 → 你能做什么</h3>
-
-<table class="tbl small">
-
-  <thead><tr><th>显存</th><th>推理</th><th>LoRA / QLoRA 微调</th><th>全参数训练</th></tr></thead>
-
-  <tbody>
-
-    <tr><td>8 GB</td><td>&le; 3B（int4）</td><td>&le; 1.5B（int4）</td><td>&le; 100M 从头训练</td></tr>
-
-    <tr><td>16 GB（T4）</td><td>&le; 7B（int4）</td><td>&le; 7B（QLoRA, 短序列）</td><td>&le; 300M</td></tr>
-
-    <tr><td>24 GB</td><td>&le; 13B（int4）</td><td>&le; 13B（QLoRA）</td><td>&le; 1B（含重计算）</td></tr>
-
-    <tr><td>40–80 GB（A100）</td><td>&le; 70B（int4/int8）</td><td>&le; 70B（QLoRA）</td><td>&le; 7B（FSDP 多卡）</td></tr>
-
-    <tr><td>8×TPU v5e</td><td>—</td><td>—</td><td><strong>约 10M–100M 参数从头预训练（教学用）</strong></td></tr>
-
-  </tbody>
-
-</table>
-
 <p>
-
-  这张表的用法不是「找上限」，而是<strong>反推实验设计</strong>：
-
-  既然一台 T4 只能从头训 300M 以下的模型，那么「用 100M 的模型把预训练流程跑通」就是正确的目标，
-
-  而不是试图硬撑 7B。规模缩小后，方法论完全一致，而迭代速度提高几十倍。
-
+  <strong>工业级工程直觉</strong>：为什么前沿大模型从来不是单卡能跑的？因为哪怕用一张当今最强规格的 H100 SXM5（半精度 Tensor Core 峰值每秒近 \(10^{15}\) 次浮点运算），训练 70B 模型也需要<strong>单卡不吃不喝连续计算 200 年</strong>！因此，大规模分布式集群并行、网络拓扑互联、以及避免访存瓶颈的极致算子优化，是大模型系统工程的绝对核心。
 </p>
 
-
-
-<h3>3. 环境与实验纪律</h3>
-
-<div class="flow">
-
-  <div class="nd hi">固定随机种子</div><div class="ar">→</div>
-
-  <div class="nd">记录版本</div><div class="ar">→</div>
-
-  <div class="nd">写 requirements</div><div class="ar">→</div>
-
-  <div class="nd">检查点外存</div><div class="ar">→</div>
-
-  <div class="nd">一键复现脚本</div>
-
-</div>
-
-<p><strong>Kaggle 规范初始化微演示：</strong></p>
-<div class="blk blk-tip"><p><strong>可复现性原则</strong>：固化所有随机种子 \(S \in \mathbb{N}\)，并始终将产出定向保存在 <code>/kaggle/working/</code> 持久化层中。</p></div>
-<p>
-  <strong>逐行解析</strong>：<code>torch.manual_seed(42)</code> 固化随机数发生器种子，确保网络初始化与采样具备严格可复现性；<code>os.makedirs</code> 在 Kaggle 持久化路径 <code>/kaggle/working/</code> 下建立检查点目录，确保训练权重在任务后台 Commit 后安全归档。
-</p>
-
-<p>
-
-  相关文档：<a href="https://huggingface.co/docs/transformers" target="_blank" rel="noopener">transformers</a>、
-
-  <a href="https://huggingface.co/docs/datasets" target="_blank" rel="noopener">datasets</a>、
-
-  <a href="https://huggingface.co/docs/trl" target="_blank" rel="noopener">trl</a>、
-
-  <a href="https://huggingface.co/docs/peft" target="_blank" rel="noopener">peft</a>。
-
-  学习路径见 <a href="https://huggingface.co/learn" target="_blank" rel="noopener">Hugging Face Learn</a>。
-
-</p>
-
-
-
-<h3>5. 【草稿纸演算】硬件瓶颈、Roofline 模型与访存瓶颈推演</h3>
+<h3>2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演</h3>
 
 <section class="blk blk-m">
 
@@ -264,7 +143,7 @@ COURSE.register({
 
 
 
-<h3>6. 【经典 6N 推导】标准 Transformer 单层与整网 6N FLOPs/token 严格数学证明</h3>
+<h3>3. 经典 6N 推导：标准 Transformer 单层与整网 6N FLOPs/token 严格数学证明</h3>
 
 <section class="blk blk-m">
 
@@ -432,7 +311,7 @@ COURSE.register({
 
 
 
-<h3>7. 【MFU 实战演算】Model FLOPs Utilization 逐行草稿计算</h3>
+<h3>4. MFU 实战演算：工业级集群训练利用率（8×A100 训练 7B 模型）</h3>
 
 <section class="blk blk-m">
 
@@ -514,27 +393,7 @@ COURSE.register({
 
 
 
-<section class="blk blk-lab">
 
-  <h4><span class="ic">🧪</span>动手：今天就能跑通的三个实验</h4>
-
-  <ol>
-
-    <li><strong>90 分钟</strong>：在 TinyStories 的 1% 子集上从零训练一个 4 层 / 256 维的迷你 Transformer，
-
-        记录 loss 曲线与 tokens/s（附录 B · E3）。</li>
-
-    <li><strong>60 分钟</strong>：用 TRL 对 0.5B 模型做一次 LoRA SFT，对比微调前后的输出（附录 B · E4）。</li>
-
-    <li><strong>45 分钟</strong>：在你的真实数据上跑「模型阶梯 + 分组交叉验证 + 置换检验」（附录 B · E7）——
-
-        这个实验不需要 GPU，用 CPU 就能跑，却是你申请材料里最有分量的一个。</li>
-
-  </ol>
-
-  <p><strong>优先级建议</strong>：先做第 3 个。它直接产出项目成果，而前两个是能力训练。</p>
-
-</section>
 
 
 

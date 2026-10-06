@@ -3662,24 +3662,27 @@ COURSE.register({
     <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (BA) = (xB) A\)：先算 \(xB \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xB)A \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
     <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (0 \cdot A) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
   </ul>
+  </section>
+
+<h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
+<p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen）与被拒绝的回答（rejected）。</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>DPO 相对概率比与隐式奖励定义</h4>
   <p>
-    <strong>前置定义 3（DPO 相对概率比与隐式奖励函数）：</strong>
-    设输入 prompt 为 \(x\)，模型生成完整序列 \(y = (y_1, y_2, \dots, y_T)\)。
-    当前训练中的策略模型概率为 \(\pi_\theta(y \mid x) = \prod_{t=1}^T \pi_\theta(y_t \mid x, y_{<t})\)，固定的参考基座模型概率为 \(\pi_{\text{ref}}(y \mid x) = \prod_{t=1}^T \pi_{\text{ref}}(y_t \mid x, y_{<t})\)。
-    两者的<strong>对数相对概率比（Log Probability Ratio）</strong>定义为：
+    设输入 prompt 为 \(x\)，生成完整回答序列 \(y = (y_1, y_2, \dots, y_T)\)。
+    当前策略模型为 \(\pi_\theta(y \mid x)\)，冻结的参考基座模型为 \(\pi_{\text{ref}}(y \mid x)\)。
+    两者的<strong>对数相对概率比</strong>定义为：
   </p>
   \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{<t}) \Big) \]
   <p>
-    依据逆强化学习原理，该对数比值在乘以温度参数 \(\beta > 0\) 后，隐式地刻画了策略相较于参考基准的<strong>标量奖励（Implicit Reward）</strong>：
+    依据逆强化学习（Inverse RL）原理，该比值在乘以温度常数 \(\beta > 0\) 后，隐式定义了策略相对于基座的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
   \[ \hat{r}_\theta(x, y) \triangleq \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \]
   <p>
-    当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，说明当前模型认为回答 \(y\) 优于基座，给予正奖励；反之给予负惩罚。
+    当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，模型输出该回答的倾向超过基座，视作获得正向奖励；反之给予惩罚。
   </p>
 </section>
-
-<h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
-<p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答与被拒绝的回答。</p>
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先把四个词对上号（给 DPO 搭一座小桥）</h4>
   <p>
@@ -3795,8 +3798,11 @@ COURSE.register({
   <p>
     将目标括号内的期望写为统一求和式（省略条件变量 \(x\) 的外层积分）：
   </p>
-  \[ \sum_y \pi(y \mid x) r(x, y) - \beta \sum_y \pi(y \mid x) \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} - \frac{r(x, y)}{\beta} \right] \]
-  \[ = - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)} \right) \]
+  \[ \begin{aligned}
+  &\sum_y \pi(y \mid x) r(x, y) - \beta \sum_y \pi(y \mid x) \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \\
+  &= - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} - \frac{r(x, y)}{\beta} \right] \\
+  &= - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)} \right)
+  \end{aligned} \]
   <p>
     定义归一化配分函数（Partition Function，亦称玻尔兹曼配分）：
   </p>
@@ -3805,8 +3811,11 @@ COURSE.register({
     构造合法的理论最优概率分布 \(\pi^*(y \mid x) \triangleq \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)\)。
     将 \(\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta) = Z(x) \pi^*(y \mid x)\) 代回目标函数：
   </p>
-  \[ - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{Z(x) \pi^*(y \mid x)} \right) = - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi^*(y \mid x)} - \log Z(x) \right] \]
-  \[ = \beta \log Z(x) - \beta D_{\mathrm{KL}}(\pi(y \mid x) \parallel \pi^*(y \mid x)) \]
+  \[ \begin{aligned}
+  &- \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{Z(x) \pi^*(y \mid x)} \right) \\
+  &= - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi^*(y \mid x)} - \log Z(x) \right] \\
+  &= \beta \log Z(x) - \beta D_{\mathrm{KL}}(\pi(y \mid x) \parallel \pi^*(y \mid x))
+  \end{aligned} \]
   <p>
     <strong>结论：</strong>由于 \(\beta \log Z(x)\) 完全不包含策略变量 \(\pi\)，且由 Gibbs 不等式，\(D_{\mathrm{KL}}(\pi \parallel \pi^*) \ge 0\) 恒成立，当且仅当 \(\pi = \pi^*\) 时取最小值 \(0\)。
     因此，目标的最优策略必然具有以下闭式解析解（Closed-form Solution）：
@@ -3833,8 +3842,11 @@ COURSE.register({
   <p>
     将第 3 步反解出的奖励函数代入差值：
   </p>
-  \[ r(x, y_w) - r(x, y_l) = \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right) \]
-  \[ = \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \]
+  \[ \begin{aligned}
+  r(x, y_w) - r(x, y_l)
+  &= \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right) \\
+  &= \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}
+  \end{aligned} \]
   <p>
     <strong>数学奇迹：</strong>两个极其难算的配分项 \(\beta \log Z(x)\) 严格相减对消为 0！
     由此，偏好概率被纯粹表达为策略与参考模型的相对概率比：
@@ -5491,155 +5503,34 @@ COURSE.register({
 
   num: "10",
 
-  title: "算力与工具链：在 Colab、Kaggle、HF 上能跑什么",
+  title: "真实大模型算力法则：Roofline 瓶颈模型、6N FLOPs 矩阵证明与 MFU 评测",
 
-  en: "Compute & Tooling (Colab / Kaggle / HF)",
+  en: "Real-world LLM Compute Scaling: Roofline Model, 6N FLOPs Matrix Proof & MFU Evaluation",
 
   minutes: 35,
 
-  tags: ["算力", "Colab", "动手"],
+  tags: ["工业集群", "Roofline", "6N FLOPs", "MFU"],
 
   body: String.raw`
 
 <p class="lead">
-
-  这一模块解决一个非常具体的问题：<strong>给定你手上的免费/低价算力，哪些实验今天就能跑，哪些必须改设计？</strong>
-
-  答案决定了你如何在有限的硬件约束下最科学地规划自训实验。同时为具有良好数学基础的高中生建立起坚固清晰的“算力心算底座”：从 Roofline 模型、算术强度，到经典 6N FLOPs 的严格矩阵微积分推导与 MFU 实战演算。
-
+  在真实的现代大语言模型系统工程中，算力不再是一个抽象的数字，而是由硬件极限（Memory Wall）、浮点计算密度（FLOPs）、以及集群利用率（MFU）严格决定的物理系统。本章彻底剥离个人小实验工具，带你建立起工业级真实大模型的“算力物理底座”：从 Roofline 模型与算术强度推演，到标准 Transformer 经典 6N FLOPs/token 的严格矩阵微积分推导，再到 8×A100 / H100 训练集群的 MFU 真实工程手算。
 </p>
 
-
-
-<section class="blk blk-q">
-
-  <h4><span class="ic">◆</span>问题</h4>
-
-  <p>
-
-    你最想要的是「训练一个自己的模型」。但真实约束是：Colab 免费层给的是单张 T4（16 GB）或单核 TPU，
-
-    会话会在空闲或到点后断开。于是正确的问题不是「我能训多大的模型」，而是
-
-    <em>「在会随时断线的 16 GB 显存上，什么实验能在 90 分钟内跑完并给出有意义的结论」</em>。
-
-  </p>
-
-</section>
-
-
-
-<h3>1. 算力地图</h3>
-
+<h3>1. 工业级真实大模型算力阶梯与集群规模</h3>
 <table class="tbl">
-
-  <thead><tr><th>平台</th><th>典型硬件</th><th>环境特点</th><th>最适合用途</th></tr></thead>
-
+  <thead><tr><th>模型规模</th><th>典型训练语料 (Token)</th><th>理论预训练计算量 (6ND FLOPs)</th><th>典型集群硬件规模</th><th>训练物理周期</th></tr></thead>
   <tbody>
-
-    <tr><td><strong>Kaggle Notebooks（核心主训平台）</strong></td><td><strong>双卡 T4 ×2（32 GB）/ 单卡 T4（16 GB）/ P100</strong></td><td>每周 30 小时免费 GPU，支持「Save & Run All」后台静默执行，输出自动持久化</td><td><strong>15M~45M miniGPT 从零预训练、0.5B/1.5B 开源基座 QLoRA 微调、双卡 DDP 并行探索</strong></td></tr>
-
-    <tr><td><strong>Hugging Face Spaces</strong></td><td>ZeroGPU / CPU 基础容器</td><td>面向社区的轻量 Web 交互展示</td><td>托管训练完成后的 Gradio / Streamlit 在线对话与试玩演示</td></tr>
-
-    <tr><td><strong>本地显卡（如有）</strong></td><td>8–24 GB（RTX 系列）</td><td>无需网络连接，本地单步断点调试极快</td><td>代码逻辑单步单测、自定义 Tokenizer 快速训练、微型矩阵维度验证</td></tr>
-
+    <tr><td><strong>7B (如 LLaMA-2/3-8B)</strong></td><td>2.0 ~ 15.0 万亿 (T)</td><td>\(8.4 \times 10^{22} \sim 6.3 \times 10^{23}\)</td><td>1,024 ~ 2,048 张 H100 SXM5</td><td>约 14 ~ 30 天</td></tr>
+    <tr><td><strong>70B (如 LLaMA-3-70B)</strong></td><td>15.0 万亿 (T)</td><td>\(6.3 \times 10^{24}\) FLOPs</td><td>4,096 ~ 8,192 张 H100 SXM5</td><td>约 25 ~ 45 天</td></tr>
+    <tr><td><strong>405B (如 LLaMA-3-405B)</strong></td><td>15.6 万亿 (T)</td><td>\(3.8 \times 10^{25}\) FLOPs</td><td>16,384 张 H100 SXM5（RoCEv2 / IB 互联）</td><td>约 54 天（集群 MFU ≈ 38%–41%）</td></tr>
   </tbody>
-
 </table>
-
-<section class="blk blk-warn">
-
-  <h4><span class="ic">⚠</span>Kaggle Notebooks 训练的三条核心工程原则（避坑指南）</h4>
-
-  <ol>
-
-    <li><strong>善用「Save Version → Save & Run All」后台提交</strong>：切勿全程开着网页前台干等。在 Kaggle 界面点击后台提交后，即便合上笔记本或遭遇断网，Kaggle 云端实例也会独立将整个脚本跑完，并在完成后将模型权重与完整日志自动归档保存在 Notebook Output 中。</li>
-
-    <li><strong>所有持久产出必须写入 <code>/kaggle/working/</code></strong>：Kaggle 只有写入该目录下的模型 Checkpoint、Loss 记录与量化 GGUF 文件会被持久保留并提供下载。脚本切勿把模型权重误写到 <code>/tmp</code>。</li>
-
-    <li><strong>单次实验控制在 30~90 分钟</strong>：虽然 Kaggle 单次执行最长可达数小时，但合理将预训练与微调任务切分为 30~90 分钟的紧凑颗粒度，能让你更快获取实验反馈，验证学习率衰减与 Loss 收敛趋势。</li>
-
-  </ol>
-
-  <p><em>掌握了 Kaggle 的持久化输出与 T4 物理算力法则，每周 30 小时的免费配额完全足够你训出自己的高质量模型。</em></p>
-
-</section>
-
-
-
-<h3>2. 显存 → 你能做什么</h3>
-
-<table class="tbl small">
-
-  <thead><tr><th>显存</th><th>推理</th><th>LoRA / QLoRA 微调</th><th>全参数训练</th></tr></thead>
-
-  <tbody>
-
-    <tr><td>8 GB</td><td>&le; 3B（int4）</td><td>&le; 1.5B（int4）</td><td>&le; 100M 从头训练</td></tr>
-
-    <tr><td>16 GB（T4）</td><td>&le; 7B（int4）</td><td>&le; 7B（QLoRA, 短序列）</td><td>&le; 300M</td></tr>
-
-    <tr><td>24 GB</td><td>&le; 13B（int4）</td><td>&le; 13B（QLoRA）</td><td>&le; 1B（含重计算）</td></tr>
-
-    <tr><td>40–80 GB（A100）</td><td>&le; 70B（int4/int8）</td><td>&le; 70B（QLoRA）</td><td>&le; 7B（FSDP 多卡）</td></tr>
-
-    <tr><td>8×TPU v5e</td><td>—</td><td>—</td><td><strong>约 10M–100M 参数从头预训练（教学用）</strong></td></tr>
-
-  </tbody>
-
-</table>
-
 <p>
-
-  这张表的用法不是「找上限」，而是<strong>反推实验设计</strong>：
-
-  既然一台 T4 只能从头训 300M 以下的模型，那么「用 100M 的模型把预训练流程跑通」就是正确的目标，
-
-  而不是试图硬撑 7B。规模缩小后，方法论完全一致，而迭代速度提高几十倍。
-
+  <strong>工业级工程直觉</strong>：为什么前沿大模型从来不是单卡能跑的？因为哪怕用一张当今最强规格的 H100 SXM5（半精度 Tensor Core 峰值每秒近 \(10^{15}\) 次浮点运算），训练 70B 模型也需要<strong>单卡不吃不喝连续计算 200 年</strong>！因此，大规模分布式集群并行、网络拓扑互联、以及避免访存瓶颈的极致算子优化，是大模型系统工程的绝对核心。
 </p>
 
-
-
-<h3>3. 环境与实验纪律</h3>
-
-<div class="flow">
-
-  <div class="nd hi">固定随机种子</div><div class="ar">→</div>
-
-  <div class="nd">记录版本</div><div class="ar">→</div>
-
-  <div class="nd">写 requirements</div><div class="ar">→</div>
-
-  <div class="nd">检查点外存</div><div class="ar">→</div>
-
-  <div class="nd">一键复现脚本</div>
-
-</div>
-
-<p><strong>Kaggle 规范初始化微演示：</strong></p>
-<div class="blk blk-tip"><p><strong>可复现性原则</strong>：固化所有随机种子 \(S \in \mathbb{N}\)，并始终将产出定向保存在 <code>/kaggle/working/</code> 持久化层中。</p></div>
-<p>
-  <strong>逐行解析</strong>：<code>torch.manual_seed(42)</code> 固化随机数发生器种子，确保网络初始化与采样具备严格可复现性；<code>os.makedirs</code> 在 Kaggle 持久化路径 <code>/kaggle/working/</code> 下建立检查点目录，确保训练权重在任务后台 Commit 后安全归档。
-</p>
-
-<p>
-
-  相关文档：<a href="https://huggingface.co/docs/transformers" target="_blank" rel="noopener">transformers</a>、
-
-  <a href="https://huggingface.co/docs/datasets" target="_blank" rel="noopener">datasets</a>、
-
-  <a href="https://huggingface.co/docs/trl" target="_blank" rel="noopener">trl</a>、
-
-  <a href="https://huggingface.co/docs/peft" target="_blank" rel="noopener">peft</a>。
-
-  学习路径见 <a href="https://huggingface.co/learn" target="_blank" rel="noopener">Hugging Face Learn</a>。
-
-</p>
-
-
-
-<h3>5. 【草稿纸演算】硬件瓶颈、Roofline 模型与访存瓶颈推演</h3>
+<h3>2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演</h3>
 
 <section class="blk blk-m">
 
@@ -5747,7 +5638,7 @@ COURSE.register({
 
 
 
-<h3>6. 【经典 6N 推导】标准 Transformer 单层与整网 6N FLOPs/token 严格数学证明</h3>
+<h3>3. 经典 6N 推导：标准 Transformer 单层与整网 6N FLOPs/token 严格数学证明</h3>
 
 <section class="blk blk-m">
 
@@ -5915,7 +5806,7 @@ COURSE.register({
 
 
 
-<h3>7. 【MFU 实战演算】Model FLOPs Utilization 逐行草稿计算</h3>
+<h3>4. MFU 实战演算：工业级集群训练利用率（8×A100 训练 7B 模型）</h3>
 
 <section class="blk blk-m">
 
@@ -5997,27 +5888,7 @@ COURSE.register({
 
 
 
-<section class="blk blk-lab">
 
-  <h4><span class="ic">🧪</span>动手：今天就能跑通的三个实验</h4>
-
-  <ol>
-
-    <li><strong>90 分钟</strong>：在 TinyStories 的 1% 子集上从零训练一个 4 层 / 256 维的迷你 Transformer，
-
-        记录 loss 曲线与 tokens/s（附录 B · E3）。</li>
-
-    <li><strong>60 分钟</strong>：用 TRL 对 0.5B 模型做一次 LoRA SFT，对比微调前后的输出（附录 B · E4）。</li>
-
-    <li><strong>45 分钟</strong>：在你的真实数据上跑「模型阶梯 + 分组交叉验证 + 置换检验」（附录 B · E7）——
-
-        这个实验不需要 GPU，用 CPU 就能跑，却是你申请材料里最有分量的一个。</li>
-
-  </ol>
-
-  <p><strong>优先级建议</strong>：先做第 3 个。它直接产出项目成果，而前两个是能力训练。</p>
-
-</section>
 
 
 
@@ -6216,1019 +6087,6 @@ COURSE.register({
 
 });
 
-
-/* --- content/11-economics.js --- */
-/* content/11-economics.js — 模块 11：算力法则与训练规模演算 */
-
-COURSE.register({
-
-  id: "m11",
-
-  part: 3,
-
-  num: "11",
-
-  title: "算力法则与训练规模：从 6ND FLOPs、Chinchilla 到单卡 T4 耗时物理演算",
-
-  en: "Scaling Laws & Training Compute: From 6ND FLOPs to Single-T4 Physical Runtime",
-
-  minutes: 35,
-
-  tags: ["算力法则", "Chinchilla", "T4演练", "FLOPs"],
-
-  body: String.raw`
-
-<p class="lead">
-
-  严肃的深度学习科研与底座自训<strong>从不依赖商业账单或各种付费订阅作为衡量尺度</strong>，
-
-  而是严格以<strong>浮点计算量（FLOPs）、有效利用率（MFU）与计算规模法则（Scaling Laws）</strong>作为第一性原理。
-
-  本模块带你手算著名的 \(6ND\) 预训练计算量公理与 Chinchilla 最优数据-参数配比，
-
-  并在草稿纸上精确推演：<strong>单张免费云端 T4 GPU 训通一个 miniGPT 处理千万级 Token 究竟只需要几十秒。</strong>
-
-</p>
-
-
-
-<section class="blk blk-q">
-
-  <h4><span class="ic">◆</span>核心问题：为什么模型绝不是「越大越好」？</h4>
-
-  <p>
-
-    许多初学者常有一个误区，以为自训模型必须追求几百亿参数，结果因为算力不足，模型还没跑几个 step 就被迫停机，损失甚至没来得及下降。
-
-    现代大模型理论早已证明：<strong>在有限的算力预算下，盲目把参数做大只会导致灾难性的欠拟合；训练一个参数适中、但被充分训练的小模型，效果远胜于空有骨架的大模型。</strong>
-
-  </p>
-
-</section>
-
-
-
-<h3>1. 算力的通用物理尺度：FLOPs 与 MFU</h3>
-
-<p>
-
-  为了在不同显卡架构与不同模型之间公平比较算力开销，学术界统一使用 <strong>FLOPs（Floating Point Operations，浮点运算次数）</strong>：
-
-</p>
-
-<ul>
-
-  <li><strong>1 次浮点乘加（MAC, Multiply-Accumulate）</strong>：计算机执行一次形如 \(a \times b + c\) 的运算，计为 <strong>2 个 FLOPs</strong>（一次乘法 + 一次加法）。</li>
-
-  <li><strong>硬件标称峰值算力</strong>：显卡厂商在极端理想条件下测得的理论最大计算速率。例如 Nvidia T4 单卡在半精度（FP16）张量核心下的理论峰值约为 <strong>65 TFLOPs</strong>（即 \(65 \times 10^{12}\) FLOPs/s）。</li>
-
-  <li><strong>模型算力利用率（MFU, Model FLOPs Utilization）</strong>：
-
-    在实际模型训练中，GPU 不可能 100% 满负荷打满矩阵乘法，它还需要从显存搬运张量、执行非线性激活函数与通信同步。
-
-    实测训练有效算力与硬件理论峰值的比值即为 MFU：
-
-    \[ \mathrm{MFU} = \frac{\text{FLOPs}_{\text{observed}}}{\text{FLOPs}_{\text{peak}}} \]
-
-    在未深度优化的 PyTorch 训练脚本中，单卡 T4 的 MFU 通常约为 <strong>\(25\% \sim 35\%\)</strong>。按 \(30\%\) 折算，T4 的真实持续有效计算吞吐约为：
-
-    \[ R_{\text{eff}} \approx 65 \times 10^{12} \times 0.30 \approx 2.0 \times 10^{13} \text{ FLOPs/s} \quad (20\text{ TFLOPs}) \]
-
-</li>
-
-</ul>
-
-
-
-<h3>2. 核心公理推导：为什么自回归预训练计算量是 6ND FLOPs？</h3>
-
-<p>
-
-  设模型的可学习非嵌入参数量为 \(N\)，训练语料的总 Token 数量为 \(D\)。整个预训练过程的总浮点运算量恒满足：
-
-  \[ C \approx 6 N D \]
-
-  这个经典公式背后的微积分与线性代数机制非常优美，严格对齐 A-Level Further Maths 的导数与矩阵乘法：
-
-</p>
-
-
-
-<section class="blk blk-m">
-
-  <h4><span class="ic">∑</span>前向与反向传播的 2ND vs 4ND 分解</h4>
-
-  <ol>
-
-    <li><strong>前向传播（Forward Pass）：\(2ND\) FLOPs</strong><br/>
-
-      考虑一个全连接线性变换 \(Y = X W\)，其中输入 \(X \in \mathbb{R}^{B \times d_{\text{in}}}\)，权重 \(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)。<br/>
-
-      权重参数量为 \(P = d_{\text{in}} \times d_{\text{out}}\)。输出矩阵每个元素需要进行 \(d_{\text{in}}\) 次乘法与加法，因此前向单步计算量为 \(2 \times B \times d_{\text{in}} \times d_{\text{out}} = 2 \times B \times P\)。<br/>
-
-      对全网所有线性层（Attention 投影与 FFN 矩阵）累加，每处理 1 个 Token 的前向计算量严格为 <strong>\(2N\) FLOPs</strong>。处理 \(D\) 个 Token 总计：
-
-      \[ C_{\text{forward}} = 2 N D \]
-
-    </li>
-
-    <li><strong>反向传播（Backward Pass）：\(4ND\) FLOPs（严格为前向的 2 倍）</strong><br/>
-
-      根据多元微积分链式法则，反向求导必须独立完成两组互不相同的全量矩阵乘法：
-
-      <ul>
-
-        <li><strong>对输入求偏导（用于向上层继续回传梯度）</strong>：
-
-          \[ \frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top \]
-
-          这是一次形状为 \((B, d_{\text{out}}) \times (d_{\text{out}}, d_{\text{in}})\) 的矩阵乘法，耗费 \(2 \times B \times P\) FLOPs。
-
-        </li>
-
-        <li><strong>对权重参数求偏导（用于执行梯度下降更新）</strong>：
-
-          \[ \frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y} \]
-
-          这是一次形状为 \((d_{\text{in}}, B) \times (B, d_{\text{out}})\) 的矩阵乘法，耗费 \(2 \times B \times P\) FLOPs。
-
-        </li>
-
-      </ul>
-
-      因此，反向传播必须执行两次与前向规模完全相等的 GEMM 矩阵乘法，其计算量严格为前向的 <strong>2 倍</strong>：
-
-      \[ C_{\text{backward}} = 4 N D \]
-
-    </li>
-
-    <li><strong>总计算量求和</strong>：
-
-      \[ C_{\text{total}} = C_{\text{forward}} + C_{\text{backward}} = 2 N D + 4 N D = 6 N D \]
-
-    </li>
-
-  </ol>
-
-</section>
-
-
-
-<h3>3. Chinchilla 最优计算法则（Compute-Optimal Scaling）</h3>
-
-<p>
-
-  在总算力预算 \(C \approx 6ND\) 给定的约束下，我们应该怎么在参数量 \(N\) 与数据量 \(D\) 之间分配？
-
-</p>
-
-<table class="tbl">
-
-  <thead><tr><th>理论流派</th><th>核心假设</th><th>分配比例结论</th><th>现实检验与影响</th></tr></thead>
-
-  <tbody>
-
-    <tr>
-
-      <td><strong>Kaplan 法则（OpenAI 2020）</strong></td>
-
-      <td>认为参数量 \(N\) 带来的收益远大于数据量 \(D\)</td>
-
-      <td>\(N \propto C^{0.73}, \quad D \propto C^{0.27}\)</td>
-
-      <td>催生了 GPT-3 等一大批模型，但后来被证实严重缺乏数据、处于欠拟合状态</td>
-
-    </tr>
-
-    <tr>
-
-      <td><strong>Chinchilla 法则（DeepMind 2022）</strong></td>
-
-      <td>基于变分优化严格推导，两者的幂律系数基本相等</td>
-
-      <td><strong>\(N \propto C^{0.5}, \quad D \propto C^{0.5}\)（即 \(D \approx 20 N\)）</strong></td>
-
-      <td><strong>现代大模型的黄金公理</strong>：LLaMA、Qwen 等开源基座均大幅增加训练 Token 数量</td>
-
-    </tr>
-
-  </tbody>
-
-</table>
-
-<p>
-
-  <strong>对高中自学与单卡实验的巨大价值</strong>：<br/>
-
-  根据 \(D \approx 20N\)，如果你想要训练一个 <strong>15M 参数</strong> 的迷你 GPT 模型，最优的数据规模仅需约 \(15\text{M} \times 20 = 300\text{M}\) Token；
-
-  即使是进行验证性训练，使用 <strong>10M ~ 30M Token</strong>（约几本纯文本开源小书或精选中文维基百科子集），模型就能以极快速度收敛并展现出连贯的语言组织能力。
-
-</p>
-
-
-
-<div class="acc" data-t="纸笔算一算：手算单卡 T4 预训练 15M miniGPT 物理耗时" data-badge="动笔">
-
-  <div class="acc-body">
-
-    <p><strong>题目背景</strong>：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。现在拿出草稿纸，动手计算训练一个 15M 参数的 miniGPT 模型处理 1000 万 Token（\(10\text{M}\)）所需的物理秒数：</p>
-
-    <ol>
-
-      <li><strong>参数与数据符号化</strong>：
-
-        \[ N = 15 \times 10^6, \qquad D = 10 \times 10^6 \]
-
-      </li>
-
-      <li><strong>套用 6ND 预训练总计算量公理</strong>：
-
-        \[ C = 6 N D = 6 \times (1.5 \times 10^7) \times (1.0 \times 10^7) = 9.0 \times 10^{14} \text{ FLOPs} \]
-
-      </li>
-
-      <li><strong>代入单卡 T4 实测有效计算速率</strong>（按 MFU = 30% 保守估计）：
-
-        \[ R_{\text{eff}} = 2.0 \times 10^{13} \text{ FLOPs/s} \]
-
-      </li>
-
-      <li><strong>计算物理训练时长 \(t\)</strong>：
-
-        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \] （极速完成！）
-
-      </li>
-
-      <li><strong>若语料扩展到 1 亿 Token（\(100\text{M}\)）</strong>：
-
-        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \] （仅几分钟！）
-
-      </li>
-
-    </ol>
-
-    <p><em>复盘收获</em>：不到 8 分钟，就能在完全免费的云端 T4 上完整跑完 1 亿 Token 的训练流程，亲眼看到 Cross-Entropy Loss 从初始无序的 \(\\ln |\\mathcal{V}| \\approx 9.21\) 平稳下降到 3.0 以下！自训小模型不需要花费任何费用，底层的物理定律完全由你掌控。</p>
-
-  </div>
-
-</div>
-
-
-
-<h3>4. 训练规模与资源决策对比</h3>
-
-<table class="tbl">
-
-  <thead><tr><th>实验类型</th><th>参数规模 \(N\)</th><th>训练数据 \(D\)</th><th>单卡 T4 耗时</th><th>显存峰值（16GB T4）</th><th>学习目标</th></tr></thead>
-
-  <tbody>
-
-    <tr>
-
-      <td><strong>超微玩具验证</strong></td>
-
-      <td>1M ~ 3M</td>
-
-      <td>1M Token</td>
-
-      <td>&lt; 5 秒</td>
-
-      <td>&lt; 150 MB</td>
-
-      <td>检查张量维度、梯度回传与代码是否有 bug</td>
-
-    </tr>
-
-    <tr>
-
-      <td><strong>miniGPT 从头预训练</strong></td>
-
-      <td>15M ~ 45M</td>
-
-      <td>10M ~ 50M Token</td>
-
-      <td>1 分钟 ~ 15 分钟</td>
-
-      <td>&lt; 1.5 GB</td>
-
-      <td>观察完整损失下降曲线、学习率调度与生成续写</td>
-
-    </tr>
-
-    <tr>
-
-      <td><strong>0.5B 基座 QLoRA 微调</strong></td>
-
-      <td>0.5B（微调 5M）</td>
-
-      <td>2M ~ 10M Token</td>
-
-      <td>10 分钟 ~ 30 分钟</td>
-
-      <td>约 3.2 GB</td>
-
-      <td>让已有的开源小基座精准学会你的自定义下游指令</td>
-
-    </tr>
-
-    <tr>
-
-      <td><strong>1.5B 基座 QLoRA 微调</strong></td>
-
-      <td>1.5B（微调 18M）</td>
-
-      <td>5M ~ 20M Token</td>
-
-      <td>20 分钟 ~ 60 分钟</td>
-
-      <td>约 5.5 GB</td>
-
-      <td>工业级端到端微调并导出为本地免显卡极速 GGUF</td>
-
-    </tr>
-
-  </tbody>
-
-</table>
-
-
-
-<div class="quiz">
-
-  <div class="qlabel">自测 · 1</div>
-
-  <p class="q">在预训练自回归大语言模型时，为什么反向传播的 FLOPs 计算量严格是前向传播的 2 倍？</p>
-
-  <ul class="opts">
-
-    <li>因为反向传播必须执行两次前向传播验证</li>
-
-    <li data-ok>根据链式法则，反向求导对于每个矩阵乘法必须分别计算对激活值的偏导（向上传递）和对权重的偏导（更新参数），各需一次等规模的 GEMM 操作</li>
-
-    <li>因为优化器维护一阶与二阶动量</li>
-
-    <li>这是混合精度浮点截断带来的额外代价</li>
-
-  </ul>
-
-  <p class="why">
-
-    前向单步 \(Y=XW\) 是一次矩阵乘法（\(2N\) FLOPs）。反向传播时，\(\frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top\) 与 \(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\) 各是一次等规模的矩阵乘法，合起来严格耗费 \(4N\) FLOPs。
-
-  </p>
-
-</div>
-
-
-
-<div class="quiz">
-
-  <div class="qlabel">自测 · 2</div>
-
-  <p class="q">根据 Chinchilla 最优计算法则（Compute-Optimal），若你有充足的算力预算训练一个 10M 参数的小模型，最优的训练语料 Token 数量大约是多少？</p>
-
-  <ul class="opts">
-
-    <li>10 万（0.1M）Token</li>
-
-    <li>200 万（2M）Token</li>
-
-    <li data-ok>2 亿（200M）Token</li>
-
-    <li>100 亿（10B）Token</li>
-
-  </ul>
-
-  <p class="why">
-
-    Chinchilla 定律指明最优训练配比为 \(D \approx 20N\)。对于 \(N = 10\text{M}\) 的模型，最佳语料量为 \(10\text{M} \times 20 = 200\text{M}\) Token。盲目加大参数量只会导致模型欠拟合。
-
-  </p>
-
-</div>
-
-
-
-<div class="quiz">
-
-  <div class="qlabel">自测 · 3</div>
-
-  <p class="q">一张 GPU 标称理论算力为 100 TFLOPs，但在运行某大模型训练时测得每秒实际完成的模型 FLOPs 为 30 TFLOPs，该任务的 MFU（模型算力利用率）是多少？</p>
-
-  <ul class="opts">
-
-    <li>10%</li>
-
-    <li data-ok>30%</li>
-
-    <li>70%</li>
-
-    <li>100%</li>
-
-  </ul>
-
-  <p class="why">
-
-    \(\mathrm{MFU} = \frac{30\text{ TFLOPs}}{100\text{ TFLOPs}} = 30\%\)。这是衡量分布式与单卡训练系统工程优化效率的核心指标。
-
-  </p>
-
-</div>
-
-
-
-<div class="quiz quiz-blank" data-ans="45" data-tol="1">
-
-  <div class="qlabel">填空 · 计算实战</div>
-
-  <p class="q">在 Kaggle 免费 T4 GPU（有效实测算力 \(2.0 \times 10^{13}\) FLOPs/s）上从零训练一个 \(N=15\text{M}\) 参数的 miniGPT 模型处理 \(D=10\text{M}\) Token 语料。根据公理 \(C = 6ND\)，该训练任务在理论物理耗时上仅需多少秒？（填入整数）</p>
-
-  <div class="blank-wrap">
-
-    <input type="text" class="blank-input" placeholder="输入计算秒数（整数）..." />
-
-    <button class="blank-btn">提交验证</button>
-
-    <span class="blank-feedback"></span>
-
-  </div>
-
-  <p class="why">
-
-    根据 \(C = 6ND = 6 \times (1.5 \times 10^7) \times (10^7) = 9 \times 10^{14}\) FLOPs，训练时间 \(t = \frac{9 \times 10^{14}}{2 \times 10^{13}} = 45\) 秒。单张 T4 完全足以在不到一分钟内完成基础预训练闭环。
-
-  </p>
-
-</div>
-
-`
-
-});
-
-
-/* --- content/12-network.js --- */
-/* content/12-network.js — 模块 12：反封禁网络架构 */
-COURSE.register({
-  id: "m12",
-  part: 3,
-  num: "12",
-  title: "网络架构：住宅 IP、Tailscale 与本地代理",
-  en: "Networking, Residential IP & Local Proxy",
-  minutes: 35,
-  tags: ["系统", "网络", "风险"],
-  body: String.raw`
-<p class="lead">
-  这一模块讲的是「让你的请求看起来像一个人」的工程问题。
-  内容来自访谈记录中的自建架构：一台家用机器、一条住宅 IP、一个 Tailscale 覆盖网、若干个 OAuth 会话。
-  <strong>先读最后的合规与安全提示，再决定要不要搭。</strong>
-</p>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    你有多个账号、若干台设备（笔记本、服务器、CI 机器）。如果每台设备各自直连平台，
-    就会出现「同一账号从多个国家/IP 并发认证」的痕迹，触发风控；而如果全部来自一台云主机，
-    又会掉进数据中心 IP 的特征里。怎么设计既安全又可用？
-  </p>
-</section>
-
-<h3>1. 为什么 IP 会成为问题</h3>
-<table class="tbl">
-  <thead><tr><th>风险信号</th><th>机制</th><th>典型后果</th></tr></thead>
-  <tbody>
-    <tr><td><strong>数据中心 IP 段</strong></td><td>AWS / Hetzner / DigitalOcean 等云厂商的地址段被广泛用于代理转售与批量抓取（含模型蒸馏）</td><td>认证请求直接被标记，账号受限或封禁</td></tr>
-    <tr><td><strong>多 IP 认证碰撞</strong></td><td>同一账号在短时间内从多个地理位置发起认证与并发请求</td><td>自动化风险标记，触发验证或限权</td></tr>
-    <tr><td><strong>设备指纹不一致</strong></td><td>客户端版本、时区、语言与 IP 地理不匹配</td><td>累积为可疑度评分</td></tr>
-    <tr><td><strong>流量形态异常</strong></td><td>极高的并发、规律的固定间隔请求</td><td>被识别为自动化滥用</td></tr>
-  </tbody>
-</table>
-<p>
-  记录中的结论很直接：<strong>所有出站请求应汇聚到一条来自家庭网络的住宅 IP</strong>。
-  住宅 IP 之所以「干净」，是因为它属于普通宽带用户，不与批量转售、蒸馏抓取的行为模式强相关。
-</p>
-
-<h3>2. 记录中的拓扑</h3>
-<table class="tbl">
-  <thead><tr><th>网络节点</th><th>物理规格</th><th>关键协议/配置</th></tr></thead>
-  <tbody>
-    <tr><td>家庭出口网关</td><td>单个住宅公网 IPv4/v6</td><td>DDNS 动态域名解析 + 端口映射 (NAT)</td></tr>
-    <tr><td>内部宿主机</td><td>Ubuntu 物理工作站</td><td>SSH 密钥硬认证 (Ed25519) + 禁用密码登录</td></tr>
-    <tr><td>外网访问客户端</td><td>便携笔记本 (macOS/Win)</td><td>WireGuard VPN / Tailscale 点对点加密通道</td></tr>
-  </tbody>
-</table>
-<dl class="kv">
-  <dt>住宅网关</dt><dd>家里的一台机器，唯一出口；运行代理守护进程，管理 5–10 个账号的 OAuth 会话</dd>
-  <dt>Tailscale 覆盖网</dt><dd>基于 WireGuard 的 mesh，把笔记本、家庭节点、远程服务器组成一个私有网络</dd>
-  <dt>客户端</dt><dd>笔记本只做 UI，<strong>不直接持有模型凭据</strong>；所有推理请求经覆盖网回到住宅网关</dd>
-</dl>
-
-<h3>3. 代理守护进程做四件事</h3>
-<ol>
-  <li><strong>OAuth 会话管理</strong>：通过 OAuth 登录各平台的 CLI 工具，持久刷新 token，避免频繁重新认证。
-      对外暴露一个<strong>本地、兼容 Bedrock / OpenAI 协议</strong>的 HTTP 端点。</li>
-  <li><strong>改写上游端点</strong>：Claude Code 与 Codex 这类 CLI 原生支持为「企业 AWS Bedrock 用户」配置自定义 API base URL。
-      于是可以把上游地址<strong>指向本地代理</strong>，而不需要修改客户端代码——这是整个方案的关键接口。</li>
-  <li><strong>智能到期路由</strong>：默认代理是轮询；记录中的改进是<strong>按重置窗口排序</strong>——
-      优先使用「即将到期」的账号（例如 12 小时后重置的先用满，再去动还有 4 天的）。</li>
-  <li><strong>账号亲和（session affinity）</strong>：把每个对话线程固定到同一个账号（原因见第 5 节）。</li>
-</ol>
-
-<h3>4. 绑定方式：只挂在 tailnet 上</h3>
-<ul>
-  <li>代理监听在家庭机器上（记录中的示例是 <code>bb1.micro.ts.net:318</code>），<strong>只绑定到 Tailscale 网络</strong>。</li>
-  <li><strong>不做任何公网端口转发</strong>，因此没有暴露面。</li>
-  <li><strong>不需要自建 API key</strong>：访问控制由 Tailscale 的身份层完成（只有你的设备在网内）。</li>
-  <li>代价：所有流量都要绕回家里；家庭宽带上行带宽与断网风险就是你的可用性上限。</li>
-</ul>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>安全底线</h4>
-  <ul>
-    <li>OAuth token 等同于账号密码。<strong>不要</strong>把它写进公开仓库、贴进聊天、或放进客户端配置里共享。</li>
-    <li>Tailscale 的 ACL 要限制哪些设备能访问代理端口；不要用 <code>--shields-up=false</code> 之类的宽松配置。</li>
-    <li>「不需要 API key」是<strong>因为网络身份层已经鉴权</strong>，不是因为没有鉴权。把该端口暴露到公网等于把账号送人。</li>
-    <li>多账号在同一台机器上缓存凭据，一旦机器被入侵，全部账号同时失守。做好磁盘加密与最小权限。</li>
-  </ul>
-</section>
-
-<h3>5. 账号亲和：一个 80 万 token 的教训</h3>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>为什么切换账号会「很贵」</h4>
-  <p>
-    Anthropic 的提示缓存（prompt cache）存活时间约为 <strong>5 分钟</strong>，并且<strong>绑定到具体账号</strong>。
-    如果在同一个线程中途切换账号（或同一批顺序工具调用之间切换），缓存随之失效：
-  </p>
-  \[ \text{rewrite cost} \approx c_{\text{in}} \times T_{\text{prefix}}, \qquad T_{\text{prefix}} \le 8\times10^{5}\ \text{tokens} \]
-  <p>
-    记录中的表述是：切换账号会强制重写高达 80 万 token 的前缀。
-    因此代理<strong>必须把每个会话固定到同一账号</strong>——
-    这与第 4 节「按到期时间优先」的策略是<em>相互冲突</em>的两个目标，需要按「先亲和、再在账号内部调度」的顺序处理。
-  </p>
-</section>
-<p>
-  同理，任何<strong>负载均衡</strong>（哪怕是同一账号的多实例）都会击穿前缀缓存。
-  正确顺序是：<em>先保证线程级亲和，再在可用的账号集合里做到期时间优先；永远不要在线程中途切换。</em>
-</p>
-
-<h3>6. 长连接：把 WebSocket 用起来</h3>
-<p>
-  记录中的观察：走原始 HTTP 代理时，每个请求都要重新握手，累积成可观的延迟；
-  把代理改为<strong>维持长连接（持久 WebSocket）</strong>后，往返开销显著下降。
-</p>
-<p>
-  通用原则：<strong>高频、小载荷、固定对端的调用，应该复用连接</strong>。
-  这与数据库连接池、HTTP/2 多路复用是同一个工程直觉，只是应用在了模型 API 上。
-</p>
-
-<h3>7. 合规判断（必读）</h3>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>这套架构的合法用途与红线</h4>
-  <p><strong>技术本身是中性的</strong>：用 Tailscale 把自己的设备连起来、给自家 CLI 工具配一个本地代理，是正常的自托管实践。</p>
-  <ul>
-    <li><strong>可以</strong>：管理自己的多个账号、把家庭网络作为唯一出口、在多台自有设备间共享一个本地端点、为自己做实验。</li>
-    <li><strong>不可以</strong>：把额度转售或提供给第三方；把个人订阅当作面向公众的产品后端；用自动化批量抓取输出用于模型蒸馏。</li>
-    <li><strong>灰色地带</strong>：用多个账号的「个人额度」承载远超个人使用强度的自动化负载。即使技术上可行，也可能被判定为滥用。</li>
-  </ul>
-  <p><em>平台条款与风控策略持续变化。本模块只解释机制与权衡；是否搭建、如何配置，需要你自行核对官方条款并承担后果。详见附录 D。</em></p>
-</section>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>以后可以安全迁移到 crossfade 这类项目的部分</h4>
-  <ul>
-    <li><strong>单一出口 + 私有覆盖网</strong>：把「训练机 / 笔记本 / CI」统一到一个私有网络，所有外部调用走同一条路径——这在任何云上都是良构做法。</li>
-    <li><strong>协议兼容的本地端点</strong>：把「模型调用」抽象成本地 HTTP 服务，换供应商时只改一个地址。这对以后做这类实验的复现性有直接好处。</li>
-    <li><strong>缓存亲和性</strong>：任何有状态缓存（前缀缓存、编译缓存、特征缓存）都应避免被随机调度打散。</li>
-    <li><strong>成本可见性</strong>：给每个任务打上标签，统计 token 消耗。没有计量就没有优化。</li>
-  </ul>
-</section>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">为什么记录中的架构要求「所有出站请求汇聚到一条住宅 IP」？</p>
-  <ul class="opts">
-    <li>因为住宅宽带更快</li>
-    <li data-ok>数据中心 IP 段与代理转售、批量抓取等滥用行为相关，容易被风控标记；多地点并发认证同样会触发风险</li>
-    <li>因为平台按 IP 计费</li>
-    <li>因为 Tailscale 只能用于住宅网络</li>
-  </ul>
-  <p class="why">
-    风控看的是行为特征与来源的一致性。住宅 IP、单一出口、设备一致，才构成「一个真实用户」的画像。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">代理把对话线程在中途切换到另一个账号，最直接的代价是什么？</p>
-  <ul class="opts">
-    <li>输出质量下降</li>
-    <li data-ok>提示缓存失效（缓存绑定账号、存活约 5 分钟），需要重写可能高达数十万 token 的前缀</li>
-    <li>会被立即封号</li>
-    <li>会话历史丢失</li>
-  </ul>
-  <p class="why">
-    前缀缓存按账号与逐 token 前缀匹配。切换账号等于让缓存全部作废，
-    于是你为同一段前缀付两次输入费用，并且首 token 延迟上升。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">「把代理只绑定到 Tailscale tailnet、不做公网端口转发、不设 API key」这一组合的安全性来自哪里？</p>
-  <ul class="opts">
-    <li>来自端口号不容易被猜到</li>
-    <li data-ok>来自网络身份层：只有加入 tailnet 且通过 ACL 的设备能访问，攻击面不暴露在公网</li>
-    <li>来自请求频率限制</li>
-    <li>来自操作系统的防火墙默认规则</li>
-  </ul>
-  <p class="why">
-    这是「零信任覆盖网」的典型用法：鉴权从应用层移到网络层。
-    但前提是 ACL 正确、设备本身可信；一旦端口暴露到公网，这个前提立刻消失。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：如果你不想搭这套东西" data-badge="替代">
-  <div class="acc-body">
-    <p>同一批工程目标（单一出口、凭据集中、缓存亲和、成本可见），有成本低得多的实现：</p>
-    <ol>
-      <li><strong>单机 + 环境变量</strong>：只在一台机器上配置 CLI 工具，其他设备通过 SSH 使用它。零新组件。</li>
-      <li><strong>Tailscale 直连 + 反向代理</strong>：用 <code>tailscale serve</code> 暴露本地端口，不用自己写守护进程。</li>
-      <li><strong>凭据集中管理</strong>：用系统钥匙串 / 1Password CLI 注入环境变量，避免明文 token 落盘。</li>
-      <li><strong>不池化账号</strong>：如果你只有一个账号（例如只用 Codex Plus + Colab），第 12 模块的大部分复杂度都不需要——
-          你只需要「固定出口 + 缓存亲和」这两条。</li>
-    </ol>
-    <p><strong>决策建议</strong>：先问「我到底需要几个账号」。多数个人研究者的答案是 1–2 个，
-    此时自建代理的收益远小于它带来的安全与合规负担。</p>
-  </div>
-</div>
-`
-});
-
-/* --- content/13-resets.js --- */
-/* content/13-resets.js — 模块 13：实验流水线与断点调度 */
-COURSE.register({
-  id: "m13",
-  part: 3,
-  num: "13",
-  title: "实验流水线与断点调度：会话超时、检查点续训与早停决策",
-  en: "Experiment Pipeline: Checkpointing, Runtime Resumption & Early Stopping",
-  minutes: 25,
-  tags: ["流水线", "检查点", "早停", "断点续训"],
-  body: String.raw`
-<p class="lead">
-  在 Kaggle Notebooks（提供双卡 T4 ×2 / 单卡 T4，每周 30 小时免费 GPU）开展深度学习实验时，<strong>会话随时可能因网络抖动或超时机制而被迫重置</strong>。
-  真正的工程素养不在于祈祷环境永不断线，而在于设计<strong>坚不可摧的检查点持久化（Checkpointing）与优雅恢复流水线</strong>，
-  同时建立<strong>严格的早停（Early Stopping）决策准则</strong>，不在注定发散的实验上白白耗费宝贵的探索时间。
-</p>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>核心痛点：辛辛苦苦跑了 2 小时，浏览器一刷新全没了？</h4>
-  <p>
-    几乎所有在云端训练模型的初学者都经历过这种绝望：训练跑了 8000 个 step，眼看就要收敛，临时容器突然断开连接，保存在本地 <code>/tmp</code> 或当前目录的权重全部化为乌有。
-    本模块教你如何将状态存储与训练循环彻底解耦，做到随时断线、随时一键原地满血复活。
-  </p>
-</section>
-
-<h3>1. 完整的训练检查点（Checkpoint）到底包含什么？</h3>
-<p>
-  许多人误以为断点续训只要保存模型的权重矩阵 <code>model.state_dict()</code> 就够了。
-  <strong>大错特错！</strong>只恢复权重会导致优化器丢失所有的历史动量与学习率状态，直接造成接续训练时的损失剧烈震荡跳变。
-  一个生产级严密的 Checkpoint 必须打包以下四项：
-</p>
-
-<table class="tbl">
-  <thead><tr><th>组件</th><th>包含内容</th><th>若遗漏的致命后果</th></tr></thead>
-  <tbody>
-    <tr>
-      <td><strong>模型参数（Model Weights）</strong></td>
-      <td>各层可学习权重与偏置（\(\mathbf{W}, \mathbf{b}\)）</td>
-      <td>模型回到初始随机状态，前功尽弃</td>
-    </tr>
-    <tr>
-      <td><strong>优化器状态（Optimizer State）</strong></td>
-      <td>AdamW 的一阶动量 \(\mathbf{m}_t\) 与二阶动量 \(\mathbf{v}_t\)</td>
-      <td>动量归零，接续训练时步长突变，导致 Loss 曲线瞬间剧烈尖刺（Spike）甚至发散</td>
-    </tr>
-    <tr>
-      <td><strong>学习率调度器（LR Scheduler）</strong></td>
-      <td>当前已经执行的 <code>step</code> 与所处的 Warmup/Decay 衰减阶段</td>
-      <td>学习率可能被重置为初始峰值，使接近收敛的模型被超大学习率瞬间“震毁”</td>
-    </tr>
-    <tr>
-      <td><strong>混合精度缩放器（GradScaler）</strong></td>
-      <td>FP16 训练时的动态损失放大系数 <code>scaler.state_dict()</code></td>
-      <td>出现数值溢出（Overflow）或下溢，导致梯度变为 NaN</td>
-    </tr>
-  </tbody>
-</table>
-
-<h3>2. 工业标准断点续训代码范式</h3>
-<p>
-  在 Kaggle Notebooks 环境中，标准持久化输出路径为 <code>/kaggle/working/</code>。自动轮转 Checkpoint 代码应当如下组织：
-</p>
-
-<p><strong>断点原子化保存微算子演示：</strong></p>
-<p>\[ \mathcal{S}_t = \left( \Theta_t, M_t, V_t, t, \mathcal{R}_{\text{rng}} \right) \xrightarrow{\text{Atomic Write}} \text{Storage}_{\text{persistent}} \]</p>
-<p>
-  <strong>逐行解析</strong>：保存断点必须将模型权重与优化器内部一阶/二阶动量状态一同打包序列化至 <code>/kaggle/working/</code>；如果遗漏优化器状态，恢复训练时由于历史动量归零，极易导致单步梯度方向突变、损失剧烈跳跃甚至梯度爆炸。
-</p>
-
-<h3>3. 早停法（Early Stopping）：避开沉没成本谬误</h3>
-<p>
-  在探索自训模型时，最浪费精力的事情不是断线，而是<strong>明知道模型已经发散或严重过拟合，却依然让它继续空转跑完全程</strong>。
-  科学的训练流水线必须设定清晰的早停准则（Early Stopping Rule）：
-</p>
-<table class="tbl small">
-  <thead><tr><th>诊断信号</th><th>底层物理原因</th><th>果断决策行动</th></tr></thead>
-  <tbody>
-    <tr>
-      <td><strong>初始 Loss 为 NaN 或 Inf</strong></td>
-      <td>学习率过高引发梯度爆炸，或数值除零/Log 越界</td>
-      <td><strong>立即终止</strong>：检查是否遗漏 Softmax 数值稳定性减 Max 处理，或将学习率缩小 3~5 倍</td>
-    </tr>
-    <tr>
-      <td><strong>Warmup 结束后验证集 Loss 连续 3 次不降反升</strong></td>
-      <td>模型容量不足以记忆语料，或严重过拟合于噪声数据</td>
-      <td><strong>果断停机</strong>：启用 Weight Decay 权重衰减，或缩减模型层数、增加数据清洗</td>
-    </tr>
-    <tr>
-      <td><strong>Loss 曲线长时间水平停滞（Plateau）</strong></td>
-      <td>学习率衰减过早、梯度消失或进入极浅鞍点</td>
-      <td><strong>检查梯度范数</strong>：若 \(\|\mathbf{g}\| \approx 0\)，调整学习率调度器或检查残差连接</td>
-    </tr>
-  </tbody>
-</table>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">在自回归模型断点续训时，为什么不能只加载模型权重，而必须同时恢复 AdamW 优化器的状态？</p>
-  <ul class="opts">
-    <li>因为不恢复优化器代码会报错崩溃</li>
-    <li data-ok>AdamW 依赖历史的一阶动量与二阶方差来平滑梯度；若重置为零，更新步长会发生突变，容易引发损失跳变甚至梯度爆炸</li>
-    <li>为了让模型能自动识别词表大小</li>
-    <li>因为优化器状态里存储了上下文序列长度</li>
-  </ul>
-  <p class="why">
-    AdamW 更新量取决于 \(\frac{\mathbf{m}_t}{\sqrt{\mathbf{v}_t} + \epsilon}\)。如果不恢复 \(\mathbf{m}_t\) 与 \(\mathbf{v}_t\)，相当于从冷启动重新估计方差，会导致短时间内更新步长剧烈抖动。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">在 Kaggle Notebooks 云端环境上运行长时间模型训练，防范会话意外断开最有效、最关键的措施是？</p>
-  <ul class="opts">
-    <li>始终开着网页不关电脑</li>
-    <li data-ok>在训练循环中定期将模型与优化器打包保存至外部挂载的持久存储（如 Kaggle 的 <code>/kaggle/working</code> 或 Hugging Face Hub 私有仓库）</li>
-    <li>多开几个不同的浏览器窗口</li>
-    <li>只在晚上无人使用时运行</li>
-  </ul>
-  <p class="why">
-    临时云端实例的本地磁盘是易失性的，唯有将权重外存到持久化网络存储中，才能保证断开重连后无损恢复。
-  </p>
-</div>
-`
-});
-
-/* --- content/14-workflow.js --- */
-/* content/14-workflow.js — 模块 14：工作流与多线程舰队 */
-COURSE.register({
-  id: "m14",
-  part: 3,
-  num: "14",
-  title: "工作流：85/15 规则与多线程智能体舰队",
-  en: "Workflow & Multi-Thread Fleet Management",
-  minutes: 35,
-  tags: ["工作流", "智能体", "系统"],
-  body: String.raw`
-<p class="lead">
-  前面十三模块讲的是「模型怎么工作」。这一模块讲「人怎么用模型工作」——
-  访谈记录里最有价值的部分不是技术细节，而是一整套把智能体当工程团队管理的操作规范。
-</p>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    大多数人用 AI 的方式是：写一段提示、等它吐代码、复制粘贴、发现问题、再问一次。
-    这种方式的天花板很低，因为<strong>瓶颈从来不是「生成代码」，而是「确认代码是对的」</strong>。
-    记录中的整套工作流，本质上就是把算力从「写」重新分配到「验」。
-  </p>
-</section>
-
-<h3>1. 85/15 规则：把 token 花在验证上</h3>
-<section class="blk blk-eco">
-  <h4><span class="ic">◈</span>记录中的分配</h4>
-  <ul>
-    <li><strong>10–15% 的 token</strong>：写实际的代码改动。</li>
-    <li><strong>85–90% 的 token</strong>：跑测试、类型检查、编译、边界情况验证、自动化代码审查。</li>
-  </ul>
-  <p>
-    为什么这个比例是理性的？因为<em>代码的正确性无法由生成本身保证</em>。
-    智能体可以在一分钟内产出 300 行看起来完全合理的代码，其中可能藏着三个边界错误。
-    把 85% 的预算投在验证上，等于用极低的边际成本买到「可以信任的产出」。
-  </p>
-</section>
-<p>可操作的含义（以后做 crossfade 这类项目时可直接套用）：</p>
-<ul>
-  <li>每次让智能体改代码，都<strong>同时</strong>要求它写/更新对应的测试，并跑一遍。</li>
-  <li>把「运行结果」作为验收标准写进提示，而不是「看起来对不对」。</li>
-  <li>数值实验必须<strong>打印中间量</strong>（loss、梯度范数、RMSE、p 值），而不是只给一句「已完成」。</li>
-</ul>
-
-<h3>2. 15 秒回滚规则</h3>
-<p>
-  记录中的标准：<strong>如果一个坏 PR 的回滚需要超过 15 秒，人工审查就会成为速度瓶颈。</strong>
-  这句话把「部署速度」翻译成了一个可度量的工程约束。
-</p>
-<table class="tbl small">
-  <thead><tr><th>环节</th><th>慢（&gt;15 秒）</th><th>快（&lt;15 秒）</th></tr></thead>
-  <tbody>
-    <tr><td>回滚手段</td><td>手工改代码、重新构建、手动部署</td><td>一条命令：<code>git revert</code> + 自动部署，或切换 feature flag</td></tr>
-    <tr><td>后果</td><td>没人愿意频繁合并 → 大批量合并 → 冲突与回归风险升高</td><td>小步快跑，坏改动瞬间消失</td></tr>
-  </tbody>
-</table>
-<p>
-  <strong>迁移到研究工作流</strong>：你的实验也要有「15 秒回滚」——
-  每个实验都在独立分支/目录里跑，配置写在 <code>config.yaml</code>，
-  坏结果一键丢弃，好结果一键复现。<em>这不是为了快，而是为了让「尝试」的心理成本足够低。</em>
-</p>
-
-<h3>3. 前置问题，而不是前置方案</h3>
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>记录中的核心建议</h4>
-  <p>
-    开发者常花几天时间规划实现步骤，然后才交给智能体。
-    更好的做法是<strong>直接把原始问题丢过去</strong>：完整的错误日志、截图、用户的原始抱怨。
-    如果智能体十分钟就解决了，你同时省下了「自己规划的时间」和「多轮迭代的 token」。
-  </p>
-</section>
-<table class="tbl small">
-  <thead><tr><th>低效做法</th><th>高效做法</th></tr></thead>
-  <tbody>
-    <tr><td>「我打算先改 A，再改 B，你觉得呢？」</td><td>「这是失败日志全文与复现命令，找出根因并修复，附上验证方式。」</td></tr>
-    <tr><td>凭印象描述报错</td><td>粘贴完整堆栈 + 环境版本 + 最近一次改动的 diff</td></tr>
-    <tr><td>先问「应该怎么做」</td><td>「先复现问题，再给出最小修复，最后说明你排除了哪些假设。」</td></tr>
-  </tbody>
-</table>
-<p><em>限制条件</em>：前置问题只在你有可靠验证手段时有效。否则智能体会给你一个「看起来很对」的修复，而你没有能力判断——这是第 1 节 85/15 规则的另一个理由。</p>
-
-<h3>4. 管理式提示：像给工程师下任务一样</h3>
-<div class="flow">
-  <div class="nd hi">目标</div><div class="ar">→</div>
-  <div class="nd">验收标准</div><div class="ar">→</div>
-  <div class="nd">约束</div><div class="ar">→</div>
-  <div class="nd">交付物</div><div class="ar">→</div>
-  <div class="nd hi">只在真正卡住时介入</div>
-</div>
-<div class="blk blk-tip">
-  <h4><span class="ic">📋</span>科学任务模板规范</h4>
-  <p><strong>明确目标</strong>：明确定义任务与假设检验目标。</p>
-  <p><strong>验收标准</strong>：定义可执行验证脚本与客观评估指标收敛阈值。</p>
-</div>
-<p>
-  <strong>关键区别</strong>：给<em>验收标准</em>而不是给<em>实现步骤</em>。前者让智能体自己选择路径并自我检查，
-  后者把它降级成一个打字机，同时把你锁进一个可能错误的方案里。
-</p>
-
-<h3>5. Thread 是待办事项，不是聊天记录</h3>
-<ul>
-  <li><strong>Thread 即任务</strong>：一个线程对应一件可完成的事（一个 bug、一个实验、一个重构）。</li>
-  <li><strong>Settle（归档）</strong>：任务完成或合并后立刻归档，保持侧边栏「收件箱为零」。</li>
-  <li><strong>为什么重要</strong>：长期混杂的线程会把上下文稀释，让模型和人都失去焦点。
-      记录中的做法是把线程当<em>易逝的 to-do</em>，而不是<em>积累的历史</em>。</li>
-  <li><strong>对照实验</strong>：一个包含三次不同任务的长线程，最终会让模型在同一段上下文里混淆目标；
-      三个短线程则各自干净。这与「上下文窗口里塞进无关内容会降低表现」是同一件事。</li>
-</ul>
-
-<h3>6. Git worktree：并行的物理隔离</h3>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>为什么每个线程要有自己的工作树</h4>
-  <p>
-    两个智能体同时改同一个工作目录，会产生三类灾难：
-    文件互相覆盖、<code>git add</code> 把对方的半成品一起提交、以及索引锁竞争。
-    记录中的做法是<strong>每个并发线程一个 git worktree</strong>，
-    等价于「每个任务一个独立沙箱」。
-  </p>
-</section>
-<table class="tbl">
-  <thead><tr><th>工作流模式</th><th>核心价值</th><th>操作规范</th></tr></thead>
-  <tbody>
-    <tr><td>分支隔离</td><td>避免正在跑的长任务被临时代码改动污染</td><td>每个独立实验建立专门的分支</td></tr>
-    <tr><td>快照记录</td><td>保留每次实验的完整超参数与随机种子</td><td>生成固化的元数据文件 <code>config.json</code></td></tr>
-  </tbody>
-</table>
-<p>
-  worktree 的关键优势：<strong>共享对象库</strong>（不重复占磁盘），但<strong>索引与工作目录独立</strong>（无锁竞争）。
-  这在你的场景里尤其合适：一个工作树跑实验、一个改课程内容、一个整理笔记。
-</p>
-
-<h3>7. 端到端任务链：不要「写完就停」</h3>
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>记录中的写法</h4>
-  <p>
-    「构建功能、在 Tailscale 上起一个预览部署、开 PR、然后盯着 PR 与 CI 直到全部通过。」
-  </p>
-  <p>
-    要点是<strong>把「验证」也交给智能体</strong>，而不是让它「写代码然后等人批准」。
-    这与 85/15 规则一致：验证占了大部分价值，就不应该由人来手动串行。
-  </p>
-</section>
-<p>以 crossfade 这类任务为例，可以写成这样的链条（你以后可以照此套用）：</p>
-<ol>
-  <li>在独立实验环境中验证算法与损失收敛性。</li>
-  <li>汇总评估报告，导出核心 Loss 下降曲线与 Perplexity 数据。</li>
-  <li>提交成果并在归档分支打上版本标签。</li>
-</ol>
-
-<h3>8. 后台派发与远程卸载</h3>
-<dl class="kv">
-  <dt>后台派发</dt><dd>记录中的界面操作是 <code>Cmd + Enter</code>：把提示异步派发到后台，光标留在输入框，立刻可以开下一个线程。
-      这正是「舰队」的操作节奏——你的时间用于<em>定义任务</em>，不是<em>观看生成</em>。</dd>
-  <dt>半透明渲染</dt><dd>运行中的线程在侧边栏半透明显示，<strong>刻意降低你盯着流式输出的诱惑</strong>。
-      盯着看不会让结果更好，只会占用你的注意力。</dd>
-  <dt>远程节点</dt><dd><code>npx t3 connect</code> / <code>npx t3 serve</code> 把远程无头节点通过 Tailscale 暴露出来，
-      于是你可以从笔记本甚至手机派发任务到远端 Linux 机器上执行。</dd>
-  <dt>为什么值得</dt><dd>把「重活」放到一直开机的机器上，笔记本只做交互与审查；同时保持单一出口（模块 12）。</dd>
-</dl>
-
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>多线程舰队的三个反模式</h4>
-  <ol>
-    <li><strong>并发写同一处</strong>：没有 worktree 隔离就并行，最后合并成本高于收益。</li>
-    <li><strong>验收标准模糊</strong>：十个线程产出十份「看起来不错」的结果，你逐一 review 的时间超过自己写。</li>
-    <li><strong>只增不减</strong>：任务池只进不出。必须定期 Settle 与删除废弃分支，否则你会被自己的产出淹没。</li>
-  </ol>
-</section>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
-  <p>
-    crossfade 这类题目有天然可并行的五条线：<strong>数学推导</strong>（人做）、<strong>DSP 实现</strong>、
-    <strong>客观测量</strong>（LUFS/谱通量脚本）、<strong>听测组织</strong>（受试者与问卷）、
-    <strong>写作与图表</strong>。前四条都可以各占一个 worktree 与一个线程，
-    你只在「数学假设是否需要修改」这个真正需要判断的节点介入。
-    <em>这就是 85/15 规则在数学题目上的具体形式（以后可照此分工）。</em>
-  </p>
-</section>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">85/15 规则的实质是把算力预算从「生成」重新分配到「验证」。它成立的前提是？</p>
-  <ul class="opts">
-    <li>模型生成本身不可靠</li>
-    <li data-ok>验证的边际成本远低于生成错误的边际成本，且验证结果可自动化判定</li>
-    <li>验证不需要理解代码</li>
-    <li>生成代码太便宜了</li>
-  </ul>
-  <p class="why">
-    如果验证无法自动化（只能靠人肉判断），85/15 就退化成「把负担推给人」。
-    所以规则的正确用法是：<strong>先建立可自动判定的验收标准（测试、指标、断言），再让它自己迭代。</strong>
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">「15 秒回滚规则」真正想保护的是什么？</p>
-  <ul class="opts">
-    <li>服务器的稳定性</li>
-    <li data-ok>小步合并的节奏：回滚足够快，人才敢频繁合并，坏改动的影响面才小</li>
-    <li>CI 的成本</li>
-    <li>代码的整洁度</li>
-  </ul>
-  <p class="why">
-    回滚慢 → 没人愿意频繁合并 → 批量合并 → 冲突与回归风险上升。
-    规则表面上在讲速度，实际在保护<strong>开发节奏</strong>。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">为什么每个并发线程要用独立的 git worktree，而不是各自 clone 一份？</p>
-  <ul class="opts">
-    <li>因为 clone 更慢</li>
-    <li data-ok>worktree 共享对象库（省磁盘、共享历史），但工作目录与索引相互独立（无锁竞争、无相互覆盖）</li>
-    <li>因为 clone 无法创建分支</li>
-    <li>因为 worktree 可以自动合并冲突</li>
-  </ul>
-  <p class="why">
-    worktree 恰好提供了需要的隔离粒度：<em>共享仓库对象</em>但不共享工作区。
-    多个 clone 会浪费磁盘并让历史同步变成额外工作。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：把「管理式提示」写成检查清单" data-badge="模板">
-  <div class="acc-body">
-    <ol>
-      <li><strong>目标</strong>：一句话说清最终状态（可验收的名词，而不是动作）。</li>
-      <li><strong>证据</strong>：原始日志 / 复现命令 / 数据位置 / 相关文件路径。</li>
-      <li><strong>验收标准</strong>：具体到命令与输出（「跑 <code>python run.py</code> 输出 RMSE 与 p 值」）。</li>
-      <li><strong>约束</strong>：允许的库、随机种子、不得触碰的目录、时间预算。</li>
-      <li><strong>交付物</strong>：diff、日志、图、报告文件。</li>
-      <li><strong>停止条件</strong>：什么情况下必须回来问人（例如「需要改变研究设计」或「发现数据本身有问题」）。</li>
-    </ol>
-    <p>这六项齐全时，一个任务的返工率会显著下降；缺第 3 项（验收标准）是返工的最主要来源。</p>
-  </div>
-</div>
-`
-});
 
 /* --- content/15-moe.js --- */
 /* content/15-moe.js — 模块 15：混合专家架构 MoE */
@@ -7827,477 +6685,6 @@ COURSE.register({
     正如 YaRN 对 RoPE 齿轮的高低频解耦一样（以后做这类题目时可照此思路分析）。
   </p>
 </section>
-`
-});
-
-/* --- content/15-hardware.js --- */
-/* content/15-hardware.js — 模块 15：硬件与操作系统瓶颈 */
-COURSE.register({
-  id: "m15",
-  part: 3,
-  num: "15",
-  title: "硬件与系统：为什么并行智能体会拖垮 macOS",
-  en: "Hardware & OS Bottlenecks",
-  minutes: 25,
-  tags: ["硬件", "系统", "成本"],
-  body: String.raw`
-<p class="lead">
-  当你同时跑 5–10 个智能体时，瓶颈通常不是模型，而是<strong>磁盘、内存、散热与操作系统的调度策略</strong>。
-  这一模块给出记录中的实测结论与背后的机制，以及你可以马上做的检查。
-</p>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    同样的任务，在 macOS 笔记本上跑 5 个并发就卡顿、降频、风扇狂转；
-    换到一台几百美元的裸金属 Linux 小主机上却能稳定跑 6–10 个线程。
-    差别不在 CPU 主频，而在<strong>文件系统、安全守护进程与散热策略</strong>。
-  </p>
-</section>
-
-<h3>1. 三个平台，三种失败模式</h3>
-<table class="tbl">
-  <thead><tr><th>平台</th><th>记录中的观察</th><th>机制</th></tr></thead>
-  <tbody>
-    <tr><td><strong>macOS</strong>（高并发）</td>
-        <td>同时跑 5 个以上编码智能体会出现<strong>热降频与资源停顿</strong></td>
-        <td>APFS 的文件系统锁争用、后台安全守护进程扫描、以及并行磁盘 I/O 下的进程节流</td></tr>
-    <tr><td><strong>裸金属 Linux</strong></td>
-        <td>无头 Ubuntu（4–8 核、8–32 GB）插在家用路由器上，轻松维持 6–10 个并行线程，空闲开销接近零</td>
-        <td>文件系统与进程调度更可预测；没有强制降频的散热约束（有主动散热）</td></tr>
-    <tr><td><strong>云 VPS</strong></td>
-        <td>同等规格月费高，且数据中心 IP 带来合规与封禁风险</td>
-        <td>见下面的经济学对比</td></tr>
-  </tbody>
-</table>
-<blockquote class="callout">
-  <p><strong>关键类比</strong>：智能体工作负载的特征是「大量小文件读写 + 频繁进程创建 + 持续网络等待」。
-  这恰好是 APFS 与现代安全守护进程最不擅长的模式。GPU 或 CPU 主频在这个负载里根本不是瓶颈。</p>
-</blockquote>
-
-<h3>2. 云 VPS 的经济学陷阱</h3>
-<section class="blk blk-eco">
-  <h4><span class="ic">◈</span>记录中的对比</h4>
-  <table class="tbl small">
-    <thead><tr><th>方案</th><th>成本</th><th>IP 风险</th><th>回本周期</th></tr></thead>
-    <tbody>
-      <tr><td>云 VPS（Hetzner 级，16 核 / 32 GB）</td><td>约 $275 / 月</td><td>数据中心 IP，有封禁风险</td><td>永不回本（持续支出）</td></tr>
-      <tr><td>自购迷你主机（32 GB）</td><td>约 $700 一次性</td><td>接在家用网络上 → 住宅 IP</td><td><strong>不到 3 个月</strong>（对比 $275/月）</td></tr>
-    </tbody>
-  </table>
-  <p>
-    计算很简单：\(700 / 275 \approx 2.5\) 个月。这也解释了模块 12 里「住宅网关」的价值——
-    它不仅更便宜，还顺带解决了 IP 画像问题。
-  </p>
-</section>
-<p><strong>但要加上被忽略的成本</strong>：电费（一台 32 GB 小主机满载约 30–60 W，按 \$0.2/kWh 计约 \$5–9/月）、
-噪音与散热位置、以及家用宽带断网时的可用性风险。
-即便如此，长期成本仍显著低于同规格 VPS。</p>
-
-<h3>3. 把重编译卸载出去（CI offloading）</h3>
-<p>
-  记录中的建议：对资源密集的编译（例如多 crate 的 Rust 构建），
-  把构建放到<strong>专用 runner</strong>（Blacksmith CLI 或 GitHub Actions）上执行，
-  避免本地内存被吃光而阻塞其他线程。
-</p>
-<table class="tbl small">
-  <thead><tr><th>任务类型</th><th>本地跑</th><th>卸载到 CI</th></tr></thead>
-  <tbody>
-    <tr><td>快速单元测试（&lt; 30 秒）</td><td>✅ 保留在本地，反馈最快</td><td>—</td></tr>
-    <tr><td>多平台/多版本矩阵测试</td><td>❌ 本地资源不足</td><td>✅ 天然并行</td></tr>
-    <tr><td>大型编译（Rust/C++、Docker 镜像）</td><td>❌ 会挤爆内存</td><td>✅ 有缓存层，反而更快</td></tr>
-    <tr><td>需要 GPU 的训练</td><td>小规模可以</td><td>✅ 但单价高（见模块 10）</td></tr>
-  </tbody>
-</table>
-<p><strong>以后做 crossfade 这类项目时</strong>：音频实验脚本通常很轻，不需要 CI 卸载；但「批量渲染 100 段过渡 + 计算指标」这类任务适合写成脚本交给 CI 或后台任务，
-这样你的交互式设备始终保持可响应。</p>
-
-<h3>4. 如果你现在只有一台 Windows 或 macOS 机器</h3>
-<table class="tbl">
-  <thead><tr><th>平台</th><th>立刻可做的三件事</th></tr></thead>
-  <tbody>
-    <tr><td><strong>macOS</strong></td>
-        <td>
-          1) 把并发线程数控制在 <strong>3–4 个</strong>（记录中 5+ 就会触发热降频）；<br />
-          2) 把工作目录放在内置 SSD，避开外接盘与网络盘；<br />
-          3) 给持续任务设置 <code>caffeinate</code> 防止睡眠中断，并监控 <code>powermetrics</code> 的温度与降频。
-        </td></tr>
-    <tr><td><strong>Windows</strong></td>
-        <td>
-          1) 用 <strong>WSL2</strong> 跑 Linux 工具链，并且<em>把仓库放在 WSL 的原生文件系统里</em>
-             （例如 <code>/home/you/projects</code>），<strong>不要</strong>放在 <code>/mnt/c/...</code>——跨文件系统 I/O 会慢一个数量级；<br />
-          2) 在 Windows 安全中心里为项目目录与 WSL 虚拟磁盘添加排除项，避免实时扫描拖慢大量小文件读写；<br />
-          3) 限制并发与内存（<code>.wslconfig</code> 里的 <code>memory=</code>），把重活交给后台或远程节点。
-        </td></tr>
-    <tr><td><strong>Linux 主机</strong></td>
-        <td>
-          1) 把并发线程数设为「物理核数 − 1」；<br />
-          2) 用 <code>htop</code> / <code>iostat -x 1</code> 确认瓶颈到底是 CPU、内存还是磁盘；<br />
-          3) 大编译与 CI 卸载出去，本地只留交互式任务。
-        </td></tr>
-  </tbody>
-</table>
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>不要凭感觉优化</h4>
-  <p>
-    「换机器」通常是最后手段。先量化：在卡顿发生时看<strong>磁盘队列长度、内存压力、CPU 降频与交换分区使用</strong>。
-    智能体负载的瓶颈往往是<em>磁盘 I/O 与内存</em>，而不是 CPU 主频——
-    给一台老机器加内存或换 NVMe，往往比换整台机器更划算。
-  </p>
-</section>
-
-<h3>5. 你的最优配置（按预算分档）</h3>
-<table class="tbl small">
-  <thead><tr><th>预算</th><th>建议</th><th>能支撑</th></tr></thead>
-  <tbody>
-    <tr><td>0（现有设备）</td><td>WSL2 / 原生 Linux + 把仓库放对文件系统 + 并发 ≤ 4</td><td>3–4 个并行线程、全部课程实验（除多设备 SPMD）</td></tr>
-    <tr><td>≈ $700</td><td>32 GB 内存的迷你主机 / NUC 级机器，接家用路由器</td><td>6–10 个并行线程、作为住宅网关（模块 12）</td></tr>
-    <tr><td>≈ $1500–2500</td><td>带独显（12–16 GB 显存）的工作站</td><td>本地 LoRA 微调、推理实验</td></tr>
-    <tr><td>按小时</td><td>云 GPU（A100 级），只在需要时开</td><td>一次性大实验；注意合规与成本</td></tr>
-  </tbody>
-</table>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
-  <p>
-    crossfade 这类题目通常包含<strong>大量小规模但高频的实验</strong>：渲染音频、计算指标、跑统计检验。
-    这类负载对硬盘与内存的压力远大于对 CPU 的压力。
-    把实验脚本做成「一条命令、结果落盘、可复现」，再配合 2–3 个 worktree 并行跑不同参数组，
-    你就能在一台普通机器上获得远超预期的迭代速度——<em>而这正是 85/15 规则想要的基础设施</em>。
-  </p>
-</section>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">记录中把 macOS 上 5+ 并行智能体的卡顿归因于？</p>
-  <ul class="opts">
-    <li>CPU 核心数不足</li>
-    <li data-ok>APFS 文件系统锁争用、后台安全守护进程扫描、以及并行磁盘 I/O 下的进程节流与热降频</li>
-    <li>Python 的 GIL</li>
-    <li>网络带宽不足</li>
-  </ul>
-  <p class="why">
-    智能体负载的特征是大量小文件读写与频繁进程创建，正好踩在文件系统与安全扫描的痛点上。
-    这类瓶颈在活动监视器里表现为磁盘队列与内存压力，而不是 CPU 100%。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">$700 的迷你主机对比 $275/月的同规格 VPS，回本周期约为？</p>
-  <ul class="opts">
-    <li>约 1 个月</li>
-    <li data-ok>约 2.5 个月</li>
-    <li>约 12 个月</li>
-    <li>无法比较</li>
-  </ul>
-  <p class="why">
-    \(700 / 275 \approx 2.5\) 个月。记录中的结论是「不到三个月回本」。
-    别忘了把电费（约 $5–9/月）、噪音与家庭网络可用性一起计入。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">在 Windows 上用 WSL2 跑实验，下面哪个做法会显著拖慢大量小文件读写？</p>
-  <ul class="opts">
-    <li>把仓库放在 WSL 的 /home 下</li>
-    <li data-ok>把仓库放在 /mnt/c 下（跨 Windows 与 Linux 两套文件系统）</li>
-    <li>限制 WSL 的内存上限</li>
-    <li>为项目目录添加杀毒排除项</li>
-  </ul>
-  <p class="why">
-    <code>/mnt/c</code> 走的是跨系统文件访问路径（9p/virtio 层），大量小文件操作的开销远高于 WSL 原生文件系统。
-    这与记录中「文件系统决定成败」的判断是同一条原理。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：五分钟瓶颈体检" data-badge="动手">
-  <div class="acc-body">
-    <p>在卡顿发生时，依次执行（Linux / WSL）：</p>
-<table class="tbl">
-  <thead>
-    <tr><th>系统指标</th><th>诊断关注点</th><th>训练受阻典型表现</th></tr>
-  </thead>
-  <tbody>
-    <tr><td>内存与 Swap</td><td>系统物理内存剩余是否充足</td><td>触发系统 OOM Killer，训练进程被强制静默杀死</td></tr>
-    <tr><td>磁盘 I/O 吞吐</td><td>数据加载读取等待时间（await）</td><td>GPU 计算利用率骤降为 0%，显卡持续等待数据流灌入</td></tr>
-    <tr><td>CPU 线程调度</td><td>多进程 DataLoader 负载均衡</td><td>数据预处理速度跟不上显卡矩阵计算速度，成为主瓶颈</td></tr>
-  </tbody>
-</table>
-    <p>判读规则：</p>
-    <ul>
-      <li><code>%util</code> 接近 100% 且 <code>await</code> 高 → <strong>磁盘瓶颈</strong>：换 NVMe、减少日志写入、把仓库移出跨系统目录。</li>
-      <li>内存吃紧且开始 <code>swap</code> → <strong>内存瓶颈</strong>：降并发、加内存。</li>
-      <li>两者都正常但延迟高 → <strong>网络/线程调度</strong>：检查代理、DNS 与并发上限。</li>
-    </ul>
-    <p><em>先测量，再采购。这一条能省下最多的钱。</em></p>
-  </div>
-</div>
-`
-});
-
-/* --- content/16-project.js --- */
-/* content/16-project.js — 模块 16：把方法映射到数学建模类题目（未来示例） */
-COURSE.register({
-  id: "m16",
-  part: 3,
-  num: "16",
-  title: "收束：把这一切映射到 Crossfade 这类项目与申请材料（未来示例）",
-  en: "Synthesis — Mapping the Course onto Your Project",
-  minutes: 40,
-  tags: ["项目", "申请", "必做"],
-  body: String.raw`
-<p class="lead">
-  前面各模块构成了<strong>大模型底座与自训的核心能力</strong>；
-  而以《Mathematical Crossfade Modelling for Glass Player》（音频交叉淡入淡出连续建模）为例，它是一个独立的工程建模课题。
-  <strong>两者的关系是：大模型底座是通用的技术内功，未来可以在合适的时候尝试把表征学习或强化搜索与之 Merge</strong>。
-  本讲仅作为一个小参考案例，带你拆解当通用 AI 方法论遇上具体连续优化问题时，如何设计清晰的基线、特征映射与严格的科学评估，绝不作为学习大模型的前置门槛。
-</p>
-
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>两条轨道：请分开推进</h4>
-  <table class="tbl small">
-    <thead><tr><th></th><th>轨道甲：研究指南（PDF）</th><th>轨道乙：本课程</th></tr></thead>
-    <tbody>
-      <tr><td><strong>目标</strong></td><td>产出一个可辩护的数学模型 + 可运行引擎 + 答辩材料</td><td>建立 LLM 与训练的完整能力，能读论文、能跑实验</td></tr>
-      <tr><td><strong>推进方式</strong></td><td>按 8 个检查点（CP1–CP8）线性推进，每个检查点有明确产出</td><td>按 24 讲推进，每讲配自测与动手版块</td></tr>
-      <tr><td><strong>评价标准</strong></td><td>数学严谨性、实证证据、可复现性</td><td>能否独立跑通、能否识别常见错误</td></tr>
-      <tr><td><strong>它不负责</strong></td><td>不负责教你 Transformer、TRL、Colab（那是轨道乙）</td><td>不负责替你做 crossfade 这类题目的数学（那是轨道甲）</td></tr>
-    </tbody>
-  </table>
-  <p><strong>只在这三处交汇</strong>：① CP1 要工具与基线 → 用本课程 10 的实验纪律；
-     ② CP5/CP7 要特征与学习实验 → 用 02 的特征视角、07 的模型阶梯、09 的评估协议；
-     ③ CP8 要可复现与答辩 → 用 14 的流水线与 16 的 viva 问题清单。</p>
-  <p><em>反过来说：不要在写研究报告时试图把 Transformer 原理塞进去，也不要在学课程时试图顺手完成检查点。</em></p>
-</section>
-
-<section class="blk blk-q">
-  <h4><span class="ic">◆</span>问题</h4>
-  <p>
-    以《Mathematical Crossfade Modelling for Glass Player》这类研究指南为例（你以后可以找来读），它已经把问题、物理与文献都摆好了。
-    现在你有了 LLM 与训练的整套知识，真正要回答的是：
-    <strong>哪一部分应该由数学完成，哪一部分才轮到学习？</strong>
-    这一模块给出判据与执行方案。
-  </p>
-</section>
-
-<h3>1. 八个检查点 ↔ 本课程模块</h3>
-<table class="tbl">
-  <thead><tr><th>检查点</th><th>核心任务</th><th>用到本课程的</th><th>关键纪律</th></tr></thead>
-  <tbody>
-    <tr><td><strong>CP1</strong> 精确问题 + 早期可听基线</td><td>定义「更好」是什么，并尽早跑起来一个能听的版本</td>
-        <td>M1（目标函数思维）、M10（环境与纪律）</td><td>先有基线，再谈优化；没有可听 demo 的数学是空转</td></tr>
-    <tr><td><strong>CP2</strong> 可辩护的数学模型</td><td>把增益包络写成变分问题 / 几何轨迹</td>
-        <td>M1（假设与可辨识性）、M4（把自由度算清）</td><td>显式写出假设，并给出假设失效时的边界</td></tr>
-    <tr><td><strong>CP3</strong> 竞争方法与可检验预测</td><td>至少三种结构不同的方法，各自给出可检验预测</td>
-        <td>M7（模型阶梯与消融思想）</td><td>每个方法都要能预测「在什么输入下会失败」</td></tr>
-    <tr><td><strong>CP4</strong> 预测 confront 音频</td><td>用 LUFS / 谱通量等客观量与听测对照</td>
-        <td>M9（客观 vs 主观、测什么与不能测什么）</td><td>报告不一致之处，而不是只报告支持理论的部分</td></tr>
-    <tr><td><strong>CP5</strong> 成对歌曲适配</td><td>从音频提取成对特征（ΔBPM、调性距离、ΔLUFS、谱通量差）</td>
-        <td>M2（<strong>特征就是你的 tokenizer</strong>）</td><td>特征定义与归一化方式必须可复现</td></tr>
-    <tr><td><strong>CP6</strong> 改进证据与局限</td><td>统计检验 + 听测协议 + 失效模式分类</td>
-        <td>M9（分组 CV、效应量、MUSHRA、Wilcoxon）</td><td>盲测、随机顺序、报告置信区间</td></tr>
-    <tr><td><strong>CP7</strong> 有明确目的的学习实验</td><td>只学一个低维参数，并与简单模型严格比较</td>
-        <td><strong>M7 + M9</strong>（模型阶梯、岭回归闭式解、置换检验、VC 界）</td><td>没有置换检验的学习结论不成立</td></tr>
-    <tr><td><strong>CP8</strong> 成品与数学辩护</td><td>可复现仓库 + 报告 + 口头答辩</td>
-        <td>M14（worktree、端到端任务链、可复现性）、M9（Vandewalle 三要素）</td><td>一条命令复现全部图表</td></tr>
-  </tbody>
-</table>
-
-<h3>2. Checkpoint 7 的完整技术方案</h3>
-<section class="blk blk-m">
-  <h4><span class="ic">∑</span>形式化</h4>
-  <p>学习目标：从成对特征预测最优过渡时长</p>
-  \[ x = \big[\ \Delta\text{BPM},\ d_{\text{Tonnetz}},\ \Delta\text{LUFS},\ \text{SpectralFluxContrast}\ \big]^\top \in \mathbb{R}^4,
-     \qquad T^* \in [2.0,\ 16.0]\ \text{seconds} \]
-  <p>模型阶梯（每一级都必须跑，且必须报告相对上一级的增量）：</p>
-  <table class="tbl small">
-    <thead><tr><th>级别</th><th>模型</th><th>自由度</th><th>预期结论</th></tr></thead>
-    <tbody>
-      <tr><td>Level 0</td><td>规则：\(\Delta\text{BPM} \le 0.05 \Rightarrow 8\) 秒，否则 3 秒</td><td>0</td><td>基线，任何模型必须打败它</td></tr>
-      <tr><td>Level 1</td><td>岭回归 \(\hat T = w^\top x + b\)</td><td>5 + \(\lambda\)</td><td>大概率显著优于 Level 0</td></tr>
-      <tr><td>Level 2</td><td>核岭回归（RBF）或深度 ≤ 4 的随机森林</td><td>\(O(N)\)</td><td>可能持平——这本身是结论</td></tr>
-      <tr><td>Level 3</td><td>MLP 4→8→1 + dropout</td><td>约 50</td><td>很可能不显著优于 Level 1</td></tr>
-    </tbody>
-  </table>
-</section>
-
-<h4>2.1 数据怎么来（这是真正的瓶颈）</h4>
-<table class="tbl small">
-  <thead><tr><th>来源</th><th>做法</th><th>成本</th><th>风险</th></tr></thead>
-  <tbody>
-    <tr><td>自己标注</td><td>对 40–60 首曲目、约 250 对组合，用同一套流程标出「专家式」过渡时长</td><td>数天</td><td>标注者一致性需要检验（至少两人标注 10% 并算一致性）</td></tr>
-    <tr><td>公开 DJ mix 数据集</td><td>使用已发表数据集（如 Conte 等 2021 的 DJ-Mix 数据）</td><td>低</td><td>风格分布与你的目标场景可能不同；注意许可</td></tr>
-    <tr><td>合成/半合成</td><td>用规则生成标签，再注入噪声</td><td>低</td><td><strong>不可用于验证真实结论</strong>，只能用于打通代码</td></tr>
-  </tbody>
-</table>
-<p><strong>建议</strong>：以后做这类题目时，先把 250 条真实标注做出来（现在先理解流程）。数据质量决定了这类研究的上限，而模型选择只影响几个百分点。</p>
-
-<h4>2.2 评估协议（照抄即可）</h4>
-<ol>
-  <li><strong>分组</strong>：按艺人（或专辑）分组，5 折 <code>GroupKFold</code>，确保同一艺人不跨折。</li>
-  <li><strong>指标</strong>：RMSE（主）+ MAE（辅）+ 与 Level 0 的相对降低。</li>
-  <li><strong>置换检验</strong>：\(B = 500\)，报告 \(p\) 值与零分布分位数。</li>
-  <li><strong>稳定性</strong>：至少 5 个随机种子，报告均值 ± 标准差。</li>
-  <li><strong>听测</strong>：对 Level 0 与 Level 1 的预测各生成一批过渡，做盲测成对偏好（模块 09 的方法）。</li>
-</ol>
-
-<h4>2.3 三种可能的结论，以及怎么写</h4>
-<table class="tbl small">
-  <thead><tr><th>结果</th><th>如何表述</th><th>价值</th></tr></thead>
-  <tbody>
-    <tr><td>Level 1 显著优于 Level 0，Level 3 无增益</td><td>「学习确实能标定解析模型留下的自由参数 \(T^*\)，且在 N=250 的规模下，线性模型的容量已经饱和。」</td><td>最理想：正结果 + 清晰的容量边界</td></tr>
-    <tr><td>所有级别都不显著</td><td>「在现有样本量与特征下，无法拒绝『学习没有带来增益』的原假设；这表明 \(T^*\) 主要由未观测因素（如编曲结构）决定。」</td><td>合格且诚实：负结果本身是学术产出</td></tr>
-    <tr><td>只有 Level 3 好，且置换检验显著</td><td>必须额外做数据泄漏审查（艺人分组是否严格、特征是否含未来信息），再报告。</td><td>要警惕：这通常是泄漏的信号</td></tr>
-  </tbody>
-</table>
-
-<section class="blk blk-warn">
-  <h4><span class="ic">⚠</span>什么情况下才值得引入神经网络</h4>
-  <p>三个条件<strong>同时</strong>满足时才可以考虑：</p>
-  <ol>
-    <li>样本量提升一个数量级（例如 \(N \ge 2000\) 对）；</li>
-    <li>特征维度显著上升（例如加入频谱图或自监督音频嵌入）；</li>
-    <li>你有独立的、更大的测试集与足够的听测预算来证明确实更好。</li>
-  </ol>
-  <p>否则，引入大模型只会得到一个「无法辩护的复杂度」——这正是 Hand (2006) 与 Checkpoint 7 这类题目原始设定的立场。</p>
-</section>
-
-<h3>3. 12 周执行计划</h3>
-<table class="tbl small">
-  <thead><tr><th>周</th><th>课程模块</th><th>项目产出</th><th>可放进申请材料的证据</th></tr></thead>
-  <tbody>
-    <tr><td>1</td><td>M0–M2</td><td>环境与仓库就绪；跑通 bigram 与 tokenizer 实验</td><td><code>labs/</code> 目录 + 实验日志</td></tr>
-    <tr><td>2</td><td>M3–M4</td><td>手写注意力 + 参数量/显存手算；CP1 的可听基线 demo</td><td>推导笔记（含参数量误差分析）</td></tr>
-    <tr><td>3</td><td>M5–M6</td><td>跑通迷你 Transformer 预训练；跑一遍 JAX miniGPT 教程</td><td>loss 曲线 + 训练配置表</td></tr>
-    <tr><td>4</td><td>M7</td><td>CP2 完成：模型写成变分问题，列出全部假设</td><td>完整的假设-结论对照表</td></tr>
-    <tr><td>5</td><td>M7–M8</td><td>CP3：三种竞争方法实现并给出预测</td><td>方法对比表 + 各自的失效条件</td></tr>
-    <tr><td>6</td><td>M9</td><td>CP4：客观指标管线（LUFS、谱通量）</td><td>指标脚本 + 首批图</td></tr>
-    <tr><td>7</td><td>M9–M10</td><td>CP5：成对特征提取完成</td><td>特征定义文档与分布图</td></tr>
-    <tr><td>8</td><td>M10</td><td>数据标注完成（约 250 对）</td><td>标注协议 + 一致性统计</td></tr>
-    <tr><td>9</td><td>M9 + E7</td><td><strong>CP7：模型阶梯 + 分组 CV + 置换检验</strong></td><td>RMSE 表、p 值、零分布图</td></tr>
-    <tr><td>10</td><td>M9</td><td>CP6：听测（至少 10 名受试者，盲测）</td><td>偏好胜率与显著性检验</td></tr>
-    <tr><td>11</td><td>M14</td><td>CP8：一键复现脚本 + 报告初稿</td><td>仓库 + <code>make all</code> 级别的复现命令</td></tr>
-    <tr><td>12</td><td>M16</td><td>口头答辩演练；申请文书定稿</td><td>10 个 viva 问题的书面答复</td></tr>
-  </tbody>
-</table>
-
-<h3>4. 申请叙事：三段式</h3>
-<section class="blk blk-tip">
-  <h4><span class="ic">✓</span>可复用的结构</h4>
-  <ol>
-    <li><strong>问题</strong>：一句话说清被你重新表述的问题（「我把淡入淡出从工程习惯重述为一个带边界条件的变分优化问题」）。</li>
-    <li><strong>方法</strong>：你实际做的三件事——推导、实现、<strong>验证</strong>。强调验证协议（分组交叉验证、置换检验、盲测）。</li>
-    <li><strong>诚实的结论</strong>：包括没成功的那部分（「在 250 条样本上，非线性模型没有带来可检测的增益」）。
-        <em>对数学系申请而言，能说清「什么做不到、为什么」比罗列成果更有说服力。</em></li>
-  </ol>
-</section>
-<table class="tbl small">
-  <thead><tr><th>不要这样写</th><th>改成这样</th></tr></thead>
-  <tbody>
-    <tr><td>「我用 AI 训练了一个模型来优化音频过渡」</td><td>「我把过渡参数的学习限制在解析模型留下的一个自由参数上，并用分组交叉验证与置换检验检验其增益」</td></tr>
-    <tr><td>「准确率提升了 30%」</td><td>「RMSE 从 2.4 秒降到 1.9 秒（5 折分组 CV 均值 ± 0.3），置换检验 p = 0.01，Level 3 相对 Level 1 无显著增益」</td></tr>
-    <tr><td>「使用了最先进的 Transformer 架构」</td><td>「我评估了容量边界：在 N=250 时 VC 界已不可用，因此我以交叉验证为判据，并报告了负结果」</td></tr>
-  </tbody>
-</table>
-
-<h3>5. Viva / 面试防御问题清单</h3>
-<table class="tbl small">
-  <thead><tr><th>问题</th><th>回答要点</th></tr></thead>
-  <tbody>
-    <tr><td>你为什么假设两条轨道不相关（\(\rho = 0\)）？</td><td>这是常功率曲线的成立条件；我在 CP4 中测量了实际相关性并给出了 \(\rho \ne 0\) 时的功率偏差界。</td></tr>
-    <tr><td>你的能量守恒在哪个内积空间成立？</td><td>\(L^2([0,T])\)；感知响度不是该空间上的范数，所以必须引入 ITU-R BS.1770 的加权。</td></tr>
-    <tr><td>为什么不用端到端神经网络？</td><td>样本量（250）与 VC 界分析；并且端到端会引入相位伪影与延迟，违反实时性约束。</td></tr>
-    <tr><td>你的机器学习实验是否真的学到了东西？</td><td>置换检验 \(p\) 值 + 分组交叉验证；我保留了「无增益」这一可能的结论。</td></tr>
-    <tr><td>你怎么知道不是过拟合？</td><td>艺人分组切分、多个随机种子、以及 Level 0 基线的对照。</td></tr>
-    <tr><td>如果 \(\rho \to -1\) 会怎样？</td><td>出现零点，功率趋于 0；这给出了最坏情况的界，也是我建议加入频率分离的原因。</td></tr>
-    <tr><td>你的实时实现如何避免线程不安全？</td><td>用无锁 SPSC 环形缓冲区；音频回调里不做内存分配与加锁。</td></tr>
-    <tr><td>你怎么处理听测的主观性？</td><td>盲测、随机顺序、成对偏好 + 符号检验，并报告效应量而不是只说「更好听」。</td></tr>
-    <tr><td>这项工作里哪些是已有技术，哪些是你的贡献？</td><td>常功率曲线、Linkwitz-Riley、节拍跟踪都是既有技术；我的贡献是统一的变分表述与「何时学习才有价值」的实证边界。</td></tr>
-    <tr><td>如果重做一次，你会改变什么？</td><td>更早标注数据；把听测与客观指标的采集并行；一开始就用置换检验作为门槛。</td></tr>
-  </tbody>
-</table>
-
-<h3>6. 可交付物清单</h3>
-<table class="tbl">
-  <thead>
-    <tr><th>模块目录</th><th>核心内容</th><th>未来与大模型 Merge 衔接点</th></tr>
-  </thead>
-  <tbody>
-    <tr><td><code>derivations/</code></td><td>音频平滑过渡与连续流建模数学推导</td><td>可作为连续状态空间（SSM / Mamba）特征插值理论基础</td></tr>
-    <tr><td><code>engine/</code></td><td>实时音频重叠变换与自适应淡入淡出引擎</td><td>作为多模态大模型音频 Token 流的实时端侧渲染后端</td></tr>
-    <tr><td><code>learning/</code></td><td>小规模参数拟合与交叉验证实验流水线</td><td>与 Kaggle 评测指标与微调实验规范完全接轨</td></tr>
-    <tr><td><code>analysis/</code></td><td>感知响度（LUFS）与波形重叠能量分析</td><td>充当语音多模态大模型的声学质量客观奖励函数（Reward Model）</td></tr>
-  </tbody>
-</table>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 1</div>
-  <p class="q">在 Checkpoint 7 里，模型阶梯（Level 0 → 3）的主要目的是？</p>
-  <ul class="opts">
-    <li>找出准确率最高的模型</li>
-    <li data-ok>定位「容量从哪一级开始不再带来可检测的增益」，把结论写成可辩护的边界</li>
-    <li>证明神经网络没有用</li>
-    <li>减少训练时间</li>
-  </ul>
-  <p class="why">
-    阶梯的价值在于<strong>定位容量边界</strong>，而不是找到最优模型。
-    如果 Level 1 已达上限，那么「在这个数据规模下非线性没有增益」就是一个完整的研究结论。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 2</div>
-  <p class="q">假设以后你的 CP7 这类实验发现 Level 3 的 CV RMSE 明显低于 Level 1，且置换检验显著。第一步应该做什么？</p>
-  <ul class="opts">
-    <li>立刻写进报告</li>
-    <li data-ok>先审查数据泄漏：艺人分组是否严格、特征里是否混入了未来信息、预处理是否在划分之前拟合</li>
-    <li>再训练一个更大的模型</li>
-    <li>提高学习率重跑</li>
-  </ul>
-  <p class="why">
-    「复杂模型意外胜出」在小组数据上最常见的解释是泄漏（分组不严、特征穿越、标准化在全量数据上拟合）。
-    必须先排除这些，否则结论无法通过答辩。
-  </p>
-</div>
-
-<div class="quiz">
-  <div class="qlabel">自测 · 3</div>
-  <p class="q">在申请材料里，哪一种表述最符合学术诚实且最有说服力？</p>
-  <ul class="opts">
-    <li>「我训练了 SOTA 模型，效果显著提升」</li>
-    <li data-ok>「在 250 条按艺人分组的样本上，线性模型的增益显著（p = 0.01），而非线性模型没有带来可检测的额外增益——我据此给出了容量边界」</li>
-    <li>「由于数据有限，实验没有得出任何结论」</li>
-    <li>「模型还在调参中，结果待补充」</li>
-  </ul>
-  <p class="why">
-    招生官关心的是<strong>你的判断力</strong>：你是否知道如何在有限数据上做出可辩护的结论，
-    以及是否愿意报告边界与负结果。含混的表述比负结果更糟。
-  </p>
-</div>
-
-<div class="acc" data-t="深入：如果时间只够做一件事" data-badge="优先级">
-  <div class="acc-body">
-    <p>那就做 <strong>Checkpoint 7 的评估协议</strong>，并且只做 Level 0 与 Level 1 两级。</p>
-    <p>理由：</p>
-    <ul>
-      <li>它同时覆盖「数学建模（解析基线）」「统计（分组 CV + 置换检验）」「工程（可复现脚本）」三项能力；</li>
-      <li>不需要 GPU，一天之内可以完成；</li>
-      <li>它天然产出可展示的图表与数字；</li>
-      <li>它给出一个<em>诚实的、可检验的</em>结论，而不是一个「demo」。</li>
-    </ul>
-    <p>执行顺序：</p>
-    <ol>
-      <li>用 20 条真实数据先把 <code>run.py</code> 跑通（合成数据也算，只用于调试）。</li>
-      <li>补齐到 250 条，固定随机种子，跑 5 折分组 CV。</li>
-      <li>加置换检验（\(B=500\)），画出零分布。</li>
-      <li>写下三句结论：数据规模、增益幅度与显著性、局限。</li>
-      <li>把它写进申请材料，并准备好回答「如果换成非线性模型会怎样」。</li>
-    </ol>
-    <p><strong>完成这一个实验，以后你就拥有了大多数申请者没有的东西：一个带统计检验的、承认边界的定量结论。</strong></p>
-  </div>
-</div>
 `
 });
 
@@ -16237,6 +14624,1226 @@ COURSE.register({
 `
 });
 
+/* --- content/11-economics.js --- */
+/* content/11-economics.js — 模块 11：算力法则与训练规模演算 */
+
+COURSE.register({
+
+  id: "m11",
+
+  part: 5,
+
+  num: "11",
+
+  title: "算力法则与训练规模：从 6ND FLOPs、Chinchilla 到单卡 T4 耗时物理演算",
+
+  en: "Scaling Laws & Training Compute: From 6ND FLOPs to Single-T4 Physical Runtime",
+
+  minutes: 35,
+
+  tags: ["算力法则", "Chinchilla", "T4演练", "FLOPs"],
+
+  body: String.raw`
+
+<p class="lead">
+
+  严肃的深度学习科研与底座自训<strong>从不依赖商业账单或各种付费订阅作为衡量尺度</strong>，
+
+  而是严格以<strong>浮点计算量（FLOPs）、有效利用率（MFU）与计算规模法则（Scaling Laws）</strong>作为第一性原理。
+
+  本模块带你手算著名的 \(6ND\) 预训练计算量公理与 Chinchilla 最优数据-参数配比，
+
+  并在草稿纸上精确推演：<strong>单张免费云端 T4 GPU 训通一个 miniGPT 处理千万级 Token 究竟只需要几十秒。</strong>
+
+</p>
+
+
+
+<section class="blk blk-q">
+
+  <h4><span class="ic">◆</span>核心问题：为什么模型绝不是「越大越好」？</h4>
+
+  <p>
+
+    许多初学者常有一个误区，以为自训模型必须追求几百亿参数，结果因为算力不足，模型还没跑几个 step 就被迫停机，损失甚至没来得及下降。
+
+    现代大模型理论早已证明：<strong>在有限的算力预算下，盲目把参数做大只会导致灾难性的欠拟合；训练一个参数适中、但被充分训练的小模型，效果远胜于空有骨架的大模型。</strong>
+
+  </p>
+
+</section>
+
+
+
+<h3>1. 算力的通用物理尺度：FLOPs 与 MFU</h3>
+
+<p>
+
+  为了在不同显卡架构与不同模型之间公平比较算力开销，学术界统一使用 <strong>FLOPs（Floating Point Operations，浮点运算次数）</strong>：
+
+</p>
+
+<ul>
+
+  <li><strong>1 次浮点乘加（MAC, Multiply-Accumulate）</strong>：计算机执行一次形如 \(a \times b + c\) 的运算，计为 <strong>2 个 FLOPs</strong>（一次乘法 + 一次加法）。</li>
+
+  <li><strong>硬件标称峰值算力</strong>：显卡厂商在极端理想条件下测得的理论最大计算速率。例如 Nvidia T4 单卡在半精度（FP16）张量核心下的理论峰值约为 <strong>65 TFLOPs</strong>（即 \(65 \times 10^{12}\) FLOPs/s）。</li>
+
+  <li><strong>模型算力利用率（MFU, Model FLOPs Utilization）</strong>：
+
+    在实际模型训练中，GPU 不可能 100% 满负荷打满矩阵乘法，它还需要从显存搬运张量、执行非线性激活函数与通信同步。
+
+    实测训练有效算力与硬件理论峰值的比值即为 MFU：
+
+    \[ \mathrm{MFU} = \frac{\text{FLOPs}_{\text{observed}}}{\text{FLOPs}_{\text{peak}}} \]
+
+    在未深度优化的 PyTorch 训练脚本中，单卡 T4 的 MFU 通常约为 <strong>\(25\% \sim 35\%\)</strong>。按 \(30\%\) 折算，T4 的真实持续有效计算吞吐约为：
+
+    \[ R_{\text{eff}} \approx 65 \times 10^{12} \times 0.30 \approx 2.0 \times 10^{13} \text{ FLOPs/s} \quad (20\text{ TFLOPs}) \]
+
+</li>
+
+</ul>
+
+
+
+<h3>2. 核心公理推导：为什么自回归预训练计算量是 6ND FLOPs？</h3>
+
+<p>
+
+  设模型的可学习非嵌入参数量为 \(N\)，训练语料的总 Token 数量为 \(D\)。整个预训练过程的总浮点运算量恒满足：
+
+  \[ C \approx 6 N D \]
+
+  这个经典公式背后的微积分与线性代数机制非常优美，严格对齐 A-Level Further Maths 的导数与矩阵乘法：
+
+</p>
+
+
+
+<section class="blk blk-m">
+
+  <h4><span class="ic">∑</span>前向与反向传播的 2ND vs 4ND 分解</h4>
+
+  <ol>
+
+    <li><strong>前向传播（Forward Pass）：\(2ND\) FLOPs</strong><br/>
+
+      考虑一个全连接线性变换 \(Y = X W\)，其中输入 \(X \in \mathbb{R}^{B \times d_{\text{in}}}\)，权重 \(W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{out}}}\)。<br/>
+
+      权重参数量为 \(P = d_{\text{in}} \times d_{\text{out}}\)。输出矩阵每个元素需要进行 \(d_{\text{in}}\) 次乘法与加法，因此前向单步计算量为 \(2 \times B \times d_{\text{in}} \times d_{\text{out}} = 2 \times B \times P\)。<br/>
+
+      对全网所有线性层（Attention 投影与 FFN 矩阵）累加，每处理 1 个 Token 的前向计算量严格为 <strong>\(2N\) FLOPs</strong>。处理 \(D\) 个 Token 总计：
+
+      \[ C_{\text{forward}} = 2 N D \]
+
+    </li>
+
+    <li><strong>反向传播（Backward Pass）：\(4ND\) FLOPs（严格为前向的 2 倍）</strong><br/>
+
+      根据多元微积分链式法则，反向求导必须独立完成两组互不相同的全量矩阵乘法：
+
+      <ul>
+
+        <li><strong>对输入求偏导（用于向上层继续回传梯度）</strong>：
+
+          \[ \frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top \]
+
+          这是一次形状为 \((B, d_{\text{out}}) \times (d_{\text{out}}, d_{\text{in}})\) 的矩阵乘法，耗费 \(2 \times B \times P\) FLOPs。
+
+        </li>
+
+        <li><strong>对权重参数求偏导（用于执行梯度下降更新）</strong>：
+
+          \[ \frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y} \]
+
+          这是一次形状为 \((d_{\text{in}}, B) \times (B, d_{\text{out}})\) 的矩阵乘法，耗费 \(2 \times B \times P\) FLOPs。
+
+        </li>
+
+      </ul>
+
+      因此，反向传播必须执行两次与前向规模完全相等的 GEMM 矩阵乘法，其计算量严格为前向的 <strong>2 倍</strong>：
+
+      \[ C_{\text{backward}} = 4 N D \]
+
+    </li>
+
+    <li><strong>总计算量求和</strong>：
+
+      \[ C_{\text{total}} = C_{\text{forward}} + C_{\text{backward}} = 2 N D + 4 N D = 6 N D \]
+
+    </li>
+
+  </ol>
+
+</section>
+
+
+
+<h3>3. Chinchilla 最优计算法则（Compute-Optimal Scaling）</h3>
+
+<p>
+
+  在总算力预算 \(C \approx 6ND\) 给定的约束下，我们应该怎么在参数量 \(N\) 与数据量 \(D\) 之间分配？
+
+</p>
+
+<table class="tbl">
+
+  <thead><tr><th>理论流派</th><th>核心假设</th><th>分配比例结论</th><th>现实检验与影响</th></tr></thead>
+
+  <tbody>
+
+    <tr>
+
+      <td><strong>Kaplan 法则（OpenAI 2020）</strong></td>
+
+      <td>认为参数量 \(N\) 带来的收益远大于数据量 \(D\)</td>
+
+      <td>\(N \propto C^{0.73}, \quad D \propto C^{0.27}\)</td>
+
+      <td>催生了 GPT-3 等一大批模型，但后来被证实严重缺乏数据、处于欠拟合状态</td>
+
+    </tr>
+
+    <tr>
+
+      <td><strong>Chinchilla 法则（DeepMind 2022）</strong></td>
+
+      <td>基于变分优化严格推导，两者的幂律系数基本相等</td>
+
+      <td><strong>\(N \propto C^{0.5}, \quad D \propto C^{0.5}\)（即 \(D \approx 20 N\)）</strong></td>
+
+      <td><strong>现代大模型的黄金公理</strong>：LLaMA、Qwen 等开源基座均大幅增加训练 Token 数量</td>
+
+    </tr>
+
+  </tbody>
+
+</table>
+
+<p>
+
+  <strong>对高中自学与单卡实验的巨大价值</strong>：<br/>
+
+  根据 \(D \approx 20N\)，如果你想要训练一个 <strong>15M 参数</strong> 的迷你 GPT 模型，最优的数据规模仅需约 \(15\text{M} \times 20 = 300\text{M}\) Token；
+
+  即使是进行验证性训练，使用 <strong>10M ~ 30M Token</strong>（约几本纯文本开源小书或精选中文维基百科子集），模型就能以极快速度收敛并展现出连贯的语言组织能力。
+
+</p>
+
+
+
+<div class="acc" data-t="纸笔算一算：手算单卡 T4 预训练 15M miniGPT 物理耗时" data-badge="动笔">
+
+  <div class="acc-body">
+
+    <p><strong>题目背景</strong>：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。现在拿出草稿纸，动手计算训练一个 15M 参数的 miniGPT 模型处理 1000 万 Token（\(10\text{M}\)）所需的物理秒数：</p>
+
+    <ol>
+
+      <li><strong>参数与数据符号化</strong>：
+
+        \[ N = 15 \times 10^6, \qquad D = 10 \times 10^6 \]
+
+      </li>
+
+      <li><strong>套用 6ND 预训练总计算量公理</strong>：
+
+        \[ C = 6 N D = 6 \times (1.5 \times 10^7) \times (1.0 \times 10^7) = 9.0 \times 10^{14} \text{ FLOPs} \]
+
+      </li>
+
+      <li><strong>代入单卡 T4 实测有效计算速率</strong>（按 MFU = 30% 保守估计）：
+
+        \[ R_{\text{eff}} = 2.0 \times 10^{13} \text{ FLOPs/s} \]
+
+      </li>
+
+      <li><strong>计算物理训练时长 \(t\)</strong>：
+
+        \[ t = \frac{C}{R_{\text{eff}}} = \frac{9.0 \times 10^{14}}{2.0 \times 10^{13}} = 45 \text{ s} \] （极速完成！）
+
+      </li>
+
+      <li><strong>若语料扩展到 1 亿 Token（\(100\text{M}\)）</strong>：
+
+        \[ t_{100M} = 45 \times 10 = 450 \text{ s} = 7.5 \text{ min} \] （仅几分钟！）
+
+      </li>
+
+    </ol>
+
+    <p><em>复盘收获</em>：不到 8 分钟，就能在完全免费的云端 T4 上完整跑完 1 亿 Token 的训练流程，亲眼看到 Cross-Entropy Loss 从初始无序的 \(\\ln |\\mathcal{V}| \\approx 9.21\) 平稳下降到 3.0 以下！自训小模型不需要花费任何费用，底层的物理定律完全由你掌控。</p>
+
+  </div>
+
+</div>
+
+
+
+<h3>4. 训练规模与资源决策对比</h3>
+
+<table class="tbl">
+
+  <thead><tr><th>实验类型</th><th>参数规模 \(N\)</th><th>训练数据 \(D\)</th><th>单卡 T4 耗时</th><th>显存峰值（16GB T4）</th><th>学习目标</th></tr></thead>
+
+  <tbody>
+
+    <tr>
+
+      <td><strong>超微玩具验证</strong></td>
+
+      <td>1M ~ 3M</td>
+
+      <td>1M Token</td>
+
+      <td>&lt; 5 秒</td>
+
+      <td>&lt; 150 MB</td>
+
+      <td>检查张量维度、梯度回传与代码是否有 bug</td>
+
+    </tr>
+
+    <tr>
+
+      <td><strong>miniGPT 从头预训练</strong></td>
+
+      <td>15M ~ 45M</td>
+
+      <td>10M ~ 50M Token</td>
+
+      <td>1 分钟 ~ 15 分钟</td>
+
+      <td>&lt; 1.5 GB</td>
+
+      <td>观察完整损失下降曲线、学习率调度与生成续写</td>
+
+    </tr>
+
+    <tr>
+
+      <td><strong>0.5B 基座 QLoRA 微调</strong></td>
+
+      <td>0.5B（微调 5M）</td>
+
+      <td>2M ~ 10M Token</td>
+
+      <td>10 分钟 ~ 30 分钟</td>
+
+      <td>约 3.2 GB</td>
+
+      <td>让已有的开源小基座精准学会你的自定义下游指令</td>
+
+    </tr>
+
+    <tr>
+
+      <td><strong>1.5B 基座 QLoRA 微调</strong></td>
+
+      <td>1.5B（微调 18M）</td>
+
+      <td>5M ~ 20M Token</td>
+
+      <td>20 分钟 ~ 60 分钟</td>
+
+      <td>约 5.5 GB</td>
+
+      <td>工业级端到端微调并导出为本地免显卡极速 GGUF</td>
+
+    </tr>
+
+  </tbody>
+
+</table>
+
+
+
+<div class="quiz">
+
+  <div class="qlabel">自测 · 1</div>
+
+  <p class="q">在预训练自回归大语言模型时，为什么反向传播的 FLOPs 计算量严格是前向传播的 2 倍？</p>
+
+  <ul class="opts">
+
+    <li>因为反向传播必须执行两次前向传播验证</li>
+
+    <li data-ok>根据链式法则，反向求导对于每个矩阵乘法必须分别计算对激活值的偏导（向上传递）和对权重的偏导（更新参数），各需一次等规模的 GEMM 操作</li>
+
+    <li>因为优化器维护一阶与二阶动量</li>
+
+    <li>这是混合精度浮点截断带来的额外代价</li>
+
+  </ul>
+
+  <p class="why">
+
+    前向单步 \(Y=XW\) 是一次矩阵乘法（\(2N\) FLOPs）。反向传播时，\(\frac{\partial \mathcal{L}}{\partial X} = \frac{\partial \mathcal{L}}{\partial Y} W^\top\) 与 \(\frac{\partial \mathcal{L}}{\partial W} = X^\top \frac{\partial \mathcal{L}}{\partial Y}\) 各是一次等规模的矩阵乘法，合起来严格耗费 \(4N\) FLOPs。
+
+  </p>
+
+</div>
+
+
+
+<div class="quiz">
+
+  <div class="qlabel">自测 · 2</div>
+
+  <p class="q">根据 Chinchilla 最优计算法则（Compute-Optimal），若你有充足的算力预算训练一个 10M 参数的小模型，最优的训练语料 Token 数量大约是多少？</p>
+
+  <ul class="opts">
+
+    <li>10 万（0.1M）Token</li>
+
+    <li>200 万（2M）Token</li>
+
+    <li data-ok>2 亿（200M）Token</li>
+
+    <li>100 亿（10B）Token</li>
+
+  </ul>
+
+  <p class="why">
+
+    Chinchilla 定律指明最优训练配比为 \(D \approx 20N\)。对于 \(N = 10\text{M}\) 的模型，最佳语料量为 \(10\text{M} \times 20 = 200\text{M}\) Token。盲目加大参数量只会导致模型欠拟合。
+
+  </p>
+
+</div>
+
+
+
+<div class="quiz">
+
+  <div class="qlabel">自测 · 3</div>
+
+  <p class="q">一张 GPU 标称理论算力为 100 TFLOPs，但在运行某大模型训练时测得每秒实际完成的模型 FLOPs 为 30 TFLOPs，该任务的 MFU（模型算力利用率）是多少？</p>
+
+  <ul class="opts">
+
+    <li>10%</li>
+
+    <li data-ok>30%</li>
+
+    <li>70%</li>
+
+    <li>100%</li>
+
+  </ul>
+
+  <p class="why">
+
+    \(\mathrm{MFU} = \frac{30\text{ TFLOPs}}{100\text{ TFLOPs}} = 30\%\)。这是衡量分布式与单卡训练系统工程优化效率的核心指标。
+
+  </p>
+
+</div>
+
+
+
+<div class="quiz quiz-blank" data-ans="45" data-tol="1">
+
+  <div class="qlabel">填空 · 计算实战</div>
+
+  <p class="q">在 Kaggle 免费 T4 GPU（有效实测算力 \(2.0 \times 10^{13}\) FLOPs/s）上从零训练一个 \(N=15\text{M}\) 参数的 miniGPT 模型处理 \(D=10\text{M}\) Token 语料。根据公理 \(C = 6ND\)，该训练任务在理论物理耗时上仅需多少秒？（填入整数）</p>
+
+  <div class="blank-wrap">
+
+    <input type="text" class="blank-input" placeholder="输入计算秒数（整数）..." />
+
+    <button class="blank-btn">提交验证</button>
+
+    <span class="blank-feedback"></span>
+
+  </div>
+
+  <p class="why">
+
+    根据 \(C = 6ND = 6 \times (1.5 \times 10^7) \times (10^7) = 9 \times 10^{14}\) FLOPs，训练时间 \(t = \frac{9 \times 10^{14}}{2 \times 10^{13}} = 45\) 秒。单张 T4 完全足以在不到一分钟内完成基础预训练闭环。
+
+  </p>
+
+</div>
+
+`
+
+});
+
+
+/* --- content/12-network.js --- */
+/* content/12-network.js — 模块 12：反封禁网络架构 */
+COURSE.register({
+  id: "m12",
+  part: 5,
+  num: "12",
+  title: "网络架构：住宅 IP、Tailscale 与本地代理",
+  en: "Networking, Residential IP & Local Proxy",
+  minutes: 35,
+  tags: ["系统", "网络", "风险"],
+  body: String.raw`
+<p class="lead">
+  这一模块讲的是「让你的请求看起来像一个人」的工程问题。
+  内容来自访谈记录中的自建架构：一台家用机器、一条住宅 IP、一个 Tailscale 覆盖网、若干个 OAuth 会话。
+  <strong>先读最后的合规与安全提示，再决定要不要搭。</strong>
+</p>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>问题</h4>
+  <p>
+    你有多个账号、若干台设备（笔记本、服务器、CI 机器）。如果每台设备各自直连平台，
+    就会出现「同一账号从多个国家/IP 并发认证」的痕迹，触发风控；而如果全部来自一台云主机，
+    又会掉进数据中心 IP 的特征里。怎么设计既安全又可用？
+  </p>
+</section>
+
+<h3>1. 为什么 IP 会成为问题</h3>
+<table class="tbl">
+  <thead><tr><th>风险信号</th><th>机制</th><th>典型后果</th></tr></thead>
+  <tbody>
+    <tr><td><strong>数据中心 IP 段</strong></td><td>AWS / Hetzner / DigitalOcean 等云厂商的地址段被广泛用于代理转售与批量抓取（含模型蒸馏）</td><td>认证请求直接被标记，账号受限或封禁</td></tr>
+    <tr><td><strong>多 IP 认证碰撞</strong></td><td>同一账号在短时间内从多个地理位置发起认证与并发请求</td><td>自动化风险标记，触发验证或限权</td></tr>
+    <tr><td><strong>设备指纹不一致</strong></td><td>客户端版本、时区、语言与 IP 地理不匹配</td><td>累积为可疑度评分</td></tr>
+    <tr><td><strong>流量形态异常</strong></td><td>极高的并发、规律的固定间隔请求</td><td>被识别为自动化滥用</td></tr>
+  </tbody>
+</table>
+<p>
+  记录中的结论很直接：<strong>所有出站请求应汇聚到一条来自家庭网络的住宅 IP</strong>。
+  住宅 IP 之所以「干净」，是因为它属于普通宽带用户，不与批量转售、蒸馏抓取的行为模式强相关。
+</p>
+
+<h3>2. 记录中的拓扑</h3>
+<table class="tbl">
+  <thead><tr><th>网络节点</th><th>物理规格</th><th>关键协议/配置</th></tr></thead>
+  <tbody>
+    <tr><td>家庭出口网关</td><td>单个住宅公网 IPv4/v6</td><td>DDNS 动态域名解析 + 端口映射 (NAT)</td></tr>
+    <tr><td>内部宿主机</td><td>Ubuntu 物理工作站</td><td>SSH 密钥硬认证 (Ed25519) + 禁用密码登录</td></tr>
+    <tr><td>外网访问客户端</td><td>便携笔记本 (macOS/Win)</td><td>WireGuard VPN / Tailscale 点对点加密通道</td></tr>
+  </tbody>
+</table>
+<dl class="kv">
+  <dt>住宅网关</dt><dd>家里的一台机器，唯一出口；运行代理守护进程，管理 5–10 个账号的 OAuth 会话</dd>
+  <dt>Tailscale 覆盖网</dt><dd>基于 WireGuard 的 mesh，把笔记本、家庭节点、远程服务器组成一个私有网络</dd>
+  <dt>客户端</dt><dd>笔记本只做 UI，<strong>不直接持有模型凭据</strong>；所有推理请求经覆盖网回到住宅网关</dd>
+</dl>
+
+<h3>3. 代理守护进程做四件事</h3>
+<ol>
+  <li><strong>OAuth 会话管理</strong>：通过 OAuth 登录各平台的 CLI 工具，持久刷新 token，避免频繁重新认证。
+      对外暴露一个<strong>本地、兼容 Bedrock / OpenAI 协议</strong>的 HTTP 端点。</li>
+  <li><strong>改写上游端点</strong>：Claude Code 与 Codex 这类 CLI 原生支持为「企业 AWS Bedrock 用户」配置自定义 API base URL。
+      于是可以把上游地址<strong>指向本地代理</strong>，而不需要修改客户端代码——这是整个方案的关键接口。</li>
+  <li><strong>智能到期路由</strong>：默认代理是轮询；记录中的改进是<strong>按重置窗口排序</strong>——
+      优先使用「即将到期」的账号（例如 12 小时后重置的先用满，再去动还有 4 天的）。</li>
+  <li><strong>账号亲和（session affinity）</strong>：把每个对话线程固定到同一个账号（原因见第 5 节）。</li>
+</ol>
+
+<h3>4. 绑定方式：只挂在 tailnet 上</h3>
+<ul>
+  <li>代理监听在家庭机器上（记录中的示例是 <code>bb1.micro.ts.net:318</code>），<strong>只绑定到 Tailscale 网络</strong>。</li>
+  <li><strong>不做任何公网端口转发</strong>，因此没有暴露面。</li>
+  <li><strong>不需要自建 API key</strong>：访问控制由 Tailscale 的身份层完成（只有你的设备在网内）。</li>
+  <li>代价：所有流量都要绕回家里；家庭宽带上行带宽与断网风险就是你的可用性上限。</li>
+</ul>
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>安全底线</h4>
+  <ul>
+    <li>OAuth token 等同于账号密码。<strong>不要</strong>把它写进公开仓库、贴进聊天、或放进客户端配置里共享。</li>
+    <li>Tailscale 的 ACL 要限制哪些设备能访问代理端口；不要用 <code>--shields-up=false</code> 之类的宽松配置。</li>
+    <li>「不需要 API key」是<strong>因为网络身份层已经鉴权</strong>，不是因为没有鉴权。把该端口暴露到公网等于把账号送人。</li>
+    <li>多账号在同一台机器上缓存凭据，一旦机器被入侵，全部账号同时失守。做好磁盘加密与最小权限。</li>
+  </ul>
+</section>
+
+<h3>5. 账号亲和：一个 80 万 token 的教训</h3>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>为什么切换账号会「很贵」</h4>
+  <p>
+    Anthropic 的提示缓存（prompt cache）存活时间约为 <strong>5 分钟</strong>，并且<strong>绑定到具体账号</strong>。
+    如果在同一个线程中途切换账号（或同一批顺序工具调用之间切换），缓存随之失效：
+  </p>
+  \[ \text{rewrite cost} \approx c_{\text{in}} \times T_{\text{prefix}}, \qquad T_{\text{prefix}} \le 8\times10^{5}\ \text{tokens} \]
+  <p>
+    记录中的表述是：切换账号会强制重写高达 80 万 token 的前缀。
+    因此代理<strong>必须把每个会话固定到同一账号</strong>——
+    这与第 4 节「按到期时间优先」的策略是<em>相互冲突</em>的两个目标，需要按「先亲和、再在账号内部调度」的顺序处理。
+  </p>
+</section>
+<p>
+  同理，任何<strong>负载均衡</strong>（哪怕是同一账号的多实例）都会击穿前缀缓存。
+  正确顺序是：<em>先保证线程级亲和，再在可用的账号集合里做到期时间优先；永远不要在线程中途切换。</em>
+</p>
+
+<h3>6. 长连接：把 WebSocket 用起来</h3>
+<p>
+  记录中的观察：走原始 HTTP 代理时，每个请求都要重新握手，累积成可观的延迟；
+  把代理改为<strong>维持长连接（持久 WebSocket）</strong>后，往返开销显著下降。
+</p>
+<p>
+  通用原则：<strong>高频、小载荷、固定对端的调用，应该复用连接</strong>。
+  这与数据库连接池、HTTP/2 多路复用是同一个工程直觉，只是应用在了模型 API 上。
+</p>
+
+<h3>7. 合规判断（必读）</h3>
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>这套架构的合法用途与红线</h4>
+  <p><strong>技术本身是中性的</strong>：用 Tailscale 把自己的设备连起来、给自家 CLI 工具配一个本地代理，是正常的自托管实践。</p>
+  <ul>
+    <li><strong>可以</strong>：管理自己的多个账号、把家庭网络作为唯一出口、在多台自有设备间共享一个本地端点、为自己做实验。</li>
+    <li><strong>不可以</strong>：把额度转售或提供给第三方；把个人订阅当作面向公众的产品后端；用自动化批量抓取输出用于模型蒸馏。</li>
+    <li><strong>灰色地带</strong>：用多个账号的「个人额度」承载远超个人使用强度的自动化负载。即使技术上可行，也可能被判定为滥用。</li>
+  </ul>
+  <p><em>平台条款与风控策略持续变化。本模块只解释机制与权衡；是否搭建、如何配置，需要你自行核对官方条款并承担后果。详见附录 D。</em></p>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>以后可以安全迁移到 crossfade 这类项目的部分</h4>
+  <ul>
+    <li><strong>单一出口 + 私有覆盖网</strong>：把「训练机 / 笔记本 / CI」统一到一个私有网络，所有外部调用走同一条路径——这在任何云上都是良构做法。</li>
+    <li><strong>协议兼容的本地端点</strong>：把「模型调用」抽象成本地 HTTP 服务，换供应商时只改一个地址。这对以后做这类实验的复现性有直接好处。</li>
+    <li><strong>缓存亲和性</strong>：任何有状态缓存（前缀缓存、编译缓存、特征缓存）都应避免被随机调度打散。</li>
+    <li><strong>成本可见性</strong>：给每个任务打上标签，统计 token 消耗。没有计量就没有优化。</li>
+  </ul>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">为什么记录中的架构要求「所有出站请求汇聚到一条住宅 IP」？</p>
+  <ul class="opts">
+    <li>因为住宅宽带更快</li>
+    <li data-ok>数据中心 IP 段与代理转售、批量抓取等滥用行为相关，容易被风控标记；多地点并发认证同样会触发风险</li>
+    <li>因为平台按 IP 计费</li>
+    <li>因为 Tailscale 只能用于住宅网络</li>
+  </ul>
+  <p class="why">
+    风控看的是行为特征与来源的一致性。住宅 IP、单一出口、设备一致，才构成「一个真实用户」的画像。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">代理把对话线程在中途切换到另一个账号，最直接的代价是什么？</p>
+  <ul class="opts">
+    <li>输出质量下降</li>
+    <li data-ok>提示缓存失效（缓存绑定账号、存活约 5 分钟），需要重写可能高达数十万 token 的前缀</li>
+    <li>会被立即封号</li>
+    <li>会话历史丢失</li>
+  </ul>
+  <p class="why">
+    前缀缓存按账号与逐 token 前缀匹配。切换账号等于让缓存全部作废，
+    于是你为同一段前缀付两次输入费用，并且首 token 延迟上升。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 3</div>
+  <p class="q">「把代理只绑定到 Tailscale tailnet、不做公网端口转发、不设 API key」这一组合的安全性来自哪里？</p>
+  <ul class="opts">
+    <li>来自端口号不容易被猜到</li>
+    <li data-ok>来自网络身份层：只有加入 tailnet 且通过 ACL 的设备能访问，攻击面不暴露在公网</li>
+    <li>来自请求频率限制</li>
+    <li>来自操作系统的防火墙默认规则</li>
+  </ul>
+  <p class="why">
+    这是「零信任覆盖网」的典型用法：鉴权从应用层移到网络层。
+    但前提是 ACL 正确、设备本身可信；一旦端口暴露到公网，这个前提立刻消失。
+  </p>
+</div>
+
+<div class="acc" data-t="深入：如果你不想搭这套东西" data-badge="替代">
+  <div class="acc-body">
+    <p>同一批工程目标（单一出口、凭据集中、缓存亲和、成本可见），有成本低得多的实现：</p>
+    <ol>
+      <li><strong>单机 + 环境变量</strong>：只在一台机器上配置 CLI 工具，其他设备通过 SSH 使用它。零新组件。</li>
+      <li><strong>Tailscale 直连 + 反向代理</strong>：用 <code>tailscale serve</code> 暴露本地端口，不用自己写守护进程。</li>
+      <li><strong>凭据集中管理</strong>：用系统钥匙串 / 1Password CLI 注入环境变量，避免明文 token 落盘。</li>
+      <li><strong>不池化账号</strong>：如果你只有一个账号（例如只用 Codex Plus + Colab），第 12 模块的大部分复杂度都不需要——
+          你只需要「固定出口 + 缓存亲和」这两条。</li>
+    </ol>
+    <p><strong>决策建议</strong>：先问「我到底需要几个账号」。多数个人研究者的答案是 1–2 个，
+    此时自建代理的收益远小于它带来的安全与合规负担。</p>
+  </div>
+</div>
+`
+});
+
+/* --- content/13-resets.js --- */
+/* content/13-resets.js — 模块 13：实验流水线与断点调度 */
+COURSE.register({
+  id: "m13",
+  part: 5,
+  num: "13",
+  title: "实验流水线与断点调度：会话超时、检查点续训与早停决策",
+  en: "Experiment Pipeline: Checkpointing, Runtime Resumption & Early Stopping",
+  minutes: 25,
+  tags: ["流水线", "检查点", "早停", "断点续训"],
+  body: String.raw`
+<p class="lead">
+  在 Kaggle Notebooks（提供双卡 T4 ×2 / 单卡 T4，每周 30 小时免费 GPU）开展深度学习实验时，<strong>会话随时可能因网络抖动或超时机制而被迫重置</strong>。
+  真正的工程素养不在于祈祷环境永不断线，而在于设计<strong>坚不可摧的检查点持久化（Checkpointing）与优雅恢复流水线</strong>，
+  同时建立<strong>严格的早停（Early Stopping）决策准则</strong>，不在注定发散的实验上白白耗费宝贵的探索时间。
+</p>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>核心痛点：辛辛苦苦跑了 2 小时，浏览器一刷新全没了？</h4>
+  <p>
+    几乎所有在云端训练模型的初学者都经历过这种绝望：训练跑了 8000 个 step，眼看就要收敛，临时容器突然断开连接，保存在本地 <code>/tmp</code> 或当前目录的权重全部化为乌有。
+    本模块教你如何将状态存储与训练循环彻底解耦，做到随时断线、随时一键原地满血复活。
+  </p>
+</section>
+
+<h3>1. 完整的训练检查点（Checkpoint）到底包含什么？</h3>
+<p>
+  许多人误以为断点续训只要保存模型的权重矩阵 <code>model.state_dict()</code> 就够了。
+  <strong>大错特错！</strong>只恢复权重会导致优化器丢失所有的历史动量与学习率状态，直接造成接续训练时的损失剧烈震荡跳变。
+  一个生产级严密的 Checkpoint 必须打包以下四项：
+</p>
+
+<table class="tbl">
+  <thead><tr><th>组件</th><th>包含内容</th><th>若遗漏的致命后果</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>模型参数（Model Weights）</strong></td>
+      <td>各层可学习权重与偏置（\(\mathbf{W}, \mathbf{b}\)）</td>
+      <td>模型回到初始随机状态，前功尽弃</td>
+    </tr>
+    <tr>
+      <td><strong>优化器状态（Optimizer State）</strong></td>
+      <td>AdamW 的一阶动量 \(\mathbf{m}_t\) 与二阶动量 \(\mathbf{v}_t\)</td>
+      <td>动量归零，接续训练时步长突变，导致 Loss 曲线瞬间剧烈尖刺（Spike）甚至发散</td>
+    </tr>
+    <tr>
+      <td><strong>学习率调度器（LR Scheduler）</strong></td>
+      <td>当前已经执行的 <code>step</code> 与所处的 Warmup/Decay 衰减阶段</td>
+      <td>学习率可能被重置为初始峰值，使接近收敛的模型被超大学习率瞬间“震毁”</td>
+    </tr>
+    <tr>
+      <td><strong>混合精度缩放器（GradScaler）</strong></td>
+      <td>FP16 训练时的动态损失放大系数 <code>scaler.state_dict()</code></td>
+      <td>出现数值溢出（Overflow）或下溢，导致梯度变为 NaN</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>2. 工业标准断点续训代码范式</h3>
+<p>
+  在 Kaggle Notebooks 环境中，标准持久化输出路径为 <code>/kaggle/working/</code>。自动轮转 Checkpoint 代码应当如下组织：
+</p>
+
+<p><strong>断点原子化保存微算子演示：</strong></p>
+<p>\[ \mathcal{S}_t = \left( \Theta_t, M_t, V_t, t, \mathcal{R}_{\text{rng}} \right) \xrightarrow{\text{Atomic Write}} \text{Storage}_{\text{persistent}} \]</p>
+<p>
+  <strong>逐行解析</strong>：保存断点必须将模型权重与优化器内部一阶/二阶动量状态一同打包序列化至 <code>/kaggle/working/</code>；如果遗漏优化器状态，恢复训练时由于历史动量归零，极易导致单步梯度方向突变、损失剧烈跳跃甚至梯度爆炸。
+</p>
+
+<h3>3. 早停法（Early Stopping）：避开沉没成本谬误</h3>
+<p>
+  在探索自训模型时，最浪费精力的事情不是断线，而是<strong>明知道模型已经发散或严重过拟合，却依然让它继续空转跑完全程</strong>。
+  科学的训练流水线必须设定清晰的早停准则（Early Stopping Rule）：
+</p>
+<table class="tbl small">
+  <thead><tr><th>诊断信号</th><th>底层物理原因</th><th>果断决策行动</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>初始 Loss 为 NaN 或 Inf</strong></td>
+      <td>学习率过高引发梯度爆炸，或数值除零/Log 越界</td>
+      <td><strong>立即终止</strong>：检查是否遗漏 Softmax 数值稳定性减 Max 处理，或将学习率缩小 3~5 倍</td>
+    </tr>
+    <tr>
+      <td><strong>Warmup 结束后验证集 Loss 连续 3 次不降反升</strong></td>
+      <td>模型容量不足以记忆语料，或严重过拟合于噪声数据</td>
+      <td><strong>果断停机</strong>：启用 Weight Decay 权重衰减，或缩减模型层数、增加数据清洗</td>
+    </tr>
+    <tr>
+      <td><strong>Loss 曲线长时间水平停滞（Plateau）</strong></td>
+      <td>学习率衰减过早、梯度消失或进入极浅鞍点</td>
+      <td><strong>检查梯度范数</strong>：若 \(\|\mathbf{g}\| \approx 0\)，调整学习率调度器或检查残差连接</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">在自回归模型断点续训时，为什么不能只加载模型权重，而必须同时恢复 AdamW 优化器的状态？</p>
+  <ul class="opts">
+    <li>因为不恢复优化器代码会报错崩溃</li>
+    <li data-ok>AdamW 依赖历史的一阶动量与二阶方差来平滑梯度；若重置为零，更新步长会发生突变，容易引发损失跳变甚至梯度爆炸</li>
+    <li>为了让模型能自动识别词表大小</li>
+    <li>因为优化器状态里存储了上下文序列长度</li>
+  </ul>
+  <p class="why">
+    AdamW 更新量取决于 \(\frac{\mathbf{m}_t}{\sqrt{\mathbf{v}_t} + \epsilon}\)。如果不恢复 \(\mathbf{m}_t\) 与 \(\mathbf{v}_t\)，相当于从冷启动重新估计方差，会导致短时间内更新步长剧烈抖动。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">在 Kaggle Notebooks 云端环境上运行长时间模型训练，防范会话意外断开最有效、最关键的措施是？</p>
+  <ul class="opts">
+    <li>始终开着网页不关电脑</li>
+    <li data-ok>在训练循环中定期将模型与优化器打包保存至外部挂载的持久存储（如 Kaggle 的 <code>/kaggle/working</code> 或 Hugging Face Hub 私有仓库）</li>
+    <li>多开几个不同的浏览器窗口</li>
+    <li>只在晚上无人使用时运行</li>
+  </ul>
+  <p class="why">
+    临时云端实例的本地磁盘是易失性的，唯有将权重外存到持久化网络存储中，才能保证断开重连后无损恢复。
+  </p>
+</div>
+`
+});
+
+/* --- content/14-workflow.js --- */
+/* content/14-workflow.js — 模块 14：工作流与多线程舰队 */
+COURSE.register({
+  id: "m14",
+  part: 5,
+  num: "14",
+  title: "工作流：85/15 规则与多线程智能体舰队",
+  en: "Workflow & Multi-Thread Fleet Management",
+  minutes: 35,
+  tags: ["工作流", "智能体", "系统"],
+  body: String.raw`
+<p class="lead">
+  前面十三模块讲的是「模型怎么工作」。这一模块讲「人怎么用模型工作」——
+  访谈记录里最有价值的部分不是技术细节，而是一整套把智能体当工程团队管理的操作规范。
+</p>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>问题</h4>
+  <p>
+    大多数人用 AI 的方式是：写一段提示、等它吐代码、复制粘贴、发现问题、再问一次。
+    这种方式的天花板很低，因为<strong>瓶颈从来不是「生成代码」，而是「确认代码是对的」</strong>。
+    记录中的整套工作流，本质上就是把算力从「写」重新分配到「验」。
+  </p>
+</section>
+
+<h3>1. 85/15 规则：把 token 花在验证上</h3>
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>记录中的分配</h4>
+  <ul>
+    <li><strong>10–15% 的 token</strong>：写实际的代码改动。</li>
+    <li><strong>85–90% 的 token</strong>：跑测试、类型检查、编译、边界情况验证、自动化代码审查。</li>
+  </ul>
+  <p>
+    为什么这个比例是理性的？因为<em>代码的正确性无法由生成本身保证</em>。
+    智能体可以在一分钟内产出 300 行看起来完全合理的代码，其中可能藏着三个边界错误。
+    把 85% 的预算投在验证上，等于用极低的边际成本买到「可以信任的产出」。
+  </p>
+</section>
+<p>可操作的含义（以后做 crossfade 这类项目时可直接套用）：</p>
+<ul>
+  <li>每次让智能体改代码，都<strong>同时</strong>要求它写/更新对应的测试，并跑一遍。</li>
+  <li>把「运行结果」作为验收标准写进提示，而不是「看起来对不对」。</li>
+  <li>数值实验必须<strong>打印中间量</strong>（loss、梯度范数、RMSE、p 值），而不是只给一句「已完成」。</li>
+</ul>
+
+<h3>2. 15 秒回滚规则</h3>
+<p>
+  记录中的标准：<strong>如果一个坏 PR 的回滚需要超过 15 秒，人工审查就会成为速度瓶颈。</strong>
+  这句话把「部署速度」翻译成了一个可度量的工程约束。
+</p>
+<table class="tbl small">
+  <thead><tr><th>环节</th><th>慢（&gt;15 秒）</th><th>快（&lt;15 秒）</th></tr></thead>
+  <tbody>
+    <tr><td>回滚手段</td><td>手工改代码、重新构建、手动部署</td><td>一条命令：<code>git revert</code> + 自动部署，或切换 feature flag</td></tr>
+    <tr><td>后果</td><td>没人愿意频繁合并 → 大批量合并 → 冲突与回归风险升高</td><td>小步快跑，坏改动瞬间消失</td></tr>
+  </tbody>
+</table>
+<p>
+  <strong>迁移到研究工作流</strong>：你的实验也要有「15 秒回滚」——
+  每个实验都在独立分支/目录里跑，配置写在 <code>config.yaml</code>，
+  坏结果一键丢弃，好结果一键复现。<em>这不是为了快，而是为了让「尝试」的心理成本足够低。</em>
+</p>
+
+<h3>3. 前置问题，而不是前置方案</h3>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>记录中的核心建议</h4>
+  <p>
+    开发者常花几天时间规划实现步骤，然后才交给智能体。
+    更好的做法是<strong>直接把原始问题丢过去</strong>：完整的错误日志、截图、用户的原始抱怨。
+    如果智能体十分钟就解决了，你同时省下了「自己规划的时间」和「多轮迭代的 token」。
+  </p>
+</section>
+<table class="tbl small">
+  <thead><tr><th>低效做法</th><th>高效做法</th></tr></thead>
+  <tbody>
+    <tr><td>「我打算先改 A，再改 B，你觉得呢？」</td><td>「这是失败日志全文与复现命令，找出根因并修复，附上验证方式。」</td></tr>
+    <tr><td>凭印象描述报错</td><td>粘贴完整堆栈 + 环境版本 + 最近一次改动的 diff</td></tr>
+    <tr><td>先问「应该怎么做」</td><td>「先复现问题，再给出最小修复，最后说明你排除了哪些假设。」</td></tr>
+  </tbody>
+</table>
+<p><em>限制条件</em>：前置问题只在你有可靠验证手段时有效。否则智能体会给你一个「看起来很对」的修复，而你没有能力判断——这是第 1 节 85/15 规则的另一个理由。</p>
+
+<h3>4. 管理式提示：像给工程师下任务一样</h3>
+<div class="flow">
+  <div class="nd hi">目标</div><div class="ar">→</div>
+  <div class="nd">验收标准</div><div class="ar">→</div>
+  <div class="nd">约束</div><div class="ar">→</div>
+  <div class="nd">交付物</div><div class="ar">→</div>
+  <div class="nd hi">只在真正卡住时介入</div>
+</div>
+<div class="blk blk-tip">
+  <h4><span class="ic">📋</span>科学任务模板规范</h4>
+  <p><strong>明确目标</strong>：明确定义任务与假设检验目标。</p>
+  <p><strong>验收标准</strong>：定义可执行验证脚本与客观评估指标收敛阈值。</p>
+</div>
+<p>
+  <strong>关键区别</strong>：给<em>验收标准</em>而不是给<em>实现步骤</em>。前者让智能体自己选择路径并自我检查，
+  后者把它降级成一个打字机，同时把你锁进一个可能错误的方案里。
+</p>
+
+<h3>5. Thread 是待办事项，不是聊天记录</h3>
+<ul>
+  <li><strong>Thread 即任务</strong>：一个线程对应一件可完成的事（一个 bug、一个实验、一个重构）。</li>
+  <li><strong>Settle（归档）</strong>：任务完成或合并后立刻归档，保持侧边栏「收件箱为零」。</li>
+  <li><strong>为什么重要</strong>：长期混杂的线程会把上下文稀释，让模型和人都失去焦点。
+      记录中的做法是把线程当<em>易逝的 to-do</em>，而不是<em>积累的历史</em>。</li>
+  <li><strong>对照实验</strong>：一个包含三次不同任务的长线程，最终会让模型在同一段上下文里混淆目标；
+      三个短线程则各自干净。这与「上下文窗口里塞进无关内容会降低表现」是同一件事。</li>
+</ul>
+
+<h3>6. Git worktree：并行的物理隔离</h3>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>为什么每个线程要有自己的工作树</h4>
+  <p>
+    两个智能体同时改同一个工作目录，会产生三类灾难：
+    文件互相覆盖、<code>git add</code> 把对方的半成品一起提交、以及索引锁竞争。
+    记录中的做法是<strong>每个并发线程一个 git worktree</strong>，
+    等价于「每个任务一个独立沙箱」。
+  </p>
+</section>
+<table class="tbl">
+  <thead><tr><th>工作流模式</th><th>核心价值</th><th>操作规范</th></tr></thead>
+  <tbody>
+    <tr><td>分支隔离</td><td>避免正在跑的长任务被临时代码改动污染</td><td>每个独立实验建立专门的分支</td></tr>
+    <tr><td>快照记录</td><td>保留每次实验的完整超参数与随机种子</td><td>生成固化的元数据文件 <code>config.json</code></td></tr>
+  </tbody>
+</table>
+<p>
+  worktree 的关键优势：<strong>共享对象库</strong>（不重复占磁盘），但<strong>索引与工作目录独立</strong>（无锁竞争）。
+  这在你的场景里尤其合适：一个工作树跑实验、一个改课程内容、一个整理笔记。
+</p>
+
+<h3>7. 端到端任务链：不要「写完就停」</h3>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>记录中的写法</h4>
+  <p>
+    「构建功能、在 Tailscale 上起一个预览部署、开 PR、然后盯着 PR 与 CI 直到全部通过。」
+  </p>
+  <p>
+    要点是<strong>把「验证」也交给智能体</strong>，而不是让它「写代码然后等人批准」。
+    这与 85/15 规则一致：验证占了大部分价值，就不应该由人来手动串行。
+  </p>
+</section>
+<p>以 crossfade 这类任务为例，可以写成这样的链条（你以后可以照此套用）：</p>
+<ol>
+  <li>在独立实验环境中验证算法与损失收敛性。</li>
+  <li>汇总评估报告，导出核心 Loss 下降曲线与 Perplexity 数据。</li>
+  <li>提交成果并在归档分支打上版本标签。</li>
+</ol>
+
+<h3>8. 后台派发与远程卸载</h3>
+<dl class="kv">
+  <dt>后台派发</dt><dd>记录中的界面操作是 <code>Cmd + Enter</code>：把提示异步派发到后台，光标留在输入框，立刻可以开下一个线程。
+      这正是「舰队」的操作节奏——你的时间用于<em>定义任务</em>，不是<em>观看生成</em>。</dd>
+  <dt>半透明渲染</dt><dd>运行中的线程在侧边栏半透明显示，<strong>刻意降低你盯着流式输出的诱惑</strong>。
+      盯着看不会让结果更好，只会占用你的注意力。</dd>
+  <dt>远程节点</dt><dd><code>npx t3 connect</code> / <code>npx t3 serve</code> 把远程无头节点通过 Tailscale 暴露出来，
+      于是你可以从笔记本甚至手机派发任务到远端 Linux 机器上执行。</dd>
+  <dt>为什么值得</dt><dd>把「重活」放到一直开机的机器上，笔记本只做交互与审查；同时保持单一出口（模块 12）。</dd>
+</dl>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>多线程舰队的三个反模式</h4>
+  <ol>
+    <li><strong>并发写同一处</strong>：没有 worktree 隔离就并行，最后合并成本高于收益。</li>
+    <li><strong>验收标准模糊</strong>：十个线程产出十份「看起来不错」的结果，你逐一 review 的时间超过自己写。</li>
+    <li><strong>只增不减</strong>：任务池只进不出。必须定期 Settle 与删除废弃分支，否则你会被自己的产出淹没。</li>
+  </ol>
+</section>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
+  <p>
+    crossfade 这类题目有天然可并行的五条线：<strong>数学推导</strong>（人做）、<strong>DSP 实现</strong>、
+    <strong>客观测量</strong>（LUFS/谱通量脚本）、<strong>听测组织</strong>（受试者与问卷）、
+    <strong>写作与图表</strong>。前四条都可以各占一个 worktree 与一个线程，
+    你只在「数学假设是否需要修改」这个真正需要判断的节点介入。
+    <em>这就是 85/15 规则在数学题目上的具体形式（以后可照此分工）。</em>
+  </p>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">85/15 规则的实质是把算力预算从「生成」重新分配到「验证」。它成立的前提是？</p>
+  <ul class="opts">
+    <li>模型生成本身不可靠</li>
+    <li data-ok>验证的边际成本远低于生成错误的边际成本，且验证结果可自动化判定</li>
+    <li>验证不需要理解代码</li>
+    <li>生成代码太便宜了</li>
+  </ul>
+  <p class="why">
+    如果验证无法自动化（只能靠人肉判断），85/15 就退化成「把负担推给人」。
+    所以规则的正确用法是：<strong>先建立可自动判定的验收标准（测试、指标、断言），再让它自己迭代。</strong>
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">「15 秒回滚规则」真正想保护的是什么？</p>
+  <ul class="opts">
+    <li>服务器的稳定性</li>
+    <li data-ok>小步合并的节奏：回滚足够快，人才敢频繁合并，坏改动的影响面才小</li>
+    <li>CI 的成本</li>
+    <li>代码的整洁度</li>
+  </ul>
+  <p class="why">
+    回滚慢 → 没人愿意频繁合并 → 批量合并 → 冲突与回归风险上升。
+    规则表面上在讲速度，实际在保护<strong>开发节奏</strong>。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 3</div>
+  <p class="q">为什么每个并发线程要用独立的 git worktree，而不是各自 clone 一份？</p>
+  <ul class="opts">
+    <li>因为 clone 更慢</li>
+    <li data-ok>worktree 共享对象库（省磁盘、共享历史），但工作目录与索引相互独立（无锁竞争、无相互覆盖）</li>
+    <li>因为 clone 无法创建分支</li>
+    <li>因为 worktree 可以自动合并冲突</li>
+  </ul>
+  <p class="why">
+    worktree 恰好提供了需要的隔离粒度：<em>共享仓库对象</em>但不共享工作区。
+    多个 clone 会浪费磁盘并让历史同步变成额外工作。
+  </p>
+</div>
+
+<div class="acc" data-t="深入：把「管理式提示」写成检查清单" data-badge="模板">
+  <div class="acc-body">
+    <ol>
+      <li><strong>目标</strong>：一句话说清最终状态（可验收的名词，而不是动作）。</li>
+      <li><strong>证据</strong>：原始日志 / 复现命令 / 数据位置 / 相关文件路径。</li>
+      <li><strong>验收标准</strong>：具体到命令与输出（「跑 <code>python run.py</code> 输出 RMSE 与 p 值」）。</li>
+      <li><strong>约束</strong>：允许的库、随机种子、不得触碰的目录、时间预算。</li>
+      <li><strong>交付物</strong>：diff、日志、图、报告文件。</li>
+      <li><strong>停止条件</strong>：什么情况下必须回来问人（例如「需要改变研究设计」或「发现数据本身有问题」）。</li>
+    </ol>
+    <p>这六项齐全时，一个任务的返工率会显著下降；缺第 3 项（验收标准）是返工的最主要来源。</p>
+  </div>
+</div>
+`
+});
+
+/* --- content/15-hardware.js --- */
+/* content/15-hardware.js — 模块 15：硬件与操作系统瓶颈 */
+COURSE.register({
+  id: "m15",
+  part: 5,
+  num: "15",
+  title: "硬件与系统：为什么并行智能体会拖垮 macOS",
+  en: "Hardware & OS Bottlenecks",
+  minutes: 25,
+  tags: ["硬件", "系统", "成本"],
+  body: String.raw`
+<p class="lead">
+  当你同时跑 5–10 个智能体时，瓶颈通常不是模型，而是<strong>磁盘、内存、散热与操作系统的调度策略</strong>。
+  这一模块给出记录中的实测结论与背后的机制，以及你可以马上做的检查。
+</p>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>问题</h4>
+  <p>
+    同样的任务，在 macOS 笔记本上跑 5 个并发就卡顿、降频、风扇狂转；
+    换到一台几百美元的裸金属 Linux 小主机上却能稳定跑 6–10 个线程。
+    差别不在 CPU 主频，而在<strong>文件系统、安全守护进程与散热策略</strong>。
+  </p>
+</section>
+
+<h3>1. 三个平台，三种失败模式</h3>
+<table class="tbl">
+  <thead><tr><th>平台</th><th>记录中的观察</th><th>机制</th></tr></thead>
+  <tbody>
+    <tr><td><strong>macOS</strong>（高并发）</td>
+        <td>同时跑 5 个以上编码智能体会出现<strong>热降频与资源停顿</strong></td>
+        <td>APFS 的文件系统锁争用、后台安全守护进程扫描、以及并行磁盘 I/O 下的进程节流</td></tr>
+    <tr><td><strong>裸金属 Linux</strong></td>
+        <td>无头 Ubuntu（4–8 核、8–32 GB）插在家用路由器上，轻松维持 6–10 个并行线程，空闲开销接近零</td>
+        <td>文件系统与进程调度更可预测；没有强制降频的散热约束（有主动散热）</td></tr>
+    <tr><td><strong>云 VPS</strong></td>
+        <td>同等规格月费高，且数据中心 IP 带来合规与封禁风险</td>
+        <td>见下面的经济学对比</td></tr>
+  </tbody>
+</table>
+<blockquote class="callout">
+  <p><strong>关键类比</strong>：智能体工作负载的特征是「大量小文件读写 + 频繁进程创建 + 持续网络等待」。
+  这恰好是 APFS 与现代安全守护进程最不擅长的模式。GPU 或 CPU 主频在这个负载里根本不是瓶颈。</p>
+</blockquote>
+
+<h3>2. 云 VPS 的经济学陷阱</h3>
+<section class="blk blk-eco">
+  <h4><span class="ic">◈</span>记录中的对比</h4>
+  <table class="tbl small">
+    <thead><tr><th>方案</th><th>成本</th><th>IP 风险</th><th>回本周期</th></tr></thead>
+    <tbody>
+      <tr><td>云 VPS（Hetzner 级，16 核 / 32 GB）</td><td>约 $275 / 月</td><td>数据中心 IP，有封禁风险</td><td>永不回本（持续支出）</td></tr>
+      <tr><td>自购迷你主机（32 GB）</td><td>约 $700 一次性</td><td>接在家用网络上 → 住宅 IP</td><td><strong>不到 3 个月</strong>（对比 $275/月）</td></tr>
+    </tbody>
+  </table>
+  <p>
+    计算很简单：\(700 / 275 \approx 2.5\) 个月。这也解释了模块 12 里「住宅网关」的价值——
+    它不仅更便宜，还顺带解决了 IP 画像问题。
+  </p>
+</section>
+<p><strong>但要加上被忽略的成本</strong>：电费（一台 32 GB 小主机满载约 30–60 W，按 \$0.2/kWh 计约 \$5–9/月）、
+噪音与散热位置、以及家用宽带断网时的可用性风险。
+即便如此，长期成本仍显著低于同规格 VPS。</p>
+
+<h3>3. 把重编译卸载出去（CI offloading）</h3>
+<p>
+  记录中的建议：对资源密集的编译（例如多 crate 的 Rust 构建），
+  把构建放到<strong>专用 runner</strong>（Blacksmith CLI 或 GitHub Actions）上执行，
+  避免本地内存被吃光而阻塞其他线程。
+</p>
+<table class="tbl small">
+  <thead><tr><th>任务类型</th><th>本地跑</th><th>卸载到 CI</th></tr></thead>
+  <tbody>
+    <tr><td>快速单元测试（&lt; 30 秒）</td><td>✅ 保留在本地，反馈最快</td><td>—</td></tr>
+    <tr><td>多平台/多版本矩阵测试</td><td>❌ 本地资源不足</td><td>✅ 天然并行</td></tr>
+    <tr><td>大型编译（Rust/C++、Docker 镜像）</td><td>❌ 会挤爆内存</td><td>✅ 有缓存层，反而更快</td></tr>
+    <tr><td>需要 GPU 的训练</td><td>小规模可以</td><td>✅ 但单价高（见模块 10）</td></tr>
+  </tbody>
+</table>
+<p><strong>以后做 crossfade 这类项目时</strong>：音频实验脚本通常很轻，不需要 CI 卸载；但「批量渲染 100 段过渡 + 计算指标」这类任务适合写成脚本交给 CI 或后台任务，
+这样你的交互式设备始终保持可响应。</p>
+
+<h3>4. 如果你现在只有一台 Windows 或 macOS 机器</h3>
+<table class="tbl">
+  <thead><tr><th>平台</th><th>立刻可做的三件事</th></tr></thead>
+  <tbody>
+    <tr><td><strong>macOS</strong></td>
+        <td>
+          1) 把并发线程数控制在 <strong>3–4 个</strong>（记录中 5+ 就会触发热降频）；<br />
+          2) 把工作目录放在内置 SSD，避开外接盘与网络盘；<br />
+          3) 给持续任务设置 <code>caffeinate</code> 防止睡眠中断，并监控 <code>powermetrics</code> 的温度与降频。
+        </td></tr>
+    <tr><td><strong>Windows</strong></td>
+        <td>
+          1) 用 <strong>WSL2</strong> 跑 Linux 工具链，并且<em>把仓库放在 WSL 的原生文件系统里</em>
+             （例如 <code>/home/you/projects</code>），<strong>不要</strong>放在 <code>/mnt/c/...</code>——跨文件系统 I/O 会慢一个数量级；<br />
+          2) 在 Windows 安全中心里为项目目录与 WSL 虚拟磁盘添加排除项，避免实时扫描拖慢大量小文件读写；<br />
+          3) 限制并发与内存（<code>.wslconfig</code> 里的 <code>memory=</code>），把重活交给后台或远程节点。
+        </td></tr>
+    <tr><td><strong>Linux 主机</strong></td>
+        <td>
+          1) 把并发线程数设为「物理核数 − 1」；<br />
+          2) 用 <code>htop</code> / <code>iostat -x 1</code> 确认瓶颈到底是 CPU、内存还是磁盘；<br />
+          3) 大编译与 CI 卸载出去，本地只留交互式任务。
+        </td></tr>
+  </tbody>
+</table>
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>不要凭感觉优化</h4>
+  <p>
+    「换机器」通常是最后手段。先量化：在卡顿发生时看<strong>磁盘队列长度、内存压力、CPU 降频与交换分区使用</strong>。
+    智能体负载的瓶颈往往是<em>磁盘 I/O 与内存</em>，而不是 CPU 主频——
+    给一台老机器加内存或换 NVMe，往往比换整台机器更划算。
+  </p>
+</section>
+
+<h3>5. 你的最优配置（按预算分档）</h3>
+<table class="tbl small">
+  <thead><tr><th>预算</th><th>建议</th><th>能支撑</th></tr></thead>
+  <tbody>
+    <tr><td>0（现有设备）</td><td>WSL2 / 原生 Linux + 把仓库放对文件系统 + 并发 ≤ 4</td><td>3–4 个并行线程、全部课程实验（除多设备 SPMD）</td></tr>
+    <tr><td>≈ $700</td><td>32 GB 内存的迷你主机 / NUC 级机器，接家用路由器</td><td>6–10 个并行线程、作为住宅网关（模块 12）</td></tr>
+    <tr><td>≈ $1500–2500</td><td>带独显（12–16 GB 显存）的工作站</td><td>本地 LoRA 微调、推理实验</td></tr>
+    <tr><td>按小时</td><td>云 GPU（A100 级），只在需要时开</td><td>一次性大实验；注意合规与成本</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>与未来这类项目的关系（学完就知道以后该怎么迁移）</h4>
+  <p>
+    crossfade 这类题目通常包含<strong>大量小规模但高频的实验</strong>：渲染音频、计算指标、跑统计检验。
+    这类负载对硬盘与内存的压力远大于对 CPU 的压力。
+    把实验脚本做成「一条命令、结果落盘、可复现」，再配合 2–3 个 worktree 并行跑不同参数组，
+    你就能在一台普通机器上获得远超预期的迭代速度——<em>而这正是 85/15 规则想要的基础设施</em>。
+  </p>
+</section>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">记录中把 macOS 上 5+ 并行智能体的卡顿归因于？</p>
+  <ul class="opts">
+    <li>CPU 核心数不足</li>
+    <li data-ok>APFS 文件系统锁争用、后台安全守护进程扫描、以及并行磁盘 I/O 下的进程节流与热降频</li>
+    <li>Python 的 GIL</li>
+    <li>网络带宽不足</li>
+  </ul>
+  <p class="why">
+    智能体负载的特征是大量小文件读写与频繁进程创建，正好踩在文件系统与安全扫描的痛点上。
+    这类瓶颈在活动监视器里表现为磁盘队列与内存压力，而不是 CPU 100%。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">$700 的迷你主机对比 $275/月的同规格 VPS，回本周期约为？</p>
+  <ul class="opts">
+    <li>约 1 个月</li>
+    <li data-ok>约 2.5 个月</li>
+    <li>约 12 个月</li>
+    <li>无法比较</li>
+  </ul>
+  <p class="why">
+    \(700 / 275 \approx 2.5\) 个月。记录中的结论是「不到三个月回本」。
+    别忘了把电费（约 $5–9/月）、噪音与家庭网络可用性一起计入。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 3</div>
+  <p class="q">在 Windows 上用 WSL2 跑实验，下面哪个做法会显著拖慢大量小文件读写？</p>
+  <ul class="opts">
+    <li>把仓库放在 WSL 的 /home 下</li>
+    <li data-ok>把仓库放在 /mnt/c 下（跨 Windows 与 Linux 两套文件系统）</li>
+    <li>限制 WSL 的内存上限</li>
+    <li>为项目目录添加杀毒排除项</li>
+  </ul>
+  <p class="why">
+    <code>/mnt/c</code> 走的是跨系统文件访问路径（9p/virtio 层），大量小文件操作的开销远高于 WSL 原生文件系统。
+    这与记录中「文件系统决定成败」的判断是同一条原理。
+  </p>
+</div>
+
+<div class="acc" data-t="深入：五分钟瓶颈体检" data-badge="动手">
+  <div class="acc-body">
+    <p>在卡顿发生时，依次执行（Linux / WSL）：</p>
+<table class="tbl">
+  <thead>
+    <tr><th>系统指标</th><th>诊断关注点</th><th>训练受阻典型表现</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>内存与 Swap</td><td>系统物理内存剩余是否充足</td><td>触发系统 OOM Killer，训练进程被强制静默杀死</td></tr>
+    <tr><td>磁盘 I/O 吞吐</td><td>数据加载读取等待时间（await）</td><td>GPU 计算利用率骤降为 0%，显卡持续等待数据流灌入</td></tr>
+    <tr><td>CPU 线程调度</td><td>多进程 DataLoader 负载均衡</td><td>数据预处理速度跟不上显卡矩阵计算速度，成为主瓶颈</td></tr>
+  </tbody>
+</table>
+    <p>判读规则：</p>
+    <ul>
+      <li><code>%util</code> 接近 100% 且 <code>await</code> 高 → <strong>磁盘瓶颈</strong>：换 NVMe、减少日志写入、把仓库移出跨系统目录。</li>
+      <li>内存吃紧且开始 <code>swap</code> → <strong>内存瓶颈</strong>：降并发、加内存。</li>
+      <li>两者都正常但延迟高 → <strong>网络/线程调度</strong>：检查代理、DNS 与并发上限。</li>
+    </ul>
+    <p><em>先测量，再采购。这一条能省下最多的钱。</em></p>
+  </div>
+</div>
+`
+});
+
 /* --- content/25-colab-training.js --- */
 /* content/25-colab-training.js — 模块 25：Colab 1.5B 开源大模型实战训练与部署 */
 COURSE.register({
@@ -16919,6 +16526,270 @@ python llama.cpp/convert_hf_to_gguf.py ./qwen1.5b-merged --outfile qwen1.5b-f16.
     英伟达 T4 的算力架构为 Compute Capability 7.5（Turing），缺乏原生硬件 BF16 算子支持；
     只有 Ampere 及更高架构（如 A100 / H100）才原生支持 BF16。T4 上必须使用 float16。
   </p>
+</div>
+`
+});
+
+/* --- content/16-project.js --- */
+/* content/16-project.js — 模块 16：把方法映射到数学建模类题目（未来示例） */
+COURSE.register({
+  id: "m16",
+  part: 5,
+  num: "16",
+  title: "收束：把这一切映射到 Crossfade 这类项目与申请材料（未来示例）",
+  en: "Synthesis — Mapping the Course onto Your Project",
+  minutes: 40,
+  tags: ["项目", "申请", "必做"],
+  body: String.raw`
+<p class="lead">
+  前面各模块构成了<strong>大模型底座与自训的核心能力</strong>；
+  而以《Mathematical Crossfade Modelling for Glass Player》（音频交叉淡入淡出连续建模）为例，它是一个独立的工程建模课题。
+  <strong>两者的关系是：大模型底座是通用的技术内功，未来可以在合适的时候尝试把表征学习或强化搜索与之 Merge</strong>。
+  本讲仅作为一个小参考案例，带你拆解当通用 AI 方法论遇上具体连续优化问题时，如何设计清晰的基线、特征映射与严格的科学评估，绝不作为学习大模型的前置门槛。
+</p>
+
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>两条轨道：请分开推进</h4>
+  <table class="tbl small">
+    <thead><tr><th></th><th>轨道甲：研究指南（PDF）</th><th>轨道乙：本课程</th></tr></thead>
+    <tbody>
+      <tr><td><strong>目标</strong></td><td>产出一个可辩护的数学模型 + 可运行引擎 + 答辩材料</td><td>建立 LLM 与训练的完整能力，能读论文、能跑实验</td></tr>
+      <tr><td><strong>推进方式</strong></td><td>按 8 个检查点（CP1–CP8）线性推进，每个检查点有明确产出</td><td>按 24 讲推进，每讲配自测与动手版块</td></tr>
+      <tr><td><strong>评价标准</strong></td><td>数学严谨性、实证证据、可复现性</td><td>能否独立跑通、能否识别常见错误</td></tr>
+      <tr><td><strong>它不负责</strong></td><td>不负责教你 Transformer、TRL、Colab（那是轨道乙）</td><td>不负责替你做 crossfade 这类题目的数学（那是轨道甲）</td></tr>
+    </tbody>
+  </table>
+  <p><strong>只在这三处交汇</strong>：① CP1 要工具与基线 → 用本课程 10 的实验纪律；
+     ② CP5/CP7 要特征与学习实验 → 用 02 的特征视角、07 的模型阶梯、09 的评估协议；
+     ③ CP8 要可复现与答辩 → 用 14 的流水线与 16 的 viva 问题清单。</p>
+  <p><em>反过来说：不要在写研究报告时试图把 Transformer 原理塞进去，也不要在学课程时试图顺手完成检查点。</em></p>
+</section>
+
+<section class="blk blk-q">
+  <h4><span class="ic">◆</span>问题</h4>
+  <p>
+    以《Mathematical Crossfade Modelling for Glass Player》这类研究指南为例（你以后可以找来读），它已经把问题、物理与文献都摆好了。
+    现在你有了 LLM 与训练的整套知识，真正要回答的是：
+    <strong>哪一部分应该由数学完成，哪一部分才轮到学习？</strong>
+    这一模块给出判据与执行方案。
+  </p>
+</section>
+
+<h3>1. 八个检查点 ↔ 本课程模块</h3>
+<table class="tbl">
+  <thead><tr><th>检查点</th><th>核心任务</th><th>用到本课程的</th><th>关键纪律</th></tr></thead>
+  <tbody>
+    <tr><td><strong>CP1</strong> 精确问题 + 早期可听基线</td><td>定义「更好」是什么，并尽早跑起来一个能听的版本</td>
+        <td>M1（目标函数思维）、M10（环境与纪律）</td><td>先有基线，再谈优化；没有可听 demo 的数学是空转</td></tr>
+    <tr><td><strong>CP2</strong> 可辩护的数学模型</td><td>把增益包络写成变分问题 / 几何轨迹</td>
+        <td>M1（假设与可辨识性）、M4（把自由度算清）</td><td>显式写出假设，并给出假设失效时的边界</td></tr>
+    <tr><td><strong>CP3</strong> 竞争方法与可检验预测</td><td>至少三种结构不同的方法，各自给出可检验预测</td>
+        <td>M7（模型阶梯与消融思想）</td><td>每个方法都要能预测「在什么输入下会失败」</td></tr>
+    <tr><td><strong>CP4</strong> 预测 confront 音频</td><td>用 LUFS / 谱通量等客观量与听测对照</td>
+        <td>M9（客观 vs 主观、测什么与不能测什么）</td><td>报告不一致之处，而不是只报告支持理论的部分</td></tr>
+    <tr><td><strong>CP5</strong> 成对歌曲适配</td><td>从音频提取成对特征（ΔBPM、调性距离、ΔLUFS、谱通量差）</td>
+        <td>M2（<strong>特征就是你的 tokenizer</strong>）</td><td>特征定义与归一化方式必须可复现</td></tr>
+    <tr><td><strong>CP6</strong> 改进证据与局限</td><td>统计检验 + 听测协议 + 失效模式分类</td>
+        <td>M9（分组 CV、效应量、MUSHRA、Wilcoxon）</td><td>盲测、随机顺序、报告置信区间</td></tr>
+    <tr><td><strong>CP7</strong> 有明确目的的学习实验</td><td>只学一个低维参数，并与简单模型严格比较</td>
+        <td><strong>M7 + M9</strong>（模型阶梯、岭回归闭式解、置换检验、VC 界）</td><td>没有置换检验的学习结论不成立</td></tr>
+    <tr><td><strong>CP8</strong> 成品与数学辩护</td><td>可复现仓库 + 报告 + 口头答辩</td>
+        <td>M14（worktree、端到端任务链、可复现性）、M9（Vandewalle 三要素）</td><td>一条命令复现全部图表</td></tr>
+  </tbody>
+</table>
+
+<h3>2. Checkpoint 7 的完整技术方案</h3>
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>形式化</h4>
+  <p>学习目标：从成对特征预测最优过渡时长</p>
+  \[ x = \big[\ \Delta\text{BPM},\ d_{\text{Tonnetz}},\ \Delta\text{LUFS},\ \text{SpectralFluxContrast}\ \big]^\top \in \mathbb{R}^4,
+     \qquad T^* \in [2.0,\ 16.0]\ \text{seconds} \]
+  <p>模型阶梯（每一级都必须跑，且必须报告相对上一级的增量）：</p>
+  <table class="tbl small">
+    <thead><tr><th>级别</th><th>模型</th><th>自由度</th><th>预期结论</th></tr></thead>
+    <tbody>
+      <tr><td>Level 0</td><td>规则：\(\Delta\text{BPM} \le 0.05 \Rightarrow 8\) 秒，否则 3 秒</td><td>0</td><td>基线，任何模型必须打败它</td></tr>
+      <tr><td>Level 1</td><td>岭回归 \(\hat T = w^\top x + b\)</td><td>5 + \(\lambda\)</td><td>大概率显著优于 Level 0</td></tr>
+      <tr><td>Level 2</td><td>核岭回归（RBF）或深度 ≤ 4 的随机森林</td><td>\(O(N)\)</td><td>可能持平——这本身是结论</td></tr>
+      <tr><td>Level 3</td><td>MLP 4→8→1 + dropout</td><td>约 50</td><td>很可能不显著优于 Level 1</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<h4>2.1 数据怎么来（这是真正的瓶颈）</h4>
+<table class="tbl small">
+  <thead><tr><th>来源</th><th>做法</th><th>成本</th><th>风险</th></tr></thead>
+  <tbody>
+    <tr><td>自己标注</td><td>对 40–60 首曲目、约 250 对组合，用同一套流程标出「专家式」过渡时长</td><td>数天</td><td>标注者一致性需要检验（至少两人标注 10% 并算一致性）</td></tr>
+    <tr><td>公开 DJ mix 数据集</td><td>使用已发表数据集（如 Conte 等 2021 的 DJ-Mix 数据）</td><td>低</td><td>风格分布与你的目标场景可能不同；注意许可</td></tr>
+    <tr><td>合成/半合成</td><td>用规则生成标签，再注入噪声</td><td>低</td><td><strong>不可用于验证真实结论</strong>，只能用于打通代码</td></tr>
+  </tbody>
+</table>
+<p><strong>建议</strong>：以后做这类题目时，先把 250 条真实标注做出来（现在先理解流程）。数据质量决定了这类研究的上限，而模型选择只影响几个百分点。</p>
+
+<h4>2.2 评估协议（照抄即可）</h4>
+<ol>
+  <li><strong>分组</strong>：按艺人（或专辑）分组，5 折 <code>GroupKFold</code>，确保同一艺人不跨折。</li>
+  <li><strong>指标</strong>：RMSE（主）+ MAE（辅）+ 与 Level 0 的相对降低。</li>
+  <li><strong>置换检验</strong>：\(B = 500\)，报告 \(p\) 值与零分布分位数。</li>
+  <li><strong>稳定性</strong>：至少 5 个随机种子，报告均值 ± 标准差。</li>
+  <li><strong>听测</strong>：对 Level 0 与 Level 1 的预测各生成一批过渡，做盲测成对偏好（模块 09 的方法）。</li>
+</ol>
+
+<h4>2.3 三种可能的结论，以及怎么写</h4>
+<table class="tbl small">
+  <thead><tr><th>结果</th><th>如何表述</th><th>价值</th></tr></thead>
+  <tbody>
+    <tr><td>Level 1 显著优于 Level 0，Level 3 无增益</td><td>「学习确实能标定解析模型留下的自由参数 \(T^*\)，且在 N=250 的规模下，线性模型的容量已经饱和。」</td><td>最理想：正结果 + 清晰的容量边界</td></tr>
+    <tr><td>所有级别都不显著</td><td>「在现有样本量与特征下，无法拒绝『学习没有带来增益』的原假设；这表明 \(T^*\) 主要由未观测因素（如编曲结构）决定。」</td><td>合格且诚实：负结果本身是学术产出</td></tr>
+    <tr><td>只有 Level 3 好，且置换检验显著</td><td>必须额外做数据泄漏审查（艺人分组是否严格、特征是否含未来信息），再报告。</td><td>要警惕：这通常是泄漏的信号</td></tr>
+  </tbody>
+</table>
+
+<section class="blk blk-warn">
+  <h4><span class="ic">⚠</span>什么情况下才值得引入神经网络</h4>
+  <p>三个条件<strong>同时</strong>满足时才可以考虑：</p>
+  <ol>
+    <li>样本量提升一个数量级（例如 \(N \ge 2000\) 对）；</li>
+    <li>特征维度显著上升（例如加入频谱图或自监督音频嵌入）；</li>
+    <li>你有独立的、更大的测试集与足够的听测预算来证明确实更好。</li>
+  </ol>
+  <p>否则，引入大模型只会得到一个「无法辩护的复杂度」——这正是 Hand (2006) 与 Checkpoint 7 这类题目原始设定的立场。</p>
+</section>
+
+<h3>3. 12 周执行计划</h3>
+<table class="tbl small">
+  <thead><tr><th>周</th><th>课程模块</th><th>项目产出</th><th>可放进申请材料的证据</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>M0–M2</td><td>环境与仓库就绪；跑通 bigram 与 tokenizer 实验</td><td><code>labs/</code> 目录 + 实验日志</td></tr>
+    <tr><td>2</td><td>M3–M4</td><td>手写注意力 + 参数量/显存手算；CP1 的可听基线 demo</td><td>推导笔记（含参数量误差分析）</td></tr>
+    <tr><td>3</td><td>M5–M6</td><td>跑通迷你 Transformer 预训练；跑一遍 JAX miniGPT 教程</td><td>loss 曲线 + 训练配置表</td></tr>
+    <tr><td>4</td><td>M7</td><td>CP2 完成：模型写成变分问题，列出全部假设</td><td>完整的假设-结论对照表</td></tr>
+    <tr><td>5</td><td>M7–M8</td><td>CP3：三种竞争方法实现并给出预测</td><td>方法对比表 + 各自的失效条件</td></tr>
+    <tr><td>6</td><td>M9</td><td>CP4：客观指标管线（LUFS、谱通量）</td><td>指标脚本 + 首批图</td></tr>
+    <tr><td>7</td><td>M9–M10</td><td>CP5：成对特征提取完成</td><td>特征定义文档与分布图</td></tr>
+    <tr><td>8</td><td>M10</td><td>数据标注完成（约 250 对）</td><td>标注协议 + 一致性统计</td></tr>
+    <tr><td>9</td><td>M9 + E7</td><td><strong>CP7：模型阶梯 + 分组 CV + 置换检验</strong></td><td>RMSE 表、p 值、零分布图</td></tr>
+    <tr><td>10</td><td>M9</td><td>CP6：听测（至少 10 名受试者，盲测）</td><td>偏好胜率与显著性检验</td></tr>
+    <tr><td>11</td><td>M14</td><td>CP8：一键复现脚本 + 报告初稿</td><td>仓库 + <code>make all</code> 级别的复现命令</td></tr>
+    <tr><td>12</td><td>M16</td><td>口头答辩演练；申请文书定稿</td><td>10 个 viva 问题的书面答复</td></tr>
+  </tbody>
+</table>
+
+<h3>4. 申请叙事：三段式</h3>
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>可复用的结构</h4>
+  <ol>
+    <li><strong>问题</strong>：一句话说清被你重新表述的问题（「我把淡入淡出从工程习惯重述为一个带边界条件的变分优化问题」）。</li>
+    <li><strong>方法</strong>：你实际做的三件事——推导、实现、<strong>验证</strong>。强调验证协议（分组交叉验证、置换检验、盲测）。</li>
+    <li><strong>诚实的结论</strong>：包括没成功的那部分（「在 250 条样本上，非线性模型没有带来可检测的增益」）。
+        <em>对数学系申请而言，能说清「什么做不到、为什么」比罗列成果更有说服力。</em></li>
+  </ol>
+</section>
+<table class="tbl small">
+  <thead><tr><th>不要这样写</th><th>改成这样</th></tr></thead>
+  <tbody>
+    <tr><td>「我用 AI 训练了一个模型来优化音频过渡」</td><td>「我把过渡参数的学习限制在解析模型留下的一个自由参数上，并用分组交叉验证与置换检验检验其增益」</td></tr>
+    <tr><td>「准确率提升了 30%」</td><td>「RMSE 从 2.4 秒降到 1.9 秒（5 折分组 CV 均值 ± 0.3），置换检验 p = 0.01，Level 3 相对 Level 1 无显著增益」</td></tr>
+    <tr><td>「使用了最先进的 Transformer 架构」</td><td>「我评估了容量边界：在 N=250 时 VC 界已不可用，因此我以交叉验证为判据，并报告了负结果」</td></tr>
+  </tbody>
+</table>
+
+<h3>5. Viva / 面试防御问题清单</h3>
+<table class="tbl small">
+  <thead><tr><th>问题</th><th>回答要点</th></tr></thead>
+  <tbody>
+    <tr><td>你为什么假设两条轨道不相关（\(\rho = 0\)）？</td><td>这是常功率曲线的成立条件；我在 CP4 中测量了实际相关性并给出了 \(\rho \ne 0\) 时的功率偏差界。</td></tr>
+    <tr><td>你的能量守恒在哪个内积空间成立？</td><td>\(L^2([0,T])\)；感知响度不是该空间上的范数，所以必须引入 ITU-R BS.1770 的加权。</td></tr>
+    <tr><td>为什么不用端到端神经网络？</td><td>样本量（250）与 VC 界分析；并且端到端会引入相位伪影与延迟，违反实时性约束。</td></tr>
+    <tr><td>你的机器学习实验是否真的学到了东西？</td><td>置换检验 \(p\) 值 + 分组交叉验证；我保留了「无增益」这一可能的结论。</td></tr>
+    <tr><td>你怎么知道不是过拟合？</td><td>艺人分组切分、多个随机种子、以及 Level 0 基线的对照。</td></tr>
+    <tr><td>如果 \(\rho \to -1\) 会怎样？</td><td>出现零点，功率趋于 0；这给出了最坏情况的界，也是我建议加入频率分离的原因。</td></tr>
+    <tr><td>你的实时实现如何避免线程不安全？</td><td>用无锁 SPSC 环形缓冲区；音频回调里不做内存分配与加锁。</td></tr>
+    <tr><td>你怎么处理听测的主观性？</td><td>盲测、随机顺序、成对偏好 + 符号检验，并报告效应量而不是只说「更好听」。</td></tr>
+    <tr><td>这项工作里哪些是已有技术，哪些是你的贡献？</td><td>常功率曲线、Linkwitz-Riley、节拍跟踪都是既有技术；我的贡献是统一的变分表述与「何时学习才有价值」的实证边界。</td></tr>
+    <tr><td>如果重做一次，你会改变什么？</td><td>更早标注数据；把听测与客观指标的采集并行；一开始就用置换检验作为门槛。</td></tr>
+  </tbody>
+</table>
+
+<h3>6. 可交付物清单</h3>
+<table class="tbl">
+  <thead>
+    <tr><th>模块目录</th><th>核心内容</th><th>未来与大模型 Merge 衔接点</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>derivations/</code></td><td>音频平滑过渡与连续流建模数学推导</td><td>可作为连续状态空间（SSM / Mamba）特征插值理论基础</td></tr>
+    <tr><td><code>engine/</code></td><td>实时音频重叠变换与自适应淡入淡出引擎</td><td>作为多模态大模型音频 Token 流的实时端侧渲染后端</td></tr>
+    <tr><td><code>learning/</code></td><td>小规模参数拟合与交叉验证实验流水线</td><td>与 Kaggle 评测指标与微调实验规范完全接轨</td></tr>
+    <tr><td><code>analysis/</code></td><td>感知响度（LUFS）与波形重叠能量分析</td><td>充当语音多模态大模型的声学质量客观奖励函数（Reward Model）</td></tr>
+  </tbody>
+</table>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 1</div>
+  <p class="q">在 Checkpoint 7 里，模型阶梯（Level 0 → 3）的主要目的是？</p>
+  <ul class="opts">
+    <li>找出准确率最高的模型</li>
+    <li data-ok>定位「容量从哪一级开始不再带来可检测的增益」，把结论写成可辩护的边界</li>
+    <li>证明神经网络没有用</li>
+    <li>减少训练时间</li>
+  </ul>
+  <p class="why">
+    阶梯的价值在于<strong>定位容量边界</strong>，而不是找到最优模型。
+    如果 Level 1 已达上限，那么「在这个数据规模下非线性没有增益」就是一个完整的研究结论。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 2</div>
+  <p class="q">假设以后你的 CP7 这类实验发现 Level 3 的 CV RMSE 明显低于 Level 1，且置换检验显著。第一步应该做什么？</p>
+  <ul class="opts">
+    <li>立刻写进报告</li>
+    <li data-ok>先审查数据泄漏：艺人分组是否严格、特征里是否混入了未来信息、预处理是否在划分之前拟合</li>
+    <li>再训练一个更大的模型</li>
+    <li>提高学习率重跑</li>
+  </ul>
+  <p class="why">
+    「复杂模型意外胜出」在小组数据上最常见的解释是泄漏（分组不严、特征穿越、标准化在全量数据上拟合）。
+    必须先排除这些，否则结论无法通过答辩。
+  </p>
+</div>
+
+<div class="quiz">
+  <div class="qlabel">自测 · 3</div>
+  <p class="q">在申请材料里，哪一种表述最符合学术诚实且最有说服力？</p>
+  <ul class="opts">
+    <li>「我训练了 SOTA 模型，效果显著提升」</li>
+    <li data-ok>「在 250 条按艺人分组的样本上，线性模型的增益显著（p = 0.01），而非线性模型没有带来可检测的额外增益——我据此给出了容量边界」</li>
+    <li>「由于数据有限，实验没有得出任何结论」</li>
+    <li>「模型还在调参中，结果待补充」</li>
+  </ul>
+  <p class="why">
+    招生官关心的是<strong>你的判断力</strong>：你是否知道如何在有限数据上做出可辩护的结论，
+    以及是否愿意报告边界与负结果。含混的表述比负结果更糟。
+  </p>
+</div>
+
+<div class="acc" data-t="深入：如果时间只够做一件事" data-badge="优先级">
+  <div class="acc-body">
+    <p>那就做 <strong>Checkpoint 7 的评估协议</strong>，并且只做 Level 0 与 Level 1 两级。</p>
+    <p>理由：</p>
+    <ul>
+      <li>它同时覆盖「数学建模（解析基线）」「统计（分组 CV + 置换检验）」「工程（可复现脚本）」三项能力；</li>
+      <li>不需要 GPU，一天之内可以完成；</li>
+      <li>它天然产出可展示的图表与数字；</li>
+      <li>它给出一个<em>诚实的、可检验的</em>结论，而不是一个「demo」。</li>
+    </ul>
+    <p>执行顺序：</p>
+    <ol>
+      <li>用 20 条真实数据先把 <code>run.py</code> 跑通（合成数据也算，只用于调试）。</li>
+      <li>补齐到 250 条，固定随机种子，跑 5 折分组 CV。</li>
+      <li>加置换检验（\(B=500\)），画出零分布。</li>
+      <li>写下三句结论：数据规模、增益幅度与显著性、局限。</li>
+      <li>把它写进申请材料，并准备好回答「如果换成非线性模型会怎样」。</li>
+    </ol>
+    <p><strong>完成这一个实验，以后你就拥有了大多数申请者没有的东西：一个带统计检验的、承认边界的定量结论。</strong></p>
+  </div>
 </div>
 `
 });

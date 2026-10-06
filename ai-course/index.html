@@ -29,9 +29,9 @@
   --tt-dur:var(--duration-quick); --tt-ease:var(--ease-out);
   --tt-scale:var(--scale-small);
 
-  --font-display:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Songti SC","Source Han Serif SC",serif;
-  --font-body:"Segoe UI","Microsoft YaHei",-apple-system,system-ui,sans-serif;
-  --font-mono:"Cascadia Code",Consolas,"SFMono-Regular","Courier New",monospace;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", Menlo, Monaco, Consolas, "Cascadia Code", monospace;
 
   --bg:#f6f5f1; --bg-2:#efece5; --surface:#ffffff; --surface-2:#faf9f6;
   --ink:#15181e; --ink-2:#3b4250; --muted:#6b7382; --line:#e2ded5; --line-2:#d3cec2;
@@ -68,8 +68,28 @@ html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
 @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
 body{
   margin:0; background:var(--bg); color:var(--ink);
-  font-family:var(--font-body); font-size:16.5px; line-height:1.72;
+  font-family:var(--font-body); font-size:16.5px; line-height:1.78;
+  letter-spacing:0.012em;
   -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  font-feature-settings:"cv02", "cv03", "cv04", "cv11";
+}
+p, li {
+  word-break: break-word;
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 0;
+  margin: 1.15em 0;
+  -webkit-overflow-scrolling: touch;
+}
+.katex {
+  font-size: 1.05em;
+  letter-spacing: normal;
 }
 a{color:var(--accent); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
 a:hover{border-bottom-color:var(--accent)}
@@ -602,8 +622,13 @@ window.COURSE = (function () {
 
   /* ---------- render ---------- */
   const PART_NAMES = {
-    0: '0 · 导读', 1: 'I · 底座', 2: 'II · 训练与推理', 3: 'III · 算力与工具',
-    4: 'IV · 经济与基础设施', 5: 'V · 收束', 6: 'VI · 高阶与前沿', 9: '附录 · 速查'
+    0: '0 · 导读与心法',
+    1: 'I · 底座原理',
+    2: 'II · 训练与推理原理',
+    3: 'III · 真实大模型体系与系统工程',
+    4: 'IV · 前沿技术拓展 (Frontier · 纯理论)',
+    5: 'V · 个人算力、工程实战与项目收束',
+    9: '附录 · 实验手册与速查'
   };
 
   function renderNav() {

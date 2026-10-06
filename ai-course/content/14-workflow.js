@@ -1,7 +1,7 @@
 /* content/14-workflow.js — 模块 14：工作流与多线程舰队 */
 COURSE.register({
   id: "m14",
-  part: 3,
+  part: 5,
   num: "14",
   title: "工作流：85/15 规则与多线程智能体舰队",
   en: "Workflow & Multi-Thread Fleet Management",

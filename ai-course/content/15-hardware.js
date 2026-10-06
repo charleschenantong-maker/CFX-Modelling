@@ -1,7 +1,7 @@
 /* content/15-hardware.js — 模块 15：硬件与操作系统瓶颈 */
 COURSE.register({
   id: "m15",
-  part: 3,
+  part: 5,
   num: "15",
   title: "硬件与系统：为什么并行智能体会拖垮 macOS",
   en: "Hardware & OS Bottlenecks",

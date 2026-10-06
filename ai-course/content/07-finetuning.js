@@ -157,24 +157,27 @@ COURSE.register({
     <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (BA) = (xB) A\)：先算 \(xB \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xB)A \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
     <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (0 \cdot A) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
   </ul>
+  </section>
+
+<h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
+<p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen）与被拒绝的回答（rejected）。</p>
+
+<section class="blk blk-m">
+  <h4><span class="ic">∑</span>DPO 相对概率比与隐式奖励定义</h4>
   <p>
-    <strong>前置定义 3（DPO 相对概率比与隐式奖励函数）：</strong>
-    设输入 prompt 为 \(x\)，模型生成完整序列 \(y = (y_1, y_2, \dots, y_T)\)。
-    当前训练中的策略模型概率为 \(\pi_\theta(y \mid x) = \prod_{t=1}^T \pi_\theta(y_t \mid x, y_{<t})\)，固定的参考基座模型概率为 \(\pi_{\text{ref}}(y \mid x) = \prod_{t=1}^T \pi_{\text{ref}}(y_t \mid x, y_{<t})\)。
-    两者的<strong>对数相对概率比（Log Probability Ratio）</strong>定义为：
+    设输入 prompt 为 \(x\)，生成完整回答序列 \(y = (y_1, y_2, \dots, y_T)\)。
+    当前策略模型为 \(\pi_\theta(y \mid x)\)，冻结的参考基座模型为 \(\pi_{\text{ref}}(y \mid x)\)。
+    两者的<strong>对数相对概率比</strong>定义为：
   </p>
   \[ \Delta \log \pi(x, y) \triangleq \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = \sum_{t=1}^T \Big( \log \pi_\theta(y_t \mid x, y_{<t}) - \log \pi_{\text{ref}}(y_t \mid x, y_{<t}) \Big) \]
   <p>
-    依据逆强化学习原理，该对数比值在乘以温度参数 \(\beta > 0\) 后，隐式地刻画了策略相较于参考基准的<strong>标量奖励（Implicit Reward）</strong>：
+    依据逆强化学习（Inverse RL）原理，该比值在乘以温度常数 \(\beta > 0\) 后，隐式定义了策略相对于基座的<strong>标量隐式奖励（Implicit Reward）</strong>：
   </p>
   \[ \hat{r}_\theta(x, y) \triangleq \beta \log \frac{\pi_\theta(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \]
   <p>
-    当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，说明当前模型认为回答 \(y\) 优于基座，给予正奖励；反之给予负惩罚。
+    当 \(\pi_\theta(y \mid x) > \pi_{\text{ref}}(y \mid x)\) 时，模型输出该回答的倾向超过基座，视作获得正向奖励；反之给予惩罚。
   </p>
 </section>
-
-<h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
-<p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答与被拒绝的回答。</p>
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先把四个词对上号（给 DPO 搭一座小桥）</h4>
   <p>
@@ -290,8 +293,11 @@ COURSE.register({
   <p>
     将目标括号内的期望写为统一求和式（省略条件变量 \(x\) 的外层积分）：
   </p>
-  \[ \sum_y \pi(y \mid x) r(x, y) - \beta \sum_y \pi(y \mid x) \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} = - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} - \frac{r(x, y)}{\beta} \right] \]
-  \[ = - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)} \right) \]
+  \[ \begin{aligned}
+  &\sum_y \pi(y \mid x) r(x, y) - \beta \sum_y \pi(y \mid x) \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} \\
+  &= - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x)} - \frac{r(x, y)}{\beta} \right] \\
+  &= - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)} \right)
+  \end{aligned} \]
   <p>
     定义归一化配分函数（Partition Function，亦称玻尔兹曼配分）：
   </p>
@@ -300,8 +306,11 @@ COURSE.register({
     构造合法的理论最优概率分布 \(\pi^*(y \mid x) \triangleq \frac{1}{Z(x)} \pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta)\)。
     将 \(\pi_{\text{ref}}(y \mid x) \exp(r(x, y) / \beta) = Z(x) \pi^*(y \mid x)\) 代回目标函数：
   </p>
-  \[ - \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{Z(x) \pi^*(y \mid x)} \right) = - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi^*(y \mid x)} - \log Z(x) \right] \]
-  \[ = \beta \log Z(x) - \beta D_{\mathrm{KL}}(\pi(y \mid x) \parallel \pi^*(y \mid x)) \]
+  \[ \begin{aligned}
+  &- \beta \sum_y \pi(y \mid x) \log \left( \frac{\pi(y \mid x)}{Z(x) \pi^*(y \mid x)} \right) \\
+  &= - \beta \sum_y \pi(y \mid x) \left[ \log \frac{\pi(y \mid x)}{\pi^*(y \mid x)} - \log Z(x) \right] \\
+  &= \beta \log Z(x) - \beta D_{\mathrm{KL}}(\pi(y \mid x) \parallel \pi^*(y \mid x))
+  \end{aligned} \]
   <p>
     <strong>结论：</strong>由于 \(\beta \log Z(x)\) 完全不包含策略变量 \(\pi\)，且由 Gibbs 不等式，\(D_{\mathrm{KL}}(\pi \parallel \pi^*) \ge 0\) 恒成立，当且仅当 \(\pi = \pi^*\) 时取最小值 \(0\)。
     因此，目标的最优策略必然具有以下闭式解析解（Closed-form Solution）：
@@ -328,8 +337,11 @@ COURSE.register({
   <p>
     将第 3 步反解出的奖励函数代入差值：
   </p>
-  \[ r(x, y_w) - r(x, y_l) = \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right) \]
-  \[ = \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} \]
+  \[ \begin{aligned}
+  r(x, y_w) - r(x, y_l)
+  &= \left( \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} + \beta \log Z(x) \right) - \left( \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)} + \beta \log Z(x) \right) \\
+  &= \beta \log \frac{\pi^*(y_w \mid x)}{\pi_{\text{ref}}(y_w \mid x)} - \beta \log \frac{\pi^*(y_l \mid x)}{\pi_{\text{ref}}(y_l \mid x)}
+  \end{aligned} \]
   <p>
     <strong>数学奇迹：</strong>两个极其难算的配分项 \(\beta \log Z(x)\) 严格相减对消为 0！
     由此，偏好概率被纯粹表达为策略与参考模型的相对概率比：

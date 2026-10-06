@@ -1,7 +1,7 @@
 /* content/13-resets.js — 模块 13：实验流水线与断点调度 */
 COURSE.register({
   id: "m13",
-  part: 3,
+  part: 5,
   num: "13",
   title: "实验流水线与断点调度：会话超时、检查点续训与早停决策",
   en: "Experiment Pipeline: Checkpointing, Runtime Resumption & Early Stopping",

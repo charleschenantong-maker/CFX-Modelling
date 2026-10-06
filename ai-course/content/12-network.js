@@ -1,7 +1,7 @@
 /* content/12-network.js — 模块 12：反封禁网络架构 */
 COURSE.register({
   id: "m12",
-  part: 3,
+  part: 5,
   num: "12",
   title: "网络架构：住宅 IP、Tailscale 与本地代理",
   en: "Networking, Residential IP & Local Proxy",

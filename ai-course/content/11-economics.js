@@ -4,7 +4,7 @@ COURSE.register({
 
   id: "m11",
 
-  part: 3,
+  part: 5,
 
   num: "11",
 
