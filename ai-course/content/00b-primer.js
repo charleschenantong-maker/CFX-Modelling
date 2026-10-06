@@ -55,6 +55,17 @@ COURSE.register({
   </p>
 </section>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>结论先行：第一遍只带走三句话</h4>
+  <p>
+    第一遍不需要看懂证明，只要带走三句话。
+    第一句：损失是一个标量分数，答错越多分数越高。
+    第二句：一个数同时流进两条分支时，它的总变化等于两条分支的贡献相加。
+    第三句：反向传播必须倒着走，先算完下游再算上游。
+    标有可选的折叠块是第二遍的证明，第一遍直接跳过也能连上后面的手算和代码。
+  </p>
+</section>
+
 <h3>1. 全景大图：从一段文本到一次权重微调</h3>
 <div class="flow">
   <div class="nd">自然语言序列</div><div class="ar">→</div>
@@ -93,6 +104,19 @@ COURSE.register({
   展开后的图依然是 DAG——这正是“随时间反向传播”能成立的前提。
 </p>
 
+<section class="blk blk-tip">
+  <h4><span class="ic">✓</span>极小数字例子：先看分支相加，再看证明</h4>
+  <p>
+    取最小的整数起步。令 \(x = 2\)，\(a = 3x\)，\(b = x^2\)，\(L = a + b\)。
+    前向一步得出 \(a = 6\)，\(b = 4\)，\(L = 10\)。
+    局部变化率是 \(a\) 对 \(x\) 为 \(3\)，\(b\) 对 \(x\) 为 \(2x = 4\)。
+    总变化率就是两条分支相加：\(3 + 4 = 7\)。
+    第一遍记住这个 \(7\) 即可，后面折叠块里的全微分证明只是把同一件事写成一般形式。
+  </p>
+</section>
+
+<div class="acc" data-t="选读·第二遍：分支图上的全微分证明" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密推导：多元微积分链式法则 (Multivariable Chain Rule)</h4>
   <p>
@@ -120,6 +144,8 @@ COURSE.register({
     如果误写为赋值，后遍历到的分支就会将先前的梯度无情覆盖，导致求导数学错误。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>经典算例：分叉节点的梯度手算验证</h4>
@@ -183,10 +209,27 @@ COURSE.register({
   如果遍历顺序随意发生颠倒，例如节点 \(z\) 还没有累加完来自 \(L\) 的全部贡献，就急于将自己的 <code>grad</code> 传递给输入 \(x\)，
   那么回传给 \(x\) 的梯度将是不完整的。
   计算机科学中保证这一严格依赖次序的算法正是<strong>拓扑排序（Topological Sort）</strong>。
-  在有向无环图中，通过后序深度优先搜索（Post-order DFS）即可高效生成拓扑序列，其反转序列便是完美的反向传播执行序列。
+  第一遍记住这一句即可，具体怎么构造出这个顺序见下面的选读块。
 </p>
 
+<div class="acc" data-t="选读·第二遍：拓扑排序的构造做法" data-badge="可选">
+  <div class="acc-body">
+    <p>
+      在有向无环图中，通过后序深度优先搜索（Post-order DFS）即可高效生成拓扑序列，其反转序列便是完美的反向传播执行序列。
+      极小例子：\(x\) 同时指向 \(a\) 与 \(b\)，\(a\) 与 \(b\) 都指向 \(L\)，则前向顺序可以是 \(x, a, b, L\)，反向必须是 \(L, b, a, x\) 或 \(L, a, b, x\)，总之 \(x\) 排在最后。
+      下一节代码里的 <code>build_topo</code> 正是这个做法的逐行实现。
+    </p>
+  </div>
+</div>
+
 <h3>4. 教科书级实现：Karpathy micrograd 标量引擎逐行解构</h3>
+<p>
+  第一遍记住三行：每个节点存数值与梯度，加法与乘法各自记住一条局部规则，反向时倒着调用每条规则。
+  下面的折叠块是完整的逐行实现，第二遍再逐行读，第一遍跳过不影响后面的概率与梯度下降。
+</p>
+
+<div class="acc" data-t="选读·第二遍：micrograd 标量引擎逐行实现" data-badge="可选">
+  <div class="acc-body">
 <p>
   以下是包含计算图构建、自动拓扑排序与多元链式求导的纯 Python 完整实现：
 </p>
@@ -281,6 +324,8 @@ COURSE.register({
         <span class="cm"># [逐行剖析] 3. 逆序遍历拓扑图，确保每个节点的子节点全部就绪后才执行 _backward()</span>
         <span class="kw">for</span> node <span class="kw">in</span> reversed(topo):
             node._backward()</code></pre>
+  </div>
+</div>
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手验证：有限差分梯度检验 (Numerical Gradient Check)</h4>
@@ -449,6 +494,8 @@ t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-1.5*梯度
   </p>
 </section>
 
+<div class="acc" data-t="选读·第二遍：李普希茨常数与最大学习率界限" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>STEP 级思考题：李普希茨常数与最大学习率界限</h4>
   <p>
@@ -462,6 +509,8 @@ t   w_t       梯度 2(w_t-3)       草稿：w_{t+1}=w_t-1.5*梯度
     这就是大型模型训练中如果学习率过高会导致损失瞬间变成 <code>NaN</code> 的根本数学原因。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>动手：三档学习率在同一个碗里的轨迹（照抄可跑）</h4>
