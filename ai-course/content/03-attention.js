@@ -60,7 +60,14 @@ COURSE.register({
   其中 \(Q \in \mathbb{R}^{T \times d_k}\), \(K \in \mathbb{R}^{T \times d_k}\), \(V \in \mathbb{R}^{T \times d_v}\)。
   \(T\) 为序列长度，\(d_k\) 为查询与键的特征维度。
 </p>
+<p>
+  结论先行：点积是 \(d_k\) 项求和，方差会被放大到 \(d_k\)，标准差为 \(\sqrt{d_k}\)；
+  除以 \(\sqrt{d_k}\) 只是把方差锚回 \(1\)，防止 Softmax 退化成只抄一家的 one-hot。
+  记住这个结论和第 2 节的 \(2 \times 2\) 数字例子即可；下面的两块完整证明第二遍再看。
+</p>
 
+<div class="acc" data-t="选读·第二遍：为什么分母必须是 sqrt(d_k)（方差证明）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>STEP 级严密定理推导：为什么分母必须除以 \(\sqrt{d_k}\)？</h4>
   <p>
@@ -92,7 +99,11 @@ COURSE.register({
     因此，必须严格除以缩放因子 \(\sqrt{d_k}\)，使输入 Softmax 前的方差精确锚定回 \(1.0\)。
   </p>
 </section>
+  </div>
+</div>
 
+<div class="acc" data-t="选读·第二遍：方差守恒的草稿纸逐步推导" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 A：方差守恒定理的 AS Further Maths 级推导</h4>
   <p>
@@ -138,6 +149,8 @@ COURSE.register({
   </p>
   \[ \mathrm{Var}\left(\frac{S}{\sqrt{d_{k}}}\right) = \frac{1}{d_{k}} \mathrm{Var}(S) = 1 \]
 </section>
+  </div>
+</div>
 
 <h3>2. 极简小数字手算：一个 \(2 \times 2\) 的完整注意力流</h3>
 <section class="blk blk-m">
@@ -324,6 +337,13 @@ COURSE.register({
 
 <h3>6. 几何视角：双线性评分与行随机仿射算子</h3>
 <p>
+  结论先行：注意力每行权重非负且和为 \(1\)，输出只是 value 的凸组合（加权平均），不能直接叫投影；
+  正交投影还要对称幂等，而普通 attention map 通常两者都不满足。记住这一句即可，下面的双线性形式与判据表第二遍再看。
+</p>
+
+<div class="acc" data-t="选读·第二遍：双线性评分与投影判据的形式化推导" data-badge="可选">
+  <div class="acc-body">
+<p>
   采用列向量记号，\(q_i=W_Q^\top x_i+b_Q\)、\(k_j=W_K^\top x_j+b_K\)。忽略偏置时，
 </p>
 \[ s_{ij}=q_i^\top k_j=x_i^\top W_QW_K^\top x_j \]
@@ -351,6 +371,8 @@ COURSE.register({
   </tbody>
 </table>
 <p class="cm">Hint：找 \(A=\begin{pmatrix}1&0\\1/2&1/2\end{pmatrix}\) 的反例；它行和为 1，但 \(A^2\ne A\)。</p>
+  </div>
+</div>
 
 <h3>7. 30 分钟验算：让代码自己暴露形状错误</h3>
 <section class="blk blk-lab">
@@ -485,7 +507,13 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
   现代最强开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍采用 <strong>RoPE（Rotary Position Embedding）</strong>。
   它的核心灵感极其优雅：<strong>用复数平面上的旋转矩阵对向量进行相乘，从而使内积天然携带相对位置距离</strong>。
 </p>
+<p>
+  结论先行：给 \(q\)、\(k\) 按位置各转一个角度后，内积只剩相对距离 \(n - m\)，绝对位置被消掉；
+  先看下面 \(\theta = \pi / 2\) 的 \(90\) 度手算例子，旋转群证明第二遍再看。
+</p>
 
+<div class="acc" data-t="选读·第二遍：RoPE 旋转群证明（内积只剩相对距离）" data-badge="可选">
+  <div class="acc-body">
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>二维复数旋转推导</h4>
   <p>
@@ -508,6 +536,8 @@ assert torch.allclose(a.triu(1), torch.zeros_like(a.triu(1))) <span class="cm">#
     若把相对位移记作 \(\Delta=m-n\)，则可定义 \(g(q,k,\Delta)=q^\top R_{-\Delta}k\)，于是 \(\langle R_mq,R_nk\rangle=g(q,k,m-n)\)。负号只来自旋转方向的约定，不改变“只依赖相对位置”的结论。
   </p>
 </section>
+  </div>
+</div>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 C：RoPE 二维旋转的具体数字手算</h4>
