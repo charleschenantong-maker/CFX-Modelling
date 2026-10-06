@@ -46,6 +46,11 @@ COURSE.register({
 </table>
 
 <h3>2. 台阶一：监督微调（SFT）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节那张决策表已经帮你排掉"不该微调"的情况。
+  <strong>本节只加一件事</strong>：数据从"随便一段文本"换成"提问 + 理想回答"的成对样本。
+  <strong>怎么读</strong>：关键是"损失只在回答上算"这半句——它决定了模型是学会听话，还是学会背题。
+</p>
 <p>数据是「提问 → 理想回答」的示范。目标函数仍是交叉熵，但只在回答片段上计算：</p>
 \[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{< t}) \]
 <dl class="kv">
@@ -58,6 +63,11 @@ COURSE.register({
 支持 packing、loss mask、PEFT 与多卡。CLI 形式见 <a href="https://huggingface.co/docs/trl/clis" target="_blank" rel="noopener">CLI 文档</a>。</p>
 
 <h3>3. 台阶二：参数高效微调（LoRA / QLoRA）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：SFT 能改行为，但全量更新一次要动几十亿参数。
+  <strong>本节只加一件事</strong>：原件不动，只在旁边挂两个小矩阵——LoRA。
+  <strong>怎么读</strong>：把 \(\Delta \mathbf{W} = \mathbf{B}\mathbf{A}\) 里"秩"的含义看懂就够；\(\alpha/r\) 这些超参等第 28 章真动手时再回来查。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>LoRA 的数学</h4>
   <p>冻结原权重 \(W_0 \in \mathbb{R}^{d\times k}\)，只学习一个低秩增量：</p>
@@ -160,6 +170,11 @@ COURSE.register({
   </section>
 
 <h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：SFT 让模型学会格式，LoRA 让它训得起。
+  <strong>本节只加一件事</strong>：当你要的是"哪个回答更好"、而不是"标准答案"时该怎么训。
+  <strong>怎么读</strong>：先抓住 DPO 的核心——为什么它能省掉奖励模型；KTO / ORPO 的区别查表即可。
+</p>
 <p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen, 赢者 \(w\)）与被拒绝的回答（rejected, 输者 \(l\)）。</p>
 
 <section class="blk blk-tip">
@@ -471,6 +486,11 @@ COURSE.register({
 </section>
 
 <h3>6. 台阶四：GRPO 与「可验证奖励」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经走完 SFT、LoRA、偏好优化这三级台阶。
+  <strong>本节只加一件事</strong>：当答案能被程序自动判对错时，直接用一组采样估出优势。
+  <strong>怎么读</strong>：重点是组内标准化那一步；后面的奖励黑客与陷阱清单，是本章最有实战价值的部分。
+</p>
 <p>
   当答案可以被程序检验时（数学题、代码、结构化输出），你不需要人类偏好，只需要一个<strong>验证器</strong>。
   GRPO 的做法是：对同一道题采样一组回答 \(\{y_1,\dots,y_G\}\)，用奖励 \(r_i\) 做组内标准化，得到优势估计

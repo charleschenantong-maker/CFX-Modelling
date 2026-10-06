@@ -38,6 +38,11 @@ COURSE.register({
 </section>
 
 <h3>1. 显存碎片困境与 PagedAttention 虚拟分页</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 08 章给过 KV Cache 的显存公式，也讲过批处理。
+  <strong>本节只加一件事</strong>：真实服务里显存"不够用"，很多时候不是真不够，而是被碎片浪费了。
+  <strong>怎么读</strong>：理解"逻辑连续、物理离散"这一句话，后面的块表与写时复制都是它的推论。
+</p>
 <p>
   传统框架为了用上高效的张量乘法内核，要求每个请求的 KV Cache 在 GPU 显存物理地址上<strong>严格连续</strong>。这带来两种浪费：
 </p>
@@ -91,6 +96,11 @@ COURSE.register({
 </p>
 
 <h3>3. Chunked Prefill：长短请求解耦，消掉首字时延尖刺</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 2 节把吞吐提上去了，但那是在"各请求长度差不多"的前提下。
+  <strong>本节只加一件事</strong>：长度悬殊时的公平调度——每轮只放一小块 prefill 进来。
+  <strong>怎么读</strong>：抓住 \(T_{\text{budget}} = 512\) 这个预算，看它怎么把 8000 字切成 16 片；剩下的都是这套调度的收益清单。
+</p>
 <p>
   连续批处理把吞吐提上去了，但带出一个新问题：<strong>Prefill 霸占显卡，Decode 就卡</strong>。
 </p>

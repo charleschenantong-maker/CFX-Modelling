@@ -116,6 +116,11 @@ COURSE.register({
 </section>
 
 <h3>2. 三种测试时策略：长 CoT、采样投票、搜索</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把解码解释成搜索——想得更久，等于多走几步。
+  <strong>本节只加一件事</strong>：把"在哪儿多花算力"分成三个位置。
+  <strong>怎么读</strong>：记一句话就够——三条路线分别在一条轨迹内部、轨迹之间、步骤之间花钱；具体算法用到时再回来查。
+</p>
 <p>
   它们不是互斥的，而是三个「在哪一层花钱」的选项：在<em>单条轨迹内部</em>花钱（长 CoT）、
   在<em>轨迹之间</em>花钱（采样与投票）、在<em>中间步骤之间</em>花钱（搜索）。
@@ -225,6 +230,11 @@ COURSE.register({
 </div>
 
 <h3>3. 过程奖励与结果奖励：谁来当裁判</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道多采样、长链、搜索这三种测试时策略各自怎么花算力。
+  <strong>本节只加一件事</strong>：这些策略都要有人打分，而"裁判"有两种。
+  <strong>怎么读</strong>：记住两者的信号密度差别——ORM 只在终点判对错，PRM 每一步都给分；标注成本那一段第二遍再看。
+</p>
 <p>
   搜索和筛选都需要一个裁判。裁判有两种粒度：
   <span class="t" data-tterm="outcome reward model (ORM)" data-d="只看最终答案对错来打分的奖励模型，信号稀疏但标注便宜。">结果奖励（ORM）</span>
@@ -279,6 +289,11 @@ COURSE.register({
 </section>
 
 <h3>4. 测试时算力的缩放：什么时候有用，什么时候饱和</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道三种策略各自怎么花钱、由谁打分。
+  <strong>本节只加一件事</strong>：多花这些算力到底能换回多少正确率，以及从哪一步开始不划算。
+  <strong>怎么读</strong>：重点看"饱和"那一段。两篇论文的实验细节不必背，结论是收益递减、且取决于题目难度分布。
+</p>
 <p>
   这个方向有两篇最值得读的实证工作，结论互补：
 </p>
@@ -330,6 +345,11 @@ COURSE.register({
 </table>
 
 <h3>5. 工程代价：token、KV cache、延迟</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道多花算力会在哪里饱和。
+  <strong>本节只加一件事</strong>：把这些算力折成三样真实成本——token、KV cache、延迟。
+  <strong>怎么读</strong>：重点看这三样"谁先撑不住"的顺序；工程上最容易搞反的就是这个顺序。
+</p>
 <p>
   推理时算力不是免费的。它同时消耗三样东西，而这三样的瓶颈顺序，工程上常常搞反。
 </p>
@@ -373,6 +393,11 @@ COURSE.register({
 </p>
 
 <h3>6. 便宜模型多想 vs 贵模型想一次</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算清了"多想"的代价。
+  <strong>本节只加一件事</strong>：把"便宜模型多想"和"贵模型想一次"放在一起比，看什么时候前者更划算。
+  <strong>怎么读</strong>：跟着单次成功率 \(p\) 的比较走一遍；结论取决于 \(p\) 有多低、以及两者单价的差距。
+</p>
 <div class="flow">
   <div class="nd hi">先测单次成功率 p</div>
   <div class="ar">→</div>

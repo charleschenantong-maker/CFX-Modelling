@@ -155,6 +155,11 @@ COURSE.register({
 
 
 <h3>3. Chinchilla 最优计算法则（Compute-Optimal Scaling）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经推出总算力 \(C \approx 6ND\)。
+  <strong>本节只加一件事</strong>：在算力固定的前提下，参数 \(N\) 和数据 \(D\) 该怎么分。
+  <strong>怎么读</strong>：记住结论 \(D \approx 20N\)，同时记住它的适用边界——只保证算力最省，不保证效果最好。
+</p>
 
 <p>
 
@@ -257,6 +262,11 @@ COURSE.register({
 
 
 <h3>4. 训练规模与资源决策对比</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经有了最优配比，但还没落到自己手头这张卡上。
+  <strong>本节只加一件事</strong>：把算力换算成"我这张卡要跑多久"。
+  <strong>怎么读</strong>：跟一遍单卡 T4 的除法（\(6ND \div\) 有效算力）就够；这一节也是第 27、28 章动手前的预演。
+</p>
 
 <table class="tbl">
 

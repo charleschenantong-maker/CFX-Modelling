@@ -38,6 +38,11 @@ COURSE.register({
 </section>
 
 <h3>1. RoPE 的正交旋转几何与内积相对位移不变性</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 03 章最后提过 RoPE 只保留相对距离，但没有证明。
+  <strong>本节只加一件事</strong>：把这个结论证出来——旋转为什么让点积只跟相对位置有关。
+  <strong>怎么读</strong>：核心就是 \(\langle R_m q, R_n k\rangle = q^\top R_{n-m} k\) 这一行；钟表指针的类比看懂即可。
+</p>
 <p>
   旋转位置编码（Rotary Position Embedding, RoPE）不用传统的加性绝对位置嵌入，
   而是把隐藏向量按相邻两两维度配对，切成 \(d/2\) 个二维复数正交子空间。
@@ -53,6 +58,11 @@ COURSE.register({
 </p>
 
 <h3>2. Charles 草稿纸演算区：RoPE 频率分解与波长手算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经证出旋转只保留相对距离。
+  <strong>本节只加一件事</strong>：把这条结论落到具体数字上——每个维度转多快、波长有多长。
+  <strong>怎么读</strong>：跟着 \(d=64\) 那组数算一遍头尾两个频率；这两个极端值正好解释了后面外推为什么会崩。
+</p>
 <p>
   给 Charles 的草稿纸推演：从角频率递减公式出发，代入工业界的标准超参数，
   把高频维、中频维与低频维的旋转周期（波长）算清楚。
@@ -117,6 +127,11 @@ COURSE.register({
 </section>
 
 <h3>3. 外推崩溃手算与 YaRN 分频补偿机制</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算出各频段的波长——有的一圈只有几个 token，有的几万个 token 才转一圈。
+  <strong>本节只加一件事</strong>：解释外推为什么崩，以及 YaRN 怎么按频段分别对症处理。
+  <strong>怎么读</strong>：关键是"高频保真、低频插值"这条分工；跟着手算走一遍相位变化，就明白它为什么有效。
+</p>
 <p>
   假设模型在训练长度 \(L_{\text{train}} = 4096\) 上训完，现在要外推到 \(L_{\text{test}} = 32768\)（扩展倍率 \(s = 32768 / 4096 = 8\)）。
 </p>
@@ -183,6 +198,11 @@ COURSE.register({
 </section>
 
 <h3>4. 核心代数微算子：YaRN 动态频率分频与温度补偿</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 YaRN 是按频段分别处理。
+  <strong>本节只加一件事</strong>：把它写成代码——分频、缩放、温度补偿各落在哪几行。
+  <strong>怎么读</strong>：这一节可以当实现参考；不打算自己写的话，记住"改的是频率，不是位置"就够。
+</p>
 <p>
   下面这个代数式给出 YaRN 的频率调度与注意力缩放定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>

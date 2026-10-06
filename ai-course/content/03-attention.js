@@ -169,6 +169,11 @@ COURSE.register({
 </div>
 
 <h3>2. 极简小数字手算：一个 \(2 \times 2\) 的完整注意力流</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节给出了 \(Q,K,V\) 和缩放点积的完整定义，但全是符号，一个具体数字都还没有。
+  <strong>本节只加一件事</strong>：把长度和维度都压到最小，把这条公式从头到尾手算一遍。
+  <strong>怎么读</strong>：这一步别跳。这组 \(2 \times 2\) 的数算通了，后面所有高维注意力都只是把同一个动作重复更多次。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>纸面手算验证（跟算一遍，建立直觉）</h4>
   <p>设序列长度 \(T=2\)，特征维度 \(d_k=2\)。令：</p>
@@ -230,6 +235,11 @@ COURSE.register({
 </section>
 
 <h3>3. 自回归语言模型的铁律：因果掩码 (Causal Mask)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经完整手算过一遍 \(2 \times 2\) 的注意力。
+  <strong>本节只加一件事</strong>：加一条约束——第 \(t\) 个位置不许看到后面的词。
+  <strong>怎么读</strong>：核心就是那个把上三角置为 \(-\infty\) 的掩码矩阵；自己动手画一次 \(4 \times 4\) 的会更清楚。
+</p>
 <p>
   文本生成时，模型必须守一条<strong>时间因果箭头</strong>：预测第 \(t\) 个词时，不能看到第 \(t+1\) 个词及之后的信息。
   要在 GPU 的批量矩阵乘法里一次性切断未来信息，就用<strong>下三角因果掩码（Lower-triangular Causal Mask）</strong>：
@@ -241,6 +251,11 @@ COURSE.register({
 </p>
 
 <h3>4. 多头自注意力 (MHA) 的数学全景与四维张量流向</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会算单头注意力，也知道掩码是怎么挡住未来的。
+  <strong>本节只加一件事</strong>：把一份表示切成 \(H\) 份并行使用——多头。
+  <strong>怎么读</strong>：先跟住那张四维形状表 \([B,T,d] \to [B,H,T,d_h]\)；\(W_Q/W_K/W_V\) 的投影细节第二遍再看。
+</p>
 <p>
   多头注意力（Multi-Head Attention）本质上是在做一件事：<strong>把输入序列在多个正交子空间中分别做相似度检索与信息聚合</strong>。
   设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。四维张量的变换流向如下：
@@ -372,6 +387,11 @@ COURSE.register({
 </section>
 
 <h3>7.5 KV cache 账本：GQA-7B 32k 约 4.3GB，MHA 才会在 32k OOM</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经从几何角度验算过因果注意力的几条守恒。
+  <strong>本节只加一件事</strong>：把公式换成显存账单——推理时 KV cache 到底占多少。
+  <strong>怎么读</strong>：这是本章最实用的一节。跟着 7B 那笔账算一遍（每 token 字节数 × 上下文长度），OOM 就不再是玄学。
+</p>
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>KV cache 账本：先算再开长上下文</h4>
   <p>
@@ -464,6 +484,11 @@ COURSE.register({
 </div>
 
 <h3>9. 旋转位置编码 (RoPE) 的复数几何</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道注意力只看"两两有多像"，完全不关心谁在前谁在后。
+  <strong>本节只加一件事</strong>：把位置信息塞进去——而且是用旋转，不是用相加。
+  <strong>怎么读</strong>：抓住一个结论就够：旋转之后，点积只跟"隔了几个词"有关；复数推导第二遍再看。
+</p>
 <p>
   早期的 Transformer 把绝对位置的正余弦编码直接加在 Token 嵌入上。
   现在的开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍改用 <strong>RoPE（Rotary Position Embedding）</strong>。

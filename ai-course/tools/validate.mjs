@@ -51,7 +51,7 @@ const ALLOWED_CLASSES = new Set([
   'blk', 'blk-tip', 'blk-q', 'blk-m', 'blk-lab', 'blk-warn', 'blk-eco',
   'tbl', 'small', 'flow', 'nd', 'hi', 'ar', 'col', 'grid2', 'card', 'kv',
   'acc', 'acc-body', 'quiz', 'qlabel', 'q', 'opts', 'why', 'quiz-blank', 'blank-wrap', 'blank-input', 'blank-btn', 'blank-feedback',
-  't', 'cm', 'kw', 'st', 'calc', 'lead', 'callout', 'pill', 'ic'
+  't', 'cm', 'kw', 'st', 'calc', 'lead', 'callout', 'pill', 'ic', 'bridge'
 ]);
 // classes that exist in index.html CSS but are not part of the content DSL:
 // seeing them in content is a warning, not an error.

@@ -44,6 +44,11 @@ COURSE.register({
 </section>
 
 <h3>1. 采样：从 logits 到文本</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：训练部分到此结束，从这里开始讲"模型训好之后怎么用"。
+  <strong>本节只加一件事</strong>：同一份概率分布，用不同规则挑下一个词。
+  <strong>怎么读</strong>：三个参数各管一件事——温度管陡峭程度、top-k 管候选个数、top-p 管累积概率；先记住各自管什么。
+</p>
 <p>模型给出 logits \(z \in \mathbb{R}^{|\mathcal{V}|}\)，解码策略决定如何选下一个 token。</p>
 <table class="tbl small">
   <thead><tr><th>参数</th><th>作用</th><th>典型值</th><th>失效场景</th></tr></thead>
@@ -131,6 +136,11 @@ COURSE.register({
 </p>
 
 <h3>2. 量化：用精度换显存与速度</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道解码时每一步都要把整个模型过一遍。
+  <strong>本节只加一件事</strong>：把权重存得更小——用精度换显存和带宽。
+  <strong>怎么读</strong>：抓住"量化误差不超过步长的一半"这一个式子；int8 / int4 / NF4 的具体差别查表即可。
+</p>
 <table class="tbl small">
   <thead><tr><th>方案</th><th>位宽</th><th>显存（7B）</th><th>质量影响</th><th>场景</th></tr></thead>
   <tbody>
@@ -149,6 +159,11 @@ COURSE.register({
 </p>
 
 <h3>3. 服务：吞吐与延迟是两件事</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道怎么把权重压小。
+  <strong>本节只加一件事</strong>：上线之后要同时盯的两个指标——吞吐和延迟，以及它们为什么互相拉扯。
+  <strong>怎么读</strong>：记住"批大小调大，吞吐上去、延迟也上去"这条取舍；后面的调度机制都是为它服务的。
+</p>
 <dl class="kv">
   <dt>TTFT</dt><dd>Time To First Token：预填充阶段决定，受提示长度与算力影响</dd>
   <dt>ITL / TPOT</dt><dd>Inter-Token Latency：解码阶段决定，受显存带宽与批大小影响</dd>
@@ -173,6 +188,11 @@ COURSE.register({
 </section>
 
 <h3>4. 前缀缓存：同一个提示只算一次</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道吞吐和延迟是两件事，也见过批处理怎么排。
+  <strong>本节只加一件事</strong>：同一段前缀不要重复算——把算过的 KV 留下来。
+  <strong>怎么读</strong>：重点记它的失效条件——前缀改一个字、或请求被路由到别的实例，缓存就全没了。
+</p>
 <p>
   如果两次请求共享一段前缀（例如系统提示 + 固定文档），那么这段前缀的 KV Cache 可以复用，
   第二次只需处理新增部分。这叫
@@ -186,6 +206,11 @@ COURSE.register({
 </ul>
 
 <h3>5. 成本估算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道前缀缓存能省下重复计算。
+  <strong>本节只加一件事</strong>：把前面这些机制换算成钱——每百万 token 花多少。
+  <strong>怎么读</strong>：跟着输入、输出单价的乘法走一遍；这就是决定"自建还是调 API"的那笔账。
+</p>
 \[
 \text{cost per request} \approx \frac{c_{\text{in}}\cdot T_{\text{in}} + c_{\text{out}}\cdot T_{\text{out}}}{10^{6}}
 \quad(\text{with prices per million tokens})

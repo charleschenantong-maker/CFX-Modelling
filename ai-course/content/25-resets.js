@@ -65,6 +65,11 @@ COURSE.register({
 </dl>
 
 <h3>3. 并行物理隔离：Git Worktree 与智能体舰队</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经定了任务怎么派、状态怎么管。
+  <strong>本节只加一件事</strong>：多个智能体同时干活时，怎么让它们互不踩踏。
+  <strong>怎么读</strong>：记住三条命令（add / list / remove）就够用；后面那张三系统失败模式表可以当排错手册留着。
+</p>
 <p>
   同时派 3 个以上智能体去试不同的优化器实现或分词策略，如果共用一个工作目录，文件必然互相覆盖，构建缓存也会打架。
   标准做法是用 <strong>Git Worktree</strong> 给每个智能体开一块独立的物理工作区：

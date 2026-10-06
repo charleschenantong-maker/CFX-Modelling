@@ -1,0 +1,757 @@
+
+========================================================
+MODULE: 00-orientation.js (Total lines: 434, h3 count: 7)
+========================================================
+L0057 | 1. 三条轨道，一条主线
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0099 | 2. 核心实验工具与学习环境
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0113 | 3. 课程地图
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0141 | 4. 两种用法：先通读，之后当手册
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 为了让「查」这一步足够快，页面专门做了这几件事：
+L0245 | 5. 界面怎么用
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 在动手前，把三件事确认下来（后面的实验都依赖它们）：
+L0287 | 6. 数学符号约定
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0315 | 7. 建议节奏（12 周，每周 6–8 小时）
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 配套资源： Hugging Face Learn  的 LLM Course 适合查漏补缺，
+
+========================================================
+MODULE: 00b-primer.js (Total lines: 251, h3 count: 8)
+========================================================
+L0017 | 0. 先看一次完整的 LLM 请求：每个环节在解决什么问题
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 
+L0067 | 1. 全景大图：从一段文本到一次微调
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0084 | 2. 核心直觉：账单、分流、倒着算
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0113 | 3. 为什么顺序不能反
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0124 | 4. 手写小引擎和工业框架是同一件事
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0136 | 5. 从打分到概率再到扣分
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0155 | 6. 步子大小决定是走稳、横跳还是飞出去
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0174 | 7. 组合成完整的训练循环
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 01-language-models.js (Total lines: 267, h3 count: 5)
+========================================================
+L0063 | 1. 一次写一个词：接龙
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0077 | 2. 数个数：最笨但最诚实的模型
+       structure: blk_m=False, quiz=False, acc=True, tbl=False, tip=False, math=False
+       first_p: 
+L0102 | 3. 四个日常词：惊讶、平均惊讶、猜偏的代价
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 
+L0140 | 4. 打分变概率：只看分差
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0166 | 5. 查表和学出来：同一张表，两种做法
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 题目背景 ：设词表只有两个候选词（词 1 与 词 2），模型隐层输出的未归一化打分（Logits）为 \(z = [2.0, 1.0]\)。真实正确目标是词 1，即独热目标向量 \(y = [1.0, 0.0]\)。拿出草稿纸，动手写出以下
+
+========================================================
+MODULE: 02-tokenization.js (Total lines: 650, h3 count: 12)
+========================================================
+L0017 | 0.5 Chat template：同一个回答为什么会被切成不同任务
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 模型的基本单位是序号，不是字符，也不是词。理解这一点，就能解释一大批看起来莫名其妙的失败。
+L0060 | 1. 从编号到字节：模型的字母表是怎么定下来的
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0113 | 2. 合并在干什么：把常见的连在一起
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 三个结论：
+L0187 | 3. 训练器、编码器、解码器各是干什么的
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0199 | 4. 无损性：为什么文本可以，音频不行
+       structure: blk_m=False, quiz=False, acc=True, tbl=False, tip=False, math=False
+       first_p: 
+L0220 | 5. 预分词：合并只在块内发生
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 下面每一行都是把真实规则跑一遍得到的切分结果，输入都是字面写出的测试串，可以自己复核：
+L0263 | 6. 为什么模型会在拼写、倒序、加法上犯傻
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 算术的失败有两层原因，而切分只占第一层：
+L0300 | 7. 词表大小是一场权衡
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0368 | 8. 特殊记号与模板
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 除了自然文本，词表里还有一类控制序号，它们决定模型如何区分谁在说话：
+L0387 | 9. 三种训练数据格式
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0407 | 10. 文本之外的切分：音频离散化
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 三处不一样，说不清楚就只能说有点像，说清楚才是理解：
+L0513 | 11. 本模块术语
+       structure: blk_m=False, quiz=False, acc=True, tbl=False, tip=False, math=False
+       first_p: 题目背景 ：在草稿纸上模拟字节对编码（BPE）算法在小型玩具词频表上的前两轮贪心合并与压缩率：
+
+========================================================
+MODULE: 03-attention.js (Total lines: 591, h3 count: 10)
+========================================================
+L0055 | 1. 缩放点积注意力 (Scaled Dot-Product Attention)
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=True
+       first_p: 第一步：求点积的数学期望
+L0171 | 2. 极简小数字手算：一个 \(2 \times 2\) 的完整注意力流
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 设序列长度 \(T=2\)，特征维度 \(d_k=2\)。令：
+L0232 | 3. 自回归语言模型的铁律：因果掩码 (Causal Mask)
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0243 | 4. 多头自注意力 (MHA) 的数学全景与四维张量流向
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0286 | 5. 多头注意力：把形状账本写在纸上
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0313 | 6. 几何视角：双线性评分与行随机仿射算子
+       structure: blk_m=False, quiz=False, acc=True, tbl=False, tip=False, math=True
+       first_p: 
+L0352 | 7. 几何验算：因果注意力的三大守恒自查
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 记录三项：输出形状、上三角最大绝对值、每行和偏离 1 的最大值。再把 \(d_h\) 从 4 改成 6，确认 \(C\) 不变而头内宽度改变。
+L0374 | 7.5 KV cache 账本：GQA-7B 32k 约 4.3GB，MHA 才会在 32k OOM
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0409 | 8. 探究阶梯：从正确计算到反驳错误直觉
+       structure: blk_m=False, quiz=True, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0466 | 9. 旋转位置编码 (RoPE) 的复数几何
+       structure: blk_m=True, quiz=False, acc=True, tbl=False, tip=False, math=True
+       first_p: 草稿第 1 步：单个向量的旋转
+
+========================================================
+MODULE: 04-transformer.js (Total lines: 509, h3 count: 9)
+========================================================
+L0056 | 1. 宏观拓扑：Pre-norm 残差流与子层解剖
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 忘掉矩阵，先看一维：设每层是 \(x_{l+1} = x_l + 0.1\,x_l = 1.1\,x_l\)，起点 \(x_0 = 2\)，则 \(x_1 = 2.2\)，\(x_2 = 2.42\)，每层导数都是 \(1.1\)，两层连乘
+L0143 | 2. 参数量公式：\(12 L d^2 + |\mathcal{V}| d\)
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0183 | 3. 算力 FLOPs 与显存四大件的 STEP 级账本
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 证明 ：
+L0215 | 4. 训练显存四大件：为什么单卡 24 GB 无法全参数训练 7B 模型
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0269 | 5. 逐行读一遍 nanoGPT 的架构
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 1. RMSNorm 算子核心演示：
+L0299 | 6. LayerNorm 与 RMSNorm：同一个残差流上的两种尺度控制
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: LLM 回报：RMSNorm 相比 LayerNorm 省一次均值归约加一次逐元素平移；decode 每步每层都要归一化一次，省下的就是显存带宽与 VRAM。
+L0329 | 7. 一个 block 的张量流：每一步都回到 \((B,T,d)\)
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0350 | 8. Crossfade：凸组合相似，能量约束不同
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0382 | 9. 30 分钟最小实现：验证一个 block 没有偷看未来
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 题目背景 ：在 Google Colab 单张 T4（16GB 显存）上从零预训练一个小型自回归模型。拿出草稿纸，估算以下结构的静态显存开销：
+
+========================================================
+MODULE: 05-pretraining.js (Total lines: 477, h3 count: 6)
+========================================================
+L0049 | 1. 流水线全景
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0066 | 2. 优化器：AdamW 与它的现代替代
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=True, math=True
+       first_p: LLM 预训练的常用值：\(\beta_1 = 0.9\)、\(\beta_2 = 0.95\)、\(\epsilon = 10^{-8}\)、\(\lambda = 0.1\)、梯度裁剪范数 \(1.0\)。
+L0181 | 3. 学习率曲线：warmup + 余弦
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=True
+       first_p: 前置定义。 学习率退火是在训练后段逐步减小步长；余弦函数具有周期性，且 \(\cos 0=1\)、\(\cos(\pi/2)=0\)、\(\cos\pi=-1\)，因此可以平滑地从峰值过渡到下限。取 \(\eta_{\max}=3\time
+L0229 | 4. 混合精度：为什么用 bf16 而不是 fp16
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 标准配方： 参数、梯度、激活用 bf16，优化器状态与主权重保持 fp32 。损失在 fp32 里计算。
+L0241 | 5. 缩放律：该用多少数据、多少算力
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: Chinchilla 的核心结论：在固定算力预算下，最优的参数量与数据量满足
+L0333 | 6. 预算估算：从 FLOPs 到 GPU 小时
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 按每小时 2 美元算，约 19 万美元。 这就是为什么个人不可能预训练 7B 模型——这是本课程最重要的预算结论。
+
+========================================================
+MODULE: 06-parallelism.js (Total lines: 369, h3 count: 5)
+========================================================
+L0035 | 1. 四种并行，各自切什么
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 数据并行 每步只需一次梯度 all-reduce，通信量约为 \(2N\) 个参数（ring all-reduce 的经典结果）：
+L0074 | 2. 草稿纸演算区：从分块矩阵到 Megatron-LM 与 3D 并行
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 草稿第 1 步：GPU 0 与 GPU 1 本地并行计算第一层（零通信）
+L0210 | 3. 选择顺序（照这个顺序做，别跳）
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0225 | 4. JAX 的写法：把切分写进「类型」
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: \[ \text{Mesh}(\mathcal{D}_{\text{data}}, \mathcal{D}_{\text{model}}): \quad X \in \mathbb{R}^{B \times T \times d} \xri
+L0242 | 5. JAX 生态速查（对照 PyTorch）
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 假设 64 张 A100 80 GB、机内 NVLink 8 卡、机间 InfiniBand：
+
+========================================================
+MODULE: 07-finetuning.js (Total lines: 652, h3 count: 6)
+========================================================
+L0035 | 1. 先决定要不要微调
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0048 | 2. 台阶一：监督微调（SFT）
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 数据是「提问 → 理想回答」的示范。目标函数仍是交叉熵，但只在回答片段上计算：
+L0060 | 3. 台阶二：参数高效微调（LoRA / QLoRA）
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 冻结原权重 \(W_0 \in \mathbb{R}^{d\times k}\)，只学习一个低秩增量：
+L0162 | 4. 台阶三：偏好优化（DPO / KTO / ORPO）
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=True
+       first_p: 数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen, 赢者 \(w\)）与被拒绝的回答（rejected, 输者 \(l\)）。
+L0319 | 5. 草稿纸演算区：DPO 损失函数代数推导与单步手算
+       structure: blk_m=True, quiz=False, acc=True, tbl=False, tip=False, math=True
+       first_p: 第 1 步：带 KL 正则项的强化学习优化目标
+L0473 | 6. 台阶四：GRPO 与「可验证奖励」
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 只要奖励可被优化，模型就会优化它——包括你没打算奖励的部分。常见的奖励黑客（reward hacking）：
+
+========================================================
+MODULE: 08-inference.js (Total lines: 620, h3 count: 6)
+========================================================
+L0046 | 1. 采样：从 logits 到文本
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=True
+       first_p: 模型给出 logits \(z \in \mathbb{R}^{|\mathcal{V}|}\)，解码策略决定如何选下一个 token。
+L0133 | 2. 量化：用精度换显存与速度
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0151 | 3. 服务：吞吐与延迟是两件事
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 解码阶段每生成一个 token 都要把 全部权重 从显存读一遍，时间约为
+L0175 | 4. 前缀缓存：同一个提示只算一次
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0188 | 5. 成本估算
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 四个立刻能用的省钱手段，按收益排序：
+L0201 | 6. 草稿纸演算区：把这一讲的数字算到字节
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: KV Cache 缓存追加算子微核心演示：
+
+========================================================
+MODULE: 09-evaluation.js (Total lines: 770, h3 count: 7)
+========================================================
+L0034 | 1. 三层评估，缺一不可
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 损失下降 ≠ 任务变好。 以 crossfade 这类任务为例，这一点尤其明显：预测过渡时长的 RMSE 降低 0.3 秒，
+L0046 | 2. 泛化：为什么必须按「艺人」分组
+       structure: blk_m=True, quiz=False, acc=True, tbl=False, tip=False, math=True
+       first_p: 期望泛化误差可以分解为三部分：
+L0073 | 3. 模型阶梯：奥卡姆剃刀的可执行版本
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 可执行的结论：在 crossfade 这类任务常见的规模下，能可靠检测的是「0.3 秒以上」的差别。所以不要为了让 Level 3 赢而调参——
+L0128 | 4. 置换检验：检测「假信号」的通用工具
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 岭回归的解 \(\hat w = (X^\top X + \lambda I)^{-1}X^\top y\) 看起来像个线性模型，但它实际用了多少「自由度」？答案是
+L0215 | 5. 一个可直接复用的评估协议
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 大模型评估核心指标微算子演示：
+L0224 | 6. 三条方法论红线
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=False
+       first_p: 用合成数据（或你的真实测量）完成下面三件事，写成一页报告：
+L0256 | 7. 草稿纸演算区：把指标算到小数点后三位
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 把定义式改写成乘积形式，会得到一个很好用的读法：
+
+========================================================
+MODULE: 10-compute.js (Total lines: 590, h3 count: 4)
+========================================================
+L0026 | 1. 工业级真实大模型算力阶梯与集群规模
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0039 | 2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 在草稿纸上造一块好算的虚拟卡：算力峰值 \( P_{\text{peak}} = 100 \text{ TFLOPS} = 10^{14} \text{ FLOP/s} \)，显存带宽 \( B_{\text{mem}} = 1000 \t
+L0147 | 3. 经典 6N 推导：单层 Transformer 到整网的 6N FLOPs/token 严格证明
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 在草稿纸上代入最微型数字验证代数恒等性：取隐藏维度 \( d = 2 \)，MLP 扩展维度 \( d_{\text{ff}} = 4 \times 2 = 8 \)。输入单 Token 向量 \( x \in \mathbb{R}^{1 
+L0315 | 4. MFU 实战：8×A100 训练 7B 的利用率手算
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 模型浮点利用率（Model FLOPs Utilization, MFU）就是模型的有效计算速率除以硬件理论密集算力峰值：
+
+========================================================
+MODULE: 11-data-engineering.js (Total lines: 186, h3 count: 4)
+========================================================
+L0037 | 1. 海量语料去重数学原理：MinHash 与局部敏感哈希 (LSH)
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=True
+       first_p: 两个文档在至少一个波段中完全撞桶（被判定为疑似重复候选对）的概率为：
+L0091 | 2. 启发式流水线与合成数据退火配比 (Data Annealing)
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0127 | 3. 集群物理通信拓扑与计算通信重叠
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0149 | 4. 数值稳定与无损异步容灾 (Resilient Checkpointing)
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 1. FP8 缩放因子防下溢算子演示：
+
+========================================================
+MODULE: 12-moe.js (Total lines: 344, h3 count: 5)
+========================================================
+L0044 | 1. 从稠密 FFN 到稀疏门控网络（Sparse MoE）
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0064 | 2. Charles 草稿纸演算区：Top-2 路由与门控重新归一化手算
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 草稿第 1 步：数值排序与 Top-2 离散集合锁定
+L0172 | 3. 负载均衡辅助损失（Auxiliary Loss）代数推导与极值分析
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 第 1 步：定义批次内的两个统计向量
+L0264 | 4. 专家容量、丢弃机制与跨节点通信（All-to-All）
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0281 | 5. 核心代数微算子：轻量级 Top-2 稀疏门控网络
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: MoE 稀疏门控路由微算子演示：
+
+========================================================
+MODULE: 13-long-context.js (Total lines: 252, h3 count: 4)
+========================================================
+L0040 | 1. RoPE 的正交旋转几何与内积相对位移不变性
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0055 | 2. Charles 草稿纸演算区：RoPE 频率分解与波长手算
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 第 1 步：手算最高频子空间（\(i=0\)）
+L0119 | 3. 外推崩溃手算与 YaRN 分频补偿机制
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 第 1 步：直接外推（Direct Extrapolation）为什么一定炸？
+L0185 | 4. 核心代数微算子：YaRN 动态频率分频与温度补偿
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: RoPE 旋转位置编码与角频率缩放微算子演示：
+
+========================================================
+MODULE: 14-compression.js (Total lines: 1280, h3 count: 11)
+========================================================
+L0018 | 0. 先判断压缩解决的是哪一个问题
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 
+L0061 | 1. 全景：六条路线各自压的是显存、算力还是延迟
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0124 | 2. 剪枝：结构化与非结构化，以及「稀疏为什么常常不加速」
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 剪枝按「删掉什么」先分成两大类，这两类的工程命运完全不同。
+L0198 | 3. 稀疏度与精度：一条经验曲线
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0226 | 4. 数学内核：手算一次剪枝的四本账
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 第一本账：参数量。 单层 FFN 的参数（SwiGLU 的三个矩阵）是
+L0302 | 5. QAT 与 PTQ：什么时候必须「边训练边量化」
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 真正的量化（PTQ 用） ——算出整数、存成低位宽：
+L0367 | 5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0591 | 6. 模型合并与 MoE upcycling：把权重当作可运算的对象
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 会提升的情形 ——三个条件同时满足时最稳：
+L0747 | 7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 参数量按四块相加（注意力投影、FFN、embedding、输出头）：
+L0853 | 8. 该不该压：先看卡在哪，再选手段
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 同样重要的是「什么时候绝对不该做」——高级章最容易犯的错，是把每个技术都写成必需品：
+L0961 | 9. 二十分钟量出「掉了多少精度」
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: \[ \text{Memory}_{\text{KV}} = 2 \times B \times L \times H_{\text{kv}} \times d_h \times T \times \text{bytes\_per\_ele
+
+========================================================
+MODULE: 15-inference-serving.js (Total lines: 154, h3 count: 4)
+========================================================
+L0040 | 1. 显存碎片困境与 PagedAttention 虚拟分页
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0076 | 2. 动态连续批处理 (Continuous / In-Flight Batching)
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0093 | 3. Chunked Prefill：长短请求解耦，消掉首字时延尖刺
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0120 | 4. 工业级服务指标评估模型 (SLA 权衡三角形)
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 16-distillation.js (Total lines: 696, h3 count: 10)
+========================================================
+L0018 | 0. 先回答一个工程问题：为什么要蒸馏
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=False
+       first_p: 
+L0055 | 1. 软标签里的「暗知识」
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: Hinton 等人在 2015 年的《Distilling the Knowledge in a Neural Network》里把这件事称为「暗知识」：
+L0126 | 2. 语言模型上的四条路线
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0163 | 3. 什么时候蒸馏有效，什么时候白费
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0185 | 4. 与量化、剪枝的分工
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 三者可以叠加： 先用教师生成数据蒸馏出一个 1B 学生 → 再做 QLoRA 微调 → 最后 4-bit 量化部署 。
+L0197 | 5. 实用配方
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0209 | 6. 数据工厂：一场蒸馏要生成多少条、怎么过滤
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 这一节把「要生成多少条」变成一个能手算出来的数，再给出这笔数据的时间账。
+L0330 | 7. 词级蒸馏的存储账：为什么你只会存 top-k logits
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 取词表大小 \(V = 151936\)（15 万量级模型的常见值），数据集共 100 万 token（约 3000 条 350 token 的样本）：
+L0380 | 8. 怎么证明蒸馏有用：评估协议与最小样本量
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 把 A/B 两组看成两个独立比例，差值标准误与所需样本量（每组 \(n\) 题）是
+L0539 | 9. 本讲术语
+       structure: blk_m=False, quiz=True, acc=False, tbl=False, tip=False, math=True
+       first_p: 两种方向都会出现在蒸馏文献里，行为差别很大：
+
+========================================================
+MODULE: 17-reasoning.js (Total lines: 939, h3 count: 10)
+========================================================
+L0017 | 0. 先把「推理」变成可验收的任务
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 
+L0058 | 1. 想更久为什么有用：把解码看成搜索
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 长链式思考带来的是三种互相独立的好处，工程上必须分开算账：
+L0118 | 2. 三种测试时策略：长 CoT、采样投票、搜索
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 先定符号： 思维链（CoT）是一条逐步生成的推理轨迹；树搜索把中间状态展开成多个分支。对分支 \(i\)，\(N_i\) 是访问次数，\(Q_i\) 是平均收益，父节点总访问次数为 \(N\)。UCB1 为
+L0227 | 3. 过程奖励与结果奖励：谁来当裁判
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 手算 \(p = 0.3\)、\(n = 8\)、\(q = 0.8\)：
+L0281 | 4. 测试时算力的缩放：什么时候有用，什么时候饱和
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 一个可操作的判据表（用你自己的 100 道题测出来，而不是凭感觉）：
+L0332 | 5. 工程代价：token、KV cache、延迟
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 每 token 的 KV cache 字节数（fp16，每元素 2 字节）：
+L0375 | 6. 便宜模型多想 vs 贵模型想一次
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 用最简单的一行比较就能决策。小模型多采样的期望准确率（有理想验证器时）是
+L0419 | 7. 预算怎么算：从目标正确率反推 n、token 与并发
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 要求「至少有一条正确」的概率达到 \(C^\star\)，单次成功率 \(p\)，解出所需样本数：
+L0509 | 8. 怎么验证「推理能力」真的变强了（而不是变长了）
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 两组独立比例，每组 \(n\) 题，要检测差值 \(\delta\)，差值的标准误与所需样本量是
+L0563 | 9. 什么时候绝对不该用测试时计算
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 实验一（纯 CPU，秒级）： 验证覆盖率、无偏估计量与「错误一致性如何毁掉投票」。
+
+========================================================
+MODULE: 18-rag.js (Total lines: 993, h3 count: 9)
+========================================================
+L0041 | 1. 先分类：缺知识还是缺行为
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0069 | 2. 完整管线：七个必须分开调试的环节
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 三种主流做法，按实现成本排序：
+L0228 | 3. 两套指标：检索的与生成的，绝不能混着看
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 设 \(k\) 为返回的条数，\(\mathrm{Rel}\) 为该问题的全部相关块：
+L0316 | 4. 长上下文 vs RAG：不是替代关系
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 把成本算清楚，选择就变得具体了（沿用模块 17 的口径：一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB）：
+L0364 | 5. 上下文工程：把提示当成一种数据结构
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 「上下文工程」不是把提示写得更漂亮，而是把上下文当成有布局、有生命周期、有成本的数据结构来设计。
+L0417 | 6. 成本手算：每问多少钱
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 设检索 \(k\) 块、每块 \(L_{\text{chunk}}\) token、固定提示与指令 \(L_{\text{prompt}}\) token、回答 \(L_{\text{out}}\) token，输入与输出单价分别为 \(p
+L0447 | 7. 混合检索：把 BM25 与向量真的合起来
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 同一次查询，两路各返回 3 条，取 \(\kappa = 60\)，名次从 1 开始：
+L0552 | 8. 切分策略与上下文预算：把窗口当表格来分配
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 先做一个可复算的对比，这是决定检索上限的一步。
+L0615 | 9. 让 RAG 可回归：忠实度、引用支持率与失败模式表
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 这一节把第 3 节的四层指标变成一套每周能跑一次、结果可比的检查。
+
+========================================================
+MODULE: 19-agents.js (Total lines: 975, h3 count: 10)
+========================================================
+L0017 | 0.5 工具调用不是魔法：它是一条可验证的协议
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=False
+       first_p: 
+L0055 | 1. 定义：模型 + 工具 + 循环 + 记忆 + 终止条件
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 把它写成状态机，循环的骨架就三行：
+L0107 | 2. 工具调用：schema、校验、重试与权限最小化
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 注意三件事，它们决定了工具是否可靠：
+L0204 | 3. 规划范式：从 ReAct 到动作树搜索
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 几个可以直接引用的实证结果（都是原始论文口径）：
+L0284 | 4. 记忆：短期上下文、摘要压缩、外部记忆、技能库
+       structure: blk_m=True, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 设原文长度 \(|c|\)，摘要长度 \(|c'|\)，压缩比
+L0323 | 5. 多智能体：分工的收益与通信的代价
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 但同一篇文章给出了代价与边界：
+L0386 | 6. 工程与评估：trace、沙箱、预算、HITL
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 只读检索、草稿生成、跑测试、格式检查、把结果写进新文件。错了的代价是返工。
+L0462 | 7. 幂等、超时与重试：把「至少一次」变成「恰好一次效果」
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 设单次成功概率 \(p = 0.9\)，失败后最多再试 2 次（共 3 次尝试），则期望尝试次数为
+L0537 | 8. 权限、预算与终止条件：把边界写成可执行的清单
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 反推公式同样简单。先定可接受的单任务失败率，再解步数上限：
+L0618 | 9. 失败模式复现手册：能跑起来的排查表
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: \[ S_{t+1} = \delta(S_t, A_t, O_{t+1}), \quad \text{Cost}(A_t) \le B_{\text{step}} \]
+
+========================================================
+MODULE: 20-safety.js (Total lines: 974, h3 count: 9)
+========================================================
+L0046 | 1. 对齐的三种形态：能力、意图与规范
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 系统追求的是你 真正想要 的东西，而不只是你写下来的指标。它是关于「目标」的。
+L0115 | 2. 现有对齐手段的局限：优化的只是「人类偏好的代理」
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: RLHF 的标准形式是「最大化代理奖励，同时不要离参考模型太远」：
+L0172 | 3. 可扩展监督：当你无法评估它的输出时
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 把弱监督者、强模型自身、以及弱到强训练后的结果分别记作 \(S_{\text{weak}}\)、\(S_{\text{strong}}\)、\(S_{\text{w2s}}\)，常用的口径是「性能差距恢复率」：
+L0226 | 4. 越狱与提示注入：系统提示不是安全边界
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 学完这一节，以后写这类项目文档时可以这样写：不要写「我们做了注入防护，所以安全」，而应写「我们做了哪几层防护，分别防住哪类攻击，剩余风险是什么」。
+L0296 | 5. 可解释性：能问出什么，问不出什么
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 常见的度量是「对数几率差」，即两个候选答案的对数概率之差，以及修补带来的变化量：
+L0376 | 6. 欺骗性对齐、评测与治理
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 若在 \(n\) 次独立试验中没有观察到失败（\(\hat p = 0\)），真实失败率 \(p\) 的 95% 置信上界约为：
+L0460 | 7. 威胁模型：把安全写成一张可核对的表
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0551 | 8. 奖励黑客的最小可复现例子，以及红队要跑多少条
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 第 6.3 节的零失败上界 \(p_{\text{upper}} \approx 3/n\) 可以反过来用：先定下你要的上界，再算 \(n = 3 / p_{\text{upper}}\)。
+L0638 | 9. 二十几行探针：能验证什么，不能验证什么
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: \[ \mathcal{L}_{\text{probe}}(w, b) = -\sum_{i=1}^M \left[ y_i \log \sigma(w^\top h_i + b) + (1 - y_i) \log(1 - \sigma(w
+
+========================================================
+MODULE: 21-architectures.js (Total lines: 1348, h3 count: 11)
+========================================================
+L0019 | 0. 先问“为什么换架构”，再看新架构的方程
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 
+L0066 | 1. 注意力的两张账单
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 先把账单拆开。呼应模块 03（\(O(T^2)\) 的来源）与模块 08（KV cache 与解码瓶颈）。
+L0131 | 2. 状态空间模型：把「检索」换成「递推」
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 把它离散化之后，就得到一个普通得不能再普通的递推（下面略去离散化记号上的横线）：
+L0191 | 2.5 Charles 草稿纸演算区：从连续 SSM、ZOH 离散化到 Mamba 选择性机制
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0393 | 3. 线性注意力、滑窗与混合架构
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0475 | 4. MLA：低秩压缩 KV，与 MQA / GQA 的关系
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 于是每个 token 需要缓存的 元素个数 （fp16/bf16 下再乘 2 字节）：
+L0566 | 5. 超越逐 token 自回归：多 token 预测与扩散语言模型
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0635 | 6. 多模态：三段式、对比学习与训练阶段
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 设 \(N = 2\)、\(\tau = 1\)，相似度矩阵（行是图，列是文）为：
+L0816 | 7. 选型表：六类架构各自在为什么付费
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+L0890 | 8. 同预算推导：一张 24 GB 卡、128K 上下文、并发 4 条
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 第一步：算 KV 预算。 先把权重与运行时开销扣掉（基座权重已按 int4 量化计 3.9 GB，运行时底噪计 2.0 GB）：
+L0985 | 9. 多模态最小三段式：编码器 + 投影层 + 语言模型
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 6.2 已经手算过 InfoNCE。这里给出最小实现，它只有十行，却能帮你验证自己是否真的理解了那个公式：
+
+========================================================
+MODULE: 22-consciousness.js (Total lines: 736, h3 count: 12)
+========================================================
+L0043 | 1. 先把词拆开：意识不是一件事
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0080 | 2. 六种主流理论，以及它们各自的「可检验含义」
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 争议的核心在于：科学界并不存在一个公认的意识理论。下表列出影响力最大的几种，以及——这是本讲的重点—— 它们各自对「机器是否可能有意识」给出了什么可检验的推论 。
+L0128 | 3. 指标属性法：目前最可操作的一步
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0161 | 4. 支持与反对的几条主要论证
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 一个诚实的总结 ：目前既没有决定性证据支持 AI 有现象意识，也没有原理性证明它不可能。这是一个开放的实证问题。
+L0183 | 5. 为什么「模型的自我报告」不能当证据
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0202 | 6. 三个常被混为一谈的概念：AGI、RSI、意识
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0216 | 7. 在不确定下怎么行动：一个可以算的框架
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 设 \(w = 1\) 表示系统确有道德地位，\(w = 0\) 表示没有。对 \(P(w=1)\) 没有共识，只有区间。
+L0294 | 8. 这对你（数学申请者）意味着什么
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0305 | 9. 本讲术语
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0315 | 10. 指标属性法：一张可以逐条打勾的检查表
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 加权得分率 \(3.5 / 26 \approx 0.135\)，即约  13.5% 。现在做三次敏感性检查：
+L0414 | 11. 可测量的行为与不可测量的体验
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0480 | 12. 三十分钟实验：同一问题的五种问法
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 预算分配 ：写脚本 + 100 次调用约 10 分钟（每次 2 到 5 秒）；统计 5 分钟；写结论 15 分钟。
+
+========================================================
+MODULE: 23-economics.js (Total lines: 448, h3 count: 4)
+========================================================
+L0051 | 1. 算力的通用物理尺度：FLOPs 与 MFU
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0083 | 2. 核心公理推导：为什么自回归预训练计算量是 6ND FLOPs？
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0157 | 3. Chinchilla 最优计算法则（Compute-Optimal Scaling）
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 题目背景 ：在 Kaggle Notebooks 上分配了一张免费的 Nvidia T4（16GB 显存）。下面拿草稿纸算一下：训练一个 15M 参数的 miniGPT、处理 1000 万 Token（\(10\text{M}\)），物理上
+L0259 | 4. 训练规模与资源决策对比
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=True
+       first_p: 
+
+========================================================
+MODULE: 24-network.js (Total lines: 205, h3 count: 4)
+========================================================
+L0026 | 1. 云端训练物理拓扑与私有出口（Tailscale + 住宅 IP）
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=True, math=False
+       first_p: 
+L0051 | 2. 完整训练检查点（Checkpoint）到底包含什么？
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 在严谨的训练工程中，一个 $t$ 步的完整系统状态表示为：
+L0097 | 3. 工业标准断点续训代码范式
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0151 | 4. 科学早停准则（Early Stopping）：避开沉没成本
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 25-resets.js (Total lines: 139, h3 count: 4)
+========================================================
+L0026 | 1. 85/15 规则与 15 秒回滚机制
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 智能体迭代时，只要一次修改让验证集 Loss 变差或编译报错，就执行 15 秒回滚：
+L0056 | 2. 管理式 Prompt 与任务状态机
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0067 | 3. 并行物理隔离：Git Worktree 与智能体舰队
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0083 | 4. 三大操作系统底层失败模式与避坑指南
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 26-workflow.js (Total lines: 175, h3 count: 2)
+========================================================
+L0029 | 1. Karpathy《Zero to Hero》全景课程资源矩阵
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0104 | 2. 从 nanoGPT 到现代大模型（Qwen-2.5）的架构演化
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 27-hardware.js (Total lines: 240, h3 count: 5)
+========================================================
+L0026 | 1. Kaggle 账号注册与免费 GPU 权限解锁
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0048 | 2. 新建首个云端 Notebook 与必开设置
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0079 | 3. Kaggle 云端文件系统物理拓扑
+       structure: blk_m=False, quiz=False, acc=False, tbl=True, tip=False, math=False
+       first_p: 
+L0104 | 4. 逐行敲下你的第一行交互式测试代码
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 代码解析 ：在 Jupyter 里，以感叹号  !  开头表示执行 Linux Shell 命令； nvidia-smi  是 NVIDIA 驱动自带的工具，会打印显卡型号、驱动版本、CUDA 版本和 16GB 显存当前的占用情况。
+L0161 | 5. 🧪 模块完整整合代码清单（Complete Notebook Cell）
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 28-kaggle-training.js (Total lines: 244, h3 count: 3)
+========================================================
+L0028 | 1. 为什么不用全量微调，而用 LoRA
+       structure: blk_m=True, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 设底座里那个被冻住的权重矩阵是 \(\mathbf{W}_0 \in \mathbb{R}^{d \times k}\)。微调时不去改它，而是把权重的改动量 \(\Delta \mathbf{W}\) 写成两个小矩阵的乘积：
+L0047 | 2. 一步步跑通加载与 LoRA 微调
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 代码解析 ：一次装齐 Hugging Face 那一套—— transformers （模型本体）、 peft （LoRA 这类参数高效微调）、 trl （训练器）、 accelerate （自动分配设备）。
+L0125 | 3. 🧪 完整脚本（整段粘贴即可）
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+
+========================================================
+MODULE: 29-project.js (Total lines: 206, h3 count: 5)
+========================================================
+L0032 | 1. 为什么要把 LoRA 权重合并回主干（Merge and Unload）？
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=True
+       first_p: 
+L0043 | 2. 逐行手写权重物理合并与导出代码
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 代码解析 ：指定原开源底座的 ID 和第 28 讲生成的 LoRA 权重路径。
+L0081 | 3. 将改造后的模型导入本地 Ollama 运行时
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0116 | 4. 怎么在真实 Crossfade 项目代码中调用该模型？
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=False, math=False
+       first_p: 
+L0150 | 5. 🎓 大模型项目毕业设计：如何写进你的 CV 与学术成果？
+       structure: blk_m=False, quiz=False, acc=False, tbl=False, tip=True, math=True
+       first_p: 

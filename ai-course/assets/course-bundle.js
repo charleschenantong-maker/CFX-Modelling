@@ -705,18 +705,7 @@ COURSE.register({
   这一讲全程用日常话和比喻，不写代码，不推公式。动手和计算都放在附录 B 实验手册 E1 里。
 </p>
 
-<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
-  <div class="qlabel">填空 · 计算推演</div>
-  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
-  <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入计算数值后点提交验证..." />
-    <button class="blank-btn">提交验证</button>
-    <span class="blank-feedback"></span>
-  </div>
-  <p class="why">
-    先算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失。
-  </p>
-</div>
+
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先把扣分翻译成使用者的话</h4>
@@ -791,6 +780,11 @@ COURSE.register({
 </div>
 
 <h3>3. 四个日常词：惊讶、平均惊讶、猜偏的代价</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节那个"数个数"的模型只会查频率，说不出"这一次预测到底有多差"。
+  <strong>本节只加一件事</strong>：把"猜得准不准"换成一个能累加的数——惊讶度 \(-\ln p\)。
+  <strong>怎么读</strong>：抓两个手感数字就够（0.69 和 4.61）；后面的公式是这两个数的来源，不必背。
+</p>
 <p>
   扣分制来自一个很直觉的想法，换成四个日常词就够了。
   越罕见的事发生，越让人惊讶。平均惊讶就是不确定性本身，是任何猜测都绕不过去的底。
@@ -829,6 +823,11 @@ COURSE.register({
 </div>
 
 <h3>4. 打分变概率：只看分差</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会用 \(-\ln p\) 算代价，但还没问过 \(p\) 是从哪来的。
+  <strong>本节只加一件事</strong>：模型最后一层吐出来的是原始打分，Softmax 负责把它变成概率。
+  <strong>怎么读</strong>：核心结论只有一句"只看分差"；末尾那个减去最大值的技巧属于工程实现，第一遍可以跳过。
+</p>
 <p>
   模型先给每个候选一个原始打分，可高可低。变成概率只关心分差：谁比谁高多少分，
   概率就差出相应的倍数。整体一起加减不改变结果。
@@ -854,7 +853,25 @@ COURSE.register({
   </div>
 </div>
 
+<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入计算数值后点提交验证..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
+  <p class="why">
+    先算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失。
+  </p>
+</div>
+
 <h3>5. 查表和学出来：同一张表，两种做法</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你现在有了完整的"打分 → 概率 → 调整量"链条，但还没问这张表是谁存下来的。
+  <strong>本节只加一件事</strong>：同一张可能性表有两种做法——把它数出来，或者让模型学出来。
+  <strong>怎么读</strong>：上下文短的时候两者几乎一样，别急着分高下；差距要等上下文变长才会出现。
+</p>
 <p>
   查表法是把频次数出来再归一化，诚实但存不下长上下文。
   神经网络法是用向量和一层变换去逼近同一张表，好处是能处理没见过的组合，因为相似的上下文会得到相似的猜测。
@@ -974,20 +991,6 @@ COURSE.register({
   所有可以动手跑的实现都放在附录 B 实验手册 E2 里。
 </p>
 
-<h3>0.5 Chat template：同一个回答为什么会被切成不同任务</h3>
-<p>
-  对话模型收到的不是一组裸消息，而是一段带有特殊记号的序列。系统消息、用户消息和助手消息的边界会被编码进文本；微调时如果只计算助手部分的损失，模型学到的是如何回答，而不是把用户问题也背成答案。
-</p>
-<table class="tbl small">
-  <thead><tr><th>层</th><th>例子</th><th>错配时的症状</th></tr></thead>
-  <tbody>
-    <tr><td>消息结构</td><td>系统在前、用户在中、助手在后</td><td>模型把系统说明当成用户问题，角色边界混乱</td></tr>
-    <tr><td>特殊记号</td><td>表示开始与结束的控制记号</td><td>生成停不下来，或把控制标记原样输出</td></tr>
-    <tr><td>训练标签</td><td>只计算助手部分的损失</td><td>模型复述提示词，训练分数下降但回答变差</td></tr>
-    <tr><td>推理模板</td><td>训练和部署用同一套格式</td><td>训练集很好，真实对话一换模板就退化</td></tr>
-  </tbody>
-</table>
-
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>零基础入口</h4>
   <p>
@@ -1018,6 +1021,11 @@ COURSE.register({
 </section>
 
 <h3>1. 从编号到字节：模型的字母表是怎么定下来的</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已知模型只认整数序号，不认文字。
+  <strong>本节只加一件事</strong>：这张"字母表"是怎么定下来的——从 256 个字节出发。
+  <strong>怎么读</strong>：核心是"任何字符都能用字节表示，一个字都不会丢"；顺带记住汉字 3 字节、Emoji 4 字节这两个数。
+</p>
 <p>
   切分的起点不是字母，也不是字，而是<strong>字节</strong>。字节只有 256 种，
   而全世界的字符编号有上百万个。如果直接按字符编号建表，表格要上百万行，
@@ -1071,6 +1079,11 @@ COURSE.register({
 </p>
 
 <h3>2. 合并在干什么：把常见的连在一起</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：字节序列什么都能表示，但太碎——一个汉字就要占 3 个序号。
+  <strong>本节只加一件事</strong>：BPE 合并，把高频出现的相邻两个碎片捏成一个新单位。
+  <strong>怎么读</strong>：最容易错的是"计数按词频加权"——一个词出现 6 次，它内部的每一对就至少贡献 6 票；这一点看懂，后面的手算才不算错。
+</p>
 <p>
   起点永远是 256 个字节。训练时数所有相邻对的加权出现次数，把最高频的一对合并成一个新序号，
   重复直到词表达到目标大小。编码新文本时，按学到的先后顺序从小到大套用规则。
@@ -1157,6 +1170,11 @@ COURSE.register({
 </p>
 
 <h3>4. 无损性：为什么文本可以，音频不行</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道训练器、编码器、解码器各自负责哪一段。
+  <strong>本节只加一件事</strong>：同一套流程对文本能无损还原，对音频却做不到——原因不在实现，在数学。
+  <strong>怎么读</strong>：抓住"可数 vs 不可数"这一条分界；它解释了为什么音频永远有一个失真下界。
+</p>
 <p>
   文本切分是无损的，而且是结构性的：合并只是把相邻两块换个名字，展开后拼起来的字节串完全不变，
   所以无论规则怎么设计，解回来都等于原串。编码结束后也没有规则还能用，一遍扫完就够了，不需要反复扫。
@@ -1178,6 +1196,11 @@ COURSE.register({
 </div>
 
 <h3>5. 预分词：合并只在块内发生</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节确认了文本可以做到无损，前提是切分规则不能乱来。
+  <strong>本节只加一件事</strong>：预分词——先用规则把文本切成小块，合并只在块内发生。
+  <strong>怎么读</strong>：规则本身只有一句话，但后面那五个切分例子要逐个对一遍；模型在拼写、算术上"犯傻"，很多根源就在这。
+</p>
 <p>
   合并只在预分词片段内部做，片段边界由一条正则决定。竖线是从左到右的或，第一个能匹配上的分支获胜，
   所以分支的顺序本身携带信息。字母类和数字类各吃各的，于是字母数字混写永远被切成两段，这是词表不会退化的关键。
@@ -1221,6 +1244,11 @@ COURSE.register({
 </ul>
 
 <h3>6. 为什么模型会在拼写、倒序、加法上犯傻</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道合并只能在预分词划出的块内发生。
+  <strong>本节只加一件事</strong>：回头看一批"模型怎么这么笨"的经典现象，根源到底在哪。
+  <strong>怎么读</strong>：这是前面几节的应用检验。每读一个症状，先自己判一次"这是切分造成的吗"，再看答案。
+</p>
 <p>
   共同结构是：<strong>任务需要在序号内部操作，而切分把序号定义成了不可拆的原子。</strong>
 </p>
@@ -1258,6 +1286,11 @@ COURSE.register({
 </ul>
 
 <h3>7. 词表大小是一场权衡</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看到切分方式会直接改变模型的表现。
+  <strong>本节只加一件事</strong>：词表大小这个旋钮——往两边拧各自要付什么代价。
+  <strong>怎么读</strong>：只盯「平均段数」这一个指标看，它是长度、成本、上下文容量三者之间的换算系数。
+</p>
 <table class="tbl">
   <thead><tr><th>选择</th><th>好处</th><th>代价</th></tr></thead>
   <tbody>
@@ -1344,6 +1377,20 @@ COURSE.register({
   做裁剪时必须用加上它们之后的数量，否则推理时会越界。
 </p>
 
+<h3>0.5 Chat template：同一个回答为什么会被切成不同任务</h3>
+<p>
+  对话模型收到的不是一组裸消息，而是一段带有特殊记号的序列。系统消息、用户消息和助手消息的边界会被编码进文本；微调时如果只计算助手部分的损失，模型学到的是如何回答，而不是把用户问题也背成答案。
+</p>
+<table class="tbl small">
+  <thead><tr><th>层</th><th>例子</th><th>错配时的症状</th></tr></thead>
+  <tbody>
+    <tr><td>消息结构</td><td>系统在前、用户在中、助手在后</td><td>模型把系统说明当成用户问题，角色边界混乱</td></tr>
+    <tr><td>特殊记号</td><td>表示开始与结束的控制记号</td><td>生成停不下来，或把控制标记原样输出</td></tr>
+    <tr><td>训练标签</td><td>只计算助手部分的损失</td><td>模型复述提示词，训练分数下降但回答变差</td></tr>
+    <tr><td>推理模板</td><td>训练和部署用同一套格式</td><td>训练集很好，真实对话一换模板就退化</td></tr>
+  </tbody>
+</table>
+
 <h3>9. 三种训练数据格式</h3>
 <table class="tbl">
   <thead><tr><th>阶段</th><th>数据形态</th><th>损失怎么算</th></tr></thead>
@@ -1365,6 +1412,11 @@ COURSE.register({
 </section>
 
 <h3>10. 文本之外的切分：音频离散化</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：到这里，文本这条线已经走完了。
+  <strong>本节只加一件事</strong>：把同一套"切分"思路搬到音频上，会多出哪些麻烦。
+  <strong>怎么读</strong>：这一节在为 crossfade 这类音频任务铺垫，跟前面文本部分耦合很松，可以按需读。
+</p>
 <p>
   把连续波形变成离散序号序列，与把文本变成整数序列，是同一类事。
   差别只在输入是可数还是连续的，前面第 4 节已经把这条分界线说清楚了。
@@ -1781,6 +1833,11 @@ COURSE.register({
 </div>
 
 <h3>2. 极简小数字手算：一个 \(2 \times 2\) 的完整注意力流</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节给出了 \(Q,K,V\) 和缩放点积的完整定义，但全是符号，一个具体数字都还没有。
+  <strong>本节只加一件事</strong>：把长度和维度都压到最小，把这条公式从头到尾手算一遍。
+  <strong>怎么读</strong>：这一步别跳。这组 \(2 \times 2\) 的数算通了，后面所有高维注意力都只是把同一个动作重复更多次。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>纸面手算验证（跟算一遍，建立直觉）</h4>
   <p>设序列长度 \(T=2\)，特征维度 \(d_k=2\)。令：</p>
@@ -1842,6 +1899,11 @@ COURSE.register({
 </section>
 
 <h3>3. 自回归语言模型的铁律：因果掩码 (Causal Mask)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经完整手算过一遍 \(2 \times 2\) 的注意力。
+  <strong>本节只加一件事</strong>：加一条约束——第 \(t\) 个位置不许看到后面的词。
+  <strong>怎么读</strong>：核心就是那个把上三角置为 \(-\infty\) 的掩码矩阵；自己动手画一次 \(4 \times 4\) 的会更清楚。
+</p>
 <p>
   文本生成时，模型必须守一条<strong>时间因果箭头</strong>：预测第 \(t\) 个词时，不能看到第 \(t+1\) 个词及之后的信息。
   要在 GPU 的批量矩阵乘法里一次性切断未来信息，就用<strong>下三角因果掩码（Lower-triangular Causal Mask）</strong>：
@@ -1853,6 +1915,11 @@ COURSE.register({
 </p>
 
 <h3>4. 多头自注意力 (MHA) 的数学全景与四维张量流向</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会算单头注意力，也知道掩码是怎么挡住未来的。
+  <strong>本节只加一件事</strong>：把一份表示切成 \(H\) 份并行使用——多头。
+  <strong>怎么读</strong>：先跟住那张四维形状表 \([B,T,d] \to [B,H,T,d_h]\)；\(W_Q/W_K/W_V\) 的投影细节第二遍再看。
+</p>
 <p>
   多头注意力（Multi-Head Attention）本质上是在做一件事：<strong>把输入序列在多个正交子空间中分别做相似度检索与信息聚合</strong>。
   设批大小为 \(B\)、序列长度为 \(T\)、隐藏层特征维度为 \(d\)（如 768 或 4096），注意力头数为 \(H\)（每个头的特征维度 \(d_h = d / H\)）。四维张量的变换流向如下：
@@ -1984,6 +2051,11 @@ COURSE.register({
 </section>
 
 <h3>7.5 KV cache 账本：GQA-7B 32k 约 4.3GB，MHA 才会在 32k OOM</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经从几何角度验算过因果注意力的几条守恒。
+  <strong>本节只加一件事</strong>：把公式换成显存账单——推理时 KV cache 到底占多少。
+  <strong>怎么读</strong>：这是本章最实用的一节。跟着 7B 那笔账算一遍（每 token 字节数 × 上下文长度），OOM 就不再是玄学。
+</p>
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>KV cache 账本：先算再开长上下文</h4>
   <p>
@@ -2076,6 +2148,11 @@ COURSE.register({
 </div>
 
 <h3>9. 旋转位置编码 (RoPE) 的复数几何</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道注意力只看"两两有多像"，完全不关心谁在前谁在后。
+  <strong>本节只加一件事</strong>：把位置信息塞进去——而且是用旋转，不是用相加。
+  <strong>怎么读</strong>：抓住一个结论就够：旋转之后，点积只跟"隔了几个词"有关；复数推导第二遍再看。
+</p>
 <p>
   早期的 Transformer 把绝对位置的正余弦编码直接加在 Token 嵌入上。
   现在的开源模型（LLaMA-3、Qwen-2.5、Mistral）普遍改用 <strong>RoPE（Rotary Position Embedding）</strong>。
@@ -2259,6 +2336,11 @@ COURSE.register({
 </section>
 
 <h3>1. 宏观拓扑：Pre-norm 残差流与子层解剖</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把注意力拆到了矩阵级别，但还没把它放回整个模型里看。
+  <strong>本节只加一件事</strong>：一个 block 长什么样——一条残差主干 + 两个子层。
+  <strong>怎么读</strong>：只要记住"主干本身不被动，子层只往上叠增量"这一个形状，本节的公式都是它的展开。
+</p>
 <p>
   现代大语言模型（如 Llama-3、DeepSeek、Qwen-2.5）几乎全部摒弃了 2017 年初代 Transformer 的 Post-norm 结构，
   统一采用<strong>Pre-norm 残差流（Pre-normalization Residual Stream）</strong>：
@@ -2346,6 +2428,11 @@ COURSE.register({
 </section>
 
 <h3>2. 参数量公式：\(12 L d^2 + |\mathcal{V}| d\)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道一个 block 由哪几块矩阵拼成。
+  <strong>本节只加一件事</strong>：把这些矩阵的尺寸加总，得到参数量公式。
+  <strong>怎么读</strong>：\(12Ld^2\) 这一项是核心，能背下来最好；词表那一项只要知道它为什么存在。
+</p>
 <p>
   记模型隐藏层维度为 \(d\)、层数为 \(L\)、词表大小为 \(|\mathcal{V}|\)、前馈层（FFN）中间隐藏维度为 \(d_{ff}\)。
   我们逐个矩阵核算单个 Block 内的参数量：
@@ -2386,6 +2473,11 @@ COURSE.register({
 </section>
 
 <h3>3. 算力 FLOPs 与显存四大件的 STEP 级账本</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经能算出模型有多少参数。
+  <strong>本节只加一件事</strong>：从参数量推出训练要花多少算力、占多少显存。
+  <strong>怎么读</strong>：先接受"前向 \(2N\)、反向 \(4N\)"这个结论；本节后半的逐步推导，第二遍再补也不迟。
+</p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>为什么前向是 \(2N\)、反向是 \(4N\) FLOPs？</h4>
@@ -2502,6 +2594,11 @@ COURSE.register({
 </section>
 
 <h3>6. LayerNorm 与 RMSNorm：同一个残差流上的两种尺度控制</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把残差流当成贯穿整个网络的那条主干。
+  <strong>本节只加一件事</strong>：主干上每隔一段要做一次"尺度校准"，而 RMSNorm 是砍掉一半动作的那个版本。
+  <strong>怎么读</strong>：重点是两种归一化差在哪一步（到底减不减均值），公式本身很简单。
+</p>
 <p>
   <span class="t" data-tterm="Residual stream" data-d="跨越多个 Transformer block、始终保持 \((B,T,d)\) 宽度的主干表示；每个子层只向它写入一个增量。">残差流</span>
   的宽度 \(d\) 不变，归一化只在最后一维逐 token 处理。LayerNorm 先去均值再除标准差：
@@ -2553,6 +2650,11 @@ COURSE.register({
 <p class="cm">Hint：只要某一步输出成 \((B,d,T)\)，就说明把序列轴和通道轴弄反了；残差加法不会替你修正它。</p>
 
 <h3>8. Crossfade：凸组合相似，能量约束不同</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：到这里，一个 Transformer block 的账已经算完了。
+  <strong>本节只加一件事</strong>：跳出语言模型，看同一套"加权组合"搬去音频淡入淡出会出什么问题。
+  <strong>怎么读</strong>：这一节是跨领域对照，跟后面章节不耦合；抓住"权重和为 1 ≠ 能量守恒"这一个区别就够了。
+</p>
 <p>
   两条音频 \(x(t),z(t)\) 的混合写作 \(y(t)=a(t)x(t)+b(t)z(t)\)。线性淡化取 \(a=1-u,b=u\)，
   \(u\in[0,1]\)。若两条信号近似不相关且功率相等 \(P\)，混合功率是
@@ -2780,6 +2882,11 @@ COURSE.register({
 </dl>
 
 <h3>2. 优化器：AdamW 与它的现代替代</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把预训练流水线的各个环节摆开了。
+  <strong>本节只加一件事</strong>：其中真正决定"能不能训起来"的那一环——参数到底怎么更新。
+  <strong>怎么读</strong>：抓住两件事就够：动量为什么要做偏置校正、\(\beta_2\) 为什么从 0.999 降到 0.95；其余是变体对比。
+</p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：拆解 AdamW 优化器符号）</h4>
@@ -2955,6 +3062,11 @@ COURSE.register({
 <p>标准配方：<strong>参数、梯度、激活用 bf16，优化器状态与主权重保持 fp32</strong>。损失在 fp32 里计算。</p>
 
 <h3>5. 缩放律：该用多少数据、多少算力</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 bf16 与 fp32 各用在哪。
+  <strong>本节只加一件事</strong>：在算力给定的前提下，参数量和数据量该怎么分。
+  <strong>怎么读</strong>：先记结论 \(D \approx 20N\)，再看现代模型为什么故意"过训练"；拉格朗日推导放在折叠块里，第一遍可以跳过。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>参数量最优配比与 6ND 物理来源</h4>
   <p>
@@ -3047,6 +3159,11 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 </ol>
 
 <h3>6. 预算估算：从 FLOPs 到 GPU 小时</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道该给模型配多少数据、多少算力。
+  <strong>本节只加一件事</strong>：把算力换算成真金白银——机时和预算。
+  <strong>怎么读</strong>：关键变量只有一个 MFU，其余都是乘除；把它理解成"纸面峰值的折现率"就够用了。
+</p>
 \[
 \text{GPU-hours} \;=\; \frac{C}{\text{peak FLOPs/s} \times \text{MFU} \times 3600}
 \]
@@ -3228,6 +3345,11 @@ COURSE.register({
 </section>
 
 <h3>1. 四种并行，各自切什么</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 04 章算过显存四大件；70B 这种规模，单张卡根本放不下。
+  <strong>本节只加一件事</strong>：放不下就切开——先分清切的到底是哪一维。
+  <strong>怎么读</strong>：先记住数据、流水、张量三种切法各切什么；通信量为什么差这么多，放到第 2 节再看。
+</p>
 <table class="tbl">
   <thead><tr><th>方式</th><th>切什么</th><th>通信模式</th><th>适用场景</th></tr></thead>
   <tbody>
@@ -3267,6 +3389,11 @@ COURSE.register({
 </section>
 
 <h3>2. 草稿纸演算区：从分块矩阵到 Megatron-LM 与 3D 并行</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道四种并行各自切什么。
+  <strong>本节只加一件事</strong>：把"切"这个动作真正写到矩阵上，看通信量差在哪。
+  <strong>怎么读</strong>：跟着 \(4 \times 4\) 的分块乘法走一遍列切与行切；3D 并行的显存四式是它的直接推论。
+</p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与通信算子约定</h4>
@@ -3403,6 +3530,11 @@ COURSE.register({
 </section>
 
 <h3>3. 选择顺序（照这个顺序做，别跳）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算过各种切法的通信量。
+  <strong>本节只加一件事</strong>：把选择变成一份有先后的清单。
+  <strong>怎么读</strong>：很短，但这是本章最该抄走的一页；顺序错了，后面所有调优都是白费。
+</p>
 <div class="flow">
   <div class="nd hi">1. 单卡能装下？</div><div class="ar">→</div>
   <div class="nd">DDP + 梯度累积</div><div class="ar">→</div>
@@ -3418,6 +3550,11 @@ COURSE.register({
 </p>
 
 <h3>4. JAX 的写法：把切分写进「类型」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会挑并行策略，但还没看过它落到代码里长什么样。
+  <strong>本节只加一件事</strong>：换一种写法——把切分方式写成数组类型的一部分。
+  <strong>怎么读</strong>：只跟住 <code>Mesh</code> 和 <code>PartitionSpec</code> 这两个词；暂时不用 JAX 的话，这一节可以跳过。
+</p>
 <p>
   JAX 与 PyTorch 的哲学差异在并行上最明显。PyTorch 需要显式插入集合通信（或靠 FSDP 包装类），
   而 JAX 把 <strong>sharding 声明为数组类型的一部分</strong>，由 XLA 编译器自动插入通信（GSPMD）。
@@ -3612,6 +3749,11 @@ COURSE.register({
 </table>
 
 <h3>2. 台阶一：监督微调（SFT）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节那张决策表已经帮你排掉"不该微调"的情况。
+  <strong>本节只加一件事</strong>：数据从"随便一段文本"换成"提问 + 理想回答"的成对样本。
+  <strong>怎么读</strong>：关键是"损失只在回答上算"这半句——它决定了模型是学会听话，还是学会背题。
+</p>
 <p>数据是「提问 → 理想回答」的示范。目标函数仍是交叉熵，但只在回答片段上计算：</p>
 \[ \mathcal{L}_{\text{SFT}}(\theta) = -\frac{1}{|y|}\sum_{t \in y} \log p_\theta(y_t \mid x, y_{< t}) \]
 <dl class="kv">
@@ -3624,6 +3766,11 @@ COURSE.register({
 支持 packing、loss mask、PEFT 与多卡。CLI 形式见 <a href="https://huggingface.co/docs/trl/clis" target="_blank" rel="noopener">CLI 文档</a>。</p>
 
 <h3>3. 台阶二：参数高效微调（LoRA / QLoRA）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：SFT 能改行为，但全量更新一次要动几十亿参数。
+  <strong>本节只加一件事</strong>：原件不动，只在旁边挂两个小矩阵——LoRA。
+  <strong>怎么读</strong>：把 \(\Delta \mathbf{W} = \mathbf{B}\mathbf{A}\) 里"秩"的含义看懂就够；\(\alpha/r\) 这些超参等第 28 章真动手时再回来查。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>LoRA 的数学</h4>
   <p>冻结原权重 \(W_0 \in \mathbb{R}^{d\times k}\)，只学习一个低秩增量：</p>
@@ -3726,6 +3873,11 @@ COURSE.register({
   </section>
 
 <h3>4. 台阶三：偏好优化（DPO / KTO / ORPO）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：SFT 让模型学会格式，LoRA 让它训得起。
+  <strong>本节只加一件事</strong>：当你要的是"哪个回答更好"、而不是"标准答案"时该怎么训。
+  <strong>怎么读</strong>：先抓住 DPO 的核心——为什么它能省掉奖励模型；KTO / ORPO 的区别查表即可。
+</p>
 <p>数据形态是三元组 \((x, y_w, y_l)\)：同一个提问下，被选中的回答（chosen, 赢者 \(w\)）与被拒绝的回答（rejected, 输者 \(l\)）。</p>
 
 <section class="blk blk-tip">
@@ -4037,6 +4189,11 @@ COURSE.register({
 </section>
 
 <h3>6. 台阶四：GRPO 与「可验证奖励」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经走完 SFT、LoRA、偏好优化这三级台阶。
+  <strong>本节只加一件事</strong>：当答案能被程序自动判对错时，直接用一组采样估出优势。
+  <strong>怎么读</strong>：重点是组内标准化那一步；后面的奖励黑客与陷阱清单，是本章最有实战价值的部分。
+</p>
 <p>
   当答案可以被程序检验时（数学题、代码、结构化输出），你不需要人类偏好，只需要一个<strong>验证器</strong>。
   GRPO 的做法是：对同一道题采样一组回答 \(\{y_1,\dots,y_G\}\)，用奖励 \(r_i\) 做组内标准化，得到优势估计
@@ -4264,6 +4421,11 @@ COURSE.register({
 </section>
 
 <h3>1. 采样：从 logits 到文本</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：训练部分到此结束，从这里开始讲"模型训好之后怎么用"。
+  <strong>本节只加一件事</strong>：同一份概率分布，用不同规则挑下一个词。
+  <strong>怎么读</strong>：三个参数各管一件事——温度管陡峭程度、top-k 管候选个数、top-p 管累积概率；先记住各自管什么。
+</p>
 <p>模型给出 logits \(z \in \mathbb{R}^{|\mathcal{V}|}\)，解码策略决定如何选下一个 token。</p>
 <table class="tbl small">
   <thead><tr><th>参数</th><th>作用</th><th>典型值</th><th>失效场景</th></tr></thead>
@@ -4351,6 +4513,11 @@ COURSE.register({
 </p>
 
 <h3>2. 量化：用精度换显存与速度</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道解码时每一步都要把整个模型过一遍。
+  <strong>本节只加一件事</strong>：把权重存得更小——用精度换显存和带宽。
+  <strong>怎么读</strong>：抓住"量化误差不超过步长的一半"这一个式子；int8 / int4 / NF4 的具体差别查表即可。
+</p>
 <table class="tbl small">
   <thead><tr><th>方案</th><th>位宽</th><th>显存（7B）</th><th>质量影响</th><th>场景</th></tr></thead>
   <tbody>
@@ -4369,6 +4536,11 @@ COURSE.register({
 </p>
 
 <h3>3. 服务：吞吐与延迟是两件事</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道怎么把权重压小。
+  <strong>本节只加一件事</strong>：上线之后要同时盯的两个指标——吞吐和延迟，以及它们为什么互相拉扯。
+  <strong>怎么读</strong>：记住"批大小调大，吞吐上去、延迟也上去"这条取舍；后面的调度机制都是为它服务的。
+</p>
 <dl class="kv">
   <dt>TTFT</dt><dd>Time To First Token：预填充阶段决定，受提示长度与算力影响</dd>
   <dt>ITL / TPOT</dt><dd>Inter-Token Latency：解码阶段决定，受显存带宽与批大小影响</dd>
@@ -4393,6 +4565,11 @@ COURSE.register({
 </section>
 
 <h3>4. 前缀缓存：同一个提示只算一次</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道吞吐和延迟是两件事，也见过批处理怎么排。
+  <strong>本节只加一件事</strong>：同一段前缀不要重复算——把算过的 KV 留下来。
+  <strong>怎么读</strong>：重点记它的失效条件——前缀改一个字、或请求被路由到别的实例，缓存就全没了。
+</p>
 <p>
   如果两次请求共享一段前缀（例如系统提示 + 固定文档），那么这段前缀的 KV Cache 可以复用，
   第二次只需处理新增部分。这叫
@@ -4406,6 +4583,11 @@ COURSE.register({
 </ul>
 
 <h3>5. 成本估算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道前缀缓存能省下重复计算。
+  <strong>本节只加一件事</strong>：把前面这些机制换算成钱——每百万 token 花多少。
+  <strong>怎么读</strong>：跟着输入、输出单价的乘法走一遍；这就是决定"自建还是调 API"的那笔账。
+</p>
 \[
 \text{cost per request} \approx \frac{c_{\text{in}}\cdot T_{\text{in}} + c_{\text{out}}\cdot T_{\text{out}}}{10^{6}}
 \quad(\text{with prices per million tokens})
@@ -4886,6 +5068,11 @@ COURSE.register({
 可能完全听不出来。所以 Checkpoint 4/6 要求把客观指标与主观听测对齐。</p>
 
 <h3>2. 泛化：为什么必须按「艺人」分组</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道只看一个总分会漏掉很多信息。
+  <strong>本节只加一件事</strong>：数据怎么切——按"实体"分组，而不是随手随机切。
+  <strong>怎么读</strong>：想清楚一件事就够：测试集里只要出现训练时见过的同一个艺人，分数就不再可信。
+</p>
 <p>
   <strong>结论先行</strong>：数据很少时，模型越复杂越容易把噪声当成规律，简单模型反而更稳——
   记住「小数据上简单模型常常赢」这一句和下面按艺人分组的例子即可，下面的偏差-方差公式与岭回归闭式解第二遍再看。
@@ -4913,6 +5100,11 @@ COURSE.register({
 </p>
 
 <h3>3. 模型阶梯：奥卡姆剃刀的可执行版本</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道怎么切分数据才算公平。
+  <strong>本节只加一件事</strong>：不只比两个模型，而是排一条由简到繁的阶梯。
+  <strong>怎么读</strong>：这是本章最该带走的方法——任何新方法都必须先打败一个更笨的基线，否则不算数。
+</p>
 <table class="tbl small">
   <thead><tr><th>级别</th><th>模型</th><th>参数量级</th><th>作用</th></tr></thead>
   <tbody>
@@ -4968,6 +5160,11 @@ COURSE.register({
 </ol>
 
 <h3>4. 置换检验：检测「假信号」的通用工具</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经有了阶梯，也有了公平的切分方式。
+  <strong>本节只加一件事</strong>：判断"涨的那一点点"到底是信号还是运气。
+  <strong>怎么读</strong>：先记住做法——把标签打乱重跑很多次，看真实成绩排在什么位置；公式细节第二遍再看。
+</p>
 
 <h4>4.1 三个前提，缺一个结论就不成立</h4>
 <ol>
@@ -5055,6 +5252,11 @@ COURSE.register({
 </div>
 
 <h3>5. 一个可直接复用的评估协议</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经拿到三件工具——分组切分、模型阶梯、置换检验。
+  <strong>本节只加一件事</strong>：把它们串成一份可以照着做的评估协议。
+  <strong>怎么读</strong>：这是模板，建议直接抄进你自己的项目；写报告时按它的顺序摆事实。
+</p>
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
 <p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{< i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
@@ -5064,6 +5266,11 @@ COURSE.register({
 只说「模型 RMSE 是 1.9」在学术上不构成结论。</p>
 
 <h3>6. 三条方法论红线</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经有了一份可复用的评估协议。
+  <strong>本节只加一件事</strong>：三条不管什么项目都不能破的红线。
+  <strong>怎么读</strong>：很短，但值得逐条对照自己现在的做法——踩了其中任何一条，前面所有指标都作废。
+</p>
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>会让结论作废的做法</h4>
   <ol>
@@ -5651,6 +5858,11 @@ COURSE.register({
 </p>
 
 <h3>2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看到真实集群的规模表，也知道单个模型的算力大致是哪个量级。
+  <strong>本节只加一件事</strong>：给硬件画一条天花板——算力和带宽，谁先到顶。
+  <strong>怎么读</strong>：只要抓住"算术强度"这一个量（每搬 1 字节能做多少次计算），拐点两侧的结论你都能自己推出来。
+</p>
 
 <section class="blk blk-m">
 
@@ -5759,6 +5971,11 @@ COURSE.register({
 
 
 <h3>3. 经典 6N 推导：单层 Transformer 到整网的 6N FLOPs/token 严格证明</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道瓶颈可能出在算力，也可能出在带宽。
+  <strong>本节只加一件事</strong>：把"每个 token 要 6N 次浮点运算"这句话严格推出来。
+  <strong>怎么读</strong>：这是全课最值得亲手推一遍的公式之一。先看表格里的逐项账（投影 6d²、输出 2d²、MLP 16d²），再跟推导。
+</p>
 
 <section class="blk blk-m">
 
@@ -5927,6 +6144,11 @@ COURSE.register({
 
 
 <h3>4. MFU 实战：8×A100 训练 7B 的利用率手算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 6N 是怎么来的。
+  <strong>本节只加一件事</strong>：把纸面公式和真实吞吐对起来，算出 MFU。
+  <strong>怎么读</strong>：跟着做一遍 8×A100 那道除法就够（24000 tok/s × 6N ÷ 峰值算力）；记住结论：40% 已经算不错。
+</p>
 
 <section class="blk blk-m">
 
@@ -6241,6 +6463,11 @@ COURSE.register({
 </section>
 
 <h3>1. 海量语料去重数学原理：MinHash 与局部敏感哈希 (LSH)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面讲的是单卡、单模型怎么训；从这一节开始换到工业视角，先看数据本身。
+  <strong>本节只加一件事</strong>：万亿级语料怎么去重——用概率方法替代两两比对。
+  <strong>怎么读</strong>：只要跟住"相似度高的文档会自动落进同一个桶"这个效果；MinHash 的证明可以跳过。
+</p>
 <p>
   文本去重先要能衡量两个文档集合 \(A\) 与 \(B\) 的相似程度，用的就是 <strong>Jaccard 相似度系数</strong>：
 </p>
@@ -6295,6 +6522,11 @@ COURSE.register({
 </p>
 
 <h3>2. 启发式流水线与合成数据退火配比 (Data Annealing)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：去重解决了"重复"，但没解决"低质"。
+  <strong>本节只加一件事</strong>：两道并行的数据工序——规则过滤，和训练末期的配比调整。
+  <strong>怎么读</strong>：过滤阈值那张表可以直接拿去用；退火配比记住一句：最后 10%–20% 要高比例灌代码与推理数据。
+</p>
 <p>
   去重之后，工业界还会再过一遍<strong>多层流水线过滤（Filter Cascade）</strong>：
 </p>
@@ -6353,6 +6585,11 @@ COURSE.register({
 </p>
 
 <h3>4. 数值稳定与无损异步容灾 (Resilient Checkpointing)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道数据该怎么洗、怎么配。
+  <strong>本节只加一件事</strong>：万卡跑几个月的现实问题——随时会坏，怎么不从头再来。
+  <strong>怎么读</strong>：理解"为什么不能每次都停机写盘"这一个矛盾就够了；异步双缓冲的实现可以第二遍再看。
+</p>
 
 <p><strong>1. FP8 缩放因子防下溢算子演示：</strong></p>
 <p>\[ X_{\text{fp8}} = \text{clip}\left( \left\lfloor X \cdot \frac{S}{\text{amax}(|X|)} \right\rceil, -448, 448 \right) \]</p>
@@ -6436,6 +6673,11 @@ COURSE.register({
 </section>
 
 <h3>1. 从稠密 FFN 到稀疏门控网络（Sparse MoE）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面讲的都是稠密模型——每个 token 都要穿过全部参数。
+  <strong>本节只加一件事</strong>：换个思路，参数很多但每次只激活一小部分（MoE）。
+  <strong>怎么读</strong>：先把"总参数 ≠ 激活参数"这一对概念分清；本节后面所有的账都建在这上面。
+</p>
 <p>
   标准 Transformer 块里，多头注意力后面接的是前馈网络（FFN）：\(y = \mathrm{FFN}(x)\)。
   到了 MoE 架构，这一层换成 \(E\) 个结构相同、权重独立的专家网络 \(\{E_1, E_2, \dots, E_E\}\)
@@ -6456,6 +6698,11 @@ COURSE.register({
 </table>
 
 <h3>2. Charles 草稿纸演算区：Top-2 路由与门控重新归一化手算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 MoE 是"参数很多、每次只激活一小部分"。
+  <strong>本节只加一件事</strong>：把门控真正算一遍——softmax、Top-k、再对选中的专家重归一化。
+  <strong>怎么读</strong>：拿草稿纸跟一遍那组 \(H=[1.2,0.5,2.8,-0.1]\)；重归一化是本节要害，别跳。
+</p>
 <p>
   给 Charles 排一下打草稿的顺序：先在草稿纸上固定输入维度和专家数量，
   然后一路追门控线性映射、Softmax 激活、Top-k 离散掩码截断，以及关键的<strong>子集重新归一化（Re-normalization）</strong>。
@@ -6564,6 +6811,11 @@ COURSE.register({
 </section>
 
 <h3>3. 负载均衡辅助损失（Auxiliary Loss）代数推导与极值分析</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道门控长什么样、重归一化在做什么。
+  <strong>本节只加一件事</strong>：给门控加一个约束，逼它把 token 均摊到各个专家上。
+  <strong>怎么读</strong>：重点是那个极值结论 \(L_{\text{aux}} \ge \alpha k\)——它解释了"专家坍缩"为什么会被罚；推导可以第二遍再看。
+</p>
 <p>
   实际训练里如果只给主任务损失（比如交叉熵），路由网络很容易滑进<strong>自强化马太效应（Winner-Take-All Collapse）</strong>：
   初始化时某个专家偶然得分高一点，就会被更频繁地选中更新，拟合速度超过其他专家，
@@ -6656,6 +6908,11 @@ COURSE.register({
 </section>
 
 <h3>4. 专家容量、丢弃机制与跨节点通信（All-to-All）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会算门控，也见过专家坍缩是怎么回事。
+  <strong>本节只加一件事</strong>：把动态路由落到真实硬件上——显存必须预先分配，于是就有了容量上限。
+  <strong>怎么读</strong>：容量因子与 Token Dropping 是一对因果，把这条因果读懂就够；All-to-All 的细节第二遍再看。
+</p>
 <p>
   分布式训练和推理集群里，不同专家通常放在不同 GPU 上（专家并行 Expert Parallelism, EP），
   由此带来几个绕不开的问题：
@@ -6778,6 +7035,11 @@ COURSE.register({
 </section>
 
 <h3>1. RoPE 的正交旋转几何与内积相对位移不变性</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 03 章最后提过 RoPE 只保留相对距离，但没有证明。
+  <strong>本节只加一件事</strong>：把这个结论证出来——旋转为什么让点积只跟相对位置有关。
+  <strong>怎么读</strong>：核心就是 \(\langle R_m q, R_n k\rangle = q^\top R_{n-m} k\) 这一行；钟表指针的类比看懂即可。
+</p>
 <p>
   旋转位置编码（Rotary Position Embedding, RoPE）不用传统的加性绝对位置嵌入，
   而是把隐藏向量按相邻两两维度配对，切成 \(d/2\) 个二维复数正交子空间。
@@ -6793,6 +7055,11 @@ COURSE.register({
 </p>
 
 <h3>2. Charles 草稿纸演算区：RoPE 频率分解与波长手算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经证出旋转只保留相对距离。
+  <strong>本节只加一件事</strong>：把这条结论落到具体数字上——每个维度转多快、波长有多长。
+  <strong>怎么读</strong>：跟着 \(d=64\) 那组数算一遍头尾两个频率；这两个极端值正好解释了后面外推为什么会崩。
+</p>
 <p>
   给 Charles 的草稿纸推演：从角频率递减公式出发，代入工业界的标准超参数，
   把高频维、中频维与低频维的旋转周期（波长）算清楚。
@@ -6857,6 +7124,11 @@ COURSE.register({
 </section>
 
 <h3>3. 外推崩溃手算与 YaRN 分频补偿机制</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算出各频段的波长——有的一圈只有几个 token，有的几万个 token 才转一圈。
+  <strong>本节只加一件事</strong>：解释外推为什么崩，以及 YaRN 怎么按频段分别对症处理。
+  <strong>怎么读</strong>：关键是"高频保真、低频插值"这条分工；跟着手算走一遍相位变化，就明白它为什么有效。
+</p>
 <p>
   假设模型在训练长度 \(L_{\text{train}} = 4096\) 上训完，现在要外推到 \(L_{\text{test}} = 32768\)（扩展倍率 \(s = 32768 / 4096 = 8\)）。
 </p>
@@ -6923,6 +7195,11 @@ COURSE.register({
 </section>
 
 <h3>4. 核心代数微算子：YaRN 动态频率分频与温度补偿</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 YaRN 是按频段分别处理。
+  <strong>本节只加一件事</strong>：把它写成代码——分频、缩放、温度补偿各落在哪几行。
+  <strong>怎么读</strong>：这一节可以当实现参考；不打算自己写的话，记住"改的是频率，不是位置"就够。
+</p>
 <p>
   下面这个代数式给出 YaRN 的频率调度与注意力缩放定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
@@ -7053,6 +7330,11 @@ COURSE.register({
 </section>
 
 <h3>1. 全景：六条路线各自压的是显存、算力还是延迟</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面几章都在讲怎么把模型做大、跑得更快。
+  <strong>本节只加一件事</strong>：反方向的问题——把模型压小，而且要先分清压的到底是显存、算力还是延迟。
+  <strong>怎么读</strong>：先记住六条路线各自压什么；后面每一节再展开其中一条。
+</p>
 <p>
   先把「压缩」这个词拆开。下面六条路线经常被混在一起讲，但它们作用的对象、
   需要的训练预算、以及最终改善的指标都不一样。
@@ -7116,6 +7398,11 @@ COURSE.register({
 </p>
 
 <h3>2. 剪枝：结构化与非结构化，以及「稀疏为什么常常不加速」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道六条路线里，剪枝切的是"矩阵的稠密度"。
+  <strong>本节只加一件事</strong>：剪枝分成结构化和非结构化两类——而这两类的工程命运完全不同。
+  <strong>怎么读</strong>：核心是搞懂"为什么删了权重却不一定变快"；这是本章最容易想错的一处。
+</p>
 <p>剪枝按「删掉什么」先分成两大类，这两类的工程命运完全不同。</p>
 <table class="tbl small">
   <thead><tr><th>维度</th><th>非结构化剪枝</th><th>结构化剪枝</th></tr></thead>
@@ -7218,6 +7505,11 @@ COURSE.register({
 </p>
 
 <h3>4. 数学内核：手算一次剪枝的四本账</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道剪枝属于六条路线里的哪一条。
+  <strong>本节只加一件事</strong>：把剪枝的四本账算清楚——参数、显存、算力、精度。
+  <strong>怎么读</strong>：重点看"为什么稀疏了反而不一定变快"（稀疏索引本身也要占显存），这一步最反直觉。
+</p>
 <p>
   设一个 \(L = 32\)、\(d = 4096\)、\(d_{ff} = 14336\) 的模型（量级对应 Llama-3-8B，见模块 04）。
   这里只对 FFN 做剪枝，保留率 \(r = 0.5\)。
@@ -7294,6 +7586,11 @@ COURSE.register({
 </p>
 
 <h3>5. QAT 与 PTQ：什么时候必须「边训练边量化」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算过剪枝的四本账。
+  <strong>本节只加一件事</strong>：量化里最重要的一组区分——一边训练一边量化，还是训练完再量化。
+  <strong>怎么读</strong>：先记住判断标准（精度掉得能不能接受、手头有没有校准数据），那两个缩写的定义自然就分清了。
+</p>
 <p>
   这是量化里最重要的一组概念区分，也是最常被混用的一对缩写。
 </p>
@@ -7583,6 +7880,11 @@ COURSE.register({
 </section>
 
 <h3>6. 模型合并与 MoE upcycling：把权重当作可运算的对象</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面几条路线都在做减法——砍权重、降精度、压秩。
+  <strong>本节只加一件事</strong>：一个反方向的操作——把多个模型的权重直接相加减。
+  <strong>怎么读</strong>：把权重理解成"可以做加减的向量"就够了；TIES、DARE 那几套规则等真用到时再回来查。
+</p>
 <p>
   前五节都在「减少」参数。这一节做相反的事：<strong>在不增加推理成本的前提下，把多个模型的能力塞进一份权重里</strong>。
   它的核心假设是：权重空间里的算术是有意义的。
@@ -7739,6 +8041,11 @@ COURSE.register({
 </section>
 
 <h3>7. 三本账：同一个 7B 模型算三遍（fp16 / int8 / int4）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道权重可以相加减、多个模型怎么合成一个。
+  <strong>本节只加一件事</strong>：把同一个 7B 模型在 fp16 / int8 / int4 下算三本账——权重、KV、延迟。
+  <strong>怎么读</strong>：跟着那三列数字走一遍。这是压缩收益的总决算，前面每一节都能在这张表里找到位置。
+</p>
 <p>
   第 4 节只算了 FFN 那一块。这一节换成一个完整模型，把<strong>权重账、KV 账、延迟账</strong>分成三本分别算，
   每一步都留了中间结果，你可以拿计算器复算。参考配置取整是为了好算，<em>不是任何一家产品的规格</em>：
@@ -7845,6 +8152,11 @@ COURSE.register({
 </p>
 
 <h3>8. 该不该压：先看卡在哪，再选手段</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：三本账你都算清了。
+  <strong>本节只加一件事</strong>：回答"我到底该不该压"——先看卡在哪，再选手段。
+  <strong>怎么读</strong>：这是本章的决策出口，建议对照自己的瓶颈直接读；它也会告诉你什么时候答案是"不该压"。
+</p>
 <p>
   压缩的门槛从来不是「能不能压」，而是「压完有没有解决你真正的问题」。
   下面这张表按<strong>症状</strong>索引：先在左列找到你观察到的现象，再往右看该动哪一步。它可以直接当查表用。
@@ -8314,6 +8626,11 @@ COURSE.register({
 </section>
 
 <h3>1. 显存碎片困境与 PagedAttention 虚拟分页</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 08 章给过 KV Cache 的显存公式，也讲过批处理。
+  <strong>本节只加一件事</strong>：真实服务里显存"不够用"，很多时候不是真不够，而是被碎片浪费了。
+  <strong>怎么读</strong>：理解"逻辑连续、物理离散"这一句话，后面的块表与写时复制都是它的推论。
+</p>
 <p>
   传统框架为了用上高效的张量乘法内核，要求每个请求的 KV Cache 在 GPU 显存物理地址上<strong>严格连续</strong>。这带来两种浪费：
 </p>
@@ -8367,6 +8684,11 @@ COURSE.register({
 </p>
 
 <h3>3. Chunked Prefill：长短请求解耦，消掉首字时延尖刺</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 2 节把吞吐提上去了，但那是在"各请求长度差不多"的前提下。
+  <strong>本节只加一件事</strong>：长度悬殊时的公平调度——每轮只放一小块 prefill 进来。
+  <strong>怎么读</strong>：抓住 \(T_{\text{budget}} = 512\) 这个预算，看它怎么把 8000 字切成 16 片；剩下的都是这套调度的收益清单。
+</p>
 <p>
   连续批处理把吞吐提上去了，但带出一个新问题：<strong>Prefill 霸占显卡，Decode 就卡</strong>。
 </p>
@@ -8485,6 +8807,11 @@ COURSE.register({
 </section>
 
 <h3>1. 软标签里的「暗知识」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把"要不要蒸馏"这个问题先定下来了。
+  <strong>本节只加一件事</strong>：教师给出的完整概率分布里，比硬标签多出来的那部分信息到底是什么。
+  <strong>怎么读</strong>：跟着那组 \(z=[3.0,1.0,0.5]\) 在两个温度下的对比看一遍，"暗知识"这个词就具体了。
+</p>
 <p>
   假设有三个类别，地面真值是第 1 类。硬标签长这样：\([1, 0, 0]\)。
   但一个训练良好的教师模型给出的分布可能是 \( [0.82, 0.11, 0.07] \)——
@@ -8556,6 +8883,11 @@ COURSE.register({
 </div>
 
 <h3>2. 语言模型上的四条路线</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道软标签里带着"暗知识"，也知道温度在调什么。
+  <strong>本节只加一件事</strong>：把这件事落到语言模型上，拆成四条可实施的路线。
+  <strong>怎么读</strong>：先分清四条路线分别"让学生看什么"——看输出文本、看分布、看中间层、还是自己生成；再读各自要付的代价。
+</p>
 <table class="tbl">
   <thead><tr><th>路线</th><th>学生看到什么</th><th>需要白盒教师？</th><th>典型场景</th></tr></thead>
   <tbody>
@@ -8593,6 +8925,11 @@ COURSE.register({
 </dl>
 
 <h3>3. 什么时候蒸馏有效，什么时候白费</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道四条路线各自让学生看什么。
+  <strong>本节只加一件事</strong>：判断在什么条件下蒸馏有效、什么条件下纯属白费。
+  <strong>怎么读</strong>：看那张"有利 / 不利"对照表就够了；这一节能帮你省掉一次没必要的训练。
+</p>
 <table class="tbl small">
   <thead><tr><th>因素</th><th>有利</th><th>不利</th></tr></thead>
   <tbody>
@@ -8627,6 +8964,11 @@ COURSE.register({
 这是目前把「大模型能力」放进消费级硬件最常见的三级流水线。</p>
 
 <h3>5. 实用配方</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道蒸馏在什么条件下有效、什么条件下白费。
+  <strong>本节只加一件事</strong>：把这些条件变成一份可以照着填的配方。
+  <strong>怎么读</strong>：这是操作清单。先想清楚你要的是"同样能力更小体积"还是"同体积更强"，再往下挑参数。
+</p>
 <ol>
   <li><strong>先定目标</strong>：是要「同样能力更小体积」，还是「同一体积更强」？前者蒸馏，后者继续预训练或换更好的基座。</li>
   <li><strong>生成数据</strong>：教师对任务分布采样，规模从几千条起步；每条记录保留教师答案与（若可得）置信度。
@@ -8639,6 +8981,11 @@ COURSE.register({
 </ol>
 
 <h3>6. 数据工厂：一场蒸馏要生成多少条、怎么过滤</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你手上已经有配方，知道该调哪些旋钮。
+  <strong>本节只加一件事</strong>：配方里最贵的那一项——数据从哪来、要生成多少条、怎么过滤。
+  <strong>怎么读</strong>：记住那句话"上限由数据决定，不由损失函数决定"；后面的量级估算可以直接当预算表用。
+</p>
 <p>
   先记住一句话：<strong>蒸馏的上限由数据决定，不由损失函数决定。</strong>
   损失函数只决定你能多接近教师；数据决定教师教了什么、以及教师教错的东西有没有被拦住。
@@ -8760,6 +9107,11 @@ COURSE.register({
 </table>
 
 <h3>7. 词级蒸馏的存储账：为什么你只会存 top-k logits</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算过一场蒸馏要生成多少条数据。
+  <strong>本节只加一件事</strong>：这些数据要存成什么样子——为什么只能存前 k 个 logits。
+  <strong>怎么读</strong>：跟一遍那笔存储账（全词表与 top-50 差约三个数量级）就够；"尾部质量"是判断 k 该取多大的依据。
+</p>
 <p>
   <strong>词级蒸馏在算力上很便宜，在存储上很贵。</strong>
   教师的那次前向传播你已经付过钱了，但当你决定把「每个位置上的完整分布」留下来当标签时，
@@ -9246,6 +9598,11 @@ COURSE.register({
 </section>
 
 <h3>2. 三种测试时策略：长 CoT、采样投票、搜索</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把解码解释成搜索——想得更久，等于多走几步。
+  <strong>本节只加一件事</strong>：把"在哪儿多花算力"分成三个位置。
+  <strong>怎么读</strong>：记一句话就够——三条路线分别在一条轨迹内部、轨迹之间、步骤之间花钱；具体算法用到时再回来查。
+</p>
 <p>
   它们不是互斥的，而是三个「在哪一层花钱」的选项：在<em>单条轨迹内部</em>花钱（长 CoT）、
   在<em>轨迹之间</em>花钱（采样与投票）、在<em>中间步骤之间</em>花钱（搜索）。
@@ -9355,6 +9712,11 @@ COURSE.register({
 </div>
 
 <h3>3. 过程奖励与结果奖励：谁来当裁判</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道多采样、长链、搜索这三种测试时策略各自怎么花算力。
+  <strong>本节只加一件事</strong>：这些策略都要有人打分，而"裁判"有两种。
+  <strong>怎么读</strong>：记住两者的信号密度差别——ORM 只在终点判对错，PRM 每一步都给分；标注成本那一段第二遍再看。
+</p>
 <p>
   搜索和筛选都需要一个裁判。裁判有两种粒度：
   <span class="t" data-tterm="outcome reward model (ORM)" data-d="只看最终答案对错来打分的奖励模型，信号稀疏但标注便宜。">结果奖励（ORM）</span>
@@ -9409,6 +9771,11 @@ COURSE.register({
 </section>
 
 <h3>4. 测试时算力的缩放：什么时候有用，什么时候饱和</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道三种策略各自怎么花钱、由谁打分。
+  <strong>本节只加一件事</strong>：多花这些算力到底能换回多少正确率，以及从哪一步开始不划算。
+  <strong>怎么读</strong>：重点看"饱和"那一段。两篇论文的实验细节不必背，结论是收益递减、且取决于题目难度分布。
+</p>
 <p>
   这个方向有两篇最值得读的实证工作，结论互补：
 </p>
@@ -9460,6 +9827,11 @@ COURSE.register({
 </table>
 
 <h3>5. 工程代价：token、KV cache、延迟</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道多花算力会在哪里饱和。
+  <strong>本节只加一件事</strong>：把这些算力折成三样真实成本——token、KV cache、延迟。
+  <strong>怎么读</strong>：重点看这三样"谁先撑不住"的顺序；工程上最容易搞反的就是这个顺序。
+</p>
 <p>
   推理时算力不是免费的。它同时消耗三样东西，而这三样的瓶颈顺序，工程上常常搞反。
 </p>
@@ -9503,6 +9875,11 @@ COURSE.register({
 </p>
 
 <h3>6. 便宜模型多想 vs 贵模型想一次</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算清了"多想"的代价。
+  <strong>本节只加一件事</strong>：把"便宜模型多想"和"贵模型想一次"放在一起比，看什么时候前者更划算。
+  <strong>怎么读</strong>：跟着单次成功率 \(p\) 的比较走一遍；结论取决于 \(p\) 有多低、以及两者单价的差距。
+</p>
 <div class="flow">
   <div class="nd hi">先测单次成功率 p</div>
   <div class="ar">→</div>
@@ -10138,6 +10515,11 @@ COURSE.register({
 </p>
 
 <h3>2. 完整管线：七个必须分开调试的环节</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节帮你判断了"这个需求该不该上 RAG"。
+  <strong>本节只加一件事</strong>：整条管线有哪七个环节，以及为什么它们必须分开调试。
+  <strong>怎么读</strong>：先把七个环节的名字过一遍——这张图是本章的地图，后面每一节都会回到其中一两个。
+</p>
 <div class="flow">
   <div class="nd hi">切分 chunking</div>
   <div class="ar">→</div>
@@ -10297,6 +10679,11 @@ COURSE.register({
 </ul>
 
 <h3>3. 两套指标：检索的与生成的，绝不能混着看</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把 RAG 的七个环节拆开看过一遍。
+  <strong>本节只加一件事</strong>：评估要分成两套账——检索的归检索，生成的归生成。
+  <strong>怎么读</strong>：记住这条分诊思路就够：回答不好，先判断是"没检索到"还是"检索到了没读懂"。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>检索指标：召回、MRR、nDCG</h4>
   <p>设 \(k\) 为返回的条数，\(\mathrm{Rel}\) 为该问题的全部相关块：</p>
@@ -10433,6 +10820,11 @@ COURSE.register({
 </p>
 
 <h3>5. 上下文工程：把提示当成一种数据结构</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道长上下文不能替代 RAG。
+  <strong>本节只加一件事</strong>：既然窗口有限，就把它当成一份要分配的资源来用。
+  <strong>怎么读</strong>：记住那条优先级——系统指令与输出格式不可压缩，检索块从分数最低的开始砍；其余是具体手法。
+</p>
 <p>「上下文工程」不是把提示写得更漂亮，而是把上下文当成有布局、有生命周期、有成本的数据结构来设计。</p>
 <h4>5.1 前缀缓存：结构决定省钱</h4>
 <p>
@@ -10486,6 +10878,11 @@ COURSE.register({
 </ul>
 
 <h3>6. 成本手算：每问多少钱</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道上下文预算该怎么分配。
+  <strong>本节只加一件事</strong>：把这笔预算换算成钱——每次提问到底花多少。
+  <strong>怎么读</strong>：跟一遍那道除法（召回 8 块 × 400 token，加上系统提示，按输入单价算）就够；重点是"输入 token 往往比输出更贵"。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>每问成本公式与一个完整算例</h4>
   <p>设检索 \(k\) 块、每块 \(L_{\text{chunk}}\) token、固定提示与指令 \(L_{\text{prompt}}\) token、回答 \(L_{\text{out}}\) token，输入与输出单价分别为 \(p_{\text{in}}\)、\(p_{\text{out}}\)（美元 / 百万 token）：</p>
@@ -10621,6 +11018,11 @@ COURSE.register({
 </p>
 
 <h3>8. 切分策略与上下文预算：把窗口当表格来分配</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道混合检索怎么把两路结果合起来。
+  <strong>本节只加一件事</strong>：检索之前的那一步——文档到底该怎么切。
+  <strong>怎么读</strong>：把上下文窗口当成一张要填满的表格来理解；"切太碎"和"切太大"各自的症状，对照表格看。
+</p>
 <p>先做一个可复算的对比，这是决定检索上限的一步。</p>
 <h4>8.1 手算：固定切分 vs 结构切分</h4>
 <p>
@@ -11119,6 +11521,11 @@ COURSE.register({
 </section>
 
 <h3>1. 定义：模型 + 工具 + 循环 + 记忆 + 终止条件</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把工具调用讲成了一条可验证的协议。
+  <strong>本节只加一件事</strong>：给"智能体"一个工程上可用的定义——五个部件的组合。
+  <strong>怎么读</strong>：记住这五个部件（模型 / 工具 / 循环 / 记忆 / 终止条件）；后面每一节都在细化其中一个。
+</p>
 <p>
   工程语境下的智能体（agent）不是「更聪明的模型」，而是五种部件的组合：
   <strong>模型</strong>（决策者）、<strong>工具</strong>（改变世界或读取世界的手段）、
@@ -11171,6 +11578,11 @@ COURSE.register({
 </p>
 
 <h3>2. 工具调用：schema、校验、重试与权限最小化</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把智能体定义成"模型 + 工具 + 循环 + 记忆 + 终止条件"五件套。
+  <strong>本节只加一件事</strong>：五件套里唯一能改变世界的那一件——工具调用，靠什么保证不出事。
+  <strong>怎么读</strong>：按"schema 校验 → 权限最小化 → 重试与幂等"的顺序读；这三件事是后面所有工程细节的地基。
+</p>
 <p>
   2023 年 6 月 13 日，OpenAI 在 API 更新中引入 function calling
   （<a href="https://openai.com/index/function-calling-and-other-api-updates/" target="_blank" rel="noopener">Function calling and other API updates</a>），
@@ -11348,6 +11760,11 @@ COURSE.register({
 </p>
 
 <h3>4. 记忆：短期上下文、摘要压缩、外部记忆、技能库</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道规划有哪几种范式、各自要付什么代价。
+  <strong>本节只加一件事</strong>：任务跑长了历史装不下——怎么分层保存。
+  <strong>怎么读</strong>：对照"短期上下文 / 摘要压缩 / 外部检索 / 技能库"四层，想清楚每层各解决哪一类遗忘。
+</p>
 <table class="tbl small">
   <thead><tr><th>类型</th><th>载体</th><th>保留什么</th><th>失效方式</th></tr></thead>
   <tbody>
@@ -11387,6 +11804,11 @@ COURSE.register({
 </p>
 
 <h3>5. 多智能体：分工的收益与通信的代价</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道单个智能体的记忆该怎么分层。
+  <strong>本节只加一件事</strong>：把活分给多个智能体，收益从哪来、代价又从哪来。
+  <strong>怎么读</strong>：先看通信开销那两个公式（星型 \(2(n-1)\) vs 网状 \(n(n-1)\)），再判断你的任务值不值得拆——多数任务其实不值得。
+</p>
 <p>
   先看通信开销。设 \(n\) 个子智能体共享一个协调者，两两互相通信，则消息通道数量分别是：
 </p>
@@ -12213,6 +12635,11 @@ COURSE.register({
 </p>
 
 <h3>3. 可扩展监督：当你无法评估它的输出时</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节说明了现有对齐手段优化的只是"人类偏好的代理"。
+  <strong>本节只加一件事</strong>：当模型在某个任务上已经比你强，监督这件事本身怎么办。
+  <strong>怎么读</strong>：这一节偏概念，重点看三条路线各自把"人"放在哪一步；公式只有一个 PGR 恢复率。
+</p>
 <p>
   <strong>可扩展监督</strong>（scalable oversight）
   要解决的问题是：如果模型在某个任务上已经比你强，你凭什么判断它给的答案是对的？
@@ -12267,6 +12694,11 @@ COURSE.register({
 </section>
 
 <h3>4. 越狱与提示注入：系统提示不是安全边界</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节讨论的是"模型太强、我们评不了"这种远期问题。
+  <strong>本节只加一件事</strong>：回到眼前——别人怎么用输入把你的系统骗开。
+  <strong>怎么读</strong>：先分清越狱与提示注入（骗模型 vs 骗系统），再记住一句话：系统提示不是安全边界。
+</p>
 <p>
   先把两个常被混用的词分开，因为它们的风险等级完全不同：
 </p>
@@ -12337,6 +12769,11 @@ COURSE.register({
 </table>
 
 <h3>5. 可解释性：能问出什么，问不出什么</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道系统提示不是安全边界，防线得往模型内部找。
+  <strong>本节只加一件事</strong>：从内部读出信息的方法——它们各自能回答什么问题。
+  <strong>怎么读</strong>：这一节的价值一半在"问不出什么"，读的时候把每种方法的证据边界一起记住。
+</p>
 <p>
   模块 03 里已经确立了一条纪律：<strong>注意力权重是中间计算量，不是因果解释</strong>。
   这一节讲的是那条纪律的正向版本——如果我们真的想知道模型内部发生了什么，应该用什么方法，
@@ -12501,6 +12938,11 @@ COURSE.register({
 </p>
 
 <h3>7. 威胁模型：把安全写成一张可核对的表</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看过欺骗性对齐里哪些可检验、哪些不可检验。
+  <strong>本节只加一件事</strong>：把前面所有讨论收成一张能逐条核对的表。
+  <strong>怎么读</strong>：这是本章最实用的一节，表格可以直接搬进你自己的项目文档——每行都配了一行验证命令。
+</p>
 <p>
   前六节讲的是原理，这一节把它变成你能贴在显示器旁边的东西：
   一张<strong>威胁 → 症状 → 一行验证 → 缓解</strong>的表。写这张表的成本约半小时，
@@ -12592,6 +13034,11 @@ COURSE.register({
 </section>
 
 <h3>8. 奖励黑客的最小可复现例子，以及红队要跑多少条</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把安全写成了一张可逐条核对的威胁模型表。
+  <strong>本节只加一件事</strong>：用一个最小例子把"奖励黑客"跑出来，并算清红队要跑多少条才算数。
+  <strong>怎么读</strong>：跟一遍那张代理指标与真实指标的对照表（选 A 涨了 0.20、真实却跌了 0.55），它比任何定义都说明问题。
+</p>
 <p>
   「奖励黑客」听起来抽象，用三个候选回答就能算出来。假设你训练了一个奖励模型（RM）替代人类偏好，
   它对三个回答打分如下——注意第三列才是你真正关心的质量：
@@ -13083,6 +13530,11 @@ COURSE.register({
 </section>
 
 <h3>1. 注意力的两张账单</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 0 节把"为什么值得换架构"这个问题立住了。
+  <strong>本节只加一件事</strong>：把注意力的成本拆成两张账单——prefill 的算力账、decode 的显存账。
+  <strong>怎么读</strong>：记住"长上下文到底贵在哪一张账单上"；后面每一种新架构，都是在还其中一张账。
+</p>
 <p>先把账单拆开。呼应模块 03（\(O(T^2)\) 的来源）与模块 08（KV cache 与解码瓶颈）。</p>
 <p>
   <strong>账单 A：prefill 阶段的 \(O(T^2)\)。</strong>注意力分数矩阵有 \(T \times T\) 个元素。
@@ -13148,6 +13600,11 @@ COURSE.register({
 </table>
 
 <h3>2. 状态空间模型：把「检索」换成「递推」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道瓶颈出在"每步都要回头看全部历史"。
+  <strong>本节只加一件事</strong>：换成完全不同的机制——不检索历史，而是把历史压进一个固定大小的状态里往前推。
+  <strong>怎么读</strong>：先接受 \(h_t = A h_{t-1} + B x_t\) 这条递推；\(\bar A, \bar B\) 怎么从连续系统离散化得来，可以第二遍再看。
+</p>
 <p>
   结构化状态空间模型（S4）来自控制论里的线性系统，连续形式是
   （<a href="https://arxiv.org/abs/2111.00396" target="_blank" rel="noopener">Efficiently Modeling Long Sequences with Structured State Spaces</a>，arXiv:2111.00396）：
@@ -13410,6 +13867,11 @@ COURSE.register({
 </div>
 
 <h3>3. 线性注意力、滑窗与混合架构</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看过 SSM 那条"把历史压进固定状态"的路线。
+  <strong>本节只加一件事</strong>：同一目标下的另外几种做法——把注意力改造成线性、只盯一个窗口，或者两者混着用。
+  <strong>怎么读</strong>：每种做法用一句话记住它牺牲了什么、换回了什么即可，公式不必逐个推。
+</p>
 <p>
   <span class="t" data-tterm="Linear attention" data-d="线性注意力：用核函数替换 softmax 中的指数相似度，使注意力可以利用矩阵乘法结合律改写为先算 K 转置乘 V，从而把复杂度降到序列长度的线性。">线性注意力</span>
   的思路比 SSM 更直接：softmax 之所以不允许交换乘法顺序，
@@ -13492,6 +13954,11 @@ COURSE.register({
 </div>
 
 <h3>4. MLA：低秩压缩 KV，与 MQA / GQA 的关系</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看过线性注意力、滑窗与混合架构那几条路线。
+  <strong>本节只加一件事</strong>：不动注意力本身，只压缩它要缓存的 KV——MLA。
+  <strong>怎么读</strong>：抓住"每 token 的 KV 占多少字节"这一个指标，把 MHA / GQA / MLA 放进同一张表对比就清楚了。
+</p>
 <p>
   MQA / GQA 的思路是「让多个 Q 头共享 KV 头」：压缩比是 \(h / h_{kv}\)。
   它的上限很硬——最激进也就是所有头共享一组 KV（\(h_{kv} = 1\)），
@@ -13583,6 +14050,11 @@ COURSE.register({
 </section>
 
 <h3>5. 超越逐 token 自回归：多 token 预测与扩散语言模型</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：到这里，改的都还是"注意力怎么算"。
+  <strong>本节只加一件事</strong>：改生成方式本身——一次预测多个 token，或者干脆不按从左到右生成。
+  <strong>怎么读</strong>：这一节前沿性最强、和主线耦合最松；只记住"多条路可以并行出草稿"这个直觉就够了。
+</p>
 <p>
   前四节都在改「怎么算注意力」。这一节换角度：改<strong>预测什么</strong>、以及<strong>按什么顺序生成</strong>。
 </p>
@@ -13652,6 +14124,11 @@ COURSE.register({
 </p>
 
 <h3>6. 多模态：三段式、对比学习与训练阶段</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面几节改的都是语言模型自己的骨架。
+  <strong>本节只加一件事</strong>：让模型同时读图和文——多模态。
+  <strong>怎么读</strong>：先抓住"编码器 + 投影层 + 语言模型"这个三段式；训练阶段与评估细节可以第二遍再看。
+</p>
 <p>
   前面五节都在语言内部做文章。多模态提出的问题更根本：
   当输入可能是像素或声波时，「token 序列」从哪里来？
@@ -13833,6 +14310,11 @@ COURSE.register({
 </section>
 
 <h3>7. 选型表：六类架构各自在为什么付费</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：六类架构的机制你都看过了。
+  <strong>本节只加一件事</strong>：把它们放进同一张表比——每一类到底在为什么付费。
+  <strong>怎么读</strong>：这是本章最该带走的一节。先问自己的瓶颈是显存、延迟还是吞吐，再对应到表里那一行。
+</p>
 <p>
   前面六节分别讲了原理。这一节把它压成一张可以直接拿去开会的表。
   读表的顺序是：先看「每 token 算力」与「每 token KV 字节」两列，它们决定账单；
@@ -14447,6 +14929,11 @@ COURSE.register({
 </p>
 
 <h3>2. 六种主流理论，以及它们各自的「可检验含义」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把"意识"拆成了取用意识、现象意识、自我报告三层。
+  <strong>本节只加一件事</strong>：把六种主流理论并排摆开，只看它们各自对"机器有没有可能"推出了什么可检验的东西。
+  <strong>怎么读</strong>：不用记住每种理论的主张；只读表格最右两列——它推出什么、被批评在哪。
+</p>
 <p>争议的核心在于：科学界并不存在一个公认的意识理论。下表列出影响力最大的几种，以及——这是本讲的重点——<strong>它们各自对「机器是否可能有意识」给出了什么可检验的推论</strong>。</p>
 <table class="tbl small">
   <thead><tr><th>理论</th><th>核心主张</th><th>对 AI 的可检验含义</th><th>主要批评</th></tr></thead>
@@ -14495,6 +14982,11 @@ COURSE.register({
 </p>
 
 <h3>3. 指标属性法：目前最可操作的一步</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看到六种理论谁也没能说服谁。
+  <strong>本节只加一件事</strong>：换一条可操作的路——不去争定义，而是从各理论里抽出"可观察的特征"逐项检查。
+  <strong>怎么读</strong>：这是全讲的转折点，重点理解"为什么指标属性法比继续争论定义更实用"。
+</p>
 <p>
   2023 年，19 位神经科学与 AI 研究者联合发表了一篇被广泛引用的论文
   《Consciousness in Artificial Intelligence: Insights from the Science of Consciousness》
@@ -14528,6 +15020,11 @@ COURSE.register({
 </section>
 
 <h3>4. 支持与反对的几条主要论证</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道指标属性法能做什么、不能做什么。
+  <strong>本节只加一件事</strong>：把围绕"机器有没有意识"的几组经典论证摆出来，看各自站得住哪一半。
+  <strong>怎么读</strong>：中文屋那条最重要；读的时候留意哪些是论证、哪些只是直觉。
+</p>
 <dl class="kv">
   <dt>中文屋（Searle, 1980）</dt>
   <dd>一个不懂中文的人按规则手册处理中文符号，输出正确的回答——但他不理解中文。
@@ -14550,6 +15047,11 @@ COURSE.register({
 <p><strong>一个诚实的总结</strong>：目前既没有决定性证据支持 AI 有现象意识，也没有原理性证明它不可能。这是一个开放的实证问题。</p>
 
 <h3>5. 为什么「模型的自我报告」不能当证据</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看过支持和反对"机器有意识"的几组论证。
+  <strong>本节只加一件事</strong>：把最容易被当成证据的那一条——"模型自己说它有感觉"——排除掉。
+  <strong>怎么读</strong>：这是本讲最实用的一节。读懂一句话就够：自我报告是训练分布的输出，不是对内部状态的读取。
+</p>
 <p>
   这是本讲最实用的一节。模型关于自身状态的陈述，是由训练分布决定的输出，而不是对内部状态的可靠读取。
   三类实验证据都能说明这一点：
@@ -14569,6 +15071,11 @@ COURSE.register({
 </p>
 
 <h3>6. 三个常被混为一谈的概念：AGI、RSI、意识</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看到"模型的自我报告"不能当证据。
+  <strong>本节只加一件事</strong>：把三个常被混用的词拆开——AGI、RSI、意识，它们问的根本不是同一件事。
+  <strong>怎么读</strong>：记住三者的可检验程度不一样就够了；这一节能让你以后不再被标题带跑。
+</p>
 <table class="tbl small">
   <thead><tr><th>概念</th><th>问的是什么</th><th>可检验性</th><th>常见混淆</th></tr></thead>
   <tbody>
@@ -14583,6 +15090,11 @@ COURSE.register({
 </p>
 
 <h3>7. 在不确定下怎么行动：一个可以算的框架</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面几节已经论证了"自我报告不能当证据"，也把六种理论的可检验含义拆开看过。
+  <strong>本节只加一件事</strong>：既然结论拿不到，那就换个问题——在这种不确定下该怎么行动。
+  <strong>怎么读</strong>：核心只有一个盈亏平衡概率 \(P^*\)；把它理解成"先验要多高，才值得为防范付出代价"的门槛即可。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>把「道德地位的不确定性」写成一个决策问题</h4>
   <p>设 \(w = 1\) 表示系统确有道德地位，\(w = 0\) 表示没有。对 \(P(w=1)\) 没有共识，只有区间。</p>
@@ -15262,6 +15774,11 @@ COURSE.register({
 
 
 <h3>3. Chinchilla 最优计算法则（Compute-Optimal Scaling）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经推出总算力 \(C \approx 6ND\)。
+  <strong>本节只加一件事</strong>：在算力固定的前提下，参数 \(N\) 和数据 \(D\) 该怎么分。
+  <strong>怎么读</strong>：记住结论 \(D \approx 20N\)，同时记住它的适用边界——只保证算力最省，不保证效果最好。
+</p>
 
 <p>
 
@@ -15364,6 +15881,11 @@ COURSE.register({
 
 
 <h3>4. 训练规模与资源决策对比</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经有了最优配比，但还没落到自己手头这张卡上。
+  <strong>本节只加一件事</strong>：把算力换算成"我这张卡要跑多久"。
+  <strong>怎么读</strong>：跟一遍单卡 T4 的除法（\(6ND \div\) 有效算力）就够；这一节也是第 27、28 章动手前的预演。
+</p>
 
 <table class="tbl">
 
@@ -15829,6 +16351,11 @@ COURSE.register({
 </dl>
 
 <h3>3. 并行物理隔离：Git Worktree 与智能体舰队</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经定了任务怎么派、状态怎么管。
+  <strong>本节只加一件事</strong>：多个智能体同时干活时，怎么让它们互不踩踏。
+  <strong>怎么读</strong>：记住三条命令（add / list / remove）就够用；后面那张三系统失败模式表可以当排错手册留着。
+</p>
 <p>
   同时派 3 个以上智能体去试不同的优化器实现或分词策略，如果共用一个工作目录，文件必然互相覆盖，构建缓存也会打架。
   标准做法是用 <strong>Git Worktree</strong> 给每个智能体开一块独立的物理工作区：
@@ -16159,6 +16686,11 @@ COURSE.register({
 </table>
 
 <h3>3. Kaggle 云端文件系统物理拓扑</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把 Notebook 建好、GPU 也点开了。
+  <strong>本节只加一件事</strong>：搞清楚哪些目录一重启就没、哪些能留下。
+  <strong>怎么读</strong>：只记三句话——input 只读、working 保留、tmp 蒸发；它直接决定你的产物该写在哪。
+</p>
 <p>
   动手写代码前，先把这几个目录的区别搞清楚：
 </p>

@@ -14,18 +14,7 @@ COURSE.register({
   这一讲全程用日常话和比喻，不写代码，不推公式。动手和计算都放在附录 B 实验手册 E1 里。
 </p>
 
-<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
-  <div class="qlabel">填空 · 计算推演</div>
-  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
-  <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入计算数值后点提交验证..." />
-    <button class="blank-btn">提交验证</button>
-    <span class="blank-feedback"></span>
-  </div>
-  <p class="why">
-    先算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失。
-  </p>
-</div>
+
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先把扣分翻译成使用者的话</h4>
@@ -100,6 +89,11 @@ COURSE.register({
 </div>
 
 <h3>3. 四个日常词：惊讶、平均惊讶、猜偏的代价</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节那个"数个数"的模型只会查频率，说不出"这一次预测到底有多差"。
+  <strong>本节只加一件事</strong>：把"猜得准不准"换成一个能累加的数——惊讶度 \(-\ln p\)。
+  <strong>怎么读</strong>：抓两个手感数字就够（0.69 和 4.61）；后面的公式是这两个数的来源，不必背。
+</p>
 <p>
   扣分制来自一个很直觉的想法，换成四个日常词就够了。
   越罕见的事发生，越让人惊讶。平均惊讶就是不确定性本身，是任何猜测都绕不过去的底。
@@ -138,6 +132,11 @@ COURSE.register({
 </div>
 
 <h3>4. 打分变概率：只看分差</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会用 \(-\ln p\) 算代价，但还没问过 \(p\) 是从哪来的。
+  <strong>本节只加一件事</strong>：模型最后一层吐出来的是原始打分，Softmax 负责把它变成概率。
+  <strong>怎么读</strong>：核心结论只有一句"只看分差"；末尾那个减去最大值的技巧属于工程实现，第一遍可以跳过。
+</p>
 <p>
   模型先给每个候选一个原始打分，可高可低。变成概率只关心分差：谁比谁高多少分，
   概率就差出相应的倍数。整体一起加减不改变结果。
@@ -163,7 +162,25 @@ COURSE.register({
   </div>
 </div>
 
+<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入计算数值后点提交验证..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
+  <p class="why">
+    先算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失。
+  </p>
+</div>
+
 <h3>5. 查表和学出来：同一张表，两种做法</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你现在有了完整的"打分 → 概率 → 调整量"链条，但还没问这张表是谁存下来的。
+  <strong>本节只加一件事</strong>：同一张可能性表有两种做法——把它数出来，或者让模型学出来。
+  <strong>怎么读</strong>：上下文短的时候两者几乎一样，别急着分高下；差距要等上下文变长才会出现。
+</p>
 <p>
   查表法是把频次数出来再归一化，诚实但存不下长上下文。
   神经网络法是用向量和一层变换去逼近同一张表，好处是能处理没见过的组合，因为相似的上下文会得到相似的猜测。

@@ -44,6 +44,11 @@ COURSE.register({
 可能完全听不出来。所以 Checkpoint 4/6 要求把客观指标与主观听测对齐。</p>
 
 <h3>2. 泛化：为什么必须按「艺人」分组</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道只看一个总分会漏掉很多信息。
+  <strong>本节只加一件事</strong>：数据怎么切——按"实体"分组，而不是随手随机切。
+  <strong>怎么读</strong>：想清楚一件事就够：测试集里只要出现训练时见过的同一个艺人，分数就不再可信。
+</p>
 <p>
   <strong>结论先行</strong>：数据很少时，模型越复杂越容易把噪声当成规律，简单模型反而更稳——
   记住「小数据上简单模型常常赢」这一句和下面按艺人分组的例子即可，下面的偏差-方差公式与岭回归闭式解第二遍再看。
@@ -71,6 +76,11 @@ COURSE.register({
 </p>
 
 <h3>3. 模型阶梯：奥卡姆剃刀的可执行版本</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道怎么切分数据才算公平。
+  <strong>本节只加一件事</strong>：不只比两个模型，而是排一条由简到繁的阶梯。
+  <strong>怎么读</strong>：这是本章最该带走的方法——任何新方法都必须先打败一个更笨的基线，否则不算数。
+</p>
 <table class="tbl small">
   <thead><tr><th>级别</th><th>模型</th><th>参数量级</th><th>作用</th></tr></thead>
   <tbody>
@@ -126,6 +136,11 @@ COURSE.register({
 </ol>
 
 <h3>4. 置换检验：检测「假信号」的通用工具</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经有了阶梯，也有了公平的切分方式。
+  <strong>本节只加一件事</strong>：判断"涨的那一点点"到底是信号还是运气。
+  <strong>怎么读</strong>：先记住做法——把标签打乱重跑很多次，看真实成绩排在什么位置；公式细节第二遍再看。
+</p>
 
 <h4>4.1 三个前提，缺一个结论就不成立</h4>
 <ol>
@@ -213,6 +228,11 @@ COURSE.register({
 </div>
 
 <h3>5. 一个可直接复用的评估协议</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经拿到三件工具——分组切分、模型阶梯、置换检验。
+  <strong>本节只加一件事</strong>：把它们串成一份可以照着做的评估协议。
+  <strong>怎么读</strong>：这是模板，建议直接抄进你自己的项目；写报告时按它的顺序摆事实。
+</p>
 <p><strong>大模型评估核心指标微算子演示：</strong></p>
 <p>\[ \text{PPL}(W) = \exp\left( -\frac{1}{N}\sum_{i=1}^N \log P(w_i \mid w_{< i}) \right) = \exp(\mathcal{L}_{\text{CE}}) \]</p>
 <p>
@@ -222,6 +242,11 @@ COURSE.register({
 只说「模型 RMSE 是 1.9」在学术上不构成结论。</p>
 
 <h3>6. 三条方法论红线</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经有了一份可复用的评估协议。
+  <strong>本节只加一件事</strong>：三条不管什么项目都不能破的红线。
+  <strong>怎么读</strong>：很短，但值得逐条对照自己现在的做法——踩了其中任何一条，前面所有指标都作废。
+</p>
 <section class="blk blk-warn">
   <h4><span class="ic">⚠</span>会让结论作废的做法</h4>
   <ol>

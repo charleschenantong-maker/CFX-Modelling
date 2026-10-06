@@ -35,6 +35,11 @@ COURSE.register({
 </section>
 
 <h3>1. 海量语料去重数学原理：MinHash 与局部敏感哈希 (LSH)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面讲的是单卡、单模型怎么训；从这一节开始换到工业视角，先看数据本身。
+  <strong>本节只加一件事</strong>：万亿级语料怎么去重——用概率方法替代两两比对。
+  <strong>怎么读</strong>：只要跟住"相似度高的文档会自动落进同一个桶"这个效果；MinHash 的证明可以跳过。
+</p>
 <p>
   文本去重先要能衡量两个文档集合 \(A\) 与 \(B\) 的相似程度，用的就是 <strong>Jaccard 相似度系数</strong>：
 </p>
@@ -89,6 +94,11 @@ COURSE.register({
 </p>
 
 <h3>2. 启发式流水线与合成数据退火配比 (Data Annealing)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：去重解决了"重复"，但没解决"低质"。
+  <strong>本节只加一件事</strong>：两道并行的数据工序——规则过滤，和训练末期的配比调整。
+  <strong>怎么读</strong>：过滤阈值那张表可以直接拿去用；退火配比记住一句：最后 10%–20% 要高比例灌代码与推理数据。
+</p>
 <p>
   去重之后，工业界还会再过一遍<strong>多层流水线过滤（Filter Cascade）</strong>：
 </p>
@@ -147,6 +157,11 @@ COURSE.register({
 </p>
 
 <h3>4. 数值稳定与无损异步容灾 (Resilient Checkpointing)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道数据该怎么洗、怎么配。
+  <strong>本节只加一件事</strong>：万卡跑几个月的现实问题——随时会坏，怎么不从头再来。
+  <strong>怎么读</strong>：理解"为什么不能每次都停机写盘"这一个矛盾就够了；异步双缓冲的实现可以第二遍再看。
+</p>
 
 <p><strong>1. FP8 缩放因子防下溢算子演示：</strong></p>
 <p>\[ X_{\text{fp8}} = \text{clip}\left( \left\lfloor X \cdot \frac{S}{\text{amax}(|X|)} \right\rceil, -448, 448 \right) \]</p>

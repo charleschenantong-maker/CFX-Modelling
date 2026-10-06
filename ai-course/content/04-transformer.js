@@ -54,6 +54,11 @@ COURSE.register({
 </section>
 
 <h3>1. 宏观拓扑：Pre-norm 残差流与子层解剖</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把注意力拆到了矩阵级别，但还没把它放回整个模型里看。
+  <strong>本节只加一件事</strong>：一个 block 长什么样——一条残差主干 + 两个子层。
+  <strong>怎么读</strong>：只要记住"主干本身不被动，子层只往上叠增量"这一个形状，本节的公式都是它的展开。
+</p>
 <p>
   现代大语言模型（如 Llama-3、DeepSeek、Qwen-2.5）几乎全部摒弃了 2017 年初代 Transformer 的 Post-norm 结构，
   统一采用<strong>Pre-norm 残差流（Pre-normalization Residual Stream）</strong>：
@@ -141,6 +146,11 @@ COURSE.register({
 </section>
 
 <h3>2. 参数量公式：\(12 L d^2 + |\mathcal{V}| d\)</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道一个 block 由哪几块矩阵拼成。
+  <strong>本节只加一件事</strong>：把这些矩阵的尺寸加总，得到参数量公式。
+  <strong>怎么读</strong>：\(12Ld^2\) 这一项是核心，能背下来最好；词表那一项只要知道它为什么存在。
+</p>
 <p>
   记模型隐藏层维度为 \(d\)、层数为 \(L\)、词表大小为 \(|\mathcal{V}|\)、前馈层（FFN）中间隐藏维度为 \(d_{ff}\)。
   我们逐个矩阵核算单个 Block 内的参数量：
@@ -181,6 +191,11 @@ COURSE.register({
 </section>
 
 <h3>3. 算力 FLOPs 与显存四大件的 STEP 级账本</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经能算出模型有多少参数。
+  <strong>本节只加一件事</strong>：从参数量推出训练要花多少算力、占多少显存。
+  <strong>怎么读</strong>：先接受"前向 \(2N\)、反向 \(4N\)"这个结论；本节后半的逐步推导，第二遍再补也不迟。
+</p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>为什么前向是 \(2N\)、反向是 \(4N\) FLOPs？</h4>
@@ -297,6 +312,11 @@ COURSE.register({
 </section>
 
 <h3>6. LayerNorm 与 RMSNorm：同一个残差流上的两种尺度控制</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把残差流当成贯穿整个网络的那条主干。
+  <strong>本节只加一件事</strong>：主干上每隔一段要做一次"尺度校准"，而 RMSNorm 是砍掉一半动作的那个版本。
+  <strong>怎么读</strong>：重点是两种归一化差在哪一步（到底减不减均值），公式本身很简单。
+</p>
 <p>
   <span class="t" data-tterm="Residual stream" data-d="跨越多个 Transformer block、始终保持 \((B,T,d)\) 宽度的主干表示；每个子层只向它写入一个增量。">残差流</span>
   的宽度 \(d\) 不变，归一化只在最后一维逐 token 处理。LayerNorm 先去均值再除标准差：
@@ -348,6 +368,11 @@ COURSE.register({
 <p class="cm">Hint：只要某一步输出成 \((B,d,T)\)，就说明把序列轴和通道轴弄反了；残差加法不会替你修正它。</p>
 
 <h3>8. Crossfade：凸组合相似，能量约束不同</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：到这里，一个 Transformer block 的账已经算完了。
+  <strong>本节只加一件事</strong>：跳出语言模型，看同一套"加权组合"搬去音频淡入淡出会出什么问题。
+  <strong>怎么读</strong>：这一节是跨领域对照，跟后面章节不耦合；抓住"权重和为 1 ≠ 能量守恒"这一个区别就够了。
+</p>
 <p>
   两条音频 \(x(t),z(t)\) 的混合写作 \(y(t)=a(t)x(t)+b(t)z(t)\)。线性淡化取 \(a=1-u,b=u\)，
   \(u\in[0,1]\)。若两条信号近似不相关且功率相等 \(P\)，混合功率是

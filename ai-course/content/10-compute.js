@@ -37,6 +37,11 @@ COURSE.register({
 </p>
 
 <h3>2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看到真实集群的规模表，也知道单个模型的算力大致是哪个量级。
+  <strong>本节只加一件事</strong>：给硬件画一条天花板——算力和带宽，谁先到顶。
+  <strong>怎么读</strong>：只要抓住"算术强度"这一个量（每搬 1 字节能做多少次计算），拐点两侧的结论你都能自己推出来。
+</p>
 
 <section class="blk blk-m">
 
@@ -145,6 +150,11 @@ COURSE.register({
 
 
 <h3>3. 经典 6N 推导：单层 Transformer 到整网的 6N FLOPs/token 严格证明</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道瓶颈可能出在算力，也可能出在带宽。
+  <strong>本节只加一件事</strong>：把"每个 token 要 6N 次浮点运算"这句话严格推出来。
+  <strong>怎么读</strong>：这是全课最值得亲手推一遍的公式之一。先看表格里的逐项账（投影 6d²、输出 2d²、MLP 16d²），再跟推导。
+</p>
 
 <section class="blk blk-m">
 
@@ -313,6 +323,11 @@ COURSE.register({
 
 
 <h3>4. MFU 实战：8×A100 训练 7B 的利用率手算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 6N 是怎么来的。
+  <strong>本节只加一件事</strong>：把纸面公式和真实吞吐对起来，算出 MFU。
+  <strong>怎么读</strong>：跟着做一遍 8×A100 那道除法就够（24000 tok/s × 6N ÷ 峰值算力）；记住结论：40% 已经算不错。
+</p>
 
 <section class="blk blk-m">
 

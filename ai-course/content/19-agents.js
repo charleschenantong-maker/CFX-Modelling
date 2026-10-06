@@ -53,6 +53,11 @@ COURSE.register({
 </section>
 
 <h3>1. 定义：模型 + 工具 + 循环 + 记忆 + 终止条件</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把工具调用讲成了一条可验证的协议。
+  <strong>本节只加一件事</strong>：给"智能体"一个工程上可用的定义——五个部件的组合。
+  <strong>怎么读</strong>：记住这五个部件（模型 / 工具 / 循环 / 记忆 / 终止条件）；后面每一节都在细化其中一个。
+</p>
 <p>
   工程语境下的智能体（agent）不是「更聪明的模型」，而是五种部件的组合：
   <strong>模型</strong>（决策者）、<strong>工具</strong>（改变世界或读取世界的手段）、
@@ -105,6 +110,11 @@ COURSE.register({
 </p>
 
 <h3>2. 工具调用：schema、校验、重试与权限最小化</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把智能体定义成"模型 + 工具 + 循环 + 记忆 + 终止条件"五件套。
+  <strong>本节只加一件事</strong>：五件套里唯一能改变世界的那一件——工具调用，靠什么保证不出事。
+  <strong>怎么读</strong>：按"schema 校验 → 权限最小化 → 重试与幂等"的顺序读；这三件事是后面所有工程细节的地基。
+</p>
 <p>
   2023 年 6 月 13 日，OpenAI 在 API 更新中引入 function calling
   （<a href="https://openai.com/index/function-calling-and-other-api-updates/" target="_blank" rel="noopener">Function calling and other API updates</a>），
@@ -282,6 +292,11 @@ COURSE.register({
 </p>
 
 <h3>4. 记忆：短期上下文、摘要压缩、外部记忆、技能库</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道规划有哪几种范式、各自要付什么代价。
+  <strong>本节只加一件事</strong>：任务跑长了历史装不下——怎么分层保存。
+  <strong>怎么读</strong>：对照"短期上下文 / 摘要压缩 / 外部检索 / 技能库"四层，想清楚每层各解决哪一类遗忘。
+</p>
 <table class="tbl small">
   <thead><tr><th>类型</th><th>载体</th><th>保留什么</th><th>失效方式</th></tr></thead>
   <tbody>
@@ -321,6 +336,11 @@ COURSE.register({
 </p>
 
 <h3>5. 多智能体：分工的收益与通信的代价</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道单个智能体的记忆该怎么分层。
+  <strong>本节只加一件事</strong>：把活分给多个智能体，收益从哪来、代价又从哪来。
+  <strong>怎么读</strong>：先看通信开销那两个公式（星型 \(2(n-1)\) vs 网状 \(n(n-1)\)），再判断你的任务值不值得拆——多数任务其实不值得。
+</p>
 <p>
   先看通信开销。设 \(n\) 个子智能体共享一个协调者，两两互相通信，则消息通道数量分别是：
 </p>

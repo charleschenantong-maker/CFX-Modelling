@@ -291,6 +291,14 @@ html[data-theme="dark"] .blk-lab>h4{color:var(--accent)}
 .blk-eco{border-left-color:var(--violet); background:var(--violet-soft)}
 .blk-eco>h4{color:var(--violet)}
 
+/* 小节引桥：进入本节前的一段引导。比 .blk-* 更轻，只为建立坐标，不抢正文 */
+.bridge{margin:14px 0 16px; padding:11px 16px 12px; border-left:3px solid var(--accent);
+  border-radius:var(--radius-sm); background:var(--surface-2);
+  font-size:14.5px; line-height:1.78}
+.bridge::before{content:"入门引桥"; display:block; font-size:11px; font-family:var(--font-mono);
+  letter-spacing:.1em; color:var(--muted); margin-bottom:6px; text-transform:uppercase}
+.bridge>:last-child{margin-bottom:0}
+
 /* code */
 pre{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm);
   padding:13px 15px; overflow:auto; font-size:13.2px; line-height:1.6; margin:13px 0}

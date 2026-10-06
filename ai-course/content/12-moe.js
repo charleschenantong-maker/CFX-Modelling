@@ -42,6 +42,11 @@ COURSE.register({
 </section>
 
 <h3>1. 从稠密 FFN 到稀疏门控网络（Sparse MoE）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面讲的都是稠密模型——每个 token 都要穿过全部参数。
+  <strong>本节只加一件事</strong>：换个思路，参数很多但每次只激活一小部分（MoE）。
+  <strong>怎么读</strong>：先把"总参数 ≠ 激活参数"这一对概念分清；本节后面所有的账都建在这上面。
+</p>
 <p>
   标准 Transformer 块里，多头注意力后面接的是前馈网络（FFN）：\(y = \mathrm{FFN}(x)\)。
   到了 MoE 架构，这一层换成 \(E\) 个结构相同、权重独立的专家网络 \(\{E_1, E_2, \dots, E_E\}\)
@@ -62,6 +67,11 @@ COURSE.register({
 </table>
 
 <h3>2. Charles 草稿纸演算区：Top-2 路由与门控重新归一化手算</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 MoE 是"参数很多、每次只激活一小部分"。
+  <strong>本节只加一件事</strong>：把门控真正算一遍——softmax、Top-k、再对选中的专家重归一化。
+  <strong>怎么读</strong>：拿草稿纸跟一遍那组 \(H=[1.2,0.5,2.8,-0.1]\)；重归一化是本节要害，别跳。
+</p>
 <p>
   给 Charles 排一下打草稿的顺序：先在草稿纸上固定输入维度和专家数量，
   然后一路追门控线性映射、Softmax 激活、Top-k 离散掩码截断，以及关键的<strong>子集重新归一化（Re-normalization）</strong>。
@@ -170,6 +180,11 @@ COURSE.register({
 </section>
 
 <h3>3. 负载均衡辅助损失（Auxiliary Loss）代数推导与极值分析</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道门控长什么样、重归一化在做什么。
+  <strong>本节只加一件事</strong>：给门控加一个约束，逼它把 token 均摊到各个专家上。
+  <strong>怎么读</strong>：重点是那个极值结论 \(L_{\text{aux}} \ge \alpha k\)——它解释了"专家坍缩"为什么会被罚；推导可以第二遍再看。
+</p>
 <p>
   实际训练里如果只给主任务损失（比如交叉熵），路由网络很容易滑进<strong>自强化马太效应（Winner-Take-All Collapse）</strong>：
   初始化时某个专家偶然得分高一点，就会被更频繁地选中更新，拟合速度超过其他专家，
@@ -262,6 +277,11 @@ COURSE.register({
 </section>
 
 <h3>4. 专家容量、丢弃机制与跨节点通信（All-to-All）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会算门控，也见过专家坍缩是怎么回事。
+  <strong>本节只加一件事</strong>：把动态路由落到真实硬件上——显存必须预先分配，于是就有了容量上限。
+  <strong>怎么读</strong>：容量因子与 Token Dropping 是一对因果，把这条因果读懂就够；All-to-All 的细节第二遍再看。
+</p>
 <p>
   分布式训练和推理集群里，不同专家通常放在不同 GPU 上（专家并行 Expert Parallelism, EP），
   由此带来几个绕不开的问题：

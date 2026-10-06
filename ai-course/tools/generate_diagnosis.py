@@ -1,0 +1,183 @@
+import glob
+import os
+import re
+import sys
+
+base_dir = r"D:\CFX Modelling\ai-course"
+content_dir = os.path.join(base_dir, "content")
+files = sorted([f for f in os.listdir(content_dir) if re.match(r'^[0-2][0-9].*\.js$', f)])
+
+candidates = []
+
+# Specific known points and rules to check in each file
+with open(os.path.join(base_dir, "scratch", "h3_structure_audit.txt"), "r", encoding="utf-8") as f:
+    audit_text = f.read()
+
+# Let's inspect each module's full content to build the precise diagnosis
+for fname in files:
+    fpath = os.path.join(content_dir, fname)
+    with open(fpath, "r", encoding="utf-8") as f:
+        content = f.read()
+    lines = content.splitlines()
+
+    # Find h3 positions
+    h3_items = []
+    for idx, line in enumerate(lines):
+        m = re.search(r'<h3>(.*?)</h3>', line)
+        if m:
+            h3_items.append((idx + 1, m.group(1).strip()))
+
+    # Check 01-language-models.js line 17
+    if fname == "01-language-models.js":
+        candidates.append((fname, 17, "引言后自测（二分类基准损失）", "B", "在未讲解 Softmax 与交叉熵公式前，直接要求手算 -ln(0.5)≈0.693 基准损失", "调顺序"))
+        candidates.append((fname, 102, "3. 四个日常词：惊讶、平均惊讶、猜偏的代价", "B/C", "直接抛出 0.69 / 0.33 / 0 具体数字，未将信息量 -ln(p) 的数学定义与硬币直觉平滑桥接", "补桥接"))
+        candidates.append((fname, 140, "4. 打分变概率：只看分差", "C", "直接跳入打分与概率换算，未说明为何减去最大值 (max-trick) 不改变 Softmax 输出", "补桥接"))
+
+    elif fname == "02-tokenization.js":
+        candidates.append((fname, 17, "0.5 Chat template：同一个回答为什么会被切成不同任务", "B", "在读者尚未理解 Token 与 BPE 之前突兀引入微调损失掩码与 Chat 模板", "调顺序"))
+        candidates.append((fname, 60, "1. 从编号到字节：模型的字母表是怎么定下来的", "A", "从日常文本直接跳到 Unicode 编号与 UTF-8 1-4 变长字节映射，缺乏字节作为最小单元的认知过渡", "补桥接"))
+        candidates.append((fname, 113, "2. 合并在干什么：把常见的连在一起", "B", "BPE 加权统计出现前未解释为何按词频加权展开统计（高频词各对乘词频）", "补桥接"))
+        candidates.append((fname, 220, "5. 预分词：合并只在块内发生", "A/C", "直接抛出 GPT-4 复杂正则切分规则表，缺乏对正则分支优先级与空格粘滞机制的梯级说明", "补桥接"))
+        candidates.append((fname, 300, "7. 词表大小是一场权衡", "C", "出现平均段数 (fertility) 与 3倍变9倍二次方计算量对比，未先定义 fertility 的换算桥梁", "补桥接"))
+
+    elif fname == "03-attention.js":
+        candidates.append((fname, 55, "1. 缩放点积注意力 (Scaled Dot-Product Attention)", "B/C", "图书馆 Q/K/V 比喻后直接出现连续两道折叠的方差守恒定理严密数学推导，公式密度陡增", "补桥接"))
+        candidates.append((fname, 171, "2. 极简小数字手算：一个 2×2 的完整注意力流", "B", "手算 2×2 注意力流位于两篇长定理推导之后，建议将直观手算作为定理推导的前置台阶", "调顺序"))
+        candidates.append((fname, 243, "4. 多头自注意力 (MHA) 的数学全景与四维张量流向", "A/C", "直接出现 [B, H, T, d_h] 四维张量与 W_Q, W_K, W_V, W_O 投影，缺少多头拆分的单头降维直觉", "补桥接"))
+        candidates.append((fname, 286, "5. 多头注意力：把形状账本写在纸上", "B", "与第 4 节张量流向内容高度重合，直接列出 Karpathy 风格形状变换", "不动"))
+        candidates.append((fname, 374, "7.5 KV cache 账本：GQA-7B 32k 约 4.3GB，MHA 才会在 32k OOM", "A/B", "在未讲解自回归逐字解码过程前突然引入 h_kv、GQA 分组与显存线性增长公式", "补桥接"))
+        candidates.append((fname, 466, "9. 旋转位置编码 (RoPE) 的复数几何", "A/C", "正文突然进入二维复平面正交旋转矩阵推导，缺乏位置信息为何必须相对化的物理直觉", "补桥接"))
+
+    elif fname == "04-transformer.js":
+        candidates.append((fname, 56, "1. 宏观拓扑：Pre-norm 残差流与子层解剖", "A", "未定义残差流与 x + f(x) 的高速公路比喻，直接引入 Pre-norm 与 Post-norm 拓扑图", "补桥接"))
+        candidates.append((fname, 143, "2. 参数量公式：12 L d^2 + |V| d", "C", "直接给出 12 L d^2 组合公式，各项分解缺乏从 Attention (4d^2) 到 FFN (8d^2) 的逐步算术梯级", "补桥接"))
+        candidates.append((fname, 183, "3. 算力 FLOPs 与显存四大件的 STEP 级账本", "B/C", "直接抛出训练 6ND FLOPs 与前向反向比值，未铺垫矩阵乘法乘加算力常数 2 的来源", "补桥接"))
+        candidates.append((fname, 299, "6. LayerNorm 与 RMSNorm：同一个残差流上的两种尺度控制", "A", "直接对比减均值与不减均值的归一化公式，未解释为何大模型训练时均值漂移可以忽略", "补桥接"))
+        candidates.append((fname, 350, "8. Crossfade：凸组合相似，能量约束不同", "B", "从通用 Transformer 架构突然跳入 crossfade 音频淡入淡出曲线能量约束 a(t)^2+b(t)^2=1", "补桥接"))
+
+    elif fname == "05-pretraining.js":
+        candidates.append((fname, 66, "2. 优化器：AdamW 与它的现代替代", "A/C", "直接罗列一阶动量 m_t、二阶动量 v_t 和解耦权重衰减公式，缺少物理动量与自适应步长的生活类比", "补桥接"))
+        candidates.append((fname, 181, "3. 学习率曲线：warmup + 余弦", "B", "公式前直接讲退火策略，未解释为什么刚开局必须从小学习率 warmup（未热身梯度的方向方差极大）", "补桥接"))
+        candidates.append((fname, 241, "5. 缩放律：该用多少数据、多少算力", "A/C", "直接出现 Chinchilla 幂律拟合方程 L(N, D) = E + A/N^alpha + B/D^beta，数学符号突增", "补桥接"))
+        candidates.append((fname, 333, "6. 预算估算：从 FLOPs 到 GPU 小时", "B", "直接给出一千万到上亿的算力换算表，未解释 MFU（硬件利用率）为何通常只有 35%-45%", "补桥接"))
+
+    elif fname == "06-parallelism.js":
+        candidates.append((fname, 35, "1. 四种并行，各自切什么", "A/C", "开篇标称'零基础入口'，10行内直接出现 Comm_TP≈2L·B·S·d、气泡公式 bubble≈(p-1)/(m+p-1)", "补桥接"))
+        candidates.append((fname, 74, "2. 草稿纸演算区：从分块矩阵到 Megatron-LM 与 3D 并行", "B", "直接进入 4x4 矩阵手算列分块与行分块，缺少分布式设备网格中张量切分的核心目标阐述", "补桥接"))
+        candidates.append((fname, 225, "4. JAX 的写法：把切分写进「类型」", "A", "突然从 PyTorch 语义切换为 JAX 的 NamedSharding 与 PartitionSpec，符号体系转变过快", "补桥接"))
+
+    elif fname == "07-finetuning.js":
+        candidates.append((fname, 48, "2. 台阶一：监督微调（SFT）", "B", "直接展示损失掩码公式与交叉熵，未先说明 SFT 训练集 Prompt 与 Response 的拼接协议", "补桥接"))
+        candidates.append((fname, 60, "3. 台阶二：参数高效微调（LoRA / QLoRA）", "A/C", "直接给出 W0 + (alpha/r)*B*A 低秩分解，缺少为什么大模型增量矩阵具有极低内在维度的直觉", "补桥接"))
+        candidates.append((fname, 162, "4. 台阶三：偏好优化（DPO / KTO / ORPO）", "A", "三元组 (x, yw, yl) 与隐式奖励代数符号突然涌现，缺少从人类反馈打分到成对偏好的目标演变", "补桥接"))
+        candidates.append((fname, 319, "5. 草稿纸演算区：DPO 损失函数代数推导与单步手算", "B/C", "直接跳入 Bradley-Terry 模型对数几率代数展开，公式极度密集，缺乏推导路线图指引", "补桥接"))
+        candidates.append((fname, 473, "6. 台阶四：GRPO 与「可验证奖励」", "A", "引入组内相对优势归一化与裁剪项，未先界定为什么数学/代码推理不需要独立训练 Critic 网络", "补桥接"))
+
+    elif fname == "08-inference.js":
+        candidates.append((fname, 46, "1. 采样：从 logits 到文本", "A", "直接出现 Temperature、Top-k、Top-p (Nucleus) 数学截断定义，缺少随机采样与贪心采样的对照起点", "补桥接"))
+        candidates.append((fname, 133, "2. 量化：用精度换显存与速度", "C", "直接给出仿射量化公式 q = round(x/S) + Z，未解释定点整数与浮点数动态范围的根本差异", "补桥接"))
+        candidates.append((fname, 151, "3. 服务：吞吐与延迟是两件事", "B", "直接出现首字时延 TTFT 与字间时延 TPOT，未先建立显卡处于计算密集型还是访存密集型的状态心智", "补桥接"))
+        candidates.append((fname, 175, "4. 前缀缓存：同一个提示只算一次", "B", "直接介绍 Radix Tree 树状缓存，缺少多轮对话场景中系统提示词重复计算的痛点引入", "补桥接"))
+        candidates.append((fname, 201, "6. 草稿纸演算区：把这一讲的数字算到字节", "C", "直接计算 7B 模型单步生成时 14GB 权重搬运与带宽耗时，缺乏每 token 访存瓶颈的前置铺垫", "补桥接"))
+
+    elif fname == "09-evaluation.js":
+        candidates.append((fname, 46, "2. 泛化：为什么必须按「艺人」分组", "B", "直接进入数据泄漏的 GroupKFold 切分，未先解释同一数据源在不同上下文中的隐蔽特征过拟合", "补桥接"))
+        candidates.append((fname, 73, "3. 模型阶梯：奥卡姆剃刀的可执行版本", "B", "直接罗列基线模型阶梯，未强调为什么大模型测试前必须先跑规则匹配与简单线性基准", "补桥接"))
+        candidates.append((fname, 128, "4. 置换检验：检测「假信号」的通用工具", "A", "直接给出 Permutation Test 的零假设与经验 p 值计算，统计学术语密集且缺少洗牌直觉", "补桥接"))
+        candidates.append((fname, 256, "7. 草稿纸演算区：把指标算到小数点后三位", "C", "直接对手算准确率、召回率、F1 与混淆矩阵铺开密集计算，缺乏为什么单看准确率会失效的引子", "补桥接"))
+
+    elif fname == "10-compute.js":
+        candidates.append((fname, 39, "2. 硬件极限与 Roofline 模型：算术强度与访存瓶颈推演", "A/C", "直接给出 Roofline 模型折点计算公式与算术强度 I = FLOPs / Byte，概念密度骤升", "补桥接"))
+        candidates.append((fname, 147, "3. 经典 6N 推导：单层 Transformer 到整网的 6N FLOPs/token 严格证明", "B/C", "直接展开逐层 GEMM 运算乘加项推导，没有给出手算拆解的全局总览台阶", "补桥接"))
+        candidates.append((fname, 315, "4. MFU 实战：8×A100 训练 7B 的利用率手算", "A", "直接套入硬件理论浮点峰值计算利用率百分比，未先解释为何训练实际吞吐远低于规格书标称", "补桥接"))
+
+    elif fname == "11-data-engineering.js":
+        candidates.append((fname, 37, "1. 海量语料去重数学原理：MinHash 与局部敏感哈希 (LSH)", "A/C", "直接出现 Jaccard 相似度定理 P(h(A)=h(B))=J(A,B) 与波兰式哈希分桶，数学抽象度突增", "补桥接"))
+        candidates.append((fname, 91, "2. 启发式流水线与合成数据退火配比 (Data Annealing)", "B", "直接给出各训练阶段数据采样权重表格，未阐述退火阶段为什么需要大幅提高高质量代码/数学比例", "补桥接"))
+        candidates.append((fname, 149, "4. 数值稳定与无损异步容灾 (Resilient Checkpointing)", "A", "开篇直接给出 FP8 动态缩放因子防下溢的量化微算子代码，缺少单卡溢出对分布式训练的危害铺垫", "补桥接"))
+
+    elif fname == "12-moe.js":
+        candidates.append((fname, 44, "1. 从稠密 FFN 到稀疏门控网络（Sparse MoE）", "A", "直接给出加权求和 y = sum G(x)_i E_i(x) 与 Softmax Top-k 门控，未说明为何 FFN 是最好的解耦对象", "补桥接"))
+        candidates.append((fname, 64, "2. Charles 草稿纸演算区：Top-2 路由与门控重新归一化手算", "B", "第一节刚给出公式，紧接着进入完整多专家数值手算，门控重新归一化公式密度较高", "补桥接"))
+        candidates.append((fname, 172, "3. 负载均衡辅助损失（Auxiliary Loss）代数推导与极值分析", "A/C", "直接出现门控概率 f_i 与路由比例 P_i 的点积辅助损失函数，缺乏专家坍缩（Winner-takes-all）的物理现象解释", "补桥接"))
+        candidates.append((fname, 264, "4. 专家容量、丢弃机制与跨节点通信（All-to-All）", "B", "直接给出 Capacity Factor 计算公式与溢出截断，未先铺垫动态分发下 GPU 显存必须静态分配的硬约束", "补桥接"))
+
+    elif fname == "13-long-context.js":
+        candidates.append((fname, 40, "1. RoPE 的正交旋转几何与内积相对位移不变性", "A", "直接给出块对角旋转矩阵 R_m 与内积恒等式，缺少对传统绝对位置编码为何外推失效的直觉复习", "补桥接"))
+        candidates.append((fname, 119, "3. 外推崩溃手算与 YaRN 分频补偿机制", "A/C", "高频、中频、低频三种波长分类与斜率因子突然展开，缺乏注意力集中度为何会散焦的物理机制解释", "补桥接"))
+
+    elif fname == "14-compression.js":
+        candidates.append((fname, 61, "1. 全景：六条路线各自压的是显存、算力还是延迟", "B", "未经定义便将权重、KV cache、激活值与优化器状态四种压缩对象混排在一张大表里", "补桥接"))
+        candidates.append((fname, 226, "4. 数学内核：手算一次剪枝的四本账", "C", "直接对手算泰勒一阶展开、海森矩阵二阶代价进行算力推导，缺少剪掉某个权重损失增量的直观解释", "补桥接"))
+        candidates.append((fname, 367, "5.5 Charles 草稿纸演算区：从 OBS、GPTQ 二阶补偿到 AWQ 激活感知保护", "A/C", "直接出现逆海森矩阵 H^-1 与激活幅度加权保护公式，数学密度极高，缺乏二阶补偿的基本逻辑铺垫", "补桥接"))
+        candidates.append((fname, 591, "6. 模型合并与 MoE upcycling：把权重当作可运算的对象", "A", "突然进入 SLERP 球面插值与 Task Arithmetic 向量加减法，缺乏权重具有方向性与正交性的物理铺垫", "补桥接"))
+
+    elif fname == "15-inference-serving.js":
+        candidates.append((fname, 40, "1. 显存碎片困境与 PagedAttention 虚拟分页", "B", "直接展示物理块与逻辑块映射表，未先生动描绘操作系统虚拟内存分页在 GPU 显存上的迁移映射关系", "补桥接"))
+        candidates.append((fname, 93, "3. Chunked Prefill：长短请求解耦，消掉首字时延尖刺", "B/C", "连续批处理刚讲完，立即进入分块打断 Prefill 的混合调度算法，未说明为什么小请求会被大提示词完全饥饿堵死", "补桥接"))
+
+    elif fname == "16-distillation.js":
+        # 16 is exemplary, but let's audit later sections
+        candidates.append((fname, 55, "1. 软标签里的「暗知识」", "A", "硬标签 [1, 0, 0] 与软标签 [0.82, 0.11, 0.07] 对比后，突入 KL 散度与温度 T^2 缩放因子，需要明确 T 的放大作用", "补桥接"))
+        candidates.append((fname, 330, "7. 词级蒸馏的存储账：为什么你只会存 top-k logits", "C", "直接计算 15 万词表单 token 占 30 万字节的存储爆炸，缺少为何不实时前向重算的工程权衡桥接", "补桥接"))
+
+    elif fname == "17-reasoning.js":
+        candidates.append((fname, 227, "3. 过程奖励与结果奖励：谁来当裁判", "A", "直接对比 ORM 与 PRM 的评价矩阵，未先解释为什么在复杂长推理任务中最终答案对并不代表过程正确（假阳性）", "补桥接"))
+        candidates.append((fname, 419, "7. 预算怎么算：从目标正确率反推 n、token 与并发", "C", "直接从目标覆盖率公式 1 - (1-p)^n 反推采样次数与并发，未先定义单次采样成功率 p 的独立性假设", "补桥接"))
+        candidates.append((fname, 509, "8. 怎么验证「推理能力」真的变强了（而不是变长了）", "B", "直接给出一万道题目两组独立比例的标准误公式与评估方案，未先解释冗长复述为什么会欺骗浅层判分器", "补桥接"))
+
+    elif fname == "18-rag.js":
+        candidates.append((fname, 228, "3. 两套指标：检索的与生成的，绝不能混着看", "A/C", "直接给出 Recall@k、MRR、nDCG 密集公式，数学符号陡增且缺乏信息检索领域的基本场景铺垫", "补桥接"))
+        candidates.append((fname, 417, "6. 成本手算：每问多少钱", "B", "直接列出检索 k 块、提示词长度和输出长度的代数成本公式，未先梳理一次 RAG 对话的完整 Token 组成账单", "补桥接"))
+        candidates.append((fname, 447, "7. 混合检索：把 BM25 与向量真的合起来", "B", "BM25 分数范围与余弦相似度归一化直接对比，未先解释为什么纯语义向量检索在查精确专有名词时会漏检", "补桥接"))
+        candidates.append((fname, 552, "8. 切分策略与上下文预算：把窗口当表格来分配", "C", "直接对手算固定 400 token 与按段落结构切分的碎片率铺开对比，缺少分块大小对召回精度的影响直觉", "补桥接"))
+
+    elif fname == "19-agents.js":
+        candidates.append((fname, 107, "2. 工具调用：schema、校验、重试与权限最小化", "B", "直接列出 JSON Schema 规范与参数格式，未说明宿主程序拦截模型结构化输出的沙箱机制", "补桥接"))
+        candidates.append((fname, 284, "4. 记忆：短期上下文、摘要压缩、外部记忆、技能库", "A", "直接给出压缩比公式与四种记忆载体表格，未先厘清智能体在单会话与跨会话维度的状态持久化需求", "补桥接"))
+        candidates.append((fname, 323, "5. 多智能体：分工的收益与通信的代价", "C", "直接给出中心化星形拓扑与全连接网状拓扑的消息通道二次方公式，未先介绍为什么单智能体需要分工拆解", "补桥接"))
+        candidates.append((fname, 462, "7. 幂等、超时与重试：把「至少一次」变成「恰好一次效果」", "B", "直接进入分布式重试策略表与指数退避，未向无后端分布式经验的读者解释什么叫操作的'幂等性'", "补桥接"))
+
+    elif fname == "20-safety.js":
+        candidates.append((fname, 115, "2. 现有对齐手段的局限：优化的只是「人类偏好的代理」", "B", "直接引用 InstructGPT 实验数据说明 RLHF 局限，未先点破打分员的主观偏好为何无法代表客观真实与鲁棒性", "补桥接"))
+        candidates.append((fname, 296, "5. 可解释性：能问出什么，问不出什么", "A", "直接罗列线性探针（Linear Probe）与激活修补（Activation Patching），缺少模型隐藏层几何表示的先导说明", "补桥接"))
+        candidates.append((fname, 551, "8. 奖励黑客的最小可复现例子，以及红队要跑多少条", "C", "直接给出代理奖励与真实质量背离的数值表格，未先定义什么是模型钻规则空子的 Goodhart 定律", "补桥接"))
+
+    elif fname == "21-architectures.js":
+        candidates.append((fname, 66, "1. 注意力的两张账单", "B", "直接计算 prefill 的 O(T^2) 与解码阶段 KV cache 的显存带宽占用，缺少对自注意力计算与访存双重瓶颈的总览桥接", "补桥接"))
+        candidates.append((fname, 131, "2. 状态空间模型：把「检索」换成「递推」", "A/C", "直接写出古典控制论的一阶微分方程 x'(t) = Ax(t) + Bu(t)，符号系统完全跳出神经网络范式", "补桥接"))
+        candidates.append((fname, 191, "2.5 Charles 草稿纸演算区：从连续 SSM、ZOH 离散化到 Mamba 选择性机制", "C", "连续 SSM 零阶保持（ZOH）离散化与矩阵指数推导密度极高，需给出推导的三步路线图梯级", "补桥接"))
+        candidates.append((fname, 393, "3. 线性注意力、滑窗与混合架构", "A", "直接引入核函数分解 sim(q,k)=phi(q)^T phi(k) 交换矩阵乘法结合律，缺少为何标准 Softmax 阻断结合律的直观解释", "补桥接"))
+        candidates.append((fname, 475, "4. MLA：低秩压缩 KV，与 MQA / GQA 的关系", "A/C", "突然引入 DeepSeek-V2/V3 的隐向量压缩投影 W_DKV 与解耦 RoPE 记号，符号密度陡增", "补桥接"))
+        candidates.append((fname, 566, "5. 超越逐 token 自回归：多 token 预测与扩散语言模型", "B", "直接给出挂 n 个独立输出头的 MTP 拓扑，未先说明传统自回归逐字串行推理的物理天花板", "补桥接"))
+        candidates.append((fname, 890, "8. 同预算推导：一张 24 GB 卡、128K 上下文、并发 4 条", "C", "直接展开单卡 24GB 下四架构极限显存演算，数字和变量非常密集，缺乏基准对比的步进导引", "补桥接"))
+
+    elif fname == "22-consciousness.js":
+        candidates.append((fname, 80, "2. 六种主流理论，以及它们各自的「可检验含义」", "B", "未经方法论过渡直接铺开六大理论比较表格，缺少科学哲学中可证伪性（Falsifiability）的引入桥梁", "补桥接"))
+        candidates.append((fname, 216, "7. 在不确定下怎么行动：一个可以算的框架", "A/C", "研讨章突兀引入决策论数学公式 E[Loss] = P(w=1)C_false_neg + P(w=0)C_false_pos，缺少哲学讨论向工程风险矩阵转化的过渡", "补桥接"))
+
+    elif fname == "23-economics.js":
+        candidates.append((fname, 83, "2. 核心公理推导：为什么自回归预训练计算量是 6ND FLOPs？", "B/C", "直接给出前向 2ND 与反向 4ND 的 FLOPs 分解，缺少一个最简矩阵乘法乘加分解的物理直觉垫脚石", "补桥接"))
+        candidates.append((fname, 157, "3. Chinchilla 最优计算法则（Compute-Optimal Scaling）", "B", "直接展开 Kaplan 与 Chinchilla 的对立参数分配表，未先说明固定浮点预算下模型参数 N 与数据量 D 的双变量优化目标", "补桥接"))
+
+    elif fname == "24-network.js":
+        candidates.append((fname, 51, "2. 完整训练检查点（Checkpoint）到底包含什么？", "A", "已含 Notation Bridge（符号铺垫），但正文对优化器状态动量丢失引发 Loss Spike 的机理缺少简要递进", "不动"))
+        candidates.append((fname, 151, "4. 科学早停准则（Early Stopping）：避开沉没成本", "B", "直接给出早停诊断表格，未阐明深度学习非凸优化中验证集连续若干 step 不降与过拟合发散的本质差别", "补桥接"))
+
+    elif fname == "25-resets.js":
+        candidates.append((fname, 67, "3. 并行物理隔离：Git Worktree 与智能体舰队", "B", "直接给出 git worktree 终端脚本，未向只用过普通 git 分支的读者解释物理工作区与并发写冲突的底层原理", "补桥接"))
+
+    elif fname == "26-workflow.js":
+        candidates.append((fname, 104, "2. 从 nanoGPT 到现代大模型（Qwen-2.5）的架构演化", "B", "直接给出四处演化对比表格，未先总结这四处改动背后的共同主线（均为了训练更稳、上下文更长、推理更省显存）", "补桥接"))
+
+    elif fname == "27-hardware.js":
+        candidates.append((fname, 79, "3. Kaggle 云端文件系统物理拓扑", "B", "直接罗列 /kaggle/input 与 /kaggle/working 权限表，未提醒容器重启时非持久化存储被重置的致命陷阱", "补桥接"))
+
+    elif fname == "28-kaggle-training.js":
+        candidates.append((fname, 28, "1. 为什么不用全量微调，而用 LoRA", "C", "直接计算 1.5B 参数全量微调需 24GB 显存，缺少 16 字节（权重4+梯度4+AdamW一阶4+二阶4）显存组成的拆解铺垫", "补桥接"))
+
+    elif fname == "29-project.js":
+        candidates.append((fname, 32, "1. 为什么要把 LoRA 权重合并回主干（Merge and Unload）？", "A", "直接给出 W = W0 + (alpha/r)*B*A 物理合并，未先说明旁路矩阵乘法在独立服务部署时带来的额外内核启动时延", "补桥接"))
+        candidates.append((fname, 116, "4. 怎么在真实 Crossfade 项目代码中调用该模型？", "B", "直接给出 Python 请求代码，未先说明大语言模型在音频 crossfade 系统中到底是扮演参数预测器还是决策路由的角色", "补桥接"))
+
+print(f"Total candidate points identified: {len(candidates)}")

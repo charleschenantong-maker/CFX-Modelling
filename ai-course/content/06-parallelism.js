@@ -33,6 +33,11 @@ COURSE.register({
 </section>
 
 <h3>1. 四种并行，各自切什么</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 04 章算过显存四大件；70B 这种规模，单张卡根本放不下。
+  <strong>本节只加一件事</strong>：放不下就切开——先分清切的到底是哪一维。
+  <strong>怎么读</strong>：先记住数据、流水、张量三种切法各切什么；通信量为什么差这么多，放到第 2 节再看。
+</p>
 <table class="tbl">
   <thead><tr><th>方式</th><th>切什么</th><th>通信模式</th><th>适用场景</th></tr></thead>
   <tbody>
@@ -72,6 +77,11 @@ COURSE.register({
 </section>
 
 <h3>2. 草稿纸演算区：从分块矩阵到 Megatron-LM 与 3D 并行</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道四种并行各自切什么。
+  <strong>本节只加一件事</strong>：把"切"这个动作真正写到矩阵上，看通信量差在哪。
+  <strong>怎么读</strong>：跟着 \(4 \times 4\) 的分块乘法走一遍列切与行切；3D 并行的显存四式是它的直接推论。
+</p>
 
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>草稿纸演算区 A：前置定义与通信算子约定</h4>
@@ -208,6 +218,11 @@ COURSE.register({
 </section>
 
 <h3>3. 选择顺序（照这个顺序做，别跳）</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经算过各种切法的通信量。
+  <strong>本节只加一件事</strong>：把选择变成一份有先后的清单。
+  <strong>怎么读</strong>：很短，但这是本章最该抄走的一页；顺序错了，后面所有调优都是白费。
+</p>
 <div class="flow">
   <div class="nd hi">1. 单卡能装下？</div><div class="ar">→</div>
   <div class="nd">DDP + 梯度累积</div><div class="ar">→</div>
@@ -223,6 +238,11 @@ COURSE.register({
 </p>
 
 <h3>4. JAX 的写法：把切分写进「类型」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经会挑并行策略，但还没看过它落到代码里长什么样。
+  <strong>本节只加一件事</strong>：换一种写法——把切分方式写成数组类型的一部分。
+  <strong>怎么读</strong>：只跟住 <code>Mesh</code> 和 <code>PartitionSpec</code> 这两个词；暂时不用 JAX 的话，这一节可以跳过。
+</p>
 <p>
   JAX 与 PyTorch 的哲学差异在并行上最明显。PyTorch 需要显式插入集合通信（或靠 FSDP 包装类），
   而 JAX 把 <strong>sharding 声明为数组类型的一部分</strong>，由 XLA 编译器自动插入通信（GSPMD）。

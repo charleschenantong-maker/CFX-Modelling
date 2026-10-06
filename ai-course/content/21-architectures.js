@@ -64,6 +64,11 @@ COURSE.register({
 </section>
 
 <h3>1. 注意力的两张账单</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：第 0 节把"为什么值得换架构"这个问题立住了。
+  <strong>本节只加一件事</strong>：把注意力的成本拆成两张账单——prefill 的算力账、decode 的显存账。
+  <strong>怎么读</strong>：记住"长上下文到底贵在哪一张账单上"；后面每一种新架构，都是在还其中一张账。
+</p>
 <p>先把账单拆开。呼应模块 03（\(O(T^2)\) 的来源）与模块 08（KV cache 与解码瓶颈）。</p>
 <p>
   <strong>账单 A：prefill 阶段的 \(O(T^2)\)。</strong>注意力分数矩阵有 \(T \times T\) 个元素。
@@ -129,6 +134,11 @@ COURSE.register({
 </table>
 
 <h3>2. 状态空间模型：把「检索」换成「递推」</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道瓶颈出在"每步都要回头看全部历史"。
+  <strong>本节只加一件事</strong>：换成完全不同的机制——不检索历史，而是把历史压进一个固定大小的状态里往前推。
+  <strong>怎么读</strong>：先接受 \(h_t = A h_{t-1} + B x_t\) 这条递推；\(\bar A, \bar B\) 怎么从连续系统离散化得来，可以第二遍再看。
+</p>
 <p>
   结构化状态空间模型（S4）来自控制论里的线性系统，连续形式是
   （<a href="https://arxiv.org/abs/2111.00396" target="_blank" rel="noopener">Efficiently Modeling Long Sequences with Structured State Spaces</a>，arXiv:2111.00396）：
@@ -391,6 +401,11 @@ COURSE.register({
 </div>
 
 <h3>3. 线性注意力、滑窗与混合架构</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看过 SSM 那条"把历史压进固定状态"的路线。
+  <strong>本节只加一件事</strong>：同一目标下的另外几种做法——把注意力改造成线性、只盯一个窗口，或者两者混着用。
+  <strong>怎么读</strong>：每种做法用一句话记住它牺牲了什么、换回了什么即可，公式不必逐个推。
+</p>
 <p>
   <span class="t" data-tterm="Linear attention" data-d="线性注意力：用核函数替换 softmax 中的指数相似度，使注意力可以利用矩阵乘法结合律改写为先算 K 转置乘 V，从而把复杂度降到序列长度的线性。">线性注意力</span>
   的思路比 SSM 更直接：softmax 之所以不允许交换乘法顺序，
@@ -473,6 +488,11 @@ COURSE.register({
 </div>
 
 <h3>4. MLA：低秩压缩 KV，与 MQA / GQA 的关系</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经看过线性注意力、滑窗与混合架构那几条路线。
+  <strong>本节只加一件事</strong>：不动注意力本身，只压缩它要缓存的 KV——MLA。
+  <strong>怎么读</strong>：抓住"每 token 的 KV 占多少字节"这一个指标，把 MHA / GQA / MLA 放进同一张表对比就清楚了。
+</p>
 <p>
   MQA / GQA 的思路是「让多个 Q 头共享 KV 头」：压缩比是 \(h / h_{kv}\)。
   它的上限很硬——最激进也就是所有头共享一组 KV（\(h_{kv} = 1\)），
@@ -564,6 +584,11 @@ COURSE.register({
 </section>
 
 <h3>5. 超越逐 token 自回归：多 token 预测与扩散语言模型</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：到这里，改的都还是"注意力怎么算"。
+  <strong>本节只加一件事</strong>：改生成方式本身——一次预测多个 token，或者干脆不按从左到右生成。
+  <strong>怎么读</strong>：这一节前沿性最强、和主线耦合最松；只记住"多条路可以并行出草稿"这个直觉就够了。
+</p>
 <p>
   前四节都在改「怎么算注意力」。这一节换角度：改<strong>预测什么</strong>、以及<strong>按什么顺序生成</strong>。
 </p>
@@ -633,6 +658,11 @@ COURSE.register({
 </p>
 
 <h3>6. 多模态：三段式、对比学习与训练阶段</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：前面几节改的都是语言模型自己的骨架。
+  <strong>本节只加一件事</strong>：让模型同时读图和文——多模态。
+  <strong>怎么读</strong>：先抓住"编码器 + 投影层 + 语言模型"这个三段式；训练阶段与评估细节可以第二遍再看。
+</p>
 <p>
   前面五节都在语言内部做文章。多模态提出的问题更根本：
   当输入可能是像素或声波时，「token 序列」从哪里来？
@@ -814,6 +844,11 @@ COURSE.register({
 </section>
 
 <h3>7. 选型表：六类架构各自在为什么付费</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：六类架构的机制你都看过了。
+  <strong>本节只加一件事</strong>：把它们放进同一张表比——每一类到底在为什么付费。
+  <strong>怎么读</strong>：这是本章最该带走的一节。先问自己的瓶颈是显存、延迟还是吞吐，再对应到表里那一行。
+</p>
 <p>
   前面六节分别讲了原理。这一节把它压成一张可以直接拿去开会的表。
   读表的顺序是：先看「每 token 算力」与「每 token KV 字节」两列，它们决定账单；

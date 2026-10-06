@@ -77,6 +77,11 @@ COURSE.register({
 </table>
 
 <h3>3. Kaggle 云端文件系统物理拓扑</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把 Notebook 建好、GPU 也点开了。
+  <strong>本节只加一件事</strong>：搞清楚哪些目录一重启就没、哪些能留下。
+  <strong>怎么读</strong>：只记三句话——input 只读、working 保留、tmp 蒸发；它直接决定你的产物该写在哪。
+</p>
 <p>
   动手写代码前，先把这几个目录的区别搞清楚：
 </p>

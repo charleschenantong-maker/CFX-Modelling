@@ -64,6 +64,11 @@ COURSE.register({
 </dl>
 
 <h3>2. 优化器：AdamW 与它的现代替代</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节把预训练流水线的各个环节摆开了。
+  <strong>本节只加一件事</strong>：其中真正决定"能不能训起来"的那一环——参数到底怎么更新。
+  <strong>怎么读</strong>：抓住两件事就够：动量为什么要做偏置校正、\(\beta_2\) 为什么从 0.999 降到 0.95；其余是变体对比。
+</p>
 
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>记号铺垫（Notation Bridge：拆解 AdamW 优化器符号）</h4>
@@ -239,6 +244,11 @@ COURSE.register({
 <p>标准配方：<strong>参数、梯度、激活用 bf16，优化器状态与主权重保持 fp32</strong>。损失在 fp32 里计算。</p>
 
 <h3>5. 缩放律：该用多少数据、多少算力</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道 bf16 与 fp32 各用在哪。
+  <strong>本节只加一件事</strong>：在算力给定的前提下，参数量和数据量该怎么分。
+  <strong>怎么读</strong>：先记结论 \(D \approx 20N\)，再看现代模型为什么故意"过训练"；拉格朗日推导放在折叠块里，第一遍可以跳过。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>参数量最优配比与 6ND 物理来源</h4>
   <p>
@@ -331,6 +341,11 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
 </ol>
 
 <h3>6. 预算估算：从 FLOPs 到 GPU 小时</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道该给模型配多少数据、多少算力。
+  <strong>本节只加一件事</strong>：把算力换算成真金白银——机时和预算。
+  <strong>怎么读</strong>：关键变量只有一个 MFU，其余都是乘除；把它理解成"纸面峰值的折现率"就够用了。
+</p>
 \[
 \text{GPU-hours} \;=\; \frac{C}{\text{peak FLOPs/s} \times \text{MFU} \times 3600}
 \]

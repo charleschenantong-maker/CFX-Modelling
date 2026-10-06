@@ -67,6 +67,11 @@ COURSE.register({
 </p>
 
 <h3>2. 完整管线：七个必须分开调试的环节</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：上一节帮你判断了"这个需求该不该上 RAG"。
+  <strong>本节只加一件事</strong>：整条管线有哪七个环节，以及为什么它们必须分开调试。
+  <strong>怎么读</strong>：先把七个环节的名字过一遍——这张图是本章的地图，后面每一节都会回到其中一两个。
+</p>
 <div class="flow">
   <div class="nd hi">切分 chunking</div>
   <div class="ar">→</div>
@@ -226,6 +231,11 @@ COURSE.register({
 </ul>
 
 <h3>3. 两套指标：检索的与生成的，绝不能混着看</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经把 RAG 的七个环节拆开看过一遍。
+  <strong>本节只加一件事</strong>：评估要分成两套账——检索的归检索，生成的归生成。
+  <strong>怎么读</strong>：记住这条分诊思路就够：回答不好，先判断是"没检索到"还是"检索到了没读懂"。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>检索指标：召回、MRR、nDCG</h4>
   <p>设 \(k\) 为返回的条数，\(\mathrm{Rel}\) 为该问题的全部相关块：</p>
@@ -362,6 +372,11 @@ COURSE.register({
 </p>
 
 <h3>5. 上下文工程：把提示当成一种数据结构</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道长上下文不能替代 RAG。
+  <strong>本节只加一件事</strong>：既然窗口有限，就把它当成一份要分配的资源来用。
+  <strong>怎么读</strong>：记住那条优先级——系统指令与输出格式不可压缩，检索块从分数最低的开始砍；其余是具体手法。
+</p>
 <p>「上下文工程」不是把提示写得更漂亮，而是把上下文当成有布局、有生命周期、有成本的数据结构来设计。</p>
 <h4>5.1 前缀缓存：结构决定省钱</h4>
 <p>
@@ -415,6 +430,11 @@ COURSE.register({
 </ul>
 
 <h3>6. 成本手算：每问多少钱</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道上下文预算该怎么分配。
+  <strong>本节只加一件事</strong>：把这笔预算换算成钱——每次提问到底花多少。
+  <strong>怎么读</strong>：跟一遍那道除法（召回 8 块 × 400 token，加上系统提示，按输入单价算）就够；重点是"输入 token 往往比输出更贵"。
+</p>
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>每问成本公式与一个完整算例</h4>
   <p>设检索 \(k\) 块、每块 \(L_{\text{chunk}}\) token、固定提示与指令 \(L_{\text{prompt}}\) token、回答 \(L_{\text{out}}\) token，输入与输出单价分别为 \(p_{\text{in}}\)、\(p_{\text{out}}\)（美元 / 百万 token）：</p>
@@ -550,6 +570,11 @@ COURSE.register({
 </p>
 
 <h3>8. 切分策略与上下文预算：把窗口当表格来分配</h3>
+<p class="bridge">
+  <strong>接上一节</strong>：你已经知道混合检索怎么把两路结果合起来。
+  <strong>本节只加一件事</strong>：检索之前的那一步——文档到底该怎么切。
+  <strong>怎么读</strong>：把上下文窗口当成一张要填满的表格来理解；"切太碎"和"切太大"各自的症状，对照表格看。
+</p>
 <p>先做一个可复算的对比，这是决定检索上限的一步。</p>
 <h4>8.1 手算：固定切分 vs 结构切分</h4>
 <p>
