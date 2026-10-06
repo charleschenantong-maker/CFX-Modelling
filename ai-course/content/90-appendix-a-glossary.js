@@ -16,7 +16,7 @@ COURSE.register({
   <span class="t" data-tterm="Prefill" data-d="把整段提示一次性并行前向、填充 KV cache 的阶段，算力受限。">预填充</span> 与解码、
   <span class="t" data-tterm="LoRA rank" data-d="低秩更新的秩 r，决定可训练参数量，与学习率是两个独立旋钮。">LoRA 的 rank</span> 与学习率、
   <span class="t" data-tterm="Banked reset" data-d="把未用满的额度存起来、之后继续用；与「到点清零」相对。">即时重置</span> 与银行重置。
-  第 15 节把它们逐对列出。术语按 14 个分类组织，共 <strong>366 条</strong>（其中 72 条是为 17–25 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
+  第 16 节把其中三组逐对列出（预填充与解码的区别见第 3 章注意力与第 8 章推理）。术语按 16 节组织，共 <strong>366 行</strong>（358 条术语 + 8 组易混辨析，其中 72 条是为 14、16–22 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
 </p>
 
 <h3>1. 概率与目标函数（Probability and objectives）</h3>
@@ -130,7 +130,7 @@ COURSE.register({
     <tr><td>all-reduce</td><td>All-reduce</td><td>每张卡各出一份张量，归约后所有卡得到相同结果（典型用途是求梯度和）；它是数据并行的主要通信，带宽决定扩展效率。</td></tr>
     <tr><td>重计算</td><td>Activation checkpointing (gradient checkpointing)</td><td>前向只保存少量中间激活，反向时重新算一遍；用约三成额外算力把激活显存从随层数线性降到平方根量级。</td></tr>
     <tr><td>显存碎片</td><td>Memory fragmentation</td><td>反复申请释放不同尺寸张量，导致空闲显存不连续、总空闲够却申请失败；用预分配缓存池或统一尺寸对齐缓解。</td></tr>
-    <tr><td>MFU</td><td>Model FLOPs utilization</td><td>实际吞吐对应的 FLOPs 除以硬件峰值；大模型训练典型值 35% 到 55%，是判断是否卡在算力上的第一指标。</td></tr>
+    <tr><td>MFU</td><td>Model FLOPs utilization</td><td>实际吞吐对应的 FLOPs 除以硬件峰值；大模型训练典型值 35% 到 48%，50% 以上属极限调优，是判断是否卡在算力上的第一指标。</td></tr>
     <tr><td>吞吐</td><td>Throughput (tokens/s)</td><td>单位时间处理或生成的 token 数，训练时常按单卡计；它与单请求延迟是两个独立目标，可用批大小互相交换。</td></tr>
     <tr><td>JAX</td><td>JAX</td><td>Google 的函数式数值库，用纯函数与不可变数组描述计算、编译后执行；并行与切分通过装饰器和分片声明表达。</td></tr>
     <tr><td>jit</td><td>Just-in-time compilation</td><td>把 Python 函数追踪成计算图并编译为设备代码；当控制流依赖具体数值时必须改用专用控制流原语，否则只会追踪到一条分支。</td></tr>
@@ -374,14 +374,14 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">一台云主机上的脚本频繁被目标服务要求重新验证，日志里 IP 每天都换。最合理的第一个假设是？</p>
+  <p class="q">你要在 3 个地域跑同一个长任务，只有一个账号。按本节术语，最小改动的稳定方案是？</p>
   <ul class="opts">
-    <li>网络带宽不足导致请求超时</li>
-    <li>模型输出质量下降触发风控</li>
-    <li data-ok>出口地址与机房指纹（ASN、反向 DNS、TLS 特征）共同暴露了非住宅环境，多 IP 反而放大了认证碰撞</li>
-    <li>缺少 WebSocket 长连接</li>
+    <li>每天换一个出口 IP，让风控看不出规律</li>
+    <li>把带宽拉满，请求不超时就不会触发验证</li>
+    <li data-ok>固定一个可信出口并保持账号亲和，让 ASN、反向 DNS、TLS 特征稳定一致</li>
+    <li>改用 WebSocket 长连接，协议升级后风控自动放行</li>
   </ul>
-  <p class="why">风控判定的是整体一致性而非单个字段：机房 ASN 加频繁变动的地址，等价于「同一账号在多个可疑出口登录」。修复顺序是先让出口特征稳定一致，再减少不必要的地址切换。</p>
+  <p class="why">风控判定的是整体一致性而非单个字段：机房 ASN 加频繁变动的地址，等价于「同一账号在多个可疑出口登录」。修复顺序是先让出口特征稳定一致，再减少不必要的地址切换——这正是账号亲和的含义。</p>
 </div>
 
 <h3>12. 工作流与智能体（Workflow and agents）</h3>
@@ -437,7 +437,7 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>15. 高阶与前沿（Advanced and frontier，对应 17–25 章）</h3>
+<h3>15. 高阶与前沿（Advanced and frontier，对应 14、16–22 章）</h3>
 <table class="tbl small">
   <thead><tr><th>中文术语</th><th>English</th><th>一句话解释</th></tr></thead>
   <tbody>

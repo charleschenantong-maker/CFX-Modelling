@@ -637,7 +637,7 @@ COURSE.register({
   <div class="qlabel">填空 · 计算推演</div>
   <p class="q">一段原始测试语料共包含 100 个字符。经过训练好的 BPE 分词器编码后，得到的 Token 序列长度缩短为 40 个 Token。该分词器在此语料上的压缩比率（Compression Ratio = 原始字符数 / Token数）是多少？（输入小数，如 2.5）</p>
   <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入压缩比率数值（如 2.5）..." />
+    <input type="text" class="blank-input" placeholder="输入压缩比率数值后点提交验证..." />
     <button class="blank-btn">提交验证</button>
     <span class="blank-feedback"></span>
   </div>

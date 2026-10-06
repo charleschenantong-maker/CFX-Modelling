@@ -1,4 +1,4 @@
-/* content/24-architectures.js — 模块 24：前沿架构与多模态 */
+/* content/21-architectures.js — 模块 21：前沿架构与多模态 */
 COURSE.register({
   id: "m21",
   part: 4,
@@ -145,7 +145,7 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>为什么是线性复杂度，以及为什么不能直接并行</h4>
   <p>
-    每一步只做一次 \(N \times N\) 的矩阵-向量乘和一次 \(N \times 1\) 的加法，都是 \(O(N)\)；
+    每一步只做一次结构化 \(N \times N\) 矩阵（实践中取对角或低秩形式，否则稠密矩阵向量乘本是 \(O(N^2)\)）的矩阵-向量乘和一次 \(N \times 1\) 的加法，都是 \(O(N)\)；
     序列长度 \(T\)，所以总共 \(O(NT)\)。对比注意力的分数矩阵 \(O(T^2)\)，
     在长序列上这是决定性的差别。
   </p>
@@ -707,8 +707,13 @@ COURSE.register({
   \[ p_{11} = \frac{20.09}{22.81} = 0.881, \qquad -\log p_{11} = 0.127 \]
   <p><strong>第 2 行</strong>：\(\exp(0.5) = 1.649\)，\(\exp(2.0) = 7.389\)，和为 9.038；</p>
   \[ p_{22} = \frac{7.389}{9.038} = 0.818, \qquad -\log p_{22} = 0.201 \]
-  <p>取平均：</p>
-  \[ \mathcal{L} = \frac{0.127 + 0.201}{2} = 0.164 \]
+  <p>取平均（图→文方向）：</p>
+  \[ \mathcal{L}_{\text{img}\to\text{text}} = \frac{0.127 + 0.201}{2} = 0.164 \]
+  <p>
+    对称的 InfoNCE 还要加上文→图方向：第 1 列 \(\exp(3.0) = 20.09\)、\(\exp(0.5) = 1.649\)，和为 21.739，
+    \(p = 0.924\)，\(-\log p = 0.079\)；第 2 列 \(\exp(1.0) = 2.72\)、\(\exp(2.0) = 7.389\)，和为 10.109，
+    \(p = 0.731\)，\(-\log p = 0.314\)。双向平均 \(\mathcal{L} = (0.127 + 0.201 + 0.079 + 0.314)/4 \approx 0.180\)。
+  </p>
   <p><strong>三个立刻能用的观察：</strong></p>
   <p>
     <strong>① 损失对错配的相似度极其敏感。</strong>
@@ -785,20 +790,20 @@ COURSE.register({
 <p>\[ H_{\text{vision}} = \text{Linear}(\text{PatchUnfold}(I)) \in \mathbb{R}^{N \times d} \]</p>
   <p><strong>要观察的三件事：</strong></p>
   <p>
-    <strong>① 幻觉是怎么产生的。</strong>对比 A 与 C。
-    C 里你<em>先说了</em>「猫」和「树」，模型很可能顺着你的话往下编。
+    <strong>① 幻觉是怎么产生的。</strong>对比含引导词的合成图与中性描述的合成图。
+    引导图里你<em>先说了</em>「猫」和「树」，模型很可能顺着你的话往下编。
     POPE 的发现正是这一点：指令里出现过的物体最容易被幻觉出来
     （<a href="https://arxiv.org/abs/2305.10355" target="_blank" rel="noopener">arXiv:2305.10355</a>）。
     <em>提示词不是中立的。</em>
   </p>
   <p>
-    <strong>② 同一句话、不同图，答案怎么变。</strong>把 D 的三条输出并排看，
+    <strong>② 同一句话、不同图，答案怎么变。</strong>把同一句话在三张合成图上的输出并排看，
     你会看到模型是「真的在看」还是「在按问题模板作答」。
     如果三张图给出高度雷同的结构化回答（比如都答「一个红色圆形」），
     说明它更多在被指令先验驱动，而不是在描述图像。
   </p>
   <p>
-    <strong>③ 分辨率是硬约束。</strong>E 与 F 的对比最直观。
+    <strong>③ 分辨率是硬约束。</strong>低分辨率图与正常图的对比最直观。
     把图降到 64×64，数字「7」的笔画已经不足几个像素，
     但模型往往仍然会给出一个<em>看起来合理</em>的答案而不是说「看不清」。
     这就是「流畅但错误」——也是多模态落地时最常见的事故形态。
@@ -887,9 +892,9 @@ COURSE.register({
 <p>
   下面是一次完整的选型推演。约束是硬的：<strong>一张 24 GB 卡、128K 上下文、同时服务 4 条序列、单序列解码要能看。</strong>
   参考配置沿用第 1 节那个 GQA 模型（\(L=32\)、\(h_{kv}=8\)、\(d_h=128\)），KV 先用 fp16。
-  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 16（长上下文）</a>，这里只做选型算术。
+  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 13（长上下文）</a>，这里只做选型算术。
 </p>
-<p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉：</p>
+<p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉（基座权重已按 int4 量化计 3.9 GB，运行时底噪计 2.0 GB）：</p>
 \[ 24 - 3.9 - 2.0 \approx 18 \qquad (\text{GB}) \]
 \[ \text{per-sequence} = \frac{18}{4} = 4.5 \qquad (\text{GB}) \]
 \[ \frac{4.5 \times 2^{30}}{131072} \approx 36 \qquad (\text{KiB/token}) \]
@@ -897,7 +902,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>候选</th><th>每 token KV</th><th>单序列 128K 占用</th><th>4 并发合计</th><th>结论</th></tr></thead>
   <tbody>
-    <tr><td>GQA + fp16 KV</td><td>128 KiB</td><td>16 GiB</td><td>64 GiB</td><td>❌ 超出 3 倍以上</td></tr>
+    <tr><td>GQA + fp16 KV</td><td>128 KiB</td><td>16 GiB</td><td>64 GiB</td><td>❌ 超预算 3.5 倍（相对整卡约 2.7 倍）</td></tr>
     <tr><td>GQA + int8 KV</td><td>64 KiB</td><td>8 GiB</td><td>32 GiB</td><td>❌ 仍然超</td></tr>
     <tr><td>GQA + int4 KV</td><td>约 34 KiB</td><td>约 4.25 GiB</td><td>约 17 GiB</td><td>⚠ 勉强通过，余量不到 1 GB</td></tr>
     <tr><td>全滑窗 \(W=4096\)</td><td>不随 \(T\) 增长：每序列 \(4096 \times 128\ \text{KiB}\)</td><td>512 MiB</td><td>2 GiB</td><td>✅ 但长程依赖只能靠层间传播</td></tr>
@@ -958,7 +963,7 @@ COURSE.register({
       没有辅助损失时，路由器会把几乎所有 token 扔给少数几个专家（赢者通吃），其余专家等于白占显存——
       此时 \(N_{\text{total}}\) 里的大部分参数从没被训练好。部署视角：aux-loss 只在训练时存在，
       推理侧零成本；但它决定了你下载的 MoE 权重里有多少参数是真正可用的。
-      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>。
+      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>。
       什么时候不值：单卡场景直接选稠密（本节已算过），连 aux 的存在都不需要知道。
     </p>
     <p>
@@ -999,7 +1004,7 @@ COURSE.register({
 </table>
 <p>
   最后一行是本模块最重要的数字：<strong>一秒钟的 4K 视频（按每秒 2 帧算）就能花掉约 2 GiB 的 KV</strong>，
-  相当于 128 张 448×448 的图。<em>「视频多模态」的账单来源不是模型更大，而是 token 更多。</em>
+  相当于约 84 张 448×448 的图。<em>「视频多模态」的账单来源不是模型更大，而是 token 更多。</em>
   工程上的对策只有三条：降分辨率、降帧率、加时序压缩（把多帧压成一个 token），三条都要牺牲细节。
 </p>
 

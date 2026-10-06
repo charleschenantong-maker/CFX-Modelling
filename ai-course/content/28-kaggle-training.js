@@ -72,9 +72,9 @@ print("词表大小:", len(tokenizer), "| 填充标记 Pad Token:", tokenizer.pa
 
 <pre><code>import torch
 from transformers import AutoModelForCausalLM
-model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, device_map="auto")
+model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
 </code></pre>
-<p><strong>代码解析</strong>：以 <code>bfloat16</code> 混合精度将 Qwen-2.5 的 15 亿参数加载进显存；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
+<p><strong>代码解析</strong>：以 <code>float16</code> 半精度将 Qwen-2.5 的 15 亿参数加载进显存（Kaggle 免费 T4 为 Turing 架构，不支持 <code>bfloat16</code> 原生计算，此处必须用 <code>float16</code>，与附录 B 的硬件嗅探回退逻辑一致）；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
 
 <h4>第四步：构建并注入 LoRA 适配器（PEFT）</h4>
 
@@ -86,7 +86,7 @@ peft_config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"]
 <pre><code>model = get_peft_model(model, peft_config)
 model.print_trainable_parameters()
 </code></pre>
-<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15 亿陡降至仅约 150 万（占比不到 0.1%）</strong>！显存开销暴降 80% 以上！</p>
+<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15.4 亿陡降至仅约 109 万（占比约 0.07%）</strong>！显存开销暴降 80% 以上！</p>
 
 <h4>第五步：准备领域微调数据集（以 Crossfade 任务为例）</h4>
 
@@ -229,15 +229,15 @@ print(f"🎉 成功！专属 Crossfade 领域的 Qwen LoRA 适配器已安全保
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在 Kaggle 免费的 16GB T4 GPU 上，使用 LoRA 微调 Qwen-2.5-1.5B 时，训练参数量通常占模型总参数量的比例约为：</p>
+  <p class="q">Qwen2.5-1.5B（\(L=28\)，\(d=1536\)，\(kv\_heads=2\)，\(head\_dim=128\)）上只给 q/v 投影挂 \(r=8\) 的 LoRA，v_proj 每层的 LoRA 参数量是多少？</p>
   <ul class="opts">
-    <li>100%</li>
-    <li>50%</li>
-    <li data-ok>不到 0.1%（约 150 万参数 / 15 亿参数）</li>
-    <li>90%</li>
+    <li>24576（把 v_proj 当成 1536×1536）</li>
+    <li data-ok>14336（降维 12288 + 升维 2048）</li>
+    <li>2048（只算了升维矩阵）</li>
+    <li>12288（只算了降维矩阵）</li>
   </ul>
   <p class="why">
-    LoRA 仅在注意力层的投影矩阵上外挂极小秩（如 \(r=8\)）的降维与升维矩阵，冻结其余全部原模型参数，因此可训练参数比例通常只有千分之一左右。
+    GQA 下 v_proj 是 1536×256（\(kv\_heads \times head\_dim = 2 \times 128\)），不是 1536×1536：降维 \(A = 1536 \times 8 = 12288\)，升维 \(B = 8 \times 256 = 2048\)，合计 14336。28 层共约 109 万，占 15.4 亿的 0.071%——v 变窄正是 GQA 送的红利，q_proj 每层则是 24576。
   </p>
 </div>
 `

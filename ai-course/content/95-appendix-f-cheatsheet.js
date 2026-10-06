@@ -19,7 +19,7 @@ COURSE.register({
   <ol>
     <li><strong>按关键词搜</strong>：顶部搜索框（快捷键 <code>/</code>）会搜标题、正文与公式，比翻页快。</li>
     <li><strong>按主题查</strong>：下面的表按「公式 / 数字 / 工具 / 决策」分区，先定位分区再看行。</li>
-    <li><strong>按术语查</strong>：<a href="#appA">附录 A 术语表</a>有 355 条中英对照，分 14 类；每一讲顶部还有「本讲速查」可展开。</li>
+    <li><strong>按术语查</strong>：<a href="#appA">附录 A 术语表</a>有 366 行（358 条术语 + 8 组辨析），分 16 节；每一讲顶部还有「本讲速查」可展开。</li>
   </ol>
 </section>
 
@@ -36,9 +36,9 @@ COURSE.register({
     <tr><td>\(N \approx 12\,L\,d^2 + |\mathcal{V}|\,d\)</td><td>参数量手算（SwiGLU、共享词嵌入）</td><td>04</td><td>把 GQA 的 K/V 仍按 \(d^2\) 计</td></tr>
     <tr><td>\(M_{\text{train}} \approx 16N\) bytes + 激活</td><td>AdamW + bf16 全参数训练的显存下限</td><td>04</td><td>以为「7B 只要 14 GB」</td></tr>
     <tr><td>\(C \approx 6ND\)</td><td>训练总算力（FLOPs）</td><td>01 / 05</td><td>忘记反向是前向的两倍</td></tr>
-    <tr><td>\(\text{GPU-hours} = \dfrac{C}{\text{peak}\times\text{MFU}\times3600}\)</td><td>预算换算；MFU 常用 35%–50%</td><td>05</td><td>用峰值算力直接除，忽略 MFU</td></tr>
+    <tr><td>\(\text{GPU-hours} = \dfrac{C}{\text{peak}\times\text{MFU}\times3600}\)</td><td>预算换算；MFU 常用 35%–48%</td><td>05</td><td>用峰值算力直接除，忽略 MFU</td></tr>
     <tr><td>\(D_{\text{opt}} \approx 20N\)</td><td>Chinchilla 算力最优配比（不是质量最优）</td><td>05</td><td>以为所有模型都该守这个比例</td></tr>
-    <tr><td>\(W = W_0 + \tfrac{\alpha}{r}BA\)</td><td>LoRA 低秩增量；\(B\) 初始化为 0</td><td>07</td><td>以为 \(\alpha/r\) 改变参数量</td></tr>
+    <tr><td>\(W = W_0 + \tfrac{\alpha}{r}AB\)</td><td>LoRA 低秩增量；\(A\) 降维高斯初始化，\(B\) 升维初始化为 0</td><td>07</td><td>以为 \(\alpha/r\) 改变参数量</td></tr>
     <tr><td>\(\mathcal{L}_{\text{DPO}} = -\log\sigma\!\big(\beta[\log\tfrac{p_\theta(y_w)}{p_{\text{ref}}(y_w)} - \log\tfrac{p_\theta(y_l)}{p_{\text{ref}}(y_l)}]\big)\)</td><td>偏好优化（无需奖励模型）</td><td>07</td><td>跳过 SFT 直接 DPO</td></tr>
     <tr><td>\(\hat A_i = \dfrac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)}\)</td><td>GRPO 的组内相对优势（替代 critic）</td><td>07</td><td>组太小导致优势估计噪声大</td></tr>
     <tr><td>\(\hat w = (X^\top X + \lambda I)^{-1}X^\top y\)</td><td>岭回归闭式解；\(N\) 小时的首选模型</td><td>09</td><td>忘了在划分后拟合标准化</td></tr>
@@ -84,7 +84,7 @@ COURSE.register({
     <tr><td><strong>总计</strong></td><td><strong>≈ 8.03 B</strong></td><td>规则式 \(12Ld^2+|\mathcal{V}|d\) 给 6.97 B，差 1.06 B</td></tr>
     <tr><td>KV Cache</td><td>4 KB/token/层；128 KB/token；8k 上下文 ≈ 1 GiB；批 16 ≈ 16 GiB</td><td>fp16</td></tr>
     <tr><td>训练显存下限</td><td>≈ 16 字节/参数 + 激活</td><td>bf16 权重/梯度 + fp32 优化器状态与主权重</td></tr>
-    <tr><td>LoRA（r=16）</td><td>仅注意力 13.6 M（0.17%）；加 MLP 41.9 M（0.52%）</td><td>合并后推理零额外开销</td></tr>
+    <tr><td>LoRA（r=16）</td><td>仅注意力 13.6 M（0.17%）；连 MLP 一起挂合计 41.9 M（0.52%，其中 MLP 占 28.3 M）</td><td>合并后推理零额外开销</td></tr>
   </tbody>
 </table>
 
@@ -188,7 +188,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
   <tbody>
     <tr><td>CP1 问题 + 可听基线</td><td>定义「更好」，并尽早跑出能听的版本</td><td><a href="#mP">预备课</a>、<a href="#m1">01</a>、<a href="#m10">10</a></td></tr>
     <tr><td>CP2 可辩护模型</td><td>把增益包络写成变分/几何问题</td><td><a href="#m4">04</a>（自由度从哪来）</td></tr>
-    <tr><td>CP3 竞争方法</td><td>三种结构不同的方法与各自的失效预测</td><td><a href="#m7">07</a>（模型阶梯思想）</td></tr>
+    <tr><td>CP3 竞争方法</td><td>三种结构不同的方法与各自的失效预测</td><td><a href="#m9">09</a>（模型阶梯思想）</td></tr>
     <tr><td>CP4 预测对音频</td><td>客观指标 + 听测对照</td><td><a href="#m9">09</a></td></tr>
     <tr><td>CP5 成对适配</td><td>特征提取（你的「tokenizer」）</td><td><a href="#m2">02</a></td></tr>
     <tr><td>CP6 证据与局限</td><td>分组 CV、效应量、盲测</td><td><a href="#m9">09</a></td></tr>
@@ -215,11 +215,11 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <tr><td>worktree、settle、85/15</td><td>12 工作流与智能体</td></tr>
     <tr><td>APFS、热降频、CI 卸载</td><td>13 硬件与操作系统</td></tr>
     <tr><td>ToS、许可、学术诚信</td><td>14 风险与合规</td></tr>
-    <tr><td>蒸馏、RAG、智能体、意识、压缩、架构</td><td>15 高阶与前沿（对应 17–24 章）</td></tr>
+    <tr><td>蒸馏、RAG、智能体、意识、压缩、架构</td><td>15 高阶与前沿（对应 14、16–22 章）</td></tr>
   </tbody>
 </table>
 
-<h3>11. 高阶主题速查（17–24 章）</h3>
+<h3>11. 高阶主题速查（14、16–22 章）</h3>
 <table class="tbl small">
   <thead><tr><th>主题</th><th>关键式 / 关键量</th><th>一句话决策</th><th>章</th></tr></thead>
   <tbody>
@@ -227,31 +227,31 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
       <td>蒸馏</td>
       <td>\( \mathcal{L} = \alpha\,\mathrm{CE}(y,p_S) + (1-\alpha)T^2 D_{\mathrm{KL}}(p_T^{(T)}\|p_S^{(T)}) \)</td>
       <td>要<strong>跨规模/跨架构</strong>搬能力才用它；只是想改行为就 SFT</td>
-      <td>17</td>
+      <td>16</td>
     </tr>
     <tr>
       <td>推理模型</td>
-      <td>\( \text{pass@}k = 1-(1-p)^k \)</td>
+      <td>\( 1-(1-p)^n \)（理想覆盖率；无偏 pass@k 估计见模块 17）</td>
       <td>答案能被程序验证（数学/代码）才值得上 RL；否则先试采样投票</td>
-      <td>18</td>
+      <td>17</td>
     </tr>
     <tr>
       <td>RAG</td>
       <td>召回@k、nDCG、忠实度</td>
       <td><strong>缺知识用检索，缺行为用微调</strong>；检索指标好 ≠ 回答好</td>
-      <td>19</td>
+      <td>18</td>
     </tr>
     <tr>
       <td>智能体</td>
       <td>循环 = 模型 + 工具 + 记忆 + <strong>终止条件</strong></td>
       <td>有明确可自动判定的验收标准才自动化；否则人来收尾</td>
-      <td>20</td>
+      <td>19</td>
     </tr>
     <tr>
       <td>安全与可解释</td>
       <td>系统提示不是安全边界；探针 ≠ 因果证据</td>
       <td>把「通过了评测」当作<em>一个</em>证据，而不是结论</td>
-      <td>21</td>
+      <td>20</td>
     </tr>
     <tr>
       <td>机器意识</td>
@@ -263,33 +263,33 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
       <td>压缩与合并</td>
       <td>稀疏度、保留率、合并权重</td>
       <td>稀疏<strong>不必然</strong>加速；量化最省事、蒸馏最贵、合并最取巧</td>
-      <td>23</td>
+      <td>14</td>
     </tr>
     <tr>
       <td>前沿架构</td>
       <td>\( h_t = A h_{t-1} + B x_t \)（SSM）；InfoNCE（多模态对齐）</td>
       <td>注意力不是唯一选择，但「更省」通常伴随「能力取舍」，必须实测</td>
-      <td>24</td>
+      <td>21</td>
     </tr>
   </tbody>
 </table>
 <p class="cm">
-  与之配套的术语（约 55 条）在<a href="#appA">附录 A 第 15 节</a>；
+  与之配套的术语（约 126 条）在<a href="#appA">附录 A 第 15 节</a>；
   这些主题的完整推导、动手实验与自测在各章正文里。
 </p>
 
 <div class="quiz">
   <div class="qlabel">自测 · 用这张表回答</div>
-  <p class="q">你要在 16 GB 显存的 Kaggle T4 上微调一个 7B 模型，只想改一个文件里的配置。最该先查本页哪一区？</p>
+  <p class="q">7B 模型：bf16 权重 14 GB，int4 权重 3.85 GB，QLoRA 静态总量约 4.4 GB。在 16 GB 的 Kaggle T4 上微调，结论是？</p>
   <ul class="opts">
-    <li>公式速查</li>
-    <li data-ok>超参起点 + 数字速查（确认 QLoRA 可行、批与序列要压小）</li>
-    <li>术语表</li>
-    <li>命令速查</li>
+    <li>三条都行，把学习率调小就能装下</li>
+    <li data-ok>只有 QLoRA 进得去：全参静态 112 GB 是 16 GB 的 7 倍，int4 推理不等于能训练</li>
+    <li>用 int8 权重量化训练，精度速度兼得</li>
+    <li>把上下文窗口调小，全参也能进</li>
   </ul>
   <p class="why">
-    这类决策由「显存 → 可行方案 → 超参起点」的顺序决定：先在第 2 区确认 16 GB 只能走 QLoRA 且序列要短，
-    再到第 4 区取学习率与轮数起点，最后才写代码。
+    全参 AdamW 静态 \(16 \times 7\times10^9 = 112\) GB；QLoRA 基座 3.85 GB 加 LoRA 部分（41.9M 参数的权重加梯度加优化器约 0.67 GB）再加激活，总量个位数 GB。
+    学习率只改步长不改字节数；int8 训练仍要全精度的梯度与优化器状态；窗口只影响 KV 与激活，112 GB 里权重那部分纹丝不动。
   </p>
 </div>
 

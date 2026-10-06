@@ -77,7 +77,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>相似度 \(s = J(A,B)\)</th><th>单波段全等概率 \(s^r \; (r=8)\)</th><th>全不匹配概率 \((1-s^r)^b \; (b=16)\)</th><th>最终候选命中率 \(P_{\text{candidate}}\)</th><th>系统动作</th></tr></thead>
   <tbody>
-    <tr><td><strong>0.90（高度抄袭）</strong></td><td>\(0.90^8 \approx 0.430\)</td><td>\((1-0.430)^{16} \approx 0.00008\)</td><td><strong>99.99%</strong></td><td>极大概率抓获，剔除冗余</td></tr>
+    <tr><td><strong>0.90（高度抄袭）</strong></td><td>\(0.90^8 \approx 0.430\)</td><td>\((1-0.430)^{16} \approx 0.00012\)</td><td><strong>99.99%</strong></td><td>极大概率抓获，剔除冗余</td></tr>
     <tr><td><strong>0.80（显著重合）</strong></td><td>\(0.80^8 \approx 0.168\)</td><td>\((1-0.168)^{16} \approx 0.050\)</td><td><strong>95.00%</strong></td><td>高效捕获</td></tr>
     <tr><td><strong>0.50（轻微交集）</strong></td><td>\(0.50^8 \approx 0.0039\)</td><td>\((1-0.0039)^{16} \approx 0.939\)</td><td><strong>6.10%</strong></td><td>极低误报，绝大多数被排除</td></tr>
     <tr><td><strong>0.20（正常引用）</strong></td><td>\(0.20^8 \approx 0.0000025\)</td><td>\(\approx 1.0\)</td><td><strong>< 0.004%</strong></td><td>零开销直通通过</td></tr>
@@ -130,7 +130,7 @@ COURSE.register({
 </p>
 
 <table class="tbl small">
-  <thead><tr><th>层级</th><th>互联技术</th><th>单向理论带宽</th><th>通信延迟</th><th>承载的并行切分维度</th></tr></thead>
+  <thead><tr><th>层级</th><th>互联技术</th><th>双向理论聚合带宽</th><th>通信延迟</th><th>承载的并行切分维度</th></tr></thead>
   <tbody>
     <tr><td><strong>节点内（Intra-Node, 单机 8 卡）</strong></td><td>NVLink / NVSwitch</td><td>900 GB/s ~ 1.8 TB/s</td><td>< 1 µs</td><td><strong>张量并行 (TP)</strong>、前向注意力</td></tr>
     <tr><td><strong>跨节点（Inter-Node, 机柜内 / 跨机柜）</strong></td><td>InfiniBand NDR / RoCE v2</td><td>400 Gbps ~ 800 Gbps (50~100 GB/s)</td><td>2~5 µs</td><td><strong>流水线并行 (PP)</strong>、<strong>数据并行 (DP / ZeRO)</strong></td></tr>

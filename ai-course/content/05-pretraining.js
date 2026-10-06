@@ -73,7 +73,7 @@ COURSE.register({
     <li><strong>\(m_t\)（一阶动量）</strong>：类似「带惯性的滚珠」，按衰减率 \(\beta_1 = 0.9\) 平滑过滤单批次噪声，保留历史速度方向；</li>
     <li><strong>\(v_t\)（二阶动量）</strong>：梯度的未中心化方差，按衰减率 \(\beta_2 = 0.95\) 累计各个坐标的摆动幅度；</li>
     <li><strong>\(\frac{\hat m_t}{\sqrt{\hat v_t} + \epsilon}\)</strong>：自适应步长核心——经常剧烈震荡的参数除以较大的 \(\sqrt{\hat v_t}\)（小步走防炸），平缓稀疏的参数除以较小的 \(\sqrt{\hat v_t}\)（大步走加速），\(\epsilon = 10^{-8}\) 防止分母为零；</li>
-    <li><strong>\(\lambda \, \theta_{t-1}\) 与 \(\eta\)</strong>：\(\eta\) 为全局学习率，\(\lambda = 0.1\) 是解耦权重衰减系数（L2 正则化），温和拉低参数绝对值防过拟合。</li>
+    <li><strong>\(\lambda \, \theta_{t-1}\) 与 \(\eta\)</strong>：\(\eta\) 为全局学习率，\(\lambda = 0.1\) 是解耦权重衰减系数（注意：在 Adam 这类自适应优化器下，它不等同于直接加在损失函数里的 L2 正则化），温和拉低参数绝对值防过拟合。</li>
   </ul>
 </section>
 
@@ -318,7 +318,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   或你用了更快的硬件，需要按<em>激活参数量</em>重算。这个「算出来超过 100% 说明参数用错了」的自检，
   正是 MFU 最有价值的地方。
 </p>
-<p>经验区间：稠密模型预训练 35%–50%，微调与推理更低；看到 60% 以上先怀疑数字有问题。</p>
+  <p>经验区间：稠密模型预训练 35%–48%，微调与推理更低；看到 60% 以上先怀疑数字有问题。</p>
 
 <h4>5.3 数据侧真正决定上限的三件事</h4>
 <ol>
@@ -452,7 +452,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   <div class="qlabel">填空 · 计算推演</div>
   <p class="q">在标准 FP16 混合精度预训练中（AdamW 优化器维护 FP32 主权重、一阶动量与二阶方差），每个可学习参数约消耗 16 字节静态显存。若在 Kaggle T4 上训练一个 \(N = 10\text{M}\)（1000 万）参数的 miniGPT 模型，仅模型参数与优化器状态所占用的静态显存约为多少 MB？（填入整数，如 160）</p>
   <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入静态显存 MB 数（如 160）..." />
+    <input type="text" class="blank-input" placeholder="输入静态显存 MB 数后点提交验证..." />
     <button class="blank-btn">提交验证</button>
     <span class="blank-feedback"></span>
   </div>

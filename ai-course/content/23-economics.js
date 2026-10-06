@@ -1,4 +1,4 @@
-/* content/11-economics.js — 模块 11：算力法则与训练规模演算 */
+/* content/23-economics.js — 模块 23：算力法则与训练规模演算 */
 
 COURSE.register({
 

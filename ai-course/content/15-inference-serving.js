@@ -18,8 +18,9 @@ COURSE.register({
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>知识地图与承接关系</h4>
   <p>
-    <strong>这一讲填补了什么鸿沟？</strong>在第 08 讲中，我们推导了单请求 KV Cache 显存公式：
-    \(M = 2 \times 2 \times n_{\text{layers}} \times n_{\text{heads}} \times d_{\text{head}} \times L \times B\)。<br />
+    <strong>这一讲填补了什么鸿沟？</strong>在第 08 讲中，我们推导了 KV Cache 显存公式：
+    \(M = 2 \times b \times n_{\text{layers}} \times n_{kv\_heads} \times d_{\text{head}} \times L \times B\)
+   （首个 2 表示 K 与 V 各一份，\(b\) 为每元素字节数，\(n_{kv\_heads}\) 为 KV 头数——GQA 下小于注意力头数，\(B\) 为并发数，单请求时 \(B = 1\)）。<br />
     但在真实线上服务中，用户的 Prompt 长度从 10 到 32,000 不等，生成长度也完全无法预知。
     如果按最坏情况预先分配一块连续的显存空间，<strong>显存利用率往往暴跌至 20% 以下，大部分显存被预留的空白泡泡活活浪费</strong>。<br />
     本讲将从底层操作系统物理机制出发，揭开现代大模型高并发服务的终极秘密。

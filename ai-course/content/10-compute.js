@@ -301,7 +301,7 @@ COURSE.register({
 
     注：(1) 若开启激活重计算（Activation Checkpointing / Gradient Checkpointing）以显存换计算，在反向时需要把前向重新计算一遍，总计算量上升为 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
 
-    (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \)，单 Token 平摊计算量为 \( 4 T d \)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
+     (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \) 与层数 \( L \)，单 Token 平摊计算量为 \( 4LTd\)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
 
     (3) 长上下文守卫：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
 
@@ -421,25 +421,24 @@ COURSE.register({
 
   <div class="qlabel">自测 · 1</div>
 
-  <p class="q">你想在免费资源上体验「多设备 SPMD 并行训练」。最现实的平台是？</p>
+  <p class="q">8 台设备的 SPMD 网格记作 \(t \times p \times d\)（张量 / 流水 / 数据）。要跑「4 路张量 × 2 路流水」的混合并行，网格与数据并行度是？</p>
 
   <ul class="opts">
 
-    <li>Colab 免费层的 TPU</li>
+    <li>单设备上直接跑 4×2，SPMD 会自动切分</li>
 
-    <li data-ok>Kaggle 的 TPU v5e-8（8 个设备，可做 4×2 的数据/张量混合并行）</li>
+    <li data-ok>\(t=4, p=2, d=1\)：乘积正好 8 台设备，全局批全进 micro-batch</li>
 
-    <li>任何一台笔记本</li>
+    <li>\(t=8, p=2, d=2\)：张量越多越快</li>
 
-    <li>HF Spaces 的 ZeroGPU</li>
+    <li>\(t=2, p=4, d=2\)：对称配置最稳</li>
 
   </ul>
 
   <p class="why">
 
-    截至教程所述时点，Colab 免费层只提供单核 TPU v5e-1，<strong>无法使用 SPMD 多设备并行</strong>；
-
-    而 Kaggle 免费提供 TPU v5e-8，正是 JAX AI Stack 教程针对的硬件。
+    网格乘积必须等于设备数：\(4 \times 2 \times 1 = 8\)，此时 \(d = 1\) 意味着没有数据并行，全局批全靠 micro-batch 堆。
+    第三项要 32 台设备；第四项要 16 台；单核上 reshape(4,2) 会直接报错——设备数是硬约束，不是偏好。
 
   </p>
 

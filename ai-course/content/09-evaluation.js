@@ -381,7 +381,7 @@ COURSE.register({
   把候选文本切成 n-gram（连续 n 个词），数它们在参考里出现了多少次，
   但每个 n-gram 最多只能计它在参考里出现的次数；精确率的分母是候选里的 n-gram 总数：
 </p>
-\[ P_n = \frac{\sum_{g} \max\bigl(0,\ c_{\text{cand}}(g) - c_{\text{ref}}(g)\bigr)}{\sum_{g} c_{\text{cand}}(g)} \]
+\[ P_n = \frac{\sum_{g} \min\bigl(c_{\text{cand}}(g),\, c_{\text{ref}}(g)\bigr)}{\sum_{g} c_{\text{cand}}(g)} \]
 <p>BLEU 把前四个精确率用几何平均合成，BP 是长度惩罚：</p>
 \[ \mathrm{BLEU\text{-}n} = \mathrm{BP}\cdot\exp\left(\frac{1}{n}\sum_{i=1}^{n}\ln P_i\right), \qquad \mathrm{BP} = \min\bigl(1,\ \exp(1 - r/m)\bigr) \]
 <p>

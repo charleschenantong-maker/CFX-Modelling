@@ -687,20 +687,7 @@ COURSE.register({
 });
 
 /* --- content/01-language-models.js --- */
-/* co
-<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
-  <div class="qlabel">填空 · 计算推演</div>
-  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
-  <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入计算数值（如 0.693）..." />
-    <button class="blank-btn">提交验证</button>
-    <span class="blank-feedback"></span>
-  </div>
-  <p class="why">
-    首先计算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失！
-  </p>
-</div>
-ntent/01-language-models.js — 模块 01：语言模型在算什么 */
+/* content/01-language-models.js — 模块 01：语言模型在算什么 */
 COURSE.register({
   id: "m1",
   part: 1,
@@ -715,6 +702,19 @@ COURSE.register({
   推理、对话、写代码，都是把这一步重复很多次接起来的。
   这一讲全程用日常话和比喻，不写代码，不推公式。动手和计算都放在附录 B 实验手册 E1 里。
 </p>
+
+<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入计算数值后点提交验证..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
+  <p class="why">
+    首先计算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失！
+  </p>
+</div>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先把扣分翻译成使用者的话</h4>
@@ -1595,7 +1595,7 @@ COURSE.register({
   <div class="qlabel">填空 · 计算推演</div>
   <p class="q">一段原始测试语料共包含 100 个字符。经过训练好的 BPE 分词器编码后，得到的 Token 序列长度缩短为 40 个 Token。该分词器在此语料上的压缩比率（Compression Ratio = 原始字符数 / Token数）是多少？（输入小数，如 2.5）</p>
   <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入压缩比率数值（如 2.5）..." />
+    <input type="text" class="blank-input" placeholder="输入压缩比率数值后点提交验证..." />
     <button class="blank-btn">提交验证</button>
     <span class="blank-feedback"></span>
   </div>
@@ -1718,7 +1718,7 @@ COURSE.register({
     注意这件事发生的位置是<strong>注意力行 Softmax</strong>——对 \(QK^{T}\) 点积分数
     （\(T \times T\) 权重矩阵的每一行）做的归一化，
     不要把它和最后词表输出层的 Softmax 加交叉熵搞混（那里的梯度 \(\mathbf{p} - \mathbf{y}\) 形式上永远有信号）。
-    注意力权重的导数矩阵为 \(S_i(\delta_{ij} - S_j)\)。一旦进入极端极化状态，所有偏导数几乎完全等于零，
+    注意力权重的导数矩阵为 \(A_i(\delta_{ij} - A_j)\)（记 \(A = \mathrm{softmax}(S)\) 为归一化后的注意力权重）。一旦进入极端极化状态，所有偏导数几乎完全等于零，
     查询与键的梯度（\(\partial \mathcal{L} / \partial Q\)、\(\partial \mathcal{L} / \partial K\)）瞬间在注意力层
     <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习！
     因此，必须严格除以缩放因子 \(\sqrt{d_k}\)，使输入 Softmax 前的方差精确锚定回 \(1.0\)。
@@ -1980,32 +1980,35 @@ COURSE.register({
   </p>
 </section>
 
-<h3>7.5 KV cache 账本：7B 模型 4k 上下文约 2.15GB，32k 直接 OOM</h3>
+<h3>7.5 KV cache 账本：GQA-7B 32k 约 4.3GB，MHA 才会在 32k OOM</h3>
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>KV cache 账本：先算再开长上下文</h4>
   <p>
     <strong>一句话定义</strong>：KV cache 是解码时为每个已见 token 存下的 \(K\)、\(V\) 向量——
     存下来就不用每步重算，代价是显存随长度线性增长。它的字节数只有一条公式：
   </p>
-  \[ M = 2 \cdot L \cdot d \cdot b \cdot T \]
+  \[ M = 2 \cdot L \cdot h_{kv} \cdot d_{head} \cdot b \cdot T \]
   <p>
-    其中 \(L\) 为层数，\(d\) 为模型宽度，\(b\) 为每元素字节数（fp16 取 2），\(T\) 为上下文长度，
-    开头的 2 表示 K 与 V 各一份。按 7B 量级（\(L = 32\)，\(d = 4096\)，fp16）手算：
-    每个 token 占 \(2 \times 32 \times 4096 \times 2 = 524288\) B（约 0.5 MB）。
+    其中 \(L\) 为层数，\(h_{kv}\) 为 KV 头数（MHA 时等于全部头数，GQA 时只等于 KV 组数），\(d_{head}\) 为每头维度，
+    \(b\) 为每元素字节数（fp16 取 2），\(T\) 为上下文长度，开头的 2 表示 K 与 V 各一份。
+    按 Llama-3-8B 级 GQA（\(L = 32\)，\(h_{kv} = 8\)，\(d_{head} = 128\)，fp16）手算：
+    每个 token 占 \(2 \times 32 \times 8 \times 128 \times 2 = 131072\) B（128 KiB）。
   </p>
   <table class="tbl small">
     <thead><tr><th>上下文长度</th><th>KV cache</th><th>加 14GB 权重后</th><th>24GB 卡结论</th></tr></thead>
     <tbody>
-      <tr><td>4k</td><td>约 2.15GB</td><td>约 16GB</td><td>能跑</td></tr>
-      <tr><td>8k</td><td>约 4.3GB</td><td>约 18GB</td><td>能跑，batch 别大</td></tr>
-      <tr><td>16k</td><td>约 8.6GB</td><td>约 23GB</td><td>悬崖边</td></tr>
-      <tr><td>32k</td><td>约 17.2GB</td><td>约 31GB</td><td>OOM</td></tr>
+      <tr><td>4k</td><td>约 0.5GB</td><td>约 14.5GB</td><td>能跑</td></tr>
+      <tr><td>8k</td><td>约 1GB</td><td>约 15GB</td><td>能跑</td></tr>
+      <tr><td>16k</td><td>约 2.15GB</td><td>约 16.2GB</td><td>能跑，batch 别大</td></tr>
+      <tr><td>32k</td><td>约 4.3GB</td><td>约 18.3GB</td><td>能跑，但余量小</td></tr>
     </tbody>
   </table>
   <p>
-    验算：\(524288 \times 4096 = 2147483648\) B \(\approx 2.15\) GB；32k 是 4k 的 8 倍，即约 17.2GB。
+    验算：\(131072 \times 4096 = 536870912\) B \(\approx 0.54\) GB；32k 是 4k 的 8 倍，即约 4.3GB。
+    对比：若是 MHA（\(h_{kv} = 32\)），每 token 要 0.5MB，32k 就是约 17.2GB，加权重约 31GB，24GB 卡才会 OOM——
+    <strong>KV 只随 KV 头数缩放</strong>，这正是 GQA 值钱的地方。
     <strong>LLM payoff（含比较）</strong>：参数能装下不等于上下文能跑——长上下文的第一堵墙是 KV 显存，不是参数量；
-    batch 也要乘进去（batch 4 时 4k 上下文的 KV 是约 8.6GB）。
+    batch 也要乘进去（batch 4 时 32k 上下文的 KV 是约 17.2GB，加权重就过 24GB 了）。
     缓解手段按代价排序：GQA（少存几组 KV 头，LLaMA 类模型标配）、KV 量化（fp8/int8，精度换一半显存）、
     窗口/逐出（超出部分丢弃，长程质量换显存）。选型时把这张表和 02 讲的 fertility 表连起来看：
     fertility 降 3 倍，这里的每一行 GB 数也除以 3。
@@ -2180,16 +2183,16 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">自测 · 8</div>
-  <p class="q">7B 量级模型（32 层、宽度 4096、fp16）在 4k 上下文下 KV cache 约 2.15GB。直接把上下文开到 32k（batch 不变），会发生什么？</p>
+  <p class="q">Llama-3-8B 级 GQA 模型（32 层、KV 头 8、\(d_{head}=128\)、fp16）在 32k 上下文下单序列 KV cache 约多少？权重约 14GB 时 24GB 卡能否跑？</p>
   <ul class="opts">
-    <li>KV 变成约 4.3GB，因为长度 8 倍但 GQA 会分摊</li>
-    <li data-ok>KV 变成约 17.2GB，加上约 14GB 权重后超过 24GB，直接 OOM</li>
-    <li>KV 不变，因为 cache 只与参数量有关</li>
-    <li>KV 变成约 137GB，因为注意力是平方关系</li>
+    <li>约 17.2GB，加权重后约 31GB，直接 OOM</li>
+    <li data-ok>约 4.3GB，加权重后约 18.3GB，能跑但余量小</li>
+    <li>约 0.5GB，那是 4k 上下文的值</li>
+    <li>约 137GB，因为注意力是平方关系</li>
   </ul>
   <p class="why">
-    \(M = 2 \cdot L \cdot d \cdot b \cdot T\) 与 \(T\) 成正比：32k 是 4k 的 8 倍，
-    \(2.15 \times 8 \approx 17.2\) GB；加权重大约 31GB，24GB 卡装不下。
+    每 token \(2 \times 32 \times 8 \times 128 \times 2 = 131072\) B（128 KiB），\(131072 \times 32768 \approx 4.3\) GB；
+    加权重大约 18.3GB，24GB 卡装得下。17.2GB 是把 GQA 当成 MHA（\(h_{kv} = 32\)）算出来的——KV 只随 KV 头数缩放。
     注意平方的是注意力计算量 \(O(T^2)\)，KV 显存是线性的——两者别混：长度 8 倍时计算量变 64 倍，显存变 8 倍。
   </p>
 </div>
@@ -2627,12 +2630,12 @@ COURSE.register({
         <ul>
           <li>静态模型权重（2 字节/参数）：\(14.46\text{ M} \times 2\text{ B} \approx 28.9\text{ MB}\)</li>
           <li>梯度反向传播（2 字节/参数）：\(28.9\text{ MB}\)</li>
-          <li>AdamW 优化器状态（一阶动量 4 字节 + 二阶动量 4 字节 = 8 字节/参数）：\(14.46\text{ M} \times 8\text{ B} \approx 115.7\text{ MB}\)</li>
-          <li><strong>训练总静态显存</strong>：\(28.9 + 28.9 + 115.7 \approx 173.5\text{ MB}\)</li>
+          <li>AdamW 优化器状态（fp32 主权重 4 字节 + 一阶动量 4 字节 + 二阶动量 4 字节 = 12 字节/参数）：\(14.46\text{ M} \times 12\text{ B} \approx 173.5\text{ MB}\)</li>
+          <li><strong>训练总静态显存</strong>：\(28.9 + 28.9 + 173.5 \approx 231.3\text{ MB}\)</li>
         </ul>
       </li>
     </ol>
-    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.1%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
+    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.4%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
   </div>
 </div>
 
@@ -2669,12 +2672,12 @@ COURSE.register({
   <p class="q">为什么现代超深层大语言模型普遍放弃 Post-norm 结构，而全面拥抱 Pre-norm 残差结构？</p>
   <ul class="opts">
     <li>因为 Pre-norm 的前向矩阵乘法速度快一倍</li>
-    <li data-ok>Pre-norm 的残差主干在反向传播时始终包含一个干净的单位矩阵恒等直通项 \(\mathbf{I}\)，显著改善了深层网络梯度弥散与爆炸的问题，极大提升了超深网络训练的稳定性</li>
+    <li data-ok>Pre-norm 的残差主干恒含单位矩阵直通项 \(\mathbf{I}\)，深层梯度多一条直接通道（仍需配合初始化与步长，见正文限定）</li>
     <li>因为 Pre-norm 不需要使用任何学习率</li>
     <li>为了让模型参数量缩减一半</li>
   </ul>
   <p class="why">
-    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导展开后恒定包含单位矩阵项 \(\frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L}(\mathbf{I} + \dots)\)，保证梯度可以在残差流中更顺畅地反向流动；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
+    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导是各层 \((\mathbf{I}+J_lR_l)\) 的有序连乘，展开后恒定包含单位矩阵项 \(\mathbf{I}\)，保证残差流中有一条直通的梯度通道；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
   </p>
 </div>
 
@@ -2695,7 +2698,7 @@ COURSE.register({
   <div class="qlabel">填空 · 计算推演</div>
   <p class="q">根据 Transformer 非嵌入层参数量估算公式 \(N \approx 12 L d^2\)，若模型堆叠层数 \(L=6\)，隐藏维度 \(d=512\)。该主干网络的参数量约为多少 M（百万）？（填入整数，如 19）</p>
   <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入整数参数量（如 19）..." />
+    <input type="text" class="blank-input" placeholder="输入整数参数量后点提交验证..." />
     <button class="blank-btn">提交验证</button>
     <span class="blank-feedback"></span>
   </div>
@@ -2783,7 +2786,7 @@ COURSE.register({
     <li><strong>\(m_t\)（一阶动量）</strong>：类似「带惯性的滚珠」，按衰减率 \(\beta_1 = 0.9\) 平滑过滤单批次噪声，保留历史速度方向；</li>
     <li><strong>\(v_t\)（二阶动量）</strong>：梯度的未中心化方差，按衰减率 \(\beta_2 = 0.95\) 累计各个坐标的摆动幅度；</li>
     <li><strong>\(\frac{\hat m_t}{\sqrt{\hat v_t} + \epsilon}\)</strong>：自适应步长核心——经常剧烈震荡的参数除以较大的 \(\sqrt{\hat v_t}\)（小步走防炸），平缓稀疏的参数除以较小的 \(\sqrt{\hat v_t}\)（大步走加速），\(\epsilon = 10^{-8}\) 防止分母为零；</li>
-    <li><strong>\(\lambda \, \theta_{t-1}\) 与 \(\eta\)</strong>：\(\eta\) 为全局学习率，\(\lambda = 0.1\) 是解耦权重衰减系数（L2 正则化），温和拉低参数绝对值防过拟合。</li>
+    <li><strong>\(\lambda \, \theta_{t-1}\) 与 \(\eta\)</strong>：\(\eta\) 为全局学习率，\(\lambda = 0.1\) 是解耦权重衰减系数（注意：在 Adam 这类自适应优化器下，它不等同于直接加在损失函数里的 L2 正则化），温和拉低参数绝对值防过拟合。</li>
   </ul>
 </section>
 
@@ -3028,7 +3031,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   或你用了更快的硬件，需要按<em>激活参数量</em>重算。这个「算出来超过 100% 说明参数用错了」的自检，
   正是 MFU 最有价值的地方。
 </p>
-<p>经验区间：稠密模型预训练 35%–50%，微调与推理更低；看到 60% 以上先怀疑数字有问题。</p>
+  <p>经验区间：稠密模型预训练 35%–48%，微调与推理更低；看到 60% 以上先怀疑数字有问题。</p>
 
 <h4>5.3 数据侧真正决定上限的三件事</h4>
 <ol>
@@ -3162,7 +3165,7 @@ LLM 回报：拿预算反推 \(N_{\text{opt}} \approx \sqrt{C/120}\)，申请多
   <div class="qlabel">填空 · 计算推演</div>
   <p class="q">在标准 FP16 混合精度预训练中（AdamW 优化器维护 FP32 主权重、一阶动量与二阶方差），每个可学习参数约消耗 16 字节静态显存。若在 Kaggle T4 上训练一个 \(N = 10\text{M}\)（1000 万）参数的 miniGPT 模型，仅模型参数与优化器状态所占用的静态显存约为多少 MB？（填入整数，如 160）</p>
   <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入静态显存 MB 数（如 160）..." />
+    <input type="text" class="blank-input" placeholder="输入静态显存 MB 数后点提交验证..." />
     <button class="blank-btn">提交验证</button>
     <span class="blank-feedback"></span>
   </div>
@@ -3381,7 +3384,7 @@ COURSE.register({
     <li><strong>激活值显存（Activations）：</strong>
       在选择性激活重计算（Selective Activation Recomputation）下，注意力与 MLP 的线性投影被释放，仅保留必须的输入，单卡激活量为：
       \[ M_{\text{act}} \approx \frac{L}{p} \cdot \frac{b \cdot S \cdot d}{t} \cdot c_{\text{act}} \quad (\text{bytes}) \]
-      其中 \(c_{\text{act}}\) 为单层保留张量常数（通常约 10–14 字节）。
+      其中 \(c_{\text{act}}\) 为单层保留张量常数（通常约 10–14 字节）；\(/t\) 一项仅在开启 Sequence Parallel 时成立，普通 TP 下激活仍完整复制。
     </li>
   </ul>
   <p><strong>2. 通信量代数手算与拓扑映射原则：</strong></p>
@@ -3389,7 +3392,7 @@ COURSE.register({
   <table class="tbl small">
     <thead><tr><th>并行维度</th><th>每步发生通信的频次</th><th>单卡单步通信量代数式</th><th>硬件映射要求与理由</th></tr></thead>
     <tbody>
-      <tr><td><strong>TP（张量并行）</strong></td><td>每层前向 2 次 + 反向 2 次（共 \(4L\) 次 All-Reduce）</td><td>\(4L \cdot 2 \frac{t-1}{t} \cdot b S d \times c\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
+      <tr><td><strong>TP（张量并行）</strong></td><td>每层 2 次（共 \(2L\) 次 All-Reduce，前向计；含反向则翻倍）</td><td>\(2L \cdot 2 \frac{t-1}{t} \cdot b S d \times c\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
       <tr><td><strong>PP（流水线并行）</strong></td><td>仅在 stage 边界传递边界激活与梯度，每 micro-batch 1 次前向 + 1 次反向</td><td>\(2 \cdot m \cdot b S d \times c\) 字节（\(m\) 为 micro-batch 数量）</td><td><strong>适合跨机（走 InfiniBand）</strong>。通信量极小，只传单层输出，但需通过增加 \(m\) 压缩气泡率 \(\frac{p-1}{m+p-1}\)。</td></tr>
       <tr><td><strong>DP（数据并行）</strong></td><td>每步反向结束对梯度做 1 次 All-Reduce</td><td>\(2 \frac{d_p-1}{d_p} \cdot \frac{c\,\Phi}{t \cdot p}\) 字节</td><td><strong>适合跨节点机架间</strong>。通信量只与参数量相关，与上下文长度 \(S\) 无关，可完全与反向计算重叠（Overlap）。</td></tr>
     </tbody>
@@ -3456,7 +3459,7 @@ COURSE.register({
     <li>先降<strong>批大小 × 序列长度</strong>（对激活值是线性因子，最有效）。</li>
     <li>打开<strong>激活重计算</strong>（省 60%–80% 激活显存，代价约 30% 算力）。</li>
     <li>打开<strong>梯度累积</strong>：用更小的 micro-batch 达到同样的全局批大小。</li>
-    <li>换<strong>优化器</strong>：8-bit Adam / Adafactor 可把优化器状态从 8 字节/参数降到 2 字节。</li>
+    <li>换<strong>优化器</strong>：8-bit Adam / Adafactor 可把优化器动量从 8 字节/参数（一、二阶矩，不含主权重）降到 2 字节（含 fp32 主权重则从 12 字节降到约 6 字节）。</li>
     <li>上 <strong>FSDP / ZeRO-3</strong>，或改用 LoRA/QLoRA（不训练绝大多数参数）。</li>
     <li>还没解决？<em>模型太大，换小的。</em>在 1B 以下把方法验证清楚，收益远大于硬撑 7B。</li>
   </ol>
@@ -3546,7 +3549,7 @@ COURSE.register({
         <tr><td>TP</td><td>8</td><td>正好用满机内 NVLink 域，通信最贵的部分不跨机</td></tr>
         <tr><td>PP</td><td>2–4</td><td>跨机通信量小；用足量 micro-batch 压气泡</td></tr>
         <tr><td>DP</td><td>其余（64/(TP×PP)）</td><td>扩大全局批大小，收敛更稳</td></tr>
-        <tr><td>优化器状态</td><td>ZeRO-1/2（配合 DP）</td><td>把 8 字节/参数的状态均摊，避免显存成为瓶颈</td></tr>
+        <tr><td>优化器状态</td><td>ZeRO-1/2（配合 DP）</td><td>把 12 字节/参数（含 fp32 主权重）的状态均摊，避免显存成为瓶颈</td></tr>
         <tr><td>激活</td><td>全部重计算</td><td>激活是唯一随序列长度爆炸的项</td></tr>
       </tbody>
     </table>
@@ -3621,12 +3624,12 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>LoRA 的数学</h4>
   <p>冻结原权重 \(W_0 \in \mathbb{R}^{d\times k}\)，只学习一个低秩增量：</p>
-  \[ W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r} B A, \qquad B \in \mathbb{R}^{d\times r},\ A \in \mathbb{R}^{r\times k},\ r \ll \min(d,k) \]
+  \[ W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r} A B, \qquad A \in \mathbb{R}^{d\times r},\ B \in \mathbb{R}^{r\times k},\ r \ll \min(d,k) \]
   <p>可训练参数量从 \(dk\) 降到 \(r(d+k)\)。当 \(d=k=4096\)、\(r=16\) 时：</p>
   \[ \frac{r(d+k)}{dk} = \frac{16 \times 8192}{4096^2} \approx 0.78\% \]
   <p>
     <span class="t" data-tterm="rank r" data-d="LoRA 的秩：越大容量越强也越容易过拟合，常见 8–64。">秩 \(r\)</span> 控制容量，
-    <span class="t" data-tterm="alpha" data-d="缩放因子，实际更新幅度为 alpha/r·BA；常取 2r 或 16。">\(\alpha\)</span> 控制更新幅度。
+    <span class="t" data-tterm="alpha" data-d="缩放因子，实际更新幅度为 alpha/r·AB；常取 2r 或 16。">\(\alpha\)</span> 控制更新幅度。
     初始化时 \(B=0\)，所以训练开始时 \(\Delta W = 0\)——<strong>微调从原始模型精确出发</strong>，这一性质让 LoRA 特别安全。
   </p>
   <p>
@@ -3671,8 +3674,8 @@ COURSE.register({
 </p>
 
 <h4>3.3 训练完可以「合并」回原权重</h4>
-<p>因为 \(\Delta W = \frac{\alpha}{r}BA\) 是确定性的矩阵，推理前可以直接合并：</p>
-\[ W_{\text{merge}} = W_0 + \frac{\alpha}{r}\,B A \]
+<p>因为 \(\Delta W = \frac{\alpha}{r}AB\) 是确定性的矩阵，推理前可以直接合并：</p>
+\[ W_{\text{merge}} = W_0 + \frac{\alpha}{r}\,A B \]
 <p>
   合并后模型结构与原模型完全一致，<strong>推理时不增加任何延迟与显存</strong>。
   这是 LoRA 相对 adapter（插入额外层，推理必须带着走）的最大工程优势。
@@ -3694,7 +3697,7 @@ COURSE.register({
   <p>
     <strong>前置定义 1（参数高效微调 PEFT 与增量更新）：</strong>
     设预训练模型包含 \(D\) 个参数 \(\theta_0 \in \mathbb{R}^D\)。全量微调（Full Fine-Tuning）更新全部参数：\(\theta = \theta_0 + \Delta \theta\)，
-    反向传播需维护 \(D\) 个梯度的 fp16 显存（\(2D\) 字节）与 AdamW 的优化器状态（fp32 主权重 + 一阶动量 + 二阶动量，共 \(12D\) 字节）。
+    反向传播需维护 bf16 权重（\(2D\) 字节）、\(D\) 个梯度的 fp16 显存（\(2D\) 字节）与 AdamW 的优化器状态（fp32 主权重 + 一阶动量 + 二阶动量，共 \(12D\) 字节）。
     PEFT 冻结底座参数 \(\theta_0\)，仅引入极小规模的附加可训练参数 \(\phi \in \mathbb{R}^d\)（满足 \(d \ll D\)），参数更新限制在低维子空间：
   </p>
   \[ \min_\phi \mathcal{L}(\theta_0 + \Delta \theta(\phi); \mathcal{D}) \]
@@ -3704,9 +3707,9 @@ COURSE.register({
   <p>
     <strong>前置定义 2（低秩分解 Low-Rank Factorization）：</strong>
     设线性映射权重矩阵 \(W_0 \in \mathbb{R}^{d \times k}\)（通常 \(d=k=4096\)）。若对其增量矩阵 \(\Delta W \in \mathbb{R}^{d \times k}\) 施加秩约束 \(\mathrm{rank}(\Delta W) \le r \ll \min(d, k)\)，
-    根据线性代数秩分解定理，存在窄矩阵 \(B \in \mathbb{R}^{d \times r}\) 与 \(A \in \mathbb{R}^{r \times k}\) 使得：
+    根据线性代数秩分解定理，存在窄矩阵 \(A \in \mathbb{R}^{d \times r}\)（降维）与 \(B \in \mathbb{R}^{r \times k}\)（升维）使得：
   </p>
-  \[ \Delta W = \frac{\alpha}{r} B A \]
+  \[ \Delta W = \frac{\alpha}{r} A B \]
   <p>
     <strong>代数性质与计算量（FLOPs）手算：</strong>
   </p>
@@ -3714,8 +3717,8 @@ COURSE.register({
     <li>参数量压缩比：原矩阵参数量为 \(dk\)，分解后参数量为 \(r(d+k)\)。当 \(d=k=4096, r=16\) 时，参数量由 \(16{,}777{,}216\) 骤降至 \(16 \times 8192 = 131{,}072\)，占比仅为：
       \[ \frac{r(d+k)}{dk} = \frac{131{,}072}{16{,}777{,}216} = \frac{1}{128} \approx 0.78\% \]
     </li>
-    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (BA) = (xB) A\)：先算 \(xB \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xB)A \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
-    <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (0 \cdot A) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
+    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (AB) = (xA) B\)：先算 \(xA \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xA)B \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
+    <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (A \cdot 0) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
   </ul>
   </section>
 
@@ -4046,7 +4049,7 @@ COURSE.register({
   <strong>一组小数字</strong>：设 \(4\) 个回答的奖励是 \(r = [1, 1, 0, 0]\)，均值 \(0.5\)；此处教学约定取总体标准差（平方偏差除以 \(G=4\) 再开方），得 \(0.5\)，
   于是 \(\hat A = [+1, +1, -1, -1]\)——前两个回答会被推高，后两个被压低（这只是本讲的教学约定，不同程序库的默认标准差口径可能不同）。
   顺带一提：若一组回答得分全相等，方差为零，组内就没有偏好信号，实现上可直接把这组优势记为零或给分母加一个很小的稳定项。
-  <strong>组内标准化取代了 critic</strong>——这就是它比 PPO 省一半显存的原因，也是「推理模型」训练的主力算法。
+  <strong>组内标准化取代了 critic</strong>——这就是它比 PPO 省下一整套价值网络权重与优化器状态的原因，也是「推理模型」训练的主力算法。
 </p>
 <div class="acc" data-t="选读·第二遍：GRPO 裁剪目标与 KL 项的完整形式" data-badge="可选">
   <div class="acc-body">
@@ -4088,7 +4091,7 @@ COURSE.register({
 <p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
 <p>\[ h = x W_{\text{base}} + \frac{\alpha}{r} x A B, \quad A \in \mathbb{R}^{d \times r}, \; B \in \mathbb{R}^{r \times k} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times d}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
+  <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times k}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
 </p>
 
 <p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>
@@ -4308,7 +4311,7 @@ COURSE.register({
   \(\frac{s}{2} = \frac{w_{\max}-w_{\min}}{2(2^{b}-1)}\)。
 </p>
 <p><strong>代入具体数字感受一下</strong>：若某组权重落在 \([-1, 1]\)，取 \(b = 4\)（16 个格点），
-  步长 \(s = 2/15 \approx 0.067\)，最大误差约 0.033——相对量级 3%。
+  步长 \(s = 2/15 \approx 0.133\)，最大误差约 0.067——相对量级 3%。
   这就是为什么 4-bit 权重「掉点很小」：误差是<em>有界且均匀</em>的，而且量化误差在矩阵乘里会部分相互抵消。
 </p>
 <p>
@@ -5218,7 +5221,7 @@ COURSE.register({
   把候选文本切成 n-gram（连续 n 个词），数它们在参考里出现了多少次，
   但每个 n-gram 最多只能计它在参考里出现的次数；精确率的分母是候选里的 n-gram 总数：
 </p>
-\[ P_n = \frac{\sum_{g} \max\bigl(0,\ c_{\text{cand}}(g) - c_{\text{ref}}(g)\bigr)}{\sum_{g} c_{\text{cand}}(g)} \]
+\[ P_n = \frac{\sum_{g} \min\bigl(c_{\text{cand}}(g),\, c_{\text{ref}}(g)\bigr)}{\sum_{g} c_{\text{cand}}(g)} \]
 <p>BLEU 把前四个精确率用几何平均合成，BP 是长度惩罚：</p>
 \[ \mathrm{BLEU\text{-}n} = \mathrm{BP}\cdot\exp\left(\frac{1}{n}\sum_{i=1}^{n}\ln P_i\right), \qquad \mathrm{BP} = \min\bigl(1,\ \exp(1 - r/m)\bigr) \]
 <p>
@@ -5910,7 +5913,7 @@ COURSE.register({
 
     注：(1) 若开启激活重计算（Activation Checkpointing / Gradient Checkpointing）以显存换计算，在反向时需要把前向重新计算一遍，总计算量上升为 \( 2N + 2N + 4N = 8N \) FLOPs/token。<br />
 
-    (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \)，单 Token 平摊计算量为 \( 4 T d \)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
+     (2) 注意力上下文自乘 \( Q K^T \) 与 \( A V \) 涉及序列长度 \( T \) 与层数 \( L \)，单 Token 平摊计算量为 \( 4LTd\)。当隐藏维度 \( d \gg T \) 时，其占整网总计算量比例通常不足 5%~8%，在 Kaplan / Chinchilla 经典标度律推导中常作为次要项，密集参数矩阵乘法的主导项即为严谨的 \( 6N \)。<br />
 
     (3) 长上下文守卫：(2) 的 5%~8% 只在 \( T \ll d \) 时成立；一般情形按 \(\max(T,\,d)\) 的量级比较——当 \( T \) 追上甚至超过 \( d \)（例如 \( T = 131072 \)、\( d = 4096 \) 的 128k 上下文），注意力项不再是次要项，必须单独精确核算，不能直接套用 \( 6N \)。
 
@@ -6030,25 +6033,24 @@ COURSE.register({
 
   <div class="qlabel">自测 · 1</div>
 
-  <p class="q">你想在免费资源上体验「多设备 SPMD 并行训练」。最现实的平台是？</p>
+  <p class="q">8 台设备的 SPMD 网格记作 \(t \times p \times d\)（张量 / 流水 / 数据）。要跑「4 路张量 × 2 路流水」的混合并行，网格与数据并行度是？</p>
 
   <ul class="opts">
 
-    <li>Colab 免费层的 TPU</li>
+    <li>单设备上直接跑 4×2，SPMD 会自动切分</li>
 
-    <li data-ok>Kaggle 的 TPU v5e-8（8 个设备，可做 4×2 的数据/张量混合并行）</li>
+    <li data-ok>\(t=4, p=2, d=1\)：乘积正好 8 台设备，全局批全进 micro-batch</li>
 
-    <li>任何一台笔记本</li>
+    <li>\(t=8, p=2, d=2\)：张量越多越快</li>
 
-    <li>HF Spaces 的 ZeroGPU</li>
+    <li>\(t=2, p=4, d=2\)：对称配置最稳</li>
 
   </ul>
 
   <p class="why">
 
-    截至教程所述时点，Colab 免费层只提供单核 TPU v5e-1，<strong>无法使用 SPMD 多设备并行</strong>；
-
-    而 Kaggle 免费提供 TPU v5e-8，正是 JAX AI Stack 教程针对的硬件。
+    网格乘积必须等于设备数：\(4 \times 2 \times 1 = 8\)，此时 \(d = 1\) 意味着没有数据并行，全局批全靠 micro-batch 堆。
+    第三项要 32 台设备；第四项要 16 台；单核上 reshape(4,2) 会直接报错——设备数是硬约束，不是偏好。
 
   </p>
 
@@ -6282,7 +6284,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>相似度 \(s = J(A,B)\)</th><th>单波段全等概率 \(s^r \; (r=8)\)</th><th>全不匹配概率 \((1-s^r)^b \; (b=16)\)</th><th>最终候选命中率 \(P_{\text{candidate}}\)</th><th>系统动作</th></tr></thead>
   <tbody>
-    <tr><td><strong>0.90（高度抄袭）</strong></td><td>\(0.90^8 \approx 0.430\)</td><td>\((1-0.430)^{16} \approx 0.00008\)</td><td><strong>99.99%</strong></td><td>极大概率抓获，剔除冗余</td></tr>
+    <tr><td><strong>0.90（高度抄袭）</strong></td><td>\(0.90^8 \approx 0.430\)</td><td>\((1-0.430)^{16} \approx 0.00012\)</td><td><strong>99.99%</strong></td><td>极大概率抓获，剔除冗余</td></tr>
     <tr><td><strong>0.80（显著重合）</strong></td><td>\(0.80^8 \approx 0.168\)</td><td>\((1-0.168)^{16} \approx 0.050\)</td><td><strong>95.00%</strong></td><td>高效捕获</td></tr>
     <tr><td><strong>0.50（轻微交集）</strong></td><td>\(0.50^8 \approx 0.0039\)</td><td>\((1-0.0039)^{16} \approx 0.939\)</td><td><strong>6.10%</strong></td><td>极低误报，绝大多数被排除</td></tr>
     <tr><td><strong>0.20（正常引用）</strong></td><td>\(0.20^8 \approx 0.0000025\)</td><td>\(\approx 1.0\)</td><td><strong>< 0.004%</strong></td><td>零开销直通通过</td></tr>
@@ -6335,7 +6337,7 @@ COURSE.register({
 </p>
 
 <table class="tbl small">
-  <thead><tr><th>层级</th><th>互联技术</th><th>单向理论带宽</th><th>通信延迟</th><th>承载的并行切分维度</th></tr></thead>
+  <thead><tr><th>层级</th><th>互联技术</th><th>双向理论聚合带宽</th><th>通信延迟</th><th>承载的并行切分维度</th></tr></thead>
   <tbody>
     <tr><td><strong>节点内（Intra-Node, 单机 8 卡）</strong></td><td>NVLink / NVSwitch</td><td>900 GB/s ~ 1.8 TB/s</td><td>< 1 µs</td><td><strong>张量并行 (TP)</strong>、前向注意力</td></tr>
     <tr><td><strong>跨节点（Inter-Node, 机柜内 / 跨机柜）</strong></td><td>InfiniBand NDR / RoCE v2</td><td>400 Gbps ~ 800 Gbps (50~100 GB/s)</td><td>2~5 µs</td><td><strong>流水线并行 (PP)</strong>、<strong>数据并行 (DP / ZeRO)</strong></td></tr>
@@ -6391,7 +6393,7 @@ COURSE.register({
 });
 
 /* --- content/12-moe.js --- */
-/* content/15-moe.js — 模块 15：混合专家架构 MoE */
+/* content/12-moe.js — 模块 12：混合专家架构 MoE */
 COURSE.register({
   id: "m15-moe",
   part: 3,
@@ -6571,7 +6573,7 @@ COURSE.register({
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>草稿纸演算区 C：辅助损失公式定义与柯西-施瓦茨极小值证明</h4>
+  <h4><span class="ic">∑</span>草稿纸演算区 C：辅助损失公式定义与协方差展开极小值证明</h4>
   <p>
     设当前训练批次（Batch）包含 \(T\) 个 Token，模型共有 \(E\) 个专家，路由策略为 Top-k。
   </p>
@@ -6671,9 +6673,9 @@ COURSE.register({
   </li>
 </ul>
 
-<h3>5. 教科书级实现：轻量级 Top-2 稀疏门控网络（PyTorch）</h3>
+<h3>5. 核心代数微算子剖析：轻量级 Top-2 稀疏门控网络</h3>
 <p>
-  以下代码包含完整的门控计算、Top-2 索引提取、重新归一化与辅助损失计算，带详尽的逐行动态形状剖析：
+  以下代数式给出完整的门控计算、Top-2 索引提取、重新归一化与辅助损失定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
 
 <p><strong>MoE 稀疏门控路由微算子演示：</strong></p>
@@ -6737,7 +6739,7 @@ COURSE.register({
 });
 
 /* --- content/13-long-context.js --- */
-/* content/16-long-context.js — 模块 16：长上下文与外推 */
+/* content/13-long-context.js — 模块 13：长上下文与外推 */
 COURSE.register({
   id: "m16-long-context",
   part: 3,
@@ -6908,26 +6910,26 @@ COURSE.register({
   <p><strong>第 4 步：注意力 Softmax 熵与温度缩放（Variance Conservation）</strong></p>
   <p>
     序列长度从 \(L\) 扩展到 \(sL\) 后，注意力 Softmax 聚合的 Token 数量变多，会导致注意力分布变得过于平缓，发生注意力熵漂移（Attention Entropy Drift）。
-    YaRN 证明引入温度缩放因子 \(\sqrt{t}\) 可以严格守恒注意力方差：
+    YaRN 证明乘以缩放因子 \(\sqrt{1/t}\) 可以严格守恒注意力方差：
   </p>
-  \[ \sqrt{t} = 0.1 \ln(s) + 1 \]
+  \[ \sqrt{1/t} = 0.1 \ln(s) + 1 \]
   <p>
-    在执行注意力矩阵点积计算时，将缩放分母由 \(\sqrt{d}\) 修正为：
+    在执行注意力矩阵点积计算时，将缩放系数由 \(1/\sqrt{d}\) 放大为：
   </p>
-  \[ \text{Scale} = \frac{1}{\sqrt{d} \cdot \sqrt{t}} = \frac{1}{\sqrt{d} \cdot (0.1 \ln(s) + 1)} \]
+  \[ \text{Scale} = \frac{\sqrt{1/t}}{\sqrt{d}} = \frac{0.1 \ln(s) + 1}{\sqrt{d}} \]
   <p>
-    对于扩展倍率 \(s=8\)：\(\sqrt{t} = 0.1 \ln(8) + 1 \approx 0.1 \times 2.0794 + 1 \approx 1.2079\)。
-    除以该温度因子使得长上下文下的注意力聚焦能力与短文本训练时严格保持等方差！
+    对于扩展倍率 \(s=8\)：\(\sqrt{1/t} = 0.1 \ln(8) + 1 \approx 0.1 \times 2.0794 + 1 \approx 1.2079\)。
+    乘以该缩放因子使得长上下文下的注意力聚焦能力与短文本训练时严格保持等方差！
   </p>
 </section>
 
-<h3>4. 教科书级实现：YaRN 动态频率分频与温度补偿（PyTorch）</h3>
+<h3>4. 核心代数微算子剖析：YaRN 动态频率分频与温度补偿</h3>
 <p>
-  以下代码展示工业级 YaRN 频率调度算子与注意力缩放计算，带详尽的逐行动态形状剖析：
+  以下代数式给出工业级 YaRN 频率调度与注意力缩放的定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
 
 <p><strong>RoPE 旋转位置编码与角频率缩放微算子演示：</strong></p>
-<p>\[ \theta_i = b^{-2(i-1)/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=1}^{d/2} \right) \]</p>
+<p>\[ \theta_i = b^{-2i/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=0}^{d/2-1} \right) \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>freqs</code> 计算特征维度各对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上旋转角度的余弦与正弦项，将绝对位置转化为向量内积中的相对位移 \(m - n\)；YaRN 算法在此基础上对高频与低频分量进行精细化分段插值，实现超长文本的免重训平滑外推。
 </p>
@@ -6937,7 +6939,7 @@ COURSE.register({
   <ol>
     <li><strong>忽视 KV Cache 显存二次方爆炸</strong>：上下文从 4k 扩至 32k，KV Cache 显存暴涨 8 倍；若并发请求为 16，单卡显存秒爆。必须配合分组查询注意力（GQA）与 PagedAttention 显存分页管理。</li>
     <li><strong>测试集「大海捞针（Needle In A Haystack）」假通过</strong>：有些外推方案在随机插入的字符串查找测试中取得 100% 召回，但在复杂长文本多跳逻辑推理中完全退化。必须在真实连贯文档上评测长程困惑度。</li>
-    <li><strong>注意力温度漏调导致软失活</strong>：仅修改 RoPE 旋转频率而忘记加上 YaRN 温度缩放 \(\sqrt{t}\)，模型生成的文本会呈现散乱、无主题复读与词频均化现象。</li>
+    <li><strong>注意力温度漏调导致软失活</strong>：仅修改 RoPE 旋转频率而忘记乘上 YaRN 缩放因子 \(\sqrt{1/t}\)，模型生成的文本会呈现散乱、无主题复读与词频均化现象。</li>
   </ol>
 </section>
 
@@ -6991,7 +6993,7 @@ COURSE.register({
 });
 
 /* --- content/14-compression.js --- */
-/* content/23-compression.js — 模块 23：压缩与合并 */
+/* content/14-compression.js — 模块 14：压缩与合并 */
 COURSE.register({
   id: "m14",
   part: 3,
@@ -7587,7 +7589,7 @@ COURSE.register({
   它的核心假设是：权重空间里的算术是有意义的。
 </p>
 <p>
-  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>；
+  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>；
   这里只讨论「把稠密权重变成 MoE」的 upcycling 算术，以及它和量化的配合顺序。
 </p>
 
@@ -7840,7 +7842,7 @@ COURSE.register({
   结论很直接：<strong>长上下文服务里只量化权重几乎没用，必须同时处理 KV。</strong>
   把 KV 也压到 int4（约 34 KiB/token，含缩放开销），这一步的流量降到约 \(1.8\times10^{10}\) B，
   步时从 72 ms 回到 22 ms，4 条序列合计约 180 tok/s。
-  第 24 章第 8 节会用同一套式子做架构选型。
+  模块 21 第 7 节会用同一套式子做架构选型。
 </p>
 
 <h3>8. 该不该压：先看卡在哪，再选手段</h3>
@@ -8061,7 +8063,7 @@ COURSE.register({
   </p>
   <p>
     <strong>⑤ 把「PTQ 掉点」直接当成「必须上 QAT」。</strong>
-    先试更好的 PTQ（GPTQ / AWQ / NF4）；QAT 的实测收益是把差距捡回约 33%–67%，
+    先试更好的 PTQ（GPTQ / AWQ / NF4）；QAT 的实测收益是把差距捡回约 34%–45%（本讲 torchao 实测：wikitext 34%、bbh 45%），
     它值得做，但它不是万能的，而且成本与一次微调同量级。
   </p>
 </section>
@@ -8293,8 +8295,9 @@ COURSE.register({
 <section class="blk blk-tip">
   <h4><span class="ic">💡</span>知识地图与承接关系</h4>
   <p>
-    <strong>这一讲填补了什么鸿沟？</strong>在第 08 讲中，我们推导了单请求 KV Cache 显存公式：
-    \(M = 2 \times 2 \times n_{\text{layers}} \times n_{\text{heads}} \times d_{\text{head}} \times L \times B\)。<br />
+    <strong>这一讲填补了什么鸿沟？</strong>在第 08 讲中，我们推导了 KV Cache 显存公式：
+    \(M = 2 \times b \times n_{\text{layers}} \times n_{kv\_heads} \times d_{\text{head}} \times L \times B\)
+   （首个 2 表示 K 与 V 各一份，\(b\) 为每元素字节数，\(n_{kv\_heads}\) 为 KV 头数——GQA 下小于注意力头数，\(B\) 为并发数，单请求时 \(B = 1\)）。<br />
     但在真实线上服务中，用户的 Prompt 长度从 10 到 32,000 不等，生成长度也完全无法预知。
     如果按最坏情况预先分配一块连续的显存空间，<strong>显存利用率往往暴跌至 20% 以下，大部分显存被预留的空白泡泡活活浪费</strong>。<br />
     本讲将从底层操作系统物理机制出发，揭开现代大模型高并发服务的终极秘密。
@@ -8428,7 +8431,7 @@ COURSE.register({
 });
 
 /* --- content/16-distillation.js --- */
-/* content/17-distillation.js — 模块 17：蒸馏全谱系 */
+/* content/16-distillation.js — 模块 16：蒸馏全谱系 */
 COURSE.register({
   id: "m16",
   part: 4,
@@ -8476,7 +8479,7 @@ COURSE.register({
     <strong>蒸馏</strong>（训练一个小模型去模仿大模型）。
   </p>
   <p>
-    前两条在模块 08 和 23 讲；这一讲讲第三条。
+    前两条在模块 08 和 14 讲；这一讲讲第三条。
     关键区别在于：<em>量化和剪枝不改模型「学到的东西」，蒸馏是在训练一个新模型</em>——
     所以它能跨越架构、跨越规模，甚至能跨越模态，但代价是你得重新训练一遍。
   </p>
@@ -8617,7 +8620,7 @@ COURSE.register({
   <thead><tr><th>手段</th><th>压的是什么</th><th>要不要重训</th><th>主要代价</th></tr></thead>
   <tbody>
     <tr><td>量化（模块 08）</td><td>数值精度（每参数字节）</td><td>通常不用</td><td>精度损失，需要校准数据</td></tr>
-    <tr><td>剪枝 / 稀疏（模块 23）</td><td>结构（参数个数、激活通道）</td><td>一般要微调恢复</td><td>通用硬件上未必真的加速</td></tr>
+    <tr><td>剪枝 / 稀疏（模块 14）</td><td>结构（参数个数、激活通道）</td><td>一般要微调恢复</td><td>通用硬件上未必真的加速</td></tr>
     <tr><td><strong>蒸馏（本讲）</strong></td><td>模型规模与架构</td><td><strong>要，且要重新训练</strong></td><td>工程成本高；需要数据生成预算</td></tr>
   </tbody>
 </table>
@@ -8931,7 +8934,7 @@ COURSE.register({
     <tbody>
       <tr>
         <td>预测淡入淡出曲线的连续参数（交叉点、时长、增益形状）</td>
-        <td>特征工程 + 小回归 / 树模型，见 <a href="#m16">模块 16</a></td>
+        <td>特征工程 + 小回归 / 树模型，见 <a href="#m29">模块 29</a></td>
         <td>输出是连续标量，没有「类间相似性」可学；蒸馏的软标签概念在这里不成立</td>
       </tr>
       <tr>
@@ -9126,7 +9129,7 @@ COURSE.register({
 });
 
 /* --- content/17-reasoning.js --- */
-/* content/18-reasoning.js — 模块 18：推理模型与测试时计算 */
+/* content/17-reasoning.js — 模块 17：推理模型与测试时计算 */
 COURSE.register({
   id: "m17",
   part: 4,
@@ -9566,9 +9569,9 @@ COURSE.register({
     </tbody>
   </table>
   <p>
-    第三行值得多看一眼：\(n = 8\) 时覆盖率 94.2%，把目标从 95% 提到 99% 要把 \(n\) 从 9 加到 10，
+    第三行值得多看一眼：\(n = 8\) 时覆盖率 94.2%，把目标从 95% 提到 99% 要把 \(n\) 从 9 加到 13，
     但每加一次都要付整条推理链的钱。这不是公式的毛病，而是<strong>指数衰减在接近 1 的地方特别贵</strong>——
-    目标定在 95% 而不是 99%，往往能省掉一半预算。
+    目标定在 95% 而不是 99%，能省约三成预算（\(9/13\)）。
   </p>
 </section>
 
@@ -9960,7 +9963,7 @@ COURSE.register({
     <li>20 次</li>
   </ul>
   <p class="why">
-    \(n_{\min} = \lceil \ln(1-0.95) / \ln(1-0.4) \rceil = \lceil 2.996 / 0.511 \rceil = \lceil 5.87 \rceil = 6\)。
+    \(n_{\min} = \lceil \ln(0.05) / \ln(0.6) \rceil = \lceil (-2.996) / (-0.511) \rceil = \lceil 5.87 \rceil = 6\)。
     注意这是<em>覆盖率</em>而不是交付准确率：没有可靠裁判时，交付值还要乘上裁判精度 \(q\)（见 7.1 与第 3 节）。
   </p>
 </div>
@@ -9975,8 +9978,8 @@ COURSE.register({
     <li>64 条</li>
   </ul>
   <p class="why">
-    可用 KV 显存 \(24 - 16 - 1.5 = 6.5\) GB，每条 8k 链 \(128\ \text{KiB} \times 8192 = 1\ \text{GiB}\)，
-    于是 \(6.5 / 1 = 6.5\)，取 6 条。把长度上限压到 2,048 后每链只要 256 MiB，并发可以到 26 条——
+    可用 KV 显存 \(24 - 16 - 1.5 = 6.5\) GB（约 6.06 GiB），每条 8k 链 \(128\ \text{KiB} \times 8192 = 1\ \text{GiB}\)，
+    于是 \(6.06 / 1 = 6.06\)，取 6 条。把长度上限压到 2,048 后每链只要 256 MiB（0.25 GiB），并发可以到 24 条——
     限制思考长度买到的首先是并发，其次才是账单。
   </p>
 </div>
@@ -9986,12 +9989,14 @@ COURSE.register({
   <p class="q">你想证明「加采样让推理变强了」，但测试集只有 50 题，观察到准确率从 35% 升到 45%。最合理的做法是？</p>
   <ul class="opts">
     <li>直接发布，10 个百分点已经很大</li>
-    <li data-ok>先扩到每组约 170 题以上，或改用配对检验：50 题只能分辨约 28 个百分点的差距</li>
-    <li>把温度调高再采样几次，直到差距变得更明显</li>
+    <li data-ok>先扩到每组约 384 题以上，或改用配对检验：50 题只能分辨约 28 个百分点的差距</li>
+    <li>先扩到每组约 170 题以上</li>
     <li>换一个更大的模型再测一次</li>
   </ul>
   <p class="why">
     50 题的测试集能分辨的最小差距约 \(0.28\)（28 个百分点），10 个百分点的提升完全落在噪声里。
+    按本讲公式 \(n \approx 16\bar p(1-\bar p)/\delta^2 = 16 \times 0.4 \times 0.6/0.01 = 384\)，要分辨 10 个百分点每组至少约 384 题；
+    170 题时最小可分辨差仍有 \(28\sqrt{50/170} \approx 15.2\) 个百分点，依然检不出。
     反复调温度或换测试集直到结果显著，是典型的 p-hacking；正确做法是提高统计功效，
     而不是改变实验条件去迁就结论。
   </p>
@@ -10065,7 +10070,7 @@ COURSE.register({
 });
 
 /* --- content/18-rag.js --- */
-/* content/19-rag.js — 模块 19：检索增强与上下文工程 */
+/* content/18-rag.js — 模块 18：检索增强与上下文工程 */
 COURSE.register({
   id: "m18",
   part: 4,
@@ -10130,7 +10135,7 @@ COURSE.register({
   在当时三个开放域问答任务上取得最好成绩，并且生成的文本更具体、更多样、更符合事实。
   注意成本结构不同：RAG 把成本放在<em>每一次请求</em>（输入 token 变多），
   微调把成本放在<em>一次性训练</em>。请求量大时，这个差别会被放大到完全不同的量级
-  （见 <a href="#m11">模块 11</a> 算力法则与训练规模）
+  （见 <a href="#m23">模块 23</a> 算力法则与训练规模）
 </p>
 
 <h3>2. 完整管线：七个必须分开调试的环节</h3>
@@ -10395,7 +10400,7 @@ COURSE.register({
   他们据此提出 Self-Route：让模型自评「检索到的资料够不够回答」，
   够就用 RAG 的短上下文，不够再退回长上下文，从而在保持接近 LC 表现的同时大幅降低计算成本。
 </p>
-<p>把成本算清楚，选择就变得具体了（沿用模块 18 的口径：一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB）：</p>
+<p>把成本算清楚，选择就变得具体了（沿用模块 17 的口径：一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB）：</p>
 <table class="tbl small">
   <thead><tr><th>方案</th><th>每问输入 token</th><th>KV cache（单序列）</th><th>prefill</th><th>适合</th></tr></thead>
   <tbody>
@@ -10425,7 +10430,7 @@ COURSE.register({
 </p>
 <p>
   长上下文一侧的机制（位置编码外推、KV 预算、注意力下沉）见
-  <a href="#m16-long-context">模块 16（长上下文）</a>；本讲只保留 RAG 决策需要的接口：多少 token 时该切、切过去要多花多少钱。
+  <a href="#m16-long-context">模块 13（长上下文）</a>；本讲只保留 RAG 决策需要的接口：多少 token 时该切、切过去要多花多少钱。
 </p>
 
 <h3>5. 上下文工程：把提示当成一种数据结构</h3>
@@ -10769,7 +10774,7 @@ COURSE.register({
   <p>
     限制条件：只用 Python 标准库加 numpy，不调任何托管 API、不装向量数据库。
     稀疏一路用 SQLite 自带的 FTS5（SQLite 3.9.0 起内置，2015-10-14 发布；FTS5 提供 bm25() 排名函数），
-    稠密一路用下面这 10 行哈希向量（零下载、零模型），融合用 RRF。
+    稠密一路的下限做法是一段 10 行左右的哈希向量伪代码（零下载、零模型），两路融合的接口约定为下面的 RRF 公式。
     这是教学用的下限实现：真实项目里把哈希向量换成 <code>sentence-transformers</code> 等本地模型，
     再把 FTS5 换成 <code>rank_bm25</code> 或自己的倒排索引即可，接口不变。
   </p>
@@ -11060,7 +11065,7 @@ COURSE.register({
 });
 
 /* --- content/19-agents.js --- */
-/* content/20-agents.js — 模块 20：智能体系统 */
+/* content/19-agents.js — 模块 19：智能体系统 */
 COURSE.register({
   id: "m19",
   part: 4,
@@ -11470,7 +11475,7 @@ COURSE.register({
 <p>
   <strong>沙箱不是可选项。</strong>Anthropic 的建议原话是「在沙箱环境中充分测试，并配上合适的护栏」。
   落地时至少做到：文件系统访问限定在项目目录、网络出口白名单、凭据按最小权限发放、
-  删除类操作先做软删除。这一点与模块 12（网络、代理与凭据）直接相关——
+  删除类操作先做软删除。这一点与模块 24（网络、代理与凭据）直接相关——
   智能体通常运行在与你同源的网络身份下，它越权等于你越权。
 </p>
 <h4>6.3 人机接口（HITL）分级</h4>
@@ -11654,7 +11659,7 @@ COURSE.register({
 </table>
 <p>
   这张表要直接变成代码里的允许列表（allowlist）。<strong>系统提示是建议，允许列表才是边界</strong>；
-  只靠前者，一次提示注入（把指令藏在被读取的文档里）就能让边界消失。这与模块 21 的结论一致：
+   只靠前者，一次提示注入（把指令藏在被读取的文档里）就能让边界消失。这与模块 20 的结论一致：
   提示注入没有「更好的提示词」解，只有把权限收窄。
 </p>
 <h4>8.4 终止条件：成功判据与兜底必须互相独立</h4>
@@ -11740,7 +11745,7 @@ COURSE.register({
   <h4><span class="ic">🧪</span>动手：给一个最小智能体加上「可验证的成功」</h4>
   <p>
     目标不是写一个聪明的智能体，而是写一个<strong>你愿意相信其「完成」结论</strong>的循环。
-    下面这段代码不依赖网络：模型与工具都用桩函数，你可以直接把它跑起来，
+    下面的循环设计不依赖网络：模型与工具都用桩函数（按本节清单自己写出即得），你可以直接把它跑起来，
     然后故意让工具返回「有点错」的结果，看你的判定逻辑会不会被骗。
   </p>
 <p>\[ S_{t+1} = \delta(S_t, A_t, O_{t+1}), \quad \text{Cost}(A_t) \le B_{\text{step}} \]</p>
@@ -11757,9 +11762,10 @@ COURSE.register({
 <section class="blk blk-lab">
   <h4><span class="ic">🧪</span>30 分钟最小实现：零托管服务的可控智能体循环</h4>
   <p>
-    目标：不调任何托管 API，用 Python 标准库写出一个具备六件事的循环——
+    目标：不调任何托管 API，对照下表用 Python 标准库实现一个具备六件事的循环——
     <strong>schema 校验、幂等键、退避重试、权限允许列表、副作用预算、外部成功判据</strong>。
     模型用桩函数（真实项目里替换成任意一次文本生成调用即可），工具是内存字典，因此可以完全离线复现。
+    下表给出其中三项的数学约束与容灾动作，其余三项按文末「要记录的三个数字」自行补全。
   </p>
 <table class="tbl">
   <thead><tr><th>防护机制</th><th>数学/系统约束</th><th>容灾动作</th></tr></thead>
@@ -11805,10 +11811,10 @@ COURSE.register({
     把这一模块映射到你已经有的东西上，落地会非常快：
   </p>
   <ul>
-    <li><strong>与模块 14 的 85/15 规则合起来看</strong>：那条规则说 token 应主要花在验证上，而不是生成上。
+    <li><strong>与模块 25 的 85/15 规则合起来看</strong>：那条规则说 token 应主要花在验证上，而不是生成上。
         在智能体语境里它变成了具体的架构要求——<em>每一步都要有一个便宜的、外部的检查</em>（编译、类型检查、测试、diff 审查），
         而不是等最后让模型自己复盘。你的智能体若没有「每步可验证」的环节，85/15 就无从谈起。</li>
-    <li><strong>与模块 12 的凭据管理合起来看</strong>：智能体是一个会自己发起网络请求的进程。
+    <li><strong>与模块 24 的凭据管理合起来看</strong>：智能体是一个会自己发起网络请求的进程。
         给它单独的、最小权限的凭据，别复用你的主账号；出口走你已经在用的代理与白名单；
         所有写操作都可追溯到幂等键。</li>
     <li><strong>与附录 D 的合规一节合起来看</strong>：会自主调用外部服务的智能体，
@@ -11859,7 +11865,7 @@ COURSE.register({
         <td>分析结果、写报告草稿</td>
         <td>草稿里引用的数字能在指标文件里找到</td>
         <td><strong>该</strong>，但要求给出来源 id</td>
-        <td>与模块 19 的引用校验是同一件事：论断必须可回溯</td>
+        <td>与模块 18 的引用校验是同一件事：论断必须可回溯</td>
       </tr>
       <tr>
         <td>判断「这段过渡听起来自然吗」</td>
@@ -11877,7 +11883,7 @@ COURSE.register({
   </table>
   <p>
     换算成量级：若每个实验平均 6 步、每步 8k token，一次编排开销约 50k token；
-    按模块 11 的口径，这通常远低于一次训练本身的卡时与电费，所以<strong>把编排自动化是划算的</strong>。
+    按模块 23 的口径，这通常远低于一次训练本身的卡时与电费，所以<strong>把编排自动化是划算的</strong>。
     反过来，如果让智能体反复「试听挑参数」，它每一步都在花你的时间做不可验证的搜索，收益接近零，
     而成本（包括你复核它的时间）还要另算。
   </p>
@@ -11964,7 +11970,7 @@ COURSE.register({
   </ul>
   <p class="why">
     解 \(B \ge \ln(0.05)/\ln(0.7) \approx 8.4\)，向上取整为 9。
-    3 步只有 \(1 - 0.7^{3} \approx 0.657\) 的成功率，20 步虽然到 0.9992，但相对 9 步只多约 2.6 个百分点、成本却翻倍以上。
+    3 步只有 \(1 - 0.7^{3} \approx 0.657\) 的成功率，20 步虽然到 0.9992，但相对 9 步只多约 4.0 个百分点、成本却翻倍以上。
     预算应该按目标失败率反推，而不是凭感觉或按最坏情况无上限地放大。
   </p>
 </div>
@@ -11998,7 +12004,7 @@ COURSE.register({
   <p class="why">
     系统提示是建议，允许列表才是边界：一次提示注入（把指令藏在被读取的文档或工具返回值里）就能让前者失效，
     而后者在模型之外执行，模型说什么都不影响。
-    把工具描述写得更吓人只是改变了模型的先验，不是一道墙——这与模块 21 的结论一致：
+    把工具描述写得更吓人只是改变了模型的先验，不是一道墙——这与模块 20 的结论一致：
     提示注入没有「更好的提示词」解，只有把权限收窄。
   </p>
 </div>
@@ -12036,7 +12042,7 @@ COURSE.register({
 });
 
 /* --- content/20-safety.js --- */
-/* content/21-safety.js — 模块 21：安全、对齐与可解释性 */
+/* content/20-safety.js — 模块 20：安全、对齐与可解释性 */
 COURSE.register({
   id: "m20",
   part: 4,
@@ -12788,7 +12794,7 @@ COURSE.register({
         这一页与附录 D 的合规检查表是同一张纸的两面。</li>
     <li><strong>权限最小化</strong>：智能体的凭据只覆盖它真正需要的那几个 API；文件系统访问限定在项目目录；写操作有上限。
         这一条与模块 12 的凭据/网络管理是同一件事。</li>
-    <li><strong>把评测当成回归测试</strong>：把 6.4 节的任务集与实验室里的注入载荷一起存进仓库，
+    <li><strong>把评测当成回归测试</strong>：把模块 19 第 6.4 节的任务集与实验室里的注入载荷一起存进仓库，
         每次改提示词或换模型都重跑。指标不是「通过率」，而是「通过率 + 未覆盖的攻击面」。</li>
     <li><strong>给模型写一份迷你模型卡</strong>：用途、不适用场景、评估条件、已知失败模式、样本量。
         即使只有半页，它也会强迫你把「不知道的部分」写出来——这正是本模块最想训练的能力。</li>
@@ -13011,7 +13017,7 @@ COURSE.register({
 });
 
 /* --- content/21-architectures.js --- */
-/* content/24-architectures.js — 模块 24：前沿架构与多模态 */
+/* content/21-architectures.js — 模块 21：前沿架构与多模态 */
 COURSE.register({
   id: "m21",
   part: 4,
@@ -13158,7 +13164,7 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>为什么是线性复杂度，以及为什么不能直接并行</h4>
   <p>
-    每一步只做一次 \(N \times N\) 的矩阵-向量乘和一次 \(N \times 1\) 的加法，都是 \(O(N)\)；
+    每一步只做一次结构化 \(N \times N\) 矩阵（实践中取对角或低秩形式，否则稠密矩阵向量乘本是 \(O(N^2)\)）的矩阵-向量乘和一次 \(N \times 1\) 的加法，都是 \(O(N)\)；
     序列长度 \(T\)，所以总共 \(O(NT)\)。对比注意力的分数矩阵 \(O(T^2)\)，
     在长序列上这是决定性的差别。
   </p>
@@ -13720,8 +13726,13 @@ COURSE.register({
   \[ p_{11} = \frac{20.09}{22.81} = 0.881, \qquad -\log p_{11} = 0.127 \]
   <p><strong>第 2 行</strong>：\(\exp(0.5) = 1.649\)，\(\exp(2.0) = 7.389\)，和为 9.038；</p>
   \[ p_{22} = \frac{7.389}{9.038} = 0.818, \qquad -\log p_{22} = 0.201 \]
-  <p>取平均：</p>
-  \[ \mathcal{L} = \frac{0.127 + 0.201}{2} = 0.164 \]
+  <p>取平均（图→文方向）：</p>
+  \[ \mathcal{L}_{\text{img}\to\text{text}} = \frac{0.127 + 0.201}{2} = 0.164 \]
+  <p>
+    对称的 InfoNCE 还要加上文→图方向：第 1 列 \(\exp(3.0) = 20.09\)、\(\exp(0.5) = 1.649\)，和为 21.739，
+    \(p = 0.924\)，\(-\log p = 0.079\)；第 2 列 \(\exp(1.0) = 2.72\)、\(\exp(2.0) = 7.389\)，和为 10.109，
+    \(p = 0.731\)，\(-\log p = 0.314\)。双向平均 \(\mathcal{L} = (0.127 + 0.201 + 0.079 + 0.314)/4 \approx 0.180\)。
+  </p>
   <p><strong>三个立刻能用的观察：</strong></p>
   <p>
     <strong>① 损失对错配的相似度极其敏感。</strong>
@@ -13798,20 +13809,20 @@ COURSE.register({
 <p>\[ H_{\text{vision}} = \text{Linear}(\text{PatchUnfold}(I)) \in \mathbb{R}^{N \times d} \]</p>
   <p><strong>要观察的三件事：</strong></p>
   <p>
-    <strong>① 幻觉是怎么产生的。</strong>对比 A 与 C。
-    C 里你<em>先说了</em>「猫」和「树」，模型很可能顺着你的话往下编。
+    <strong>① 幻觉是怎么产生的。</strong>对比含引导词的合成图与中性描述的合成图。
+    引导图里你<em>先说了</em>「猫」和「树」，模型很可能顺着你的话往下编。
     POPE 的发现正是这一点：指令里出现过的物体最容易被幻觉出来
     （<a href="https://arxiv.org/abs/2305.10355" target="_blank" rel="noopener">arXiv:2305.10355</a>）。
     <em>提示词不是中立的。</em>
   </p>
   <p>
-    <strong>② 同一句话、不同图，答案怎么变。</strong>把 D 的三条输出并排看，
+    <strong>② 同一句话、不同图，答案怎么变。</strong>把同一句话在三张合成图上的输出并排看，
     你会看到模型是「真的在看」还是「在按问题模板作答」。
     如果三张图给出高度雷同的结构化回答（比如都答「一个红色圆形」），
     说明它更多在被指令先验驱动，而不是在描述图像。
   </p>
   <p>
-    <strong>③ 分辨率是硬约束。</strong>E 与 F 的对比最直观。
+    <strong>③ 分辨率是硬约束。</strong>低分辨率图与正常图的对比最直观。
     把图降到 64×64，数字「7」的笔画已经不足几个像素，
     但模型往往仍然会给出一个<em>看起来合理</em>的答案而不是说「看不清」。
     这就是「流畅但错误」——也是多模态落地时最常见的事故形态。
@@ -13900,9 +13911,9 @@ COURSE.register({
 <p>
   下面是一次完整的选型推演。约束是硬的：<strong>一张 24 GB 卡、128K 上下文、同时服务 4 条序列、单序列解码要能看。</strong>
   参考配置沿用第 1 节那个 GQA 模型（\(L=32\)、\(h_{kv}=8\)、\(d_h=128\)），KV 先用 fp16。
-  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 16（长上下文）</a>，这里只做选型算术。
+  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 13（长上下文）</a>，这里只做选型算术。
 </p>
-<p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉：</p>
+<p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉（基座权重已按 int4 量化计 3.9 GB，运行时底噪计 2.0 GB）：</p>
 \[ 24 - 3.9 - 2.0 \approx 18 \qquad (\text{GB}) \]
 \[ \text{per-sequence} = \frac{18}{4} = 4.5 \qquad (\text{GB}) \]
 \[ \frac{4.5 \times 2^{30}}{131072} \approx 36 \qquad (\text{KiB/token}) \]
@@ -13910,7 +13921,7 @@ COURSE.register({
 <table class="tbl small">
   <thead><tr><th>候选</th><th>每 token KV</th><th>单序列 128K 占用</th><th>4 并发合计</th><th>结论</th></tr></thead>
   <tbody>
-    <tr><td>GQA + fp16 KV</td><td>128 KiB</td><td>16 GiB</td><td>64 GiB</td><td>❌ 超出 3 倍以上</td></tr>
+    <tr><td>GQA + fp16 KV</td><td>128 KiB</td><td>16 GiB</td><td>64 GiB</td><td>❌ 超预算 3.5 倍（相对整卡约 2.7 倍）</td></tr>
     <tr><td>GQA + int8 KV</td><td>64 KiB</td><td>8 GiB</td><td>32 GiB</td><td>❌ 仍然超</td></tr>
     <tr><td>GQA + int4 KV</td><td>约 34 KiB</td><td>约 4.25 GiB</td><td>约 17 GiB</td><td>⚠ 勉强通过，余量不到 1 GB</td></tr>
     <tr><td>全滑窗 \(W=4096\)</td><td>不随 \(T\) 增长：每序列 \(4096 \times 128\ \text{KiB}\)</td><td>512 MiB</td><td>2 GiB</td><td>✅ 但长程依赖只能靠层间传播</td></tr>
@@ -13971,7 +13982,7 @@ COURSE.register({
       没有辅助损失时，路由器会把几乎所有 token 扔给少数几个专家（赢者通吃），其余专家等于白占显存——
       此时 \(N_{\text{total}}\) 里的大部分参数从没被训练好。部署视角：aux-loss 只在训练时存在，
       推理侧零成本；但它决定了你下载的 MoE 权重里有多少参数是真正可用的。
-      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>。
+      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>。
       什么时候不值：单卡场景直接选稠密（本节已算过），连 aux 的存在都不需要知道。
     </p>
     <p>
@@ -14012,7 +14023,7 @@ COURSE.register({
 </table>
 <p>
   最后一行是本模块最重要的数字：<strong>一秒钟的 4K 视频（按每秒 2 帧算）就能花掉约 2 GiB 的 KV</strong>，
-  相当于 128 张 448×448 的图。<em>「视频多模态」的账单来源不是模型更大，而是 token 更多。</em>
+  相当于约 84 张 448×448 的图。<em>「视频多模态」的账单来源不是模型更大，而是 token 更多。</em>
   工程上的对策只有三条：降分辨率、降帧率、加时序压缩（把多帧压成一个 token），三条都要牺牲细节。
 </p>
 
@@ -14592,7 +14603,7 @@ COURSE.register({
   <h4><span class="ic">∑</span>手算例：预防原则的盈亏平衡概率</h4>
   <p>
     把上一段的式子代入具体数字，就能看出这类决策的结构。设有两个策略：
-    <strong>A 谨慎</strong>（无论对方有没有道德地位，都付出固定照顾成本 \(c_A\)），
+    <strong>A 谨慎</strong>（若对方没有道德地位，就白付了照顾成本 \(c_A\)），
     <strong>B 粗暴</strong>（若对方确有道德地位，造成伤害 \(c_B\)）。简化为线性代价：
   </p>
   \[ \mathbb{E}[\text{cost}(A)] = (1 - P)\,c_A, \qquad \mathbb{E}[\text{cost}(B)] = P\,c_B \]
@@ -14934,7 +14945,7 @@ COURSE.register({
     <li><strong>值（约 30 分钟）</strong>：第 12 节的五问法实验。它给你的不是意识结论，而是一句能写进材料的实证：
         「我量化过语言模型自我报告对措辞的敏感度，极差 1.00」——这是方法论素养的证据。</li>
     <li><strong>不值</strong>：为「AI 是否有意识」下任何结论，或花时间精读意识理论原始论文（除非你申请的方向就是心灵哲学）。</li>
-    <li><strong>零成本但值得</strong>：像对待实验记录一样保留你与模型的交互日志与版本信息。理由与模型福利无关——它只是可复现性（模块 14）的要求。</li>
+    <li><strong>零成本但值得</strong>：像对待实验记录一样保留你与模型的交互日志与版本信息。理由与模型福利无关——它只是可复现性（模块 25）的要求。</li>
   </ul>
   <p>
     一句话总结：<em>这一讲不产出结论，只产出一套问法；而这套问法恰好是你写研究报告时最缺的东西。</em>
@@ -15090,7 +15101,7 @@ COURSE.register({
 });
 
 /* --- content/23-economics.js --- */
-/* content/11-economics.js — 模块 11：算力法则与训练规模演算 */
+/* content/23-economics.js — 模块 23：算力法则与训练规模演算 */
 
 COURSE.register({
 
@@ -16243,8 +16254,8 @@ if not torch.cuda.is_available():
     print("❌ 警告：当前未检测到 GPU 加速器！请检查右侧面板 Settings -> Accelerator 是否已选为 GPU T4。")
 else:
     gpu_name = torch.cuda.get_device_name(0)
-    total_mem_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
-    print(f"✅ GPU 激活成功！型号: {gpu_name} (独立显存: {total_mem_gb:.2f} GB)")
+    total_mem_gib = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    print(f"✅ GPU 激活成功！型号: {gpu_name} (独立显存: {total_mem_gib:.2f} GiB)")
 
     # 2. 矩阵乘法物理吞吐基准测验
     device = torch.device("cuda")
@@ -16272,15 +16283,17 @@ else:
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在 Kaggle Notebook 中尝试从 Hugging Face 下载开源模型时遇到 <code>ConnectionError</code> 无法连接网络，最可能的原因是：</p>
+  <p class="q">在 T4（16 GB）上用 LoRA（\(r=8\)，只挂 q/v）微调 Qwen2.5-1.5B：\(batch=4\)、\(seq=512\) 时一切正常；把 \(seq\) 拉到 4096（约 8 倍）后 OOM。最可能的主因是：</p>
   <ul class="opts">
-    <li>Kaggle 账号余额不足</li>
-    <li data-ok>未在右侧 Settings 面板中将 "Internet" 开关开启（默认为 OFF 离线状态）</li>
-    <li>Python 版本过低，不支持 HTTPS 协议</li>
-    <li>GPU 显存被占满导致网络断开</li>
+    <li>LoRA 参数量随 seq 变长同步膨胀</li>
+    <li data-ok>激活值随 batch×seq 涨约 8 倍，LoRA 相关开销可忽略</li>
+    <li>fp16 权重从 3.1 GB 翻倍到 6.2 GB</li>
+    <li>batch=4 太大，3.1 GB 权重本来就装不下</li>
   </ul>
   <p class="why">
-    Kaggle 出于反爬虫与安全合规考量，新建 Notebook 默认将 Internet 设为关闭。只要在右侧侧边栏切换为 Internet On，即可自由下载 Hugging Face 权重与数据。
+    底座权重 \(1.54 \times 10^9 \times 2\text{ B} \approx 3.1\text{ GB}\) 与 seq 无关；LoRA 在 q/v 上共约 109 万参数（占 0.071%），参数加梯度加优化器状态也就二三十 MB 量级。
+    真正随 seq 线性膨胀的是前向激活值（\(\propto batch \times seq\)），8 倍即爆——这是在 flash/SDPA 注意力下的账；用 eager 注意力时注意力矩阵是 \(O(S^2)\)，8 倍 seq 会涨 64 倍，更狠。
+    对策按顺序：先降 micro-batch、用梯度累积保全局批大小，再开激活重计算。
   </p>
 </div>
 
@@ -16375,9 +16388,9 @@ print("词表大小:", len(tokenizer), "| 填充标记 Pad Token:", tokenizer.pa
 
 <pre><code>import torch
 from transformers import AutoModelForCausalLM
-model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.bfloat16, device_map="auto")
+model = AutoModelForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map="auto")
 </code></pre>
-<p><strong>代码解析</strong>：以 <code>bfloat16</code> 混合精度将 Qwen-2.5 的 15 亿参数加载进显存；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
+<p><strong>代码解析</strong>：以 <code>float16</code> 半精度将 Qwen-2.5 的 15 亿参数加载进显存（Kaggle 免费 T4 为 Turing 架构，不支持 <code>bfloat16</code> 原生计算，此处必须用 <code>float16</code>，与附录 B 的硬件嗅探回退逻辑一致）；<code>device_map="auto"</code> 会自动识别当前 GPU 硬件并无缝放置在 T4 上（显存占用仅约 3.2 GB）。</p>
 
 <h4>第四步：构建并注入 LoRA 适配器（PEFT）</h4>
 
@@ -16389,7 +16402,7 @@ peft_config = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"]
 <pre><code>model = get_peft_model(model, peft_config)
 model.print_trainable_parameters()
 </code></pre>
-<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15 亿陡降至仅约 150 万（占比不到 0.1%）</strong>！显存开销暴降 80% 以上！</p>
+<p><strong>代码解析</strong>：将 LoRA 适配层物理挂载至底座模型上；调用 <code>print_trainable_parameters()</code> 会惊人地显示：<strong>可训练参数量从 15.4 亿陡降至仅约 109 万（占比约 0.07%）</strong>！显存开销暴降 80% 以上！</p>
 
 <h4>第五步：准备领域微调数据集（以 Crossfade 任务为例）</h4>
 
@@ -16532,15 +16545,15 @@ print(f"🎉 成功！专属 Crossfade 领域的 Qwen LoRA 适配器已安全保
 
 <div class="quiz">
   <div class="qlabel">自测 · 2</div>
-  <p class="q">在 Kaggle 免费的 16GB T4 GPU 上，使用 LoRA 微调 Qwen-2.5-1.5B 时，训练参数量通常占模型总参数量的比例约为：</p>
+  <p class="q">Qwen2.5-1.5B（\(L=28\)，\(d=1536\)，\(kv\_heads=2\)，\(head\_dim=128\)）上只给 q/v 投影挂 \(r=8\) 的 LoRA，v_proj 每层的 LoRA 参数量是多少？</p>
   <ul class="opts">
-    <li>100%</li>
-    <li>50%</li>
-    <li data-ok>不到 0.1%（约 150 万参数 / 15 亿参数）</li>
-    <li>90%</li>
+    <li>24576（把 v_proj 当成 1536×1536）</li>
+    <li data-ok>14336（降维 12288 + 升维 2048）</li>
+    <li>2048（只算了升维矩阵）</li>
+    <li>12288（只算了降维矩阵）</li>
   </ul>
   <p class="why">
-    LoRA 仅在注意力层的投影矩阵上外挂极小秩（如 \(r=8\)）的降维与升维矩阵，冻结其余全部原模型参数，因此可训练参数比例通常只有千分之一左右。
+    GQA 下 v_proj 是 1536×256（\(kv\_heads \times head\_dim = 2 \times 128\)），不是 1536×1536：降维 \(A = 1536 \times 8 = 12288\)，升维 \(B = 8 \times 256 = 2048\)，合计 14336。28 层共约 109 万，占 15.4 亿的 0.071%——v 变窄正是 GQA 送的红利，q_proj 每层则是 24576。
   </p>
 </div>
 `
@@ -16713,7 +16726,7 @@ if __name__ == "__main__":
     </li>
     <li>
       <strong>行动（Action）</strong>：
-      以开源 Qwen-2.5 为底座，利用 LoRA 低秩分解将可训练参数压缩至 0.1%（150 万参数）；
+       以开源 Qwen-2.5 为底座，利用 LoRA 低秩分解将可训练参数压缩至约 0.07%（约 109 万参数）；
       构建专属音频过渡数学指令集执行 SFT 监督微调；
       推导矩阵加法完成权重物理融合（Merge and Unload），并通过 Ollama 运行时实现本地端侧私有化流式推理；
     </li>
@@ -16773,7 +16786,7 @@ COURSE.register({
   <span class="t" data-tterm="Prefill" data-d="把整段提示一次性并行前向、填充 KV cache 的阶段，算力受限。">预填充</span> 与解码、
   <span class="t" data-tterm="LoRA rank" data-d="低秩更新的秩 r，决定可训练参数量，与学习率是两个独立旋钮。">LoRA 的 rank</span> 与学习率、
   <span class="t" data-tterm="Banked reset" data-d="把未用满的额度存起来、之后继续用；与「到点清零」相对。">即时重置</span> 与银行重置。
-  第 15 节把它们逐对列出。术语按 14 个分类组织，共 <strong>366 条</strong>（其中 72 条是为 17–25 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
+  第 16 节把其中三组逐对列出（预填充与解码的区别见第 3 章注意力与第 8 章推理）。术语按 16 节组织，共 <strong>366 行</strong>（358 条术语 + 8 组易混辨析，其中 72 条是为 14、16–22 章与附录 G 补的），可直接用于写论文、读文档、和同事对齐口径。
 </p>
 
 <h3>1. 概率与目标函数（Probability and objectives）</h3>
@@ -16887,7 +16900,7 @@ COURSE.register({
     <tr><td>all-reduce</td><td>All-reduce</td><td>每张卡各出一份张量，归约后所有卡得到相同结果（典型用途是求梯度和）；它是数据并行的主要通信，带宽决定扩展效率。</td></tr>
     <tr><td>重计算</td><td>Activation checkpointing (gradient checkpointing)</td><td>前向只保存少量中间激活，反向时重新算一遍；用约三成额外算力把激活显存从随层数线性降到平方根量级。</td></tr>
     <tr><td>显存碎片</td><td>Memory fragmentation</td><td>反复申请释放不同尺寸张量，导致空闲显存不连续、总空闲够却申请失败；用预分配缓存池或统一尺寸对齐缓解。</td></tr>
-    <tr><td>MFU</td><td>Model FLOPs utilization</td><td>实际吞吐对应的 FLOPs 除以硬件峰值；大模型训练典型值 35% 到 55%，是判断是否卡在算力上的第一指标。</td></tr>
+    <tr><td>MFU</td><td>Model FLOPs utilization</td><td>实际吞吐对应的 FLOPs 除以硬件峰值；大模型训练典型值 35% 到 48%，50% 以上属极限调优，是判断是否卡在算力上的第一指标。</td></tr>
     <tr><td>吞吐</td><td>Throughput (tokens/s)</td><td>单位时间处理或生成的 token 数，训练时常按单卡计；它与单请求延迟是两个独立目标，可用批大小互相交换。</td></tr>
     <tr><td>JAX</td><td>JAX</td><td>Google 的函数式数值库，用纯函数与不可变数组描述计算、编译后执行；并行与切分通过装饰器和分片声明表达。</td></tr>
     <tr><td>jit</td><td>Just-in-time compilation</td><td>把 Python 函数追踪成计算图并编译为设备代码；当控制流依赖具体数值时必须改用专用控制流原语，否则只会追踪到一条分支。</td></tr>
@@ -17131,14 +17144,14 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">自测 · 3</div>
-  <p class="q">一台云主机上的脚本频繁被目标服务要求重新验证，日志里 IP 每天都换。最合理的第一个假设是？</p>
+  <p class="q">你要在 3 个地域跑同一个长任务，只有一个账号。按本节术语，最小改动的稳定方案是？</p>
   <ul class="opts">
-    <li>网络带宽不足导致请求超时</li>
-    <li>模型输出质量下降触发风控</li>
-    <li data-ok>出口地址与机房指纹（ASN、反向 DNS、TLS 特征）共同暴露了非住宅环境，多 IP 反而放大了认证碰撞</li>
-    <li>缺少 WebSocket 长连接</li>
+    <li>每天换一个出口 IP，让风控看不出规律</li>
+    <li>把带宽拉满，请求不超时就不会触发验证</li>
+    <li data-ok>固定一个可信出口并保持账号亲和，让 ASN、反向 DNS、TLS 特征稳定一致</li>
+    <li>改用 WebSocket 长连接，协议升级后风控自动放行</li>
   </ul>
-  <p class="why">风控判定的是整体一致性而非单个字段：机房 ASN 加频繁变动的地址，等价于「同一账号在多个可疑出口登录」。修复顺序是先让出口特征稳定一致，再减少不必要的地址切换。</p>
+  <p class="why">风控判定的是整体一致性而非单个字段：机房 ASN 加频繁变动的地址，等价于「同一账号在多个可疑出口登录」。修复顺序是先让出口特征稳定一致，再减少不必要的地址切换——这正是账号亲和的含义。</p>
 </div>
 
 <h3>12. 工作流与智能体（Workflow and agents）</h3>
@@ -17194,7 +17207,7 @@ COURSE.register({
   </tbody>
 </table>
 
-<h3>15. 高阶与前沿（Advanced and frontier，对应 17–25 章）</h3>
+<h3>15. 高阶与前沿（Advanced and frontier，对应 14、16–22 章）</h3>
 <table class="tbl small">
   <thead><tr><th>中文术语</th><th>English</th><th>一句话解释</th></tr></thead>
   <tbody>
@@ -17373,7 +17386,7 @@ COURSE.register({
   本附录提供 8 个在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）即可完整跑通的教科书级实操实验。
   每个实验均配备<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>与<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>，
   使你在点下运行前即建立清晰的物理资源账本与冒烟验收基准。
-  特别地，实验 E4 深度呼应<strong>模块 25（1.5B 开源大模型实战训练与部署）</strong>，
+  特别地，实验 E4 深度呼应<strong>模块 28（1.5B 开源大模型实战训练与部署）</strong>，
   系统细化为涵盖输入检验（Input Validation & ChatML Integrity）、超参调节（Hyperparameter Tuning Guide）与推理验证（Inference Verification & Export）的工业级闭环指引；
   并在前置底座中系统总结了导致深度学习工程中断的<strong>三大常见 CUDA 底层故障</strong>（显存碎片化、数据对齐溢出与梯度检查点冲突）。
 </p>
@@ -17815,7 +17828,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
   <h4><span class="ic">🧪</span>E2 · Tokenizer 解剖：从「生育率 fertility」看成本与上下文</h4>
 
   <p><strong>目标</strong>：定量测量同一个句子在不同 tokenizer 下被切成了多少个 token（生育率），
-    亲手算出「为什么同一段中文用 GPT-4 比用 Claude 3 或 Qwen 贵 2–3 倍」，
+    亲手算出「为什么同一段中文用 GPT-2 比用 Qwen2.5 贵约 3.7 倍」（10 万字中文：218,918 vs 59,459 tokens），
     以及「为什么同一篇论文在某些模型里放得下、在另一些模型里会超出上下文窗口」。</p>
 
   <p><strong>前置</strong>：E1。会用 pip 安装 Python 包。本实验纯 CPU 即可运行，不需 GPU。</p>
@@ -17848,7 +17861,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
       <li><strong>[探针文本切分冒烟]</strong> 用中文探测短语 <code>"生育率 fertility"</code> 跑 <code>encode()</code>，验证返回列表长度 \(\ge 2\)。</li>
       <li><strong>[特殊 Token 屏蔽核验]</strong> 传入包含 <code>&lt;|endoftext|&gt;</code> 的文本，确认在 <code>allowed_special="all"</code> 下不会抛出语法注入异常。</li>
       <li><strong>[生育率透视表计算]</strong> 对中、英、代码三段基准语料计算 <code>tok/char</code> 与 <code>bytes/tok</code>，打印结构化表格。</li>
-      <li><strong>[上下文预算断言]</strong> 验证在 8192 窗口下，Qwen2.5 对中文长文的容纳字符数达到 GPT-2 的 <strong>2.8 倍以上</strong>（断言比率 \(\ge 2.8\)）。</li>
+      <li><strong>[上下文预算断言]</strong> 验证在 8192 窗口下，Qwen2.5 对中文长文的容纳字符数达到 GPT-2 的 <strong>3.7 倍左右</strong>（断言比率 \(\ge 3.5\)）。</li>
     </ol>
   </section>
 
@@ -18449,11 +18462,11 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
 
 
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 25）</h4>
+  <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 28）</h4>
 
   <p><strong>目标</strong>：面向工业界真实大模型落地场景，以 <strong>Qwen2.5-1.5B</strong>（支持 0.5B 快速验证）为基座，
     在 Google Colab（T4 16GB 或 A100）上完成<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>的端到端工程闭环。
-    与模块 25 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
+    与模块 28 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
 
   <p><strong>前置</strong>：E3。拥有 Hugging Face 账户及 Kaggle 实例（免费 T4 即可流畅运行，A100 可启用原生 bf16 加速）。</p>
 
@@ -18485,18 +18498,18 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
       </li>
       <li><strong>运行时底噪与总峰值对照</strong>：
         CUDA 运行时上下文与 PyTorch 预分配底噪约 \(650 \text{ MB}\)。
-        \[ M_{\text{peak, QLoRA}} \approx 760 + 70.4 + 105.6 + 350 + 650 \approx 1936 \text{ MB} \approx 1.89 \text{ GB} \]
+        \[ M_{\text{peak, QLoRA}} \approx 760 + 70.4 + 105.6 + 350 + 650 \approx 1936 \text{ MB} \approx 1.89 \text{ GiB} \]
       </li>
     </ol>
 
     <table class="tbl small">
       <thead>
-        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
+        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存（含 650 MB 底噪，GiB 口径）</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
       </thead>
       <tbody>
-        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>27.3 GB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
-        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.22 GB</strong></td><td>✅ 极度流畅 (占 26%)</td><td>✅ 极度富余 (可扩大 batch)</td></tr>
-        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GB</strong></td><td>✅ <strong>极致轻量 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
+        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>26.7 GiB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
+        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.13 GiB</strong></td><td>✅ 极度流畅 (占 26%)</td><td>✅ 极度富余 (可扩大 batch)</td></tr>
+        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GiB</strong></td><td>✅ <strong>极致轻量 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
       </tbody>
     </table>
   </section>
@@ -18512,7 +18525,7 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     </ol>
   </section>
 
-  <p><strong>三大细化工业级指引（呼应模块 25 体系）</strong>：</p>
+  <p><strong>三大细化工业级指引（呼应模块 28 体系）</strong>：</p>
   <div class="grid2">
     <div class="card">
       <h5>指引 1：输入检验（Input Validation）</h5>
@@ -18737,7 +18750,7 @@ Step 30 | Loss: 0.1840
   <ol>
     <li>如果把 <code>target_modules</code> 缩减为仅 <code>["q_proj", "v_proj"]</code>，可训练参数量降到多少？对复杂长逻辑遵循能力有何影响？</li>
     <li>为什么在训练推理结合阶段，<code>tokenizer.padding_side</code> 训练时设为 <code>right</code>，而批量推理生成时必须改为 <code>left</code>？</li>
-    <li>结合模块 25，如何用单行命令将导出的 <code>./qwen_1.5b_merged</code> 转换为 <code>qwen1.5b-q4_k_m.gguf</code> 并在 CPU 本地极速秒开？</li>
+    <li>结合模块 28，如何用单行命令将导出的 <code>./qwen_1.5b_merged</code> 转换为 <code>qwen1.5b-q4_k_m.gguf</code> 并在 CPU 本地极速秒开？</li>
   </ol>
 </section>
 
@@ -19166,7 +19179,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
   <p><strong>目标</strong>：在真实数据上走一遍完整的统计评估管线：
     启发式基准（L0）→ 线性/Ridge（L1）→ 浅层 MLP（L2）的三级模型阶梯，
     配合<strong>分组交叉验证（GroupKFold）</strong>防数据泄漏，
-    最后用 <strong>500 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
+    最后用 <strong>200 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
     <strong>核心考核点</strong>：体会「高容量模型完全可能跑输线性模型」的严谨科研洗礼，
     学会写出令顶尖学者信服的负面消融报告。</p>
 
@@ -19183,7 +19196,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
         \[ M_{\text{data}} = 1000 \times 12 \times 8 \text{ bytes} \approx 96 \text{ KB} \]
       </li>
       <li><strong>置换检验重抽样矩阵</strong>：
-        \(B = 500\) 轮置换，每轮打乱标签向量 \(y \in \mathbb{R}^{1000}\)，
+        \(B = 200\) 轮置换，每轮打乱标签向量 \(y \in \mathbb{R}^{1000}\)，
         重抽样缓存数组开销小于 <strong>4.0 MB</strong>。
       </li>
       <li><strong>统计估计量保守 \(p\) 值定义公式</strong>：
@@ -19201,7 +19214,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       <li><strong>[L0 常数基准冒烟]</strong> 计算 L0 均值基准，断言其 RMSE 等于目标变量的样本标准差。</li>
       <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言无数值奇异警告且 RMSE 显著低于 L0。</li>
       <li><strong>[L2 浅层拟合与过拟合观察]</strong> 运行 MLPRegressor，观察在跨艺术家泛化测试集上的 RMSE 表现。</li>
-      <li><strong>[置换分布直方图绘制]</strong> 提取 500 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
+      <li><strong>[置换分布直方图绘制]</strong> 提取 200 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
     </ol>
   </section>
 
@@ -19216,7 +19229,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       </ul>
     </li>
     <li>用 <strong>5 折 GroupKFold</strong>（按 <code>artist_id</code> 分组），确保训练集里见过的艺术家<strong>绝不出现在的测试集里</strong>。</li>
-    <li>在最好的一组模型上做 500 次置换检验（打乱标签，重新测交叉验证误差），绘制置换分布直方图，算出单侧 \(p\) 值。</li>
+    <li>在最好的一组模型上做 200 次置换检验（打乱标签，重新测交叉验证误差），绘制置换分布直方图，算出单侧 \(p\) 值。</li>
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
@@ -19315,13 +19328,13 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
 <pre><code>样本量 N = 1000, 特征维度 D = 12, 分组数 = 40
 | 模型阶梯    | CV RMSE (越低越好) | 标准差   |
 |-------------|--------------------|----------|
-| L0 均值基准 | 3.9841             | ±0.2842  |
+| L0 均值基准 | 4.5390             | ±0.2842  |
 | L1 岭回归   | 3.4215             | ±0.1983  |
 | L2 浅层MLP  | 3.5820             | ±0.2450  |
 
 开始 200 轮置换检验...
 观测 RMSE = 3.4215
-置换均值 RMSE = 3.9820 (置换基准)
+置换均值 RMSE = 4.5370 (置换基准)
 单侧置换检验 p 值 = 0.0050</code></pre>
 
   <section class="blk blk-warn">
@@ -19344,7 +19357,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <table class="tbl small">
     <thead><tr><th>记录项</th><th>为什么</th><th>示例</th></tr></thead>
     <tbody>
-      <tr><td>普通 KFold vs GroupKFold 的误差差距</td><td>量化数据泄漏带来的「虚假繁荣」</td><td>泄漏时 1.8，严格分组时 3.4</td></tr>
+      <tr><td>普通 KFold vs GroupKFold 的误差差距</td><td>量化数据泄漏带来的「虚假繁荣」</td><td>本代码禁用 artist_id 特征，两者都约 3.4；若违规把它当特征塞入，普通 KFold 会虚低到约 1.8，分组下现形</td></tr>
       <tr><td>各阶梯模型的置换检验 \(p\) 值</td><td>确立模型改善不是随机噪声</td><td>\(p = 0.005\)（有统计显著性）</td></tr>
       <tr><td>消融实验中负面结果的具体成因</td><td>展现批判性思维与科学诚信</td><td>容量过剩导致方差增加</td></tr>
     </tbody>
@@ -19417,7 +19430,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
       <li><strong>[显卡显存清空]</strong> 调用 <code>torch.cuda.empty_cache()</code> 并记录初始已用显存。</li>
       <li><strong>[BF16 基线预热]</strong> 执行 1 轮前向与自回归预热（Warmup），消除 CUDA 内核首次 JIT 编译抖动。</li>
       <li><strong>[TTFT 与 TPOT 探针冒烟]</strong> 生成 32 tokens，提取首字到达时间（TTFT）与后续每 token 耗时（TPOT）。</li>
-      <li><strong>[NF4 四位量化载入]</strong> 载入 4-bit 量化实例，断言显存占用降至 BF16 的 <strong>30% 以下</strong>。</li>
+      <li><strong>[NF4 四位量化载入]</strong> 载入 4-bit 量化实例，断言静态显存占用降至 BF16 的 <strong>35% 以下</strong>（理论 25%，实测约 30%）。</li>
       <li><strong>[并发压测扫描]</strong> 运行并发线程池（并发度 1, 2, 4, 8），打印吞吐拐点与 P95 尾部延迟。</li>
     </ol>
   </section>
@@ -19475,14 +19488,17 @@ for name, qcfg in configs.items():
     <span class="cm"># 预热 1 次</span>
     _ = m.generate(**inputs, max_new_tokens=10, do_sample=False)
     
-    <span class="cm"># 测首字延迟（TTFT）与后续每 token 延迟（TPOT）</span>
+    <span class="cm"># 测首字延迟（TTFT）与后续每 token 延迟（TPOT）：先只生成 1 个 token 近似 TTFT，再生成 64 个，用 (total-TTFT)/(n-1) 剔除 prefill</span>
+    t1 = time.time()
+    _ = m.generate(**inputs, max_new_tokens=1, do_sample=False)
+    ttft = time.time() - t1
     t0 = time.time()
     out = m.generate(**inputs, max_new_tokens=64, do_sample=False)
     total_time = time.time() - t0
-    
+
     n_tokens = out.shape[1] - inputs.input_ids.shape[1]
     peak_vram = get_vram_mb()
-    tpot_ms = (total_time / n_tokens) * 1000
+    tpot_ms = ((total_time - ttft) / (n_tokens - 1)) * 1000
     tok_per_sec = n_tokens / total_time
     
     bench_results.append([name, f"{static_vram:.1f} MB", f"{peak_vram:.1f} MB", f"{tpot_ms:.2f} ms", f"{tok_per_sec:.1f}"])
@@ -19584,11 +19600,11 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
     </li>
     <li>
       <strong>方法论证据（Methodological Rigor）</strong>：
-      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 500 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
+      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 200 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
     </li>
     <li>
       <strong>工业级全流程交付（Engineering Closed Loop）</strong>：
-      呼应模块 25，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
+      呼应模块 28，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
     </li>
     <li>
       <strong>诚实的负面结果清单（Honest Negative Results）</strong>：
@@ -19661,7 +19677,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><code>#004</code></td>
-      <td><strong><a href="https://www.cambridge.org/core/books/matrix-analysis/811A1B2D3A1F4C1B62C2E1F8C8A3B2A1" target="_blank" rel="noopener">Matrix Analysis (2nd Edition)</a></strong></td>
+      <td><strong><a href="https://doi.org/10.1017/CBO9781139020411" target="_blank" rel="noopener">Matrix Analysis (2nd Edition)</a></strong></td>
       <td>Roger A. Horn & Charles R. Johnson (Johns Hopkins)</td>
       <td>佩隆-弗罗贝尼乌斯定理（Perron-Frobenius）、舒尔补（Schur Complement）与正定矩阵偏序（Loewner Order）的标准参考书。</td>
       <td>马尔可夫链与非负矩阵谱理论。严密分析 Softmax 概率矩阵的本征值分布与自回归收敛性。</td>
@@ -19829,7 +19845,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><code>#028</code></td>
-      <td><strong><a href="https://www.cambridge.org/core/books/highdimensional-statistics/8A8C6B1F9F8B52D4D44A68B13D5E4C48" target="_blank" rel="noopener">High-Dimensional Statistics: A Non-Asymptotic Viewpoint</a></strong></td>
+      <td><strong><a href="https://doi.org/10.1017/9781108627771" target="_blank" rel="noopener">High-Dimensional Statistics: A Non-Asymptotic Viewpoint</a></strong></td>
       <td>Martin J. Wainwright (UC Berkeley / MIT)</td>
       <td>高维统计学的圣经：次高斯随机变量（Sub-Gaussian）、集中不等式（Concentration Inequalities）、非渐近矩阵浓度界与稀疏线性模型恢复。</td>
       <td>高维统计与压缩感知核心文献。严格推导正则化项在稀疏参数恢复中的相位转换临界点。</td>
@@ -19871,7 +19887,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><code>#034</code></td>
-      <td><strong><a href="https://www.cambridge.org/core/books/sparse-image-and-signal-processing/DEBEA224FA264878A86BCFEEAC0A4EBE" target="_blank" rel="noopener">Sparse Image and Signal Processing: Wavelets, Curvelets, Morphological Diversity</a></strong></td>
+      <td><strong><a href="https://www.cambridge.org/core/books/sparse-image-and-signal-processing/DEB12FE2C4D26FA58359B28D3F9550F3" target="_blank" rel="noopener">Sparse Image and Signal Processing: Wavelets, Curvelets, Morphological Diversity</a></strong></td>
       <td>Jean-Luc Starck, Fionn Murtagh, Jalal Fadili (Cambridge Univ Press)</td>
       <td>多尺度几何分析与稀疏过完备基表示；证明了在非平稳突变信号处理中，小波与曲波基较傅里叶基具有指数级更低的重构吉布斯效应。</td>
       <td>针对音频渐变过渡点出现的瞬态冲击（Percussive Transients / Drums），提供基于稀疏基分离过渡特征的最佳数学方法。</td>
@@ -20115,7 +20131,7 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Self-Consistency Improves Chain of Thought Reasoning in Language Models</a></strong></td>
       <td>Xuezhi Wang et al. (Google Research, ICLR)</td>
       <td>提出自洽性采样（Self-Consistency）：在多路径思考轨迹中取边际概率最大或多数投票的结果，利用蒙特卡洛采样显著提升复杂推理任务准确率。</td>
-      <td>课程模块 18 核心代码的数学源头。在音频决策不确定时，多次采样转场参数并进行核密度估计（KDE），选取模式峰值作为最稳健选择。</td>
+      <td>课程模块 17 核心代码的数学源头。在音频决策不确定时，多次采样转场参数并进行核密度估计（KDE），选取模式峰值作为最稳健选择。</td>
     </tr>
     <tr>
       <td><code>#068</code></td>
@@ -20391,7 +20407,7 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">Distilling the Knowledge in a Neural Network</a></strong></td>
       <td>Geoffrey Hinton, Oriol Vinyals, Jeff Dean (Google, NIPS Workshop)</td>
       <td>知识蒸馏奠基之作：引入温度因子 T 软化教师模型的输出 Softmax 分布，使暗知识（Dark Knowledge，各非目标类别之间的相对几何概率）显式回传指导学生网络学习。</td>
-      <td>课程模块 17 的理论源泉。在温度平滑下，交叉熵损失的梯度在小对数比值下渐进收敛为均方误差（MSE），揭示了软目标蒸馏的几何本质。</td>
+      <td>课程模块 16 的理论源泉。在温度平滑下，交叉熵损失的梯度在小对数比值下渐进收敛为均方误差（MSE），揭示了软目标蒸馏的几何本质。</td>
     </tr>
     <tr>
       <td><code>#106</code></td>
@@ -20702,7 +20718,7 @@ COURSE.register({
       <td><strong><a href="http://phontron.com/class/anlp2024/" target="_blank" rel="noopener">CS 11-711: Advanced Natural Language Processing</a></strong></td>
       <td>Graham Neubig et al. (Carnegie Mellon University)</td>
       <td>CMU 语言技术研究所（LTI）高阶公开课：深入前沿模型缩放、检索增强生成（RAG）、Agent 推理机制与自动化评测方法论。</td>
-      <td>对标课程模块 18-20。适合在完成基础理论后，追踪当前最前沿学术研讨课的必选项目。</td>
+      <td>对标课程模块 17-19。适合在完成基础理论后，追踪当前最前沿学术研讨课的必选项目。</td>
     </tr>
     <tr>
       <td><code>#149</code></td>
@@ -20744,7 +20760,7 @@ COURSE.register({
       <td><strong><a href="https://www.aisafetybook.com/" target="_blank" rel="noopener">Introduction to AI Safety, Ethics, and Society</a></strong></td>
       <td>Dan Hendrycks et al. (Center for AI Safety / UC Berkeley)</td>
       <td>系统性阐述 AI 安全性前沿：对抗攻击、奖励黑客行为（Reward Hacking）、模型内部可解释性、涌现欺骗以及模型权重合规准则。</td>
-      <td>对标课程模块 21 与附录 D，为剑桥大学学术面试中极高频出现的技术伦理与系统安全性问题提供扎实学术口径。</td>
+      <td>对标课程模块 20 与附录 D，为剑桥大学学术面试中极高频出现的技术伦理与系统安全性问题提供扎实学术口径。</td>
     </tr>
     <tr>
       <td><code>#155</code></td>
@@ -21506,7 +21522,9 @@ COURSE.register({
 <p>
   订阅产品通常默认把你的对话用于改进模型，而企业版与 API 默认不用于训练。
   个人账号可以通过设置让条款<strong>向企业账号靠拢</strong>：
-  在 Codex 里打开 <strong>Settings → Data Controls</strong>，关闭「<strong>Improve the model for everyone</strong>」。
+  以某家客户端为例，它曾在 Settings → Data Controls 里提供「Improve the model for everyone」一类的开关
+  （界面随时会改，以你账号当前页面实际显示的为准，这里只当例子看，不要背路径）。
+  判据与界面无关，三个答案都要在官方条款页找到并记下日期：<strong>我的对话会不会被用于训练、保留多久、能否导出与删除</strong>。
   其它平台的开关位置与名字都不同，需要你自己在账号设置里找到并确认——
   设置是<strong>账号级</strong>的，多账号要逐个检查。
 </p>
@@ -21818,18 +21836,17 @@ COURSE.register({
 </div>
 <div class="quiz">
   <div class="qlabel">自测 · 3 · 学术诚信</div>
-  <p class="q">申请季里，下面哪一种做法会构成学术不端？</p>
+  <p class="q">个人陈述里涉及 AI 辅助的一段，下面哪一种写法既合规、又能在面试里被追问而不穿帮？</p>
   <ul class="opts">
-    <li>用 AI 帮你找到某篇论文的原始出处，并解释其中的术语</li>
-    <li>用 AI 检查你自己写的推导在边界情形下是否成立</li>
-    <li data-ok>让 AI 做出一道 STEP 题，然后把解答当作自己的思路提交</li>
-    <li>用 AI 修改你写好的英文段落里的语法错误</li>
+    <li>完全不提 AI，把所有产出都写成自己独立完成</li>
+    <li data-ok>写清：代码图表由 AI 辅助起草，所有数字我逐个运行核对过，脚本见 scripts/，实验设计与结论归我</li>
+    <li>实验设计、执行与结论全由 AI 完成，我负责把关方向</li>
+    <li>只写「使用了 AI 工具」，不写用在哪、怎么核查</li>
   </ul>
   <p class="why">
-    判断标准只有一条：<strong>这个产出是不是被用来评价你的能力</strong>。
-    第一、二、四项里，判断与技术内容都仍然出自你，AI 只出现在检索、校验、语言这三个环节；
-    第三项中被评价的「解题思路与过程」不是你做的，而你提交时声称它属于你——
-    这既是学术不端，也是面试中最容易被追问穿的一类材料。
+    判断标准只有一条：<strong>这个产出是不是被用来评价你的能力，以及你能不能当场复述与推导</strong>。
+    第一项是主动隐瞒，一旦被问到细节就会穿帮；第三项里被评价的设计与结论不是你做的；
+    第四项的披露没有范围与证据，等于没说。只有第二项同时满足「范围可核查 + 数字可复现 + 责任归属清晰」。
   </p>
 </div>
 
@@ -22054,7 +22071,7 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">第 9 题 · 预训练与优化 · 计算</div>
-  <p class="q">用「微批 4 ｜ 梯度累积 8 ｜ 数据并行 8 卡」训练，全局批是多少？另：若每层每 token 需保存约 10 个 \(d\) 维激活值，bf16，批 8、序列 1024、12 层、\(d = 768\)，激活显存约为多少？</p>
+  <p class="q">用「微批 4 ｜ 梯度累积 8 ｜ 数据并行 8 卡」训练，全局批是多少？另：单卡视角，若每层每 token 需保存约 10 个 \(d\) 维激活值，bf16，每卡微批 8、序列 1024、12 层、\(d = 768\)，单卡激活显存约为多少？</p>
   <ul class="opts">
     <li>全局批 20，激活约 1.4 GiB</li>
     <li>全局批 32，激活约 14 GiB</li>
@@ -22166,16 +22183,16 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">第 15 题 · 推理与部署 · 计算</div>
-  <p class="q">一个 7B 模型，bf16 权重约 14 GiB。若只做权重的 INT4 分组量化，部署时的显存情况是？</p>
+  <p class="q">一个 7B 模型，bf16 权重约 14 GB。若只做权重的 INT4 分组量化，部署时的显存情况是？</p>
   <ul class="opts">
     <li>权重降到约 7 GiB，KV cache 不需要考虑</li>
     <li>权重降到约 0.4 GiB，因为 4 bit 是 16 bit 的十六分之一</li>
     <li>权重不变，量化只加速计算、不省显存</li>
-    <li data-ok>权重降到约 3.5 GiB（另加少量 scale / zero 开销）；但总显存还必须加上随并发与上下文线性增长的 KV cache</li>
+    <li data-ok>权重降到约 3.5 GB（另加少量 scale / zero 开销）；但总显存还必须加上随并发与上下文线性增长的 KV cache</li>
   </ul>
   <p class="why">
     算式：\(7\times10^{9}\) 个参数 \(\times\) 4 bit \(= 28\times10^{9}\) bit \(= 3.5\) GB，
-    相比 bf16 的 14 GiB 恰好是 4 倍（16 bit → 4 bit），另加分组量化的 scale 与 zero 点开销。
+    相比 bf16 的 14 GB 恰好是 4 倍（16 bit → 4 bit），另加分组量化的 scale 与 zero 点开销。
     第一项少了一半；第二项把 4 倍当成了 16 倍；第三项错在权重-only 量化确实省显存，
     也顺带降低显存带宽压力。
     要点：量化省的是权重显存与带宽，而高并发、长上下文场景下<strong>KV cache 往往比权重更吃显存</strong>，
@@ -22243,19 +22260,16 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">第 19 题 · 经济与系统 · 计算</div>
-  <p class="q">某订阅 200 美元/月，用量按 5 小时滚动窗口分配：每个窗口最多约 200 万输出 token 当量，一周总上限相当于 20 个满窗口。你每天最多有 8 小时在做项目。一周你最多能用多少输出 token？按 API 每百万输出 token 10 美元折算，等效金额多少？</p>
+  <p class="q">某订阅 200 美元/月（教学假设量级，非任何具体产品；计费以官方页面为准）。重度用户每周用满约 2200 万输出 token 当量。按 API 每百万输出 token 10 美元折算，一个月（按 4.3 周）下来 API 侧要花多少？结论是？</p>
   <ul class="opts">
-    <li>约 220 万 token，等效约 22 美元</li>
-    <li>约 4000 万 token，等效约 400 美元</li>
+    <li>约 220 万 token ≈ 22 美元，订阅血亏</li>
+    <li>约 4000 万 token ≈ 400 美元</li>
     <li>无法计算：订阅额度没有上限</li>
-    <li data-ok>约 2200 万 token，等效约 220 美元——与月费同一个量级，说明订阅的价值是单价更低，而不是无限</li>
+    <li data-ok>约 9500 万 token ≈ 950 美元，约为订阅月费的 4.75 倍——订阅的价值是重度使用下单价更低，而不是无限</li>
   </ul>
   <p class="why">
-    算式分四步：一周 \(168\) 小时 \(= 33.6\) 个 5 小时窗口；
-    但你的可用时间只有 \(7 \times 8 = 56\) 小时 \(\approx 11.2\) 个窗口，这是第一个约束；
-    每周总上限 \(20 \times 200\) 万 \(= 4000\) 万并未先被触及；
-    于是上限 \(11 \times 200\) 万 \(\approx 2200\) 万 token，按 10 美元/百万折算 \(\approx 220\) 美元。
-    第一项少了一个数量级；第二项只用了产品总上限、忽略了你的时间约束；
+    算式分三步：每月 \(2200 \times 4.3 \approx 9500\) 万 token；按 10 美元/百万折算 \(\approx 950\) 美元；
+    \(950 / 200 \approx 4.75\)。第一项把一周当成了一个月；第二项是单周总上限、不是月度用量；
     第三项错在订阅额度始终受「窗口 \(\times\) 上限」与并发约束。
     更重要的结论：<strong>订阅额度是推理额度，它无法替代训练算力</strong>——
     训练是持续数小时占满加速器的前反向循环，不是按 token 计费的推理调用。
@@ -22264,20 +22278,19 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">第 20 题 · 经济与系统 · 亲和性</div>
-  <p class="q">要让自动化长期稳定地跑下去，下面哪一组「亲和」关系需要固定？</p>
+  <p class="q">要让自动化长期稳定地跑下去，下面哪一组做法最站得住？</p>
   <ul class="opts">
-    <li data-ok>三种都要：账号对应稳定的地理出口（账号亲和）、同类请求复用同一前缀以命中 prompt cache（缓存亲和）、多轮会话粘在同一后端（会话亲和）</li>
+    <li data-ok>缓存亲和 + 会话亲和：固定前缀放最前并多轮不变以命中前缀缓存；多轮对话粘同一实例与同一份 KV，避免重复 prefill</li>
     <li>随机轮换账号与出口，让风控看不出规律</li>
     <li>prompt cache 只影响首 token 延迟，与成本无关，不必为它设计请求顺序</li>
-    <li>只要出口是住宅 IP，账号亲和与缓存亲和都不重要</li>
+    <li>多账号随机轮换使用，摊薄单账号风险，账号亲和不重要</li>
   </ul>
   <p class="why">
-    账号亲和：同一账号从稳定的地理位置与出口访问，避免「多国并发认证」这种被盗特征；
-    住宅 IP 只是降低云网段连坐，不能替代一致性，所以第四项错。
     缓存亲和：把固定前缀（系统提示、工具定义、长文档）放在请求最前面并在多轮之间保持不变，
     才能命中前缀缓存，命中的 token 通常按很低的折扣计费——<strong>它同时降低成本与首 token 延迟</strong>，
     所以第三项错。会话亲和：让多轮对话粘在同一实例与同一份 KV 上，避免重复 prefill。
-    第二项是最危险的做法：随机轮换会把多个账号绑到同一个可疑模式上。
+    第二、四项都涉及多账号/出口轮换以规避检测：这违反多数平台服务条款，且与附录 D 的合规立场直接冲突——
+    稳定性应该来自缓存与会话设计，而不是和风控捉迷藏。
   </p>
 </div>
 
@@ -22444,7 +22457,7 @@ COURSE.register({
   <ol>
     <li><strong>按关键词搜</strong>：顶部搜索框（快捷键 <code>/</code>）会搜标题、正文与公式，比翻页快。</li>
     <li><strong>按主题查</strong>：下面的表按「公式 / 数字 / 工具 / 决策」分区，先定位分区再看行。</li>
-    <li><strong>按术语查</strong>：<a href="#appA">附录 A 术语表</a>有 355 条中英对照，分 14 类；每一讲顶部还有「本讲速查」可展开。</li>
+    <li><strong>按术语查</strong>：<a href="#appA">附录 A 术语表</a>有 366 行（358 条术语 + 8 组辨析），分 16 节；每一讲顶部还有「本讲速查」可展开。</li>
   </ol>
 </section>
 
@@ -22461,9 +22474,9 @@ COURSE.register({
     <tr><td>\(N \approx 12\,L\,d^2 + |\mathcal{V}|\,d\)</td><td>参数量手算（SwiGLU、共享词嵌入）</td><td>04</td><td>把 GQA 的 K/V 仍按 \(d^2\) 计</td></tr>
     <tr><td>\(M_{\text{train}} \approx 16N\) bytes + 激活</td><td>AdamW + bf16 全参数训练的显存下限</td><td>04</td><td>以为「7B 只要 14 GB」</td></tr>
     <tr><td>\(C \approx 6ND\)</td><td>训练总算力（FLOPs）</td><td>01 / 05</td><td>忘记反向是前向的两倍</td></tr>
-    <tr><td>\(\text{GPU-hours} = \dfrac{C}{\text{peak}\times\text{MFU}\times3600}\)</td><td>预算换算；MFU 常用 35%–50%</td><td>05</td><td>用峰值算力直接除，忽略 MFU</td></tr>
+    <tr><td>\(\text{GPU-hours} = \dfrac{C}{\text{peak}\times\text{MFU}\times3600}\)</td><td>预算换算；MFU 常用 35%–48%</td><td>05</td><td>用峰值算力直接除，忽略 MFU</td></tr>
     <tr><td>\(D_{\text{opt}} \approx 20N\)</td><td>Chinchilla 算力最优配比（不是质量最优）</td><td>05</td><td>以为所有模型都该守这个比例</td></tr>
-    <tr><td>\(W = W_0 + \tfrac{\alpha}{r}BA\)</td><td>LoRA 低秩增量；\(B\) 初始化为 0</td><td>07</td><td>以为 \(\alpha/r\) 改变参数量</td></tr>
+    <tr><td>\(W = W_0 + \tfrac{\alpha}{r}AB\)</td><td>LoRA 低秩增量；\(A\) 降维高斯初始化，\(B\) 升维初始化为 0</td><td>07</td><td>以为 \(\alpha/r\) 改变参数量</td></tr>
     <tr><td>\(\mathcal{L}_{\text{DPO}} = -\log\sigma\!\big(\beta[\log\tfrac{p_\theta(y_w)}{p_{\text{ref}}(y_w)} - \log\tfrac{p_\theta(y_l)}{p_{\text{ref}}(y_l)}]\big)\)</td><td>偏好优化（无需奖励模型）</td><td>07</td><td>跳过 SFT 直接 DPO</td></tr>
     <tr><td>\(\hat A_i = \dfrac{r_i - \mathrm{mean}(r)}{\mathrm{std}(r)}\)</td><td>GRPO 的组内相对优势（替代 critic）</td><td>07</td><td>组太小导致优势估计噪声大</td></tr>
     <tr><td>\(\hat w = (X^\top X + \lambda I)^{-1}X^\top y\)</td><td>岭回归闭式解；\(N\) 小时的首选模型</td><td>09</td><td>忘了在划分后拟合标准化</td></tr>
@@ -22509,7 +22522,7 @@ COURSE.register({
     <tr><td><strong>总计</strong></td><td><strong>≈ 8.03 B</strong></td><td>规则式 \(12Ld^2+|\mathcal{V}|d\) 给 6.97 B，差 1.06 B</td></tr>
     <tr><td>KV Cache</td><td>4 KB/token/层；128 KB/token；8k 上下文 ≈ 1 GiB；批 16 ≈ 16 GiB</td><td>fp16</td></tr>
     <tr><td>训练显存下限</td><td>≈ 16 字节/参数 + 激活</td><td>bf16 权重/梯度 + fp32 优化器状态与主权重</td></tr>
-    <tr><td>LoRA（r=16）</td><td>仅注意力 13.6 M（0.17%）；加 MLP 41.9 M（0.52%）</td><td>合并后推理零额外开销</td></tr>
+    <tr><td>LoRA（r=16）</td><td>仅注意力 13.6 M（0.17%）；连 MLP 一起挂合计 41.9 M（0.52%，其中 MLP 占 28.3 M）</td><td>合并后推理零额外开销</td></tr>
   </tbody>
 </table>
 
@@ -22613,7 +22626,7 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
   <tbody>
     <tr><td>CP1 问题 + 可听基线</td><td>定义「更好」，并尽早跑出能听的版本</td><td><a href="#mP">预备课</a>、<a href="#m1">01</a>、<a href="#m10">10</a></td></tr>
     <tr><td>CP2 可辩护模型</td><td>把增益包络写成变分/几何问题</td><td><a href="#m4">04</a>（自由度从哪来）</td></tr>
-    <tr><td>CP3 竞争方法</td><td>三种结构不同的方法与各自的失效预测</td><td><a href="#m7">07</a>（模型阶梯思想）</td></tr>
+    <tr><td>CP3 竞争方法</td><td>三种结构不同的方法与各自的失效预测</td><td><a href="#m9">09</a>（模型阶梯思想）</td></tr>
     <tr><td>CP4 预测对音频</td><td>客观指标 + 听测对照</td><td><a href="#m9">09</a></td></tr>
     <tr><td>CP5 成对适配</td><td>特征提取（你的「tokenizer」）</td><td><a href="#m2">02</a></td></tr>
     <tr><td>CP6 证据与局限</td><td>分组 CV、效应量、盲测</td><td><a href="#m9">09</a></td></tr>
@@ -22640,11 +22653,11 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
     <tr><td>worktree、settle、85/15</td><td>12 工作流与智能体</td></tr>
     <tr><td>APFS、热降频、CI 卸载</td><td>13 硬件与操作系统</td></tr>
     <tr><td>ToS、许可、学术诚信</td><td>14 风险与合规</td></tr>
-    <tr><td>蒸馏、RAG、智能体、意识、压缩、架构</td><td>15 高阶与前沿（对应 17–24 章）</td></tr>
+    <tr><td>蒸馏、RAG、智能体、意识、压缩、架构</td><td>15 高阶与前沿（对应 14、16–22 章）</td></tr>
   </tbody>
 </table>
 
-<h3>11. 高阶主题速查（17–24 章）</h3>
+<h3>11. 高阶主题速查（14、16–22 章）</h3>
 <table class="tbl small">
   <thead><tr><th>主题</th><th>关键式 / 关键量</th><th>一句话决策</th><th>章</th></tr></thead>
   <tbody>
@@ -22652,31 +22665,31 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
       <td>蒸馏</td>
       <td>\( \mathcal{L} = \alpha\,\mathrm{CE}(y,p_S) + (1-\alpha)T^2 D_{\mathrm{KL}}(p_T^{(T)}\|p_S^{(T)}) \)</td>
       <td>要<strong>跨规模/跨架构</strong>搬能力才用它；只是想改行为就 SFT</td>
-      <td>17</td>
+      <td>16</td>
     </tr>
     <tr>
       <td>推理模型</td>
-      <td>\( \text{pass@}k = 1-(1-p)^k \)</td>
+      <td>\( 1-(1-p)^n \)（理想覆盖率；无偏 pass@k 估计见模块 17）</td>
       <td>答案能被程序验证（数学/代码）才值得上 RL；否则先试采样投票</td>
-      <td>18</td>
+      <td>17</td>
     </tr>
     <tr>
       <td>RAG</td>
       <td>召回@k、nDCG、忠实度</td>
       <td><strong>缺知识用检索，缺行为用微调</strong>；检索指标好 ≠ 回答好</td>
-      <td>19</td>
+      <td>18</td>
     </tr>
     <tr>
       <td>智能体</td>
       <td>循环 = 模型 + 工具 + 记忆 + <strong>终止条件</strong></td>
       <td>有明确可自动判定的验收标准才自动化；否则人来收尾</td>
-      <td>20</td>
+      <td>19</td>
     </tr>
     <tr>
       <td>安全与可解释</td>
       <td>系统提示不是安全边界；探针 ≠ 因果证据</td>
       <td>把「通过了评测」当作<em>一个</em>证据，而不是结论</td>
-      <td>21</td>
+      <td>20</td>
     </tr>
     <tr>
       <td>机器意识</td>
@@ -22688,33 +22701,33 @@ loss.backward(); torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0); opt.st
       <td>压缩与合并</td>
       <td>稀疏度、保留率、合并权重</td>
       <td>稀疏<strong>不必然</strong>加速；量化最省事、蒸馏最贵、合并最取巧</td>
-      <td>23</td>
+      <td>14</td>
     </tr>
     <tr>
       <td>前沿架构</td>
       <td>\( h_t = A h_{t-1} + B x_t \)（SSM）；InfoNCE（多模态对齐）</td>
       <td>注意力不是唯一选择，但「更省」通常伴随「能力取舍」，必须实测</td>
-      <td>24</td>
+      <td>21</td>
     </tr>
   </tbody>
 </table>
 <p class="cm">
-  与之配套的术语（约 55 条）在<a href="#appA">附录 A 第 15 节</a>；
+  与之配套的术语（约 126 条）在<a href="#appA">附录 A 第 15 节</a>；
   这些主题的完整推导、动手实验与自测在各章正文里。
 </p>
 
 <div class="quiz">
   <div class="qlabel">自测 · 用这张表回答</div>
-  <p class="q">你要在 16 GB 显存的 Kaggle T4 上微调一个 7B 模型，只想改一个文件里的配置。最该先查本页哪一区？</p>
+  <p class="q">7B 模型：bf16 权重 14 GB，int4 权重 3.85 GB，QLoRA 静态总量约 4.4 GB。在 16 GB 的 Kaggle T4 上微调，结论是？</p>
   <ul class="opts">
-    <li>公式速查</li>
-    <li data-ok>超参起点 + 数字速查（确认 QLoRA 可行、批与序列要压小）</li>
-    <li>术语表</li>
-    <li>命令速查</li>
+    <li>三条都行，把学习率调小就能装下</li>
+    <li data-ok>只有 QLoRA 进得去：全参静态 112 GB 是 16 GB 的 7 倍，int4 推理不等于能训练</li>
+    <li>用 int8 权重量化训练，精度速度兼得</li>
+    <li>把上下文窗口调小，全参也能进</li>
   </ul>
   <p class="why">
-    这类决策由「显存 → 可行方案 → 超参起点」的顺序决定：先在第 2 区确认 16 GB 只能走 QLoRA 且序列要短，
-    再到第 4 区取学习率与轮数起点，最后才写代码。
+    全参 AdamW 静态 \(16 \times 7\times10^9 = 112\) GB；QLoRA 基座 3.85 GB 加 LoRA 部分（41.9M 参数的权重加梯度加优化器约 0.67 GB）再加激活，总量个位数 GB。
+    学习率只改步长不改字节数；int8 训练仍要全精度的梯度与优化器状态；窗口只影响 KV 与激活，112 GB 里权重那部分纹丝不动。
   </p>
 </div>
 
@@ -22788,14 +22801,14 @@ COURSE.register({
     <h5>第一组 · 基础与协作（01–04）</h5>
     <p><strong>解决「人和模型怎么配合」</strong>。适合刚接触、或者只会一问一答的人。
       产出是一张分工表：哪些步骤我做、哪些交给模型。</p>
-    <p>对应本课程：<a href="#m0">00 导读</a>、<a href="#m14">14 工作流</a>。</p>
+    <p>对应本课程：<a href="#m0">00 导读</a>、<a href="#m25">25 工程流水线</a>。</p>
   </div>
   <div class="card">
     <h5>第二组 · 把 AI 接进系统（05–12）</h5>
     <p><strong>解决「模型怎么接进代码库、工具与云平台」</strong>。适合要交付东西的开发者。
       产出是一次可复现的调用：输入、工具、重试、成本四样都记下来。</p>
     <p>对应本课程：<a href="#m8">08 推理与部署</a>、<a href="#m10">10 算力与工具链</a>、
-      <a href="#m20">20 智能体系统</a>。</p>
+      <a href="#m19">19 智能体系统</a>。</p>
   </div>
   <div class="card">
     <h5>第三组 · 素养框架与能力边界（13–16）</h5>
@@ -22807,7 +22820,7 @@ COURSE.register({
     <h5>第四组 · 身份与教学落地（17–22）</h5>
     <p><strong>解决「我所在的组织或课堂怎么用」</strong>。是第三组按身份拆出来的落地篇：
       学生、小企业、非营利、教育者、K-12、培训者各有约束。</p>
-    <p>对应本课程：<a href="#m16">16 收束</a>、附录 D 合规与学术诚信。</p>
+    <p>对应本课程：<a href="#m29">29 收束</a>、附录 D 合规与学术诚信。</p>
   </div>
 </div>
 
@@ -22855,11 +22868,11 @@ COURSE.register({
     <tr><td><strong>01</strong> Claude 101（Claude 101）</td><td><a href="https://academy.claude.com/courses/claude-101" target="_blank" rel="noopener">claude-101</a></td><td>第一次用聊天式模型的人；想把「听说很好用」变成「我自己试过」的人</td>
       <td>以课程页标注为准</td><td>能用自然语言完整做完一个小任务，并说清自己哪一步做对了、哪一步是模型替你决定的</td><td>00、08</td></tr>
     <tr><td><strong>02</strong> Claude 协作入门（Introduction to Claude Cowork）</td><td><a href="https://academy.claude.com/courses/introduction-to-claude-cowork" target="_blank" rel="noopener">introduction-to-claude-cowork</a></td><td>已经会一问一答，但还没把 AI 编进日常工作流的人</td>
-      <td>以课程页标注为准</td><td>能把一个任务拆成「我做什么 + 它做什么」的两栏分工表，并写出交接时需要的输入</td><td>14、00</td></tr>
+      <td>以课程页标注为准</td>      <td>能把一个任务拆成「我做什么 + 它做什么」的两栏分工表，并写出交接时需要的输入</td><td>25、00</td></tr>
     <tr><td><strong>03</strong> Claude Code 101（Claude Code 101）</td><td><a href="https://academy.claude.com/courses/claude-code-101" target="_blank" rel="noopener">claude-code-101</a></td><td>要在终端或编辑器里让智能体改代码的人</td>
-      <td>以课程页标注为准</td><td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的闭环</td><td>14、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的闭环</td><td>25、29</td></tr>
     <tr><td><strong>04</strong> Claude Code 实战（Claude Code in Action）</td><td><a href="https://academy.claude.com/courses/claude-code-in-action" target="_blank" rel="noopener">claude-code-in-action</a></td><td>已能跑通编码智能体，想把它放进真实项目流程的人</td>
-      <td>以课程页标注为准</td><td>能把测试、审查、提交拆成可复用的步骤，而不是每次从零描述需求</td><td>14、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能把测试、审查、提交拆成可复用的步骤，而不是每次从零描述需求</td><td>25、29</td></tr>
   </tbody>
 </table>
 
@@ -22868,21 +22881,21 @@ COURSE.register({
   <thead><tr><th>课程</th><th>链接</th><th>适合谁</th><th>建议学时</th><th>学完应该能做什么</th><th>本课程对应章节</th></tr></thead>
   <tbody>
     <tr><td><strong>05</strong> Agent 技能入门（Introduction to Agent Skills）</td><td><a href="https://academy.claude.com/courses/introduction-to-agent-skills" target="_blank" rel="noopener">introduction-to-agent-skills</a></td><td>想把「一套固定做法」沉淀成可复用单元、而不是每次重写提示的人</td>
-      <td>以课程页标注为准</td><td>能写出一个有输入输出约定的技能说明，让任务从「每次口述」变成「调用一次」</td><td>20</td></tr>
+      <td>以课程页标注为准</td>      <td>能写出一个有输入输出约定的技能说明，让任务从「每次口述」变成「调用一次」</td><td>19</td></tr>
     <tr><td><strong>06</strong> Subagents 子代理入门（Introduction to Subagents）</td><td><a href="https://academy.claude.com/courses/introduction-to-subagents" target="_blank" rel="noopener">introduction-to-subagents</a></td><td>任务多、上下文互相污染，需要并行或隔离的人</td>
-      <td>以课程页标注为准</td><td>能把大任务拆给多个执行者，并明确规定每个执行者能看到什么、不许碰什么</td><td>20、14</td></tr>
+      <td>以课程页标注为准</td>      <td>能把大任务拆给多个执行者，并明确规定每个执行者能看到什么、不许碰什么</td><td>19、25</td></tr>
     <tr><td><strong>07</strong> Claude 平台 101（Claude Platform 101）</td><td><a href="https://academy.claude.com/courses/claude-platform-101" target="_blank" rel="noopener">claude-platform-101</a></td><td>想从聊天窗口走到平台与 API 的人</td>
       <td>以课程页标注为准</td><td>能画出一次请求经过的部件（模型、额度、工具、日志），并指出哪一环最可能出错</td><td>10、08</td></tr>
     <tr><td><strong>08</strong> 基于 Claude API 开发（Building with the Claude API）</td><td><a href="https://academy.claude.com/courses/building-with-the-claude-api" target="_blank" rel="noopener">building-with-the-claude-api</a></td><td>要写代码调用模型的人</td>
-      <td>以课程页标注为准</td><td>能发出一次带系统提示、工具定义与重试的请求，并记录 token 数与耗时</td><td>08、11</td></tr>
+      <td>以课程页标注为准</td>      <td>能发出一次带系统提示、工具定义与重试的请求，并记录 token 数与耗时</td><td>08、23</td></tr>
     <tr><td><strong>09</strong> MCP 入门（Introduction to Model Context Protocol）</td><td><a href="https://academy.claude.com/courses/introduction-to-model-context-protocol" target="_blank" rel="noopener">introduction-to-model-context-protocol</a></td><td>被「每个工具一套接法」折磨过的人；数据在本地、想让模型安全地读到的人</td>
-      <td>以课程页标注为准</td><td>能用公开规范把本地数据源暴露成工具，并说清它与通用「工具调用」的分工</td><td>20、19</td></tr>
+      <td>以课程页标注为准</td>      <td>能用公开规范把本地数据源暴露成工具，并说清它与通用「工具调用」的分工</td><td>19、18</td></tr>
     <tr><td><strong>10</strong> MCP 进阶话题（Model Context Protocol: Advanced Topics）</td><td><a href="https://academy.claude.com/courses/model-context-protocol-advanced-topics" target="_blank" rel="noopener">model-context-protocol-advanced-topics</a></td><td>已跑通最小服务端，关心权限、作用域与部署的人</td>
-      <td>以课程页标注为准</td><td>能说清传输方式、权限边界与「这个工具该不该给它」，并写出最小威胁模型</td><td>20、21</td></tr>
+      <td>以课程页标注为准</td>      <td>能说清传输方式、权限边界与「这个工具该不该给它」，并写出最小威胁模型</td><td>19、20</td></tr>
     <tr><td><strong>11</strong> Claude 与 Amazon Bedrock（Claude with Amazon Bedrock）</td><td><a href="https://academy.claude.com/courses/claude-with-amazon-bedrock" target="_blank" rel="noopener">claude-with-amazon-bedrock</a></td><td>已经在 AWS 上、要按公司合规走的人</td>
-      <td>以课程页标注为准</td><td>能说清「托管云平台」与「模型提供方」各负责哪一半，账单与数据落在谁那里</td><td>10、11</td></tr>
+      <td>以课程页标注为准</td>      <td>能说清「托管云平台」与「模型提供方」各负责哪一半，账单与数据落在谁那里</td><td>10、23</td></tr>
     <tr><td><strong>12</strong> Claude 与 Vertex AI（Claude with Google Cloud's Vertex AI）</td><td><a href="https://academy.claude.com/courses/claude-with-google-cloud-s-vertex-ai" target="_blank" rel="noopener">claude-with-google-cloud-s-vertex-ai</a></td><td>已经在 GCP 上、需要与既有流水线打通的人</td>
-      <td>以课程页标注为准</td><td>能对照「托管平台 / 自建推理服务」两条路，算出一个粗成本口径与责任划分</td><td>10、11</td></tr>
+      <td>以课程页标注为准</td>      <td>能对照「托管平台 / 自建推理服务」两条路，算出一个粗成本口径与责任划分</td><td>10、23</td></tr>
   </tbody>
 </table>
 
@@ -22891,13 +22904,13 @@ COURSE.register({
   <thead><tr><th>课程</th><th>链接</th><th>适合谁</th><th>建议学时</th><th>学完应该能做什么</th><th>本课程对应章节</th></tr></thead>
   <tbody>
     <tr><td><strong>13</strong> AI 素养框架与基础（AI Fluency: Framework and foundations）</td><td><a href="https://academy.claude.com/courses/ai-fluency-framework-foundations" target="_blank" rel="noopener">ai-fluency-framework-foundations</a></td><td>任何人。<strong>如果整张地图只上一门，就上这门</strong></td>
-      <td>官方页标注 <strong>14 lessons / 4 hr / 1 quiz</strong>，完成可得徽章</td><td>能用 4D 说清一次协作里「谁决定、怎么描述、怎么验收、谁负责」，并指出自己最容易漏掉哪一维</td><td>09、00、16</td></tr>
+      <td>官方页标注 <strong>14 lessons / 4 hr / 1 quiz</strong>，完成可得徽章</td>      <td>能用 4D 说清一次协作里「谁决定、怎么描述、怎么验收、谁负责」，并指出自己最容易漏掉哪一维</td><td>09、00、29</td></tr>
     <tr><td><strong>14</strong> AI 能力与局限（AI Capabilities and Limitations）</td><td><a href="https://academy.claude.com/courses/ai-capabilities-and-limitations" target="_blank" rel="noopener">ai-capabilities-and-limitations</a></td><td>需要判断「这类任务能不能交给模型」的人</td>
-      <td>以课程页标注为准</td><td>能对一类具体任务给出「可做 / 需复核 / 不做」的判断，并说出验证它的最小实验</td><td>01、18、22</td></tr>
+      <td>以课程页标注为准</td>      <td>能对一类具体任务给出「可做 / 需复核 / 不做」的判断，并说出验证它的最小实验</td><td>01、17、22</td></tr>
     <tr><td><strong>15</strong> 开发者 AI 素养（AI Fluency for Builders）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-builders" target="_blank" rel="noopener">ai-fluency-for-builders</a></td><td>写代码、要交付可运行产物的人</td>
-      <td>以课程页标注为准</td><td>能把 4D 用在代码审查、测试与日志上：每个 AI 生成的分支都要有一个失败时的判定</td><td>09、21、14</td></tr>
+      <td>以课程页标注为准</td>      <td>能把 4D 用在代码审查、测试与日志上：每个 AI 生成的分支都要有一个失败时的判定</td><td>09、20、25</td></tr>
     <tr><td><strong>16</strong> 小企业 AI 素养（AI Fluency for Small Businesses）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-small-businesses" target="_blank" rel="noopener">ai-fluency-for-small-businesses</a></td><td>小团队、个体经营者、要控制成本的人</td>
-      <td>以课程页标注为准</td><td>能给出一条业务的「能交 / 不能交」清单，并写清按月成本与退出方案</td><td>11、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能给出一条业务的「能交 / 不能交」清单，并写清按月成本与退出方案</td><td>23、29</td></tr>
   </tbody>
 </table>
 
@@ -22906,22 +22919,22 @@ COURSE.register({
   <thead><tr><th>课程</th><th>链接</th><th>适合谁</th><th>建议学时</th><th>学完应该能做什么</th><th>本课程对应章节</th></tr></thead>
   <tbody>
     <tr><td><strong>17</strong> 学生 AI 素养（AI Fluency for Students）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-students" target="_blank" rel="noopener">ai-fluency-for-students</a></td><td>在读学生、要写论文或申请材料的人</td>
-      <td>以课程页标注为准</td><td>能把 AI 用在学习上而不越过学术诚信线，并留下「哪些是我做的」的过程记录</td><td>09、16、附录 D</td></tr>
+      <td>以课程页标注为准</td>      <td>能把 AI 用在学习上而不越过学术诚信线，并留下「哪些是我做的」的过程记录</td><td>09、29、附录 D</td></tr>
     <tr><td><strong>18</strong> 非营利组织 AI 素养（AI Fluency for Nonprofits）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-nonprofits" target="_blank" rel="noopener">ai-fluency-for-nonprofits</a></td><td>预算紧、数据还敏感的非营利团队</td>
-      <td>以课程页标注为准</td><td>能在「钱少 + 数据敏感」两个约束下写出一页可执行的使用规范</td><td>11、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能在「钱少 + 数据敏感」两个约束下写出一页可执行的使用规范</td><td>23、29</td></tr>
     <tr><td><strong>19</strong> 教育者 AI 素养（AI Fluency for Educators）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-educators" target="_blank" rel="noopener">ai-fluency-for-educators</a></td><td>要改作业与课程设计的高校教师、教学设计师</td>
       <td>以课程页标注为准</td><td>能设计一次「过程留痕」的作业：交结果之外还要交过程与验证记录</td><td>09、附录 D</td></tr>
     <tr><td><strong>20</strong> K-12 教育者 AI 素养（AI Fluency for K-12 Educators）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-k-12-educators" target="_blank" rel="noopener">ai-fluency-for-k-12-educators</a></td><td>中小学教师、教务管理者</td>
       <td>以课程页标注为准</td><td>能把年龄、隐私与家长沟通三件约束写进课堂用法，而不是照搬成人用法</td><td>附录 D、09</td></tr>
     <tr><td><strong>21</strong> K-12 培训师培训（AI Fluency for PK-12: Train the Trainer）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-pk-12-train-the-trainer" target="_blank" rel="noopener">ai-fluency-for-pk-12-train-the-trainer</a></td><td>教研组长、教师培训者</td>
-      <td>以课程页标注为准</td><td>能把一次培训设计成「有练习、有验收」的流程，而不是一场演示</td><td>14、附录 B</td></tr>
+      <td>以课程页标注为准</td>      <td>能把一次培训设计成「有练习、有验收」的流程，而不是一场演示</td><td>25、附录 B</td></tr>
     <tr><td><strong>22</strong> AI 素养教学（Teaching AI Fluency）</td><td><a href="https://academy.claude.com/courses/teaching-ai-fluency" target="_blank" rel="noopener">teaching-ai-fluency</a></td><td>要自己开一门 AI 素养课的人</td>
       <td>以课程页标注为准</td><td>能写出大纲、练习与验收标准，并逐条标出「哪部分不依赖特定产品」</td><td>09、附录 E</td></tr>
   </tbody>
 </table>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">!</span>这张表的三个已知边界（别把预期当事实）</h4>
+  <h4><span class="ic">⚠</span>这张表的三个已知边界（别把预期当事实）</h4>
   <p>
     <strong>一、学时只对 13 号课写了具体数字</strong>，因为只有它有多份来源相互印证；
     其余 21 门一律写「以课程页标注为准」。这不是偷懒，而是纪律：学时、课名、模块数都是易过期信息，
@@ -23043,8 +23056,8 @@ COURSE.register({
 <ol>
   <li><strong>先立基线（Level 0）</strong>：一条规则或一个最简单模型。任何「AI 帮忙后变好了」都要先打败它。</li>
   <li><strong>分组切分</strong>：按艺人（或专辑）做 GroupKFold，保证同一艺人只出现在一侧；标准化只在训练折上拟合。</li>
-  <li><strong>先算噪声下限</strong>：\(\mathrm{SE} = \sigma/\sqrt{N}\)。代入 \(\sigma \approx 2.4\) 秒、\(N = 250\)，
-      得 \(\mathrm{SE} \approx 0.15\) 秒。小于 1 个 SE 的改进不要写进结论。</li>
+  <li><strong>先算噪声下限</strong>：\(\mathrm{SE} = \sigma/\sqrt{N}\)。代入 \(\sigma \approx 1.9\) 秒（与下例 RMSE 口径一致）、\(N = 250\)，
+      得 \(\mathrm{SE} \approx 0.12\) 秒。小于 1 个 SE 的改进不要写进结论。</li>
   <li><strong>置换检验</strong>：打乱标签重跑同一套流程 \(B = 500\) 次，按
       \(p = \dfrac{\#\{E_{\text{perm}} \le E_{\text{real}}\} + 1}{B+1}\) 算 p 值。
       注意 \(p\) 的最小非零值是 \(1/(B+1) \approx 0.002\)——
@@ -23053,7 +23066,7 @@ COURSE.register({
 <p>
   于是「模型说它优化了 15%」这句话，在你的报告里会变成：
   <em>「在 N=250 条按艺人分组的样本上，方案的 RMSE 为 1.92 ± 0.31（5 折），相对 Level 0 降低 15%，
-  置换检验 p = ___（B=500）；由于可检测下限约为 0.3 秒，本次改进（___ 秒）落在（可检测 / 不可检测）范围内。」</em>
+  置换检验 p = ___（B=500）；由于可检测下限约为 0.24 秒，本次改进（___ 秒）落在（可检测 / 不可检测）范围内。」</em>
   这句话才是 Discernment 的证据。
 </p>
 
@@ -23124,7 +23137,7 @@ COURSE.register({
       <td>我学到的是<strong>能力</strong>还是<strong>按钮</strong>？</td>
       <td>能用一句与界面无关的话描述这件事：输入什么、做什么、输出什么</td>
       <td>你记的是操作步骤；下次改版就得重新学</td>
-      <td>14</td>
+      <td>25</td>
     </tr>
     <tr>
       <td>2</td>
@@ -23145,21 +23158,21 @@ COURSE.register({
       <td>我的数据<strong>流向哪里</strong>？谁看得到、留多久？</td>
       <td>说得出一份数据分类：可外发 / 脱敏后可发 / 绝不外发</td>
       <td>你可能已经把不该发的数据发出去了</td>
-      <td>21、12、附录 D</td>
+      <td>20、24、附录 D</td>
     </tr>
     <tr>
       <td>5</td>
       <td>成本模型是什么？</td>
       <td>能说出计费维度（按 token / 按座席 / 按算力）与一个量级估算</td>
       <td>你无法判断「这个用法值不值」</td>
-      <td>11、08</td>
+      <td>23、08</td>
     </tr>
     <tr>
       <td>6</td>
       <td>出错时我能定位到哪一层？</td>
       <td>分层排查：输入 → 提示 → 工具 → 模型 → 数据；每层有一个可打印/可回看的证据</td>
       <td>只能重试，不能定位</td>
-      <td>08、20</td>
+      <td>08、19</td>
     </tr>
     <tr>
       <td>7</td>
@@ -23173,7 +23186,7 @@ COURSE.register({
       <td>如果明天停用这家服务，我的产出还剩什么？</td>
       <td>说得出可带走的东西：数据、脚本、规范、笔记、需求说明</td>
       <td>你的资产其实是租来的</td>
-      <td>16、11</td>
+      <td>29、23</td>
     </tr>
   </tbody>
 </table>
@@ -23206,7 +23219,7 @@ COURSE.register({
     <tr>
       <td><strong>要写代码的开发者</strong></td>
       <td>03 或 04（编码智能体）→ 09（MCP 入门）→ 15（开发者 AI 素养）</td>
-      <td>16–22 的身份课（与你无关）；01 的界面向导（半天可跳过）</td>
+      <td>17–22 的身份课（与你无关）；01 的界面向导（半天可跳过）</td>
       <td><strong>E8</strong>（量化 + 推理吞吐成本对照），顺带把 30 分钟实验做成交付前置检查</td>
       <td>一个仓库：README 写清一条命令跑通；<code>tests/</code> 能挡住 AI 改坏的提交；一条 MCP 最小服务端</td>
     </tr>
@@ -23288,21 +23301,21 @@ COURSE.register({
       </tr>
     </tbody>
   </table>
-  <p>符号检验可以直接跑四行程序（把 <code>n_eff</code> 与 <code>k</code> 换成你的数）：</p>
+  <p>符号检验可以直接跑五行程序（把 <code>n_eff</code> 与 <code>k</code> 换成你的数）：</p>
   <pre><code><span class="cm"># [逐行剖析] 配对符号检验 (Sign Test) 离散二项分布双尾精确 p 值计算</span>
 from math import comb
 <span class="cm"># 1. 剔除平局 (Tie) 后的有效配对对比总次数 n_eff</span>
 n_eff = 7
 <span class="cm"># 2. 新策略 v2 胜出的离散观测频次 k</span>
 k = 6
-<span class="cm"># 3. 计算双尾 p 值: 2 * sum_{i=k}^{n} C(n, i) * (0.5)^n</span>
+<span class="cm"># 3. 计算双尾 p 值: 2 * sum_{i=k}^{n} C(n, i) * (0.5)^n（k 取多数侧；若 k&lt;n/2 先用 n-k 代入，否则 p 会超过 1）</span>
 p = 2 * sum(comb(n_eff, i) for i in range(k, n_eff + 1)) / (2 ** n_eff)
 print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># 检验在 alpha=0.05 下是否具备统计学泛化显著性</span></code></pre>
   <p><strong>记录表（照抄进你的台账）</strong>：</p>
   <table class="tbl small">
     <thead><tr><th>日期</th><th>任务</th><th>有效比较 n_eff</th><th>v2 胜次 k</th><th>p 值</th><th>迁移率</th><th>结论（一句话）</th></tr></thead>
     <tbody>
-      <tr><td>2026-10-05</td><td>crossfade 听测注意事项</td><td>7</td><td>6</td><td>0.125</td><td>3/5 = 0.60</td><td>描述度提升方向正确，但 7 次比较不足以证明；需要把任务扩到 20 个以上</td></tr>
+      <tr><td>2026-10-05</td><td>crossfade 听测注意事项</td><td>7</td><td>6</td><td>0.125</td><td>3/6 = 0.50</td><td>描述度提升方向正确，但 7 次比较不足以证明；迁移率低于 0.6，需求要重写；需要把任务扩到 20 个以上</td></tr>
     </tbody>
   </table>
   <p>
@@ -23324,7 +23337,7 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
     <tbody>
       <tr>
         <td><strong>13</strong> AI 素养框架（4D）</td>
-        <td><strong>高</strong>。它给你一套划边界与签字的语言，直接改善以后写第 16 章这类答辩叙事时的表达</td>
+        <td><strong>高</strong>。它给你一套划边界与签字的语言，直接改善以后写第 29 章这类答辩叙事时的表达</td>
         <td>现在，与第 09 章并行</td>
         <td>4D 分工表 + AI 参与范围声明</td>
       </tr>
@@ -23377,43 +23390,43 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
       <td>MCP 工具 / 连接器</td>
       <td>把外部能力以统一描述暴露给模型，让模型决定何时调用</td>
       <td><strong>MCP 本身是开放协议、有公开规范</strong>；同层还有通用的函数/工具调用约定，以及各框架自己的工具描述格式</td>
-      <td>20、19</td>
+      <td>19、18</td>
     </tr>
     <tr>
       <td>编码智能体的「读-改-跑」</td>
       <td>带工具循环的编码代理：读文件、改代码、执行测试、看结果再决定下一步</td>
       <td>一类开源编码智能体（如 Aider、OpenHands、Cline 等），或自己用 30 行编排循环实现</td>
-      <td>14、16</td>
+      <td>25、29</td>
     </tr>
     <tr>
       <td>Agent 技能 / 技能库</td>
       <td>把重复任务的输入输出约定固化下来，避免每次重写提示</td>
       <td>朴素做法：一个版本化的提示模板 + 一份示例输入输出；框架无关</td>
-      <td>20</td>
+      <td>19</td>
     </tr>
     <tr>
       <td>子代理 / 并行执行者</td>
       <td>任务分解 + 上下文隔离 + 结果汇总（多智能体编排）</td>
       <td>通用编排框架（如 LangGraph 等），或者最稳的版本：多次独立调用 + 人工汇总</td>
-      <td>20、14</td>
+      <td>19、25</td>
     </tr>
     <tr>
       <td>Bedrock / Vertex 上的模型</td>
       <td>托管推理服务：云厂商负责算力与合规外壳，模型提供方负责权重与行为</td>
       <td>自建推理服务（vLLM、TGI、llama.cpp 等），本地跑开放权重模型</td>
-      <td>10、11</td>
+      <td>10、23</td>
     </tr>
     <tr>
       <td>上下文 / 记忆功能</td>
       <td>上下文窗口内的信息组织与检索增强</td>
       <td>自己搭检索（BM25 / FAISS 等）+ 显式拼接；不依赖任何产品的「记忆」开关</td>
-      <td>19</td>
+      <td>18</td>
     </tr>
     <tr>
       <td>额度、限流、会员档位</td>
       <td>服务等级与成本约束：按 token 计费、按时间窗限流、超额降级</td>
       <td>自建服务时用队列与并发上限表达同一件事；成本口径自己算</td>
-      <td>11、13</td>
+      <td>23、24</td>
     </tr>
   </tbody>
 </table>
@@ -23516,43 +23529,40 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
     <li>在交付文档上签名，声明 AI 参与范围</li>
   </ul>
   <p class="why">
-    四个选项正好对应 4D 的其他维度与本题的正确答案：写清需求是 Description，
-    划边界是 Delegation，签名与披露是 Diligence。
-    Discernment 的关键是「不靠读起来觉得不错」：\(N=250\) 时 \(\mathrm{SE}\approx0.15\) 秒、
-    可检测下限约 0.3 秒，因此小于 1 个 SE 的改进不该写进结论。
+    Discernment 的关键是「不靠读起来觉得不错」：\(N=250\) 时 \(\mathrm{SE}\approx0.12\) 秒、
+    可检测下限约 0.24 秒，因此小于 1 个 SE 的改进不该写进结论。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 4</div>
-  <p class="q">课程页上标注了某门课的学时，你的自学计划应该怎么用它？</p>
+  <p class="q">你的四周计划只有 24 小时，而 22 门课按顺序刷完至少 40 小时。按本附录的建议，你该怎么做？</p>
   <ul class="opts">
-    <li>把它当承诺：几小时就该学会，超时说明自己不行</li>
-    <li data-ok>当作课程页当时的量级参考，并记下核对日期；以课程页标注为准，不引用任何二手的精确数字</li>
-    <li>把它乘以三当作实际需要的时间，然后不再核对</li>
-    <li>忽略它，学时与掌握程度完全无关</li>
+    <li>每天多挤 2 小时，硬把 22 门刷完，覆盖面最重要</li>
+    <li data-ok>只上 13 号课（约 4 小时）加做第 6 节 30 分钟实验，拿三个可被别人检查的数字，剩下时间做自己项目的验收</li>
+    <li>每门课只看前 10 分钟，22 门的目录都过一遍就行</li>
+    <li>先花 24 小时刷课，自己的项目以后再说</li>
   </ul>
   <p class="why">
-    学时属于最容易过期的信息（课程会重排、增删模块），所以本附录 22 门课里有 21 门只写「以课程页标注为准」，
-    唯一写出具体数字的 13 号课也标明了出处。正确做法是记下日期与来源，
-    并记住真正的验收标准是第 6 节那三个数字，而不是「我在标注学时内看完了」。
+    40 与 24 差 16 小时，硬刷等于主动放弃项目验收。第 6 节实验产出三个可检查的数字
+    （迁移率、双尾 p 值、带日期命令的台账），13 号课给你 4D 语言；
+    刷完 22 门但零产出，评审那关等于零证据——顺序是先立验收，再扩工具。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 5</div>
-  <p class="q">下面哪一项最能向评审证明你真的掌握了与 AI 协作的能力？</p>
+  <p class="q">评审现场给你一份材料：commit 时间线、可运行仓库、AI 披露声明、一份迁移率 0.2 的记录。按本附录判据，结论是？</p>
   <ul class="opts">
-    <li>收集的课程结业徽章数量</li>
-    <li>看完全部 22 门课的证明材料</li>
-    <li data-ok>可复现的作品 + 带日期与命令的实验台账 + 同一任务在第二个模型上的迁移记录</li>
-    <li>能复述课程里的产品术语与界面位置</li>
+    <li>材料这么全，通过；0.2 说明这个模型太差，换个模型就行</li>
+    <li>只看徽章和学时就够了，0.2 是正常波动</li>
+    <li data-ok>可验证的是仓库跑通、台账日期命令、迁移记录三样；0.2 低于 0.6 说明需求写得不够中性，要重写需求；「已掌握协作能力」这个结论会被追问穿帮</li>
+    <li>材料越多越可信，不用逐项验证</li>
   </ul>
   <p class="why">
-    徽章只证明你走完了流程，术语与界面位置恰恰是最容易随改版失效的部分。
-    评审能当场验证的是三样东西：一条命令能跑通的仓库、记着日期/命令/数字的台账、
-    以及「换一个模型后同一需求仍然通过验收」的迁移记录。这三样合起来，
-    才把「我上过课」换成了「我能交付」。
+    能当场验证的只有三样：一条命令跑通的仓库、记着日期命令数字的台账、换模型重跑的迁移记录。
+    迁移率 0.2 远低于 0.6，判据指向需求本身不中性——换模型解决不了需求的问题。
+    徽章与学时证明的是流程，不是能力；「材料多」不等于「结论成立」。
   </p>
 </div>
 `

@@ -108,7 +108,7 @@ COURSE.register({
     注意这件事发生的位置是<strong>注意力行 Softmax</strong>——对 \(QK^{T}\) 点积分数
     （\(T \times T\) 权重矩阵的每一行）做的归一化，
     不要把它和最后词表输出层的 Softmax 加交叉熵搞混（那里的梯度 \(\mathbf{p} - \mathbf{y}\) 形式上永远有信号）。
-    注意力权重的导数矩阵为 \(S_i(\delta_{ij} - S_j)\)。一旦进入极端极化状态，所有偏导数几乎完全等于零，
+    注意力权重的导数矩阵为 \(A_i(\delta_{ij} - A_j)\)（记 \(A = \mathrm{softmax}(S)\) 为归一化后的注意力权重）。一旦进入极端极化状态，所有偏导数几乎完全等于零，
     查询与键的梯度（\(\partial \mathcal{L} / \partial Q\)、\(\partial \mathcal{L} / \partial K\)）瞬间在注意力层
     <strong>彻底消失（Vanishing Gradient）</strong>，网络停止学习！
     因此，必须严格除以缩放因子 \(\sqrt{d_k}\)，使输入 Softmax 前的方差精确锚定回 \(1.0\)。
@@ -370,32 +370,35 @@ COURSE.register({
   </p>
 </section>
 
-<h3>7.5 KV cache 账本：7B 模型 4k 上下文约 2.15GB，32k 直接 OOM</h3>
+<h3>7.5 KV cache 账本：GQA-7B 32k 约 4.3GB，MHA 才会在 32k OOM</h3>
 <section class="blk blk-eco">
   <h4><span class="ic">◈</span>KV cache 账本：先算再开长上下文</h4>
   <p>
     <strong>一句话定义</strong>：KV cache 是解码时为每个已见 token 存下的 \(K\)、\(V\) 向量——
     存下来就不用每步重算，代价是显存随长度线性增长。它的字节数只有一条公式：
   </p>
-  \[ M = 2 \cdot L \cdot d \cdot b \cdot T \]
+  \[ M = 2 \cdot L \cdot h_{kv} \cdot d_{head} \cdot b \cdot T \]
   <p>
-    其中 \(L\) 为层数，\(d\) 为模型宽度，\(b\) 为每元素字节数（fp16 取 2），\(T\) 为上下文长度，
-    开头的 2 表示 K 与 V 各一份。按 7B 量级（\(L = 32\)，\(d = 4096\)，fp16）手算：
-    每个 token 占 \(2 \times 32 \times 4096 \times 2 = 524288\) B（约 0.5 MB）。
+    其中 \(L\) 为层数，\(h_{kv}\) 为 KV 头数（MHA 时等于全部头数，GQA 时只等于 KV 组数），\(d_{head}\) 为每头维度，
+    \(b\) 为每元素字节数（fp16 取 2），\(T\) 为上下文长度，开头的 2 表示 K 与 V 各一份。
+    按 Llama-3-8B 级 GQA（\(L = 32\)，\(h_{kv} = 8\)，\(d_{head} = 128\)，fp16）手算：
+    每个 token 占 \(2 \times 32 \times 8 \times 128 \times 2 = 131072\) B（128 KiB）。
   </p>
   <table class="tbl small">
     <thead><tr><th>上下文长度</th><th>KV cache</th><th>加 14GB 权重后</th><th>24GB 卡结论</th></tr></thead>
     <tbody>
-      <tr><td>4k</td><td>约 2.15GB</td><td>约 16GB</td><td>能跑</td></tr>
-      <tr><td>8k</td><td>约 4.3GB</td><td>约 18GB</td><td>能跑，batch 别大</td></tr>
-      <tr><td>16k</td><td>约 8.6GB</td><td>约 23GB</td><td>悬崖边</td></tr>
-      <tr><td>32k</td><td>约 17.2GB</td><td>约 31GB</td><td>OOM</td></tr>
+      <tr><td>4k</td><td>约 0.5GB</td><td>约 14.5GB</td><td>能跑</td></tr>
+      <tr><td>8k</td><td>约 1GB</td><td>约 15GB</td><td>能跑</td></tr>
+      <tr><td>16k</td><td>约 2.15GB</td><td>约 16.2GB</td><td>能跑，batch 别大</td></tr>
+      <tr><td>32k</td><td>约 4.3GB</td><td>约 18.3GB</td><td>能跑，但余量小</td></tr>
     </tbody>
   </table>
   <p>
-    验算：\(524288 \times 4096 = 2147483648\) B \(\approx 2.15\) GB；32k 是 4k 的 8 倍，即约 17.2GB。
+    验算：\(131072 \times 4096 = 536870912\) B \(\approx 0.54\) GB；32k 是 4k 的 8 倍，即约 4.3GB。
+    对比：若是 MHA（\(h_{kv} = 32\)），每 token 要 0.5MB，32k 就是约 17.2GB，加权重约 31GB，24GB 卡才会 OOM——
+    <strong>KV 只随 KV 头数缩放</strong>，这正是 GQA 值钱的地方。
     <strong>LLM payoff（含比较）</strong>：参数能装下不等于上下文能跑——长上下文的第一堵墙是 KV 显存，不是参数量；
-    batch 也要乘进去（batch 4 时 4k 上下文的 KV 是约 8.6GB）。
+    batch 也要乘进去（batch 4 时 32k 上下文的 KV 是约 17.2GB，加权重就过 24GB 了）。
     缓解手段按代价排序：GQA（少存几组 KV 头，LLaMA 类模型标配）、KV 量化（fp8/int8，精度换一半显存）、
     窗口/逐出（超出部分丢弃，长程质量换显存）。选型时把这张表和 02 讲的 fertility 表连起来看：
     fertility 降 3 倍，这里的每一行 GB 数也除以 3。
@@ -570,16 +573,16 @@ COURSE.register({
 
 <div class="quiz">
   <div class="qlabel">自测 · 8</div>
-  <p class="q">7B 量级模型（32 层、宽度 4096、fp16）在 4k 上下文下 KV cache 约 2.15GB。直接把上下文开到 32k（batch 不变），会发生什么？</p>
+  <p class="q">Llama-3-8B 级 GQA 模型（32 层、KV 头 8、\(d_{head}=128\)、fp16）在 32k 上下文下单序列 KV cache 约多少？权重约 14GB 时 24GB 卡能否跑？</p>
   <ul class="opts">
-    <li>KV 变成约 4.3GB，因为长度 8 倍但 GQA 会分摊</li>
-    <li data-ok>KV 变成约 17.2GB，加上约 14GB 权重后超过 24GB，直接 OOM</li>
-    <li>KV 不变，因为 cache 只与参数量有关</li>
-    <li>KV 变成约 137GB，因为注意力是平方关系</li>
+    <li>约 17.2GB，加权重后约 31GB，直接 OOM</li>
+    <li data-ok>约 4.3GB，加权重后约 18.3GB，能跑但余量小</li>
+    <li>约 0.5GB，那是 4k 上下文的值</li>
+    <li>约 137GB，因为注意力是平方关系</li>
   </ul>
   <p class="why">
-    \(M = 2 \cdot L \cdot d \cdot b \cdot T\) 与 \(T\) 成正比：32k 是 4k 的 8 倍，
-    \(2.15 \times 8 \approx 17.2\) GB；加权重大约 31GB，24GB 卡装不下。
+    每 token \(2 \times 32 \times 8 \times 128 \times 2 = 131072\) B（128 KiB），\(131072 \times 32768 \approx 4.3\) GB；
+    加权重大约 18.3GB，24GB 卡装得下。17.2GB 是把 GQA 当成 MHA（\(h_{kv} = 32\)）算出来的——KV 只随 KV 头数缩放。
     注意平方的是注意力计算量 \(O(T^2)\)，KV 显存是线性的——两者别混：长度 8 倍时计算量变 64 倍，显存变 8 倍。
   </p>
 </div>

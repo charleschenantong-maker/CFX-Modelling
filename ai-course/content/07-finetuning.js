@@ -61,12 +61,12 @@ COURSE.register({
 <section class="blk blk-m">
   <h4><span class="ic">∑</span>LoRA 的数学</h4>
   <p>冻结原权重 \(W_0 \in \mathbb{R}^{d\times k}\)，只学习一个低秩增量：</p>
-  \[ W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r} B A, \qquad B \in \mathbb{R}^{d\times r},\ A \in \mathbb{R}^{r\times k},\ r \ll \min(d,k) \]
+  \[ W = W_0 + \Delta W, \qquad \Delta W = \frac{\alpha}{r} A B, \qquad A \in \mathbb{R}^{d\times r},\ B \in \mathbb{R}^{r\times k},\ r \ll \min(d,k) \]
   <p>可训练参数量从 \(dk\) 降到 \(r(d+k)\)。当 \(d=k=4096\)、\(r=16\) 时：</p>
   \[ \frac{r(d+k)}{dk} = \frac{16 \times 8192}{4096^2} \approx 0.78\% \]
   <p>
     <span class="t" data-tterm="rank r" data-d="LoRA 的秩：越大容量越强也越容易过拟合，常见 8–64。">秩 \(r\)</span> 控制容量，
-    <span class="t" data-tterm="alpha" data-d="缩放因子，实际更新幅度为 alpha/r·BA；常取 2r 或 16。">\(\alpha\)</span> 控制更新幅度。
+    <span class="t" data-tterm="alpha" data-d="缩放因子，实际更新幅度为 alpha/r·AB；常取 2r 或 16。">\(\alpha\)</span> 控制更新幅度。
     初始化时 \(B=0\)，所以训练开始时 \(\Delta W = 0\)——<strong>微调从原始模型精确出发</strong>，这一性质让 LoRA 特别安全。
   </p>
   <p>
@@ -111,8 +111,8 @@ COURSE.register({
 </p>
 
 <h4>3.3 训练完可以「合并」回原权重</h4>
-<p>因为 \(\Delta W = \frac{\alpha}{r}BA\) 是确定性的矩阵，推理前可以直接合并：</p>
-\[ W_{\text{merge}} = W_0 + \frac{\alpha}{r}\,B A \]
+<p>因为 \(\Delta W = \frac{\alpha}{r}AB\) 是确定性的矩阵，推理前可以直接合并：</p>
+\[ W_{\text{merge}} = W_0 + \frac{\alpha}{r}\,A B \]
 <p>
   合并后模型结构与原模型完全一致，<strong>推理时不增加任何延迟与显存</strong>。
   这是 LoRA 相对 adapter（插入额外层，推理必须带着走）的最大工程优势。
@@ -134,7 +134,7 @@ COURSE.register({
   <p>
     <strong>前置定义 1（参数高效微调 PEFT 与增量更新）：</strong>
     设预训练模型包含 \(D\) 个参数 \(\theta_0 \in \mathbb{R}^D\)。全量微调（Full Fine-Tuning）更新全部参数：\(\theta = \theta_0 + \Delta \theta\)，
-    反向传播需维护 \(D\) 个梯度的 fp16 显存（\(2D\) 字节）与 AdamW 的优化器状态（fp32 主权重 + 一阶动量 + 二阶动量，共 \(12D\) 字节）。
+    反向传播需维护 bf16 权重（\(2D\) 字节）、\(D\) 个梯度的 fp16 显存（\(2D\) 字节）与 AdamW 的优化器状态（fp32 主权重 + 一阶动量 + 二阶动量，共 \(12D\) 字节）。
     PEFT 冻结底座参数 \(\theta_0\)，仅引入极小规模的附加可训练参数 \(\phi \in \mathbb{R}^d\)（满足 \(d \ll D\)），参数更新限制在低维子空间：
   </p>
   \[ \min_\phi \mathcal{L}(\theta_0 + \Delta \theta(\phi); \mathcal{D}) \]
@@ -144,9 +144,9 @@ COURSE.register({
   <p>
     <strong>前置定义 2（低秩分解 Low-Rank Factorization）：</strong>
     设线性映射权重矩阵 \(W_0 \in \mathbb{R}^{d \times k}\)（通常 \(d=k=4096\)）。若对其增量矩阵 \(\Delta W \in \mathbb{R}^{d \times k}\) 施加秩约束 \(\mathrm{rank}(\Delta W) \le r \ll \min(d, k)\)，
-    根据线性代数秩分解定理，存在窄矩阵 \(B \in \mathbb{R}^{d \times r}\) 与 \(A \in \mathbb{R}^{r \times k}\) 使得：
+    根据线性代数秩分解定理，存在窄矩阵 \(A \in \mathbb{R}^{d \times r}\)（降维）与 \(B \in \mathbb{R}^{r \times k}\)（升维）使得：
   </p>
-  \[ \Delta W = \frac{\alpha}{r} B A \]
+  \[ \Delta W = \frac{\alpha}{r} A B \]
   <p>
     <strong>代数性质与计算量（FLOPs）手算：</strong>
   </p>
@@ -154,8 +154,8 @@ COURSE.register({
     <li>参数量压缩比：原矩阵参数量为 \(dk\)，分解后参数量为 \(r(d+k)\)。当 \(d=k=4096, r=16\) 时，参数量由 \(16{,}777{,}216\) 骤降至 \(16 \times 8192 = 131{,}072\)，占比仅为：
       \[ \frac{r(d+k)}{dk} = \frac{131{,}072}{16{,}777{,}216} = \frac{1}{128} \approx 0.78\% \]
     </li>
-    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (BA) = (xB) A\)：先算 \(xB \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xB)A \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
-    <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (0 \cdot A) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
+    <li>前向浮点计算量（FLOPs）：对输入行向量 \(x \in \mathbb{R}^{1 \times d}\)，直接乘法 \(x \Delta W\) 需 \(2dk\) 次操作。利用结合律计算 \(x (AB) = (xA) B\)：先算 \(xA \in \mathbb{R}^{1 \times r}\) 需 \(2dr\) 次操作，再算 \((xA)B \in \mathbb{R}^{1 \times k}\) 需 \(2rk\) 次操作，总计 \(2r(d+k)\) 次浮点运算，计算开销同样降低到原来的 \(0.78\%\)！</li>
+    <li>初始化守恒律：初始化令 \(A \sim \mathcal{N}(0, \sigma^2)\) 而 \(B = 0\)，因此训练初始时刻恒有 \(\Delta W = \frac{\alpha}{r} (A \cdot 0) = 0\)，保证初始输出与预训练模型严格一致，微调平滑起步。</li>
   </ul>
   </section>
 
@@ -486,7 +486,7 @@ COURSE.register({
   <strong>一组小数字</strong>：设 \(4\) 个回答的奖励是 \(r = [1, 1, 0, 0]\)，均值 \(0.5\)；此处教学约定取总体标准差（平方偏差除以 \(G=4\) 再开方），得 \(0.5\)，
   于是 \(\hat A = [+1, +1, -1, -1]\)——前两个回答会被推高，后两个被压低（这只是本讲的教学约定，不同程序库的默认标准差口径可能不同）。
   顺带一提：若一组回答得分全相等，方差为零，组内就没有偏好信号，实现上可直接把这组优势记为零或给分母加一个很小的稳定项。
-  <strong>组内标准化取代了 critic</strong>——这就是它比 PPO 省一半显存的原因，也是「推理模型」训练的主力算法。
+  <strong>组内标准化取代了 critic</strong>——这就是它比 PPO 省下一整套价值网络权重与优化器状态的原因，也是「推理模型」训练的主力算法。
 </p>
 <div class="acc" data-t="选读·第二遍：GRPO 裁剪目标与 KL 项的完整形式" data-badge="可选">
   <div class="acc-body">
@@ -528,7 +528,7 @@ COURSE.register({
 <p><strong>1. LoRA 低秩适配前向计算微核心：</strong></p>
 <p>\[ h = x W_{\text{base}} + \frac{\alpha}{r} x A B, \quad A \in \mathbb{R}^{d \times r}, \; B \in \mathbb{R}^{r \times k} \]</p>
 <p>
-  <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times d}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
+  <strong>逐行代数解析</strong>：主干基座权重 \(W_{\text{base}}\) 完全冻结不更新；输入 \(x\) 经低秩矩阵 \(A \in \mathbb{R}^{d \times r}\) 降维后再经 \(B \in \mathbb{R}^{r \times k}\) 升维，乘以缩放常数 \(\alpha / r\) 并与主路相加，将训练可变参数量压缩 95% 以上。
 </p>
 
 <p><strong>2. DPO 直接偏好优化损失函数微核心：</strong></p>

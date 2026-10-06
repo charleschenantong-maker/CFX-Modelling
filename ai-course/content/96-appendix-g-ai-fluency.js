@@ -53,14 +53,14 @@ COURSE.register({
     <h5>第一组 · 基础与协作（01–04）</h5>
     <p><strong>解决「人和模型怎么配合」</strong>。适合刚接触、或者只会一问一答的人。
       产出是一张分工表：哪些步骤我做、哪些交给模型。</p>
-    <p>对应本课程：<a href="#m0">00 导读</a>、<a href="#m14">14 工作流</a>。</p>
+    <p>对应本课程：<a href="#m0">00 导读</a>、<a href="#m25">25 工程流水线</a>。</p>
   </div>
   <div class="card">
     <h5>第二组 · 把 AI 接进系统（05–12）</h5>
     <p><strong>解决「模型怎么接进代码库、工具与云平台」</strong>。适合要交付东西的开发者。
       产出是一次可复现的调用：输入、工具、重试、成本四样都记下来。</p>
     <p>对应本课程：<a href="#m8">08 推理与部署</a>、<a href="#m10">10 算力与工具链</a>、
-      <a href="#m20">20 智能体系统</a>。</p>
+      <a href="#m19">19 智能体系统</a>。</p>
   </div>
   <div class="card">
     <h5>第三组 · 素养框架与能力边界（13–16）</h5>
@@ -72,7 +72,7 @@ COURSE.register({
     <h5>第四组 · 身份与教学落地（17–22）</h5>
     <p><strong>解决「我所在的组织或课堂怎么用」</strong>。是第三组按身份拆出来的落地篇：
       学生、小企业、非营利、教育者、K-12、培训者各有约束。</p>
-    <p>对应本课程：<a href="#m16">16 收束</a>、附录 D 合规与学术诚信。</p>
+    <p>对应本课程：<a href="#m29">29 收束</a>、附录 D 合规与学术诚信。</p>
   </div>
 </div>
 
@@ -120,11 +120,11 @@ COURSE.register({
     <tr><td><strong>01</strong> Claude 101（Claude 101）</td><td><a href="https://academy.claude.com/courses/claude-101" target="_blank" rel="noopener">claude-101</a></td><td>第一次用聊天式模型的人；想把「听说很好用」变成「我自己试过」的人</td>
       <td>以课程页标注为准</td><td>能用自然语言完整做完一个小任务，并说清自己哪一步做对了、哪一步是模型替你决定的</td><td>00、08</td></tr>
     <tr><td><strong>02</strong> Claude 协作入门（Introduction to Claude Cowork）</td><td><a href="https://academy.claude.com/courses/introduction-to-claude-cowork" target="_blank" rel="noopener">introduction-to-claude-cowork</a></td><td>已经会一问一答，但还没把 AI 编进日常工作流的人</td>
-      <td>以课程页标注为准</td><td>能把一个任务拆成「我做什么 + 它做什么」的两栏分工表，并写出交接时需要的输入</td><td>14、00</td></tr>
+      <td>以课程页标注为准</td>      <td>能把一个任务拆成「我做什么 + 它做什么」的两栏分工表，并写出交接时需要的输入</td><td>25、00</td></tr>
     <tr><td><strong>03</strong> Claude Code 101（Claude Code 101）</td><td><a href="https://academy.claude.com/courses/claude-code-101" target="_blank" rel="noopener">claude-code-101</a></td><td>要在终端或编辑器里让智能体改代码的人</td>
-      <td>以课程页标注为准</td><td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的闭环</td><td>14、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能在自己的仓库里走完一次「读代码 → 改一处 → 跑测试 → 看 diff」的闭环</td><td>25、29</td></tr>
     <tr><td><strong>04</strong> Claude Code 实战（Claude Code in Action）</td><td><a href="https://academy.claude.com/courses/claude-code-in-action" target="_blank" rel="noopener">claude-code-in-action</a></td><td>已能跑通编码智能体，想把它放进真实项目流程的人</td>
-      <td>以课程页标注为准</td><td>能把测试、审查、提交拆成可复用的步骤，而不是每次从零描述需求</td><td>14、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能把测试、审查、提交拆成可复用的步骤，而不是每次从零描述需求</td><td>25、29</td></tr>
   </tbody>
 </table>
 
@@ -133,21 +133,21 @@ COURSE.register({
   <thead><tr><th>课程</th><th>链接</th><th>适合谁</th><th>建议学时</th><th>学完应该能做什么</th><th>本课程对应章节</th></tr></thead>
   <tbody>
     <tr><td><strong>05</strong> Agent 技能入门（Introduction to Agent Skills）</td><td><a href="https://academy.claude.com/courses/introduction-to-agent-skills" target="_blank" rel="noopener">introduction-to-agent-skills</a></td><td>想把「一套固定做法」沉淀成可复用单元、而不是每次重写提示的人</td>
-      <td>以课程页标注为准</td><td>能写出一个有输入输出约定的技能说明，让任务从「每次口述」变成「调用一次」</td><td>20</td></tr>
+      <td>以课程页标注为准</td>      <td>能写出一个有输入输出约定的技能说明，让任务从「每次口述」变成「调用一次」</td><td>19</td></tr>
     <tr><td><strong>06</strong> Subagents 子代理入门（Introduction to Subagents）</td><td><a href="https://academy.claude.com/courses/introduction-to-subagents" target="_blank" rel="noopener">introduction-to-subagents</a></td><td>任务多、上下文互相污染，需要并行或隔离的人</td>
-      <td>以课程页标注为准</td><td>能把大任务拆给多个执行者，并明确规定每个执行者能看到什么、不许碰什么</td><td>20、14</td></tr>
+      <td>以课程页标注为准</td>      <td>能把大任务拆给多个执行者，并明确规定每个执行者能看到什么、不许碰什么</td><td>19、25</td></tr>
     <tr><td><strong>07</strong> Claude 平台 101（Claude Platform 101）</td><td><a href="https://academy.claude.com/courses/claude-platform-101" target="_blank" rel="noopener">claude-platform-101</a></td><td>想从聊天窗口走到平台与 API 的人</td>
       <td>以课程页标注为准</td><td>能画出一次请求经过的部件（模型、额度、工具、日志），并指出哪一环最可能出错</td><td>10、08</td></tr>
     <tr><td><strong>08</strong> 基于 Claude API 开发（Building with the Claude API）</td><td><a href="https://academy.claude.com/courses/building-with-the-claude-api" target="_blank" rel="noopener">building-with-the-claude-api</a></td><td>要写代码调用模型的人</td>
-      <td>以课程页标注为准</td><td>能发出一次带系统提示、工具定义与重试的请求，并记录 token 数与耗时</td><td>08、11</td></tr>
+      <td>以课程页标注为准</td>      <td>能发出一次带系统提示、工具定义与重试的请求，并记录 token 数与耗时</td><td>08、23</td></tr>
     <tr><td><strong>09</strong> MCP 入门（Introduction to Model Context Protocol）</td><td><a href="https://academy.claude.com/courses/introduction-to-model-context-protocol" target="_blank" rel="noopener">introduction-to-model-context-protocol</a></td><td>被「每个工具一套接法」折磨过的人；数据在本地、想让模型安全地读到的人</td>
-      <td>以课程页标注为准</td><td>能用公开规范把本地数据源暴露成工具，并说清它与通用「工具调用」的分工</td><td>20、19</td></tr>
+      <td>以课程页标注为准</td>      <td>能用公开规范把本地数据源暴露成工具，并说清它与通用「工具调用」的分工</td><td>19、18</td></tr>
     <tr><td><strong>10</strong> MCP 进阶话题（Model Context Protocol: Advanced Topics）</td><td><a href="https://academy.claude.com/courses/model-context-protocol-advanced-topics" target="_blank" rel="noopener">model-context-protocol-advanced-topics</a></td><td>已跑通最小服务端，关心权限、作用域与部署的人</td>
-      <td>以课程页标注为准</td><td>能说清传输方式、权限边界与「这个工具该不该给它」，并写出最小威胁模型</td><td>20、21</td></tr>
+      <td>以课程页标注为准</td>      <td>能说清传输方式、权限边界与「这个工具该不该给它」，并写出最小威胁模型</td><td>19、20</td></tr>
     <tr><td><strong>11</strong> Claude 与 Amazon Bedrock（Claude with Amazon Bedrock）</td><td><a href="https://academy.claude.com/courses/claude-with-amazon-bedrock" target="_blank" rel="noopener">claude-with-amazon-bedrock</a></td><td>已经在 AWS 上、要按公司合规走的人</td>
-      <td>以课程页标注为准</td><td>能说清「托管云平台」与「模型提供方」各负责哪一半，账单与数据落在谁那里</td><td>10、11</td></tr>
+      <td>以课程页标注为准</td>      <td>能说清「托管云平台」与「模型提供方」各负责哪一半，账单与数据落在谁那里</td><td>10、23</td></tr>
     <tr><td><strong>12</strong> Claude 与 Vertex AI（Claude with Google Cloud's Vertex AI）</td><td><a href="https://academy.claude.com/courses/claude-with-google-cloud-s-vertex-ai" target="_blank" rel="noopener">claude-with-google-cloud-s-vertex-ai</a></td><td>已经在 GCP 上、需要与既有流水线打通的人</td>
-      <td>以课程页标注为准</td><td>能对照「托管平台 / 自建推理服务」两条路，算出一个粗成本口径与责任划分</td><td>10、11</td></tr>
+      <td>以课程页标注为准</td>      <td>能对照「托管平台 / 自建推理服务」两条路，算出一个粗成本口径与责任划分</td><td>10、23</td></tr>
   </tbody>
 </table>
 
@@ -156,13 +156,13 @@ COURSE.register({
   <thead><tr><th>课程</th><th>链接</th><th>适合谁</th><th>建议学时</th><th>学完应该能做什么</th><th>本课程对应章节</th></tr></thead>
   <tbody>
     <tr><td><strong>13</strong> AI 素养框架与基础（AI Fluency: Framework and foundations）</td><td><a href="https://academy.claude.com/courses/ai-fluency-framework-foundations" target="_blank" rel="noopener">ai-fluency-framework-foundations</a></td><td>任何人。<strong>如果整张地图只上一门，就上这门</strong></td>
-      <td>官方页标注 <strong>14 lessons / 4 hr / 1 quiz</strong>，完成可得徽章</td><td>能用 4D 说清一次协作里「谁决定、怎么描述、怎么验收、谁负责」，并指出自己最容易漏掉哪一维</td><td>09、00、16</td></tr>
+      <td>官方页标注 <strong>14 lessons / 4 hr / 1 quiz</strong>，完成可得徽章</td>      <td>能用 4D 说清一次协作里「谁决定、怎么描述、怎么验收、谁负责」，并指出自己最容易漏掉哪一维</td><td>09、00、29</td></tr>
     <tr><td><strong>14</strong> AI 能力与局限（AI Capabilities and Limitations）</td><td><a href="https://academy.claude.com/courses/ai-capabilities-and-limitations" target="_blank" rel="noopener">ai-capabilities-and-limitations</a></td><td>需要判断「这类任务能不能交给模型」的人</td>
-      <td>以课程页标注为准</td><td>能对一类具体任务给出「可做 / 需复核 / 不做」的判断，并说出验证它的最小实验</td><td>01、18、22</td></tr>
+      <td>以课程页标注为准</td>      <td>能对一类具体任务给出「可做 / 需复核 / 不做」的判断，并说出验证它的最小实验</td><td>01、17、22</td></tr>
     <tr><td><strong>15</strong> 开发者 AI 素养（AI Fluency for Builders）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-builders" target="_blank" rel="noopener">ai-fluency-for-builders</a></td><td>写代码、要交付可运行产物的人</td>
-      <td>以课程页标注为准</td><td>能把 4D 用在代码审查、测试与日志上：每个 AI 生成的分支都要有一个失败时的判定</td><td>09、21、14</td></tr>
+      <td>以课程页标注为准</td>      <td>能把 4D 用在代码审查、测试与日志上：每个 AI 生成的分支都要有一个失败时的判定</td><td>09、20、25</td></tr>
     <tr><td><strong>16</strong> 小企业 AI 素养（AI Fluency for Small Businesses）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-small-businesses" target="_blank" rel="noopener">ai-fluency-for-small-businesses</a></td><td>小团队、个体经营者、要控制成本的人</td>
-      <td>以课程页标注为准</td><td>能给出一条业务的「能交 / 不能交」清单，并写清按月成本与退出方案</td><td>11、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能给出一条业务的「能交 / 不能交」清单，并写清按月成本与退出方案</td><td>23、29</td></tr>
   </tbody>
 </table>
 
@@ -171,22 +171,22 @@ COURSE.register({
   <thead><tr><th>课程</th><th>链接</th><th>适合谁</th><th>建议学时</th><th>学完应该能做什么</th><th>本课程对应章节</th></tr></thead>
   <tbody>
     <tr><td><strong>17</strong> 学生 AI 素养（AI Fluency for Students）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-students" target="_blank" rel="noopener">ai-fluency-for-students</a></td><td>在读学生、要写论文或申请材料的人</td>
-      <td>以课程页标注为准</td><td>能把 AI 用在学习上而不越过学术诚信线，并留下「哪些是我做的」的过程记录</td><td>09、16、附录 D</td></tr>
+      <td>以课程页标注为准</td>      <td>能把 AI 用在学习上而不越过学术诚信线，并留下「哪些是我做的」的过程记录</td><td>09、29、附录 D</td></tr>
     <tr><td><strong>18</strong> 非营利组织 AI 素养（AI Fluency for Nonprofits）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-nonprofits" target="_blank" rel="noopener">ai-fluency-for-nonprofits</a></td><td>预算紧、数据还敏感的非营利团队</td>
-      <td>以课程页标注为准</td><td>能在「钱少 + 数据敏感」两个约束下写出一页可执行的使用规范</td><td>11、16</td></tr>
+      <td>以课程页标注为准</td>      <td>能在「钱少 + 数据敏感」两个约束下写出一页可执行的使用规范</td><td>23、29</td></tr>
     <tr><td><strong>19</strong> 教育者 AI 素养（AI Fluency for Educators）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-educators" target="_blank" rel="noopener">ai-fluency-for-educators</a></td><td>要改作业与课程设计的高校教师、教学设计师</td>
       <td>以课程页标注为准</td><td>能设计一次「过程留痕」的作业：交结果之外还要交过程与验证记录</td><td>09、附录 D</td></tr>
     <tr><td><strong>20</strong> K-12 教育者 AI 素养（AI Fluency for K-12 Educators）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-k-12-educators" target="_blank" rel="noopener">ai-fluency-for-k-12-educators</a></td><td>中小学教师、教务管理者</td>
       <td>以课程页标注为准</td><td>能把年龄、隐私与家长沟通三件约束写进课堂用法，而不是照搬成人用法</td><td>附录 D、09</td></tr>
     <tr><td><strong>21</strong> K-12 培训师培训（AI Fluency for PK-12: Train the Trainer）</td><td><a href="https://academy.claude.com/courses/ai-fluency-for-pk-12-train-the-trainer" target="_blank" rel="noopener">ai-fluency-for-pk-12-train-the-trainer</a></td><td>教研组长、教师培训者</td>
-      <td>以课程页标注为准</td><td>能把一次培训设计成「有练习、有验收」的流程，而不是一场演示</td><td>14、附录 B</td></tr>
+      <td>以课程页标注为准</td>      <td>能把一次培训设计成「有练习、有验收」的流程，而不是一场演示</td><td>25、附录 B</td></tr>
     <tr><td><strong>22</strong> AI 素养教学（Teaching AI Fluency）</td><td><a href="https://academy.claude.com/courses/teaching-ai-fluency" target="_blank" rel="noopener">teaching-ai-fluency</a></td><td>要自己开一门 AI 素养课的人</td>
       <td>以课程页标注为准</td><td>能写出大纲、练习与验收标准，并逐条标出「哪部分不依赖特定产品」</td><td>09、附录 E</td></tr>
   </tbody>
 </table>
 
 <section class="blk blk-warn">
-  <h4><span class="ic">!</span>这张表的三个已知边界（别把预期当事实）</h4>
+  <h4><span class="ic">⚠</span>这张表的三个已知边界（别把预期当事实）</h4>
   <p>
     <strong>一、学时只对 13 号课写了具体数字</strong>，因为只有它有多份来源相互印证；
     其余 21 门一律写「以课程页标注为准」。这不是偷懒，而是纪律：学时、课名、模块数都是易过期信息，
@@ -308,8 +308,8 @@ COURSE.register({
 <ol>
   <li><strong>先立基线（Level 0）</strong>：一条规则或一个最简单模型。任何「AI 帮忙后变好了」都要先打败它。</li>
   <li><strong>分组切分</strong>：按艺人（或专辑）做 GroupKFold，保证同一艺人只出现在一侧；标准化只在训练折上拟合。</li>
-  <li><strong>先算噪声下限</strong>：\(\mathrm{SE} = \sigma/\sqrt{N}\)。代入 \(\sigma \approx 2.4\) 秒、\(N = 250\)，
-      得 \(\mathrm{SE} \approx 0.15\) 秒。小于 1 个 SE 的改进不要写进结论。</li>
+  <li><strong>先算噪声下限</strong>：\(\mathrm{SE} = \sigma/\sqrt{N}\)。代入 \(\sigma \approx 1.9\) 秒（与下例 RMSE 口径一致）、\(N = 250\)，
+      得 \(\mathrm{SE} \approx 0.12\) 秒。小于 1 个 SE 的改进不要写进结论。</li>
   <li><strong>置换检验</strong>：打乱标签重跑同一套流程 \(B = 500\) 次，按
       \(p = \dfrac{\#\{E_{\text{perm}} \le E_{\text{real}}\} + 1}{B+1}\) 算 p 值。
       注意 \(p\) 的最小非零值是 \(1/(B+1) \approx 0.002\)——
@@ -318,7 +318,7 @@ COURSE.register({
 <p>
   于是「模型说它优化了 15%」这句话，在你的报告里会变成：
   <em>「在 N=250 条按艺人分组的样本上，方案的 RMSE 为 1.92 ± 0.31（5 折），相对 Level 0 降低 15%，
-  置换检验 p = ___（B=500）；由于可检测下限约为 0.3 秒，本次改进（___ 秒）落在（可检测 / 不可检测）范围内。」</em>
+  置换检验 p = ___（B=500）；由于可检测下限约为 0.24 秒，本次改进（___ 秒）落在（可检测 / 不可检测）范围内。」</em>
   这句话才是 Discernment 的证据。
 </p>
 
@@ -389,7 +389,7 @@ COURSE.register({
       <td>我学到的是<strong>能力</strong>还是<strong>按钮</strong>？</td>
       <td>能用一句与界面无关的话描述这件事：输入什么、做什么、输出什么</td>
       <td>你记的是操作步骤；下次改版就得重新学</td>
-      <td>14</td>
+      <td>25</td>
     </tr>
     <tr>
       <td>2</td>
@@ -410,21 +410,21 @@ COURSE.register({
       <td>我的数据<strong>流向哪里</strong>？谁看得到、留多久？</td>
       <td>说得出一份数据分类：可外发 / 脱敏后可发 / 绝不外发</td>
       <td>你可能已经把不该发的数据发出去了</td>
-      <td>21、12、附录 D</td>
+      <td>20、24、附录 D</td>
     </tr>
     <tr>
       <td>5</td>
       <td>成本模型是什么？</td>
       <td>能说出计费维度（按 token / 按座席 / 按算力）与一个量级估算</td>
       <td>你无法判断「这个用法值不值」</td>
-      <td>11、08</td>
+      <td>23、08</td>
     </tr>
     <tr>
       <td>6</td>
       <td>出错时我能定位到哪一层？</td>
       <td>分层排查：输入 → 提示 → 工具 → 模型 → 数据；每层有一个可打印/可回看的证据</td>
       <td>只能重试，不能定位</td>
-      <td>08、20</td>
+      <td>08、19</td>
     </tr>
     <tr>
       <td>7</td>
@@ -438,7 +438,7 @@ COURSE.register({
       <td>如果明天停用这家服务，我的产出还剩什么？</td>
       <td>说得出可带走的东西：数据、脚本、规范、笔记、需求说明</td>
       <td>你的资产其实是租来的</td>
-      <td>16、11</td>
+      <td>29、23</td>
     </tr>
   </tbody>
 </table>
@@ -471,7 +471,7 @@ COURSE.register({
     <tr>
       <td><strong>要写代码的开发者</strong></td>
       <td>03 或 04（编码智能体）→ 09（MCP 入门）→ 15（开发者 AI 素养）</td>
-      <td>16–22 的身份课（与你无关）；01 的界面向导（半天可跳过）</td>
+      <td>17–22 的身份课（与你无关）；01 的界面向导（半天可跳过）</td>
       <td><strong>E8</strong>（量化 + 推理吞吐成本对照），顺带把 30 分钟实验做成交付前置检查</td>
       <td>一个仓库：README 写清一条命令跑通；<code>tests/</code> 能挡住 AI 改坏的提交；一条 MCP 最小服务端</td>
     </tr>
@@ -553,21 +553,21 @@ COURSE.register({
       </tr>
     </tbody>
   </table>
-  <p>符号检验可以直接跑四行程序（把 <code>n_eff</code> 与 <code>k</code> 换成你的数）：</p>
+  <p>符号检验可以直接跑五行程序（把 <code>n_eff</code> 与 <code>k</code> 换成你的数）：</p>
   <pre><code><span class="cm"># [逐行剖析] 配对符号检验 (Sign Test) 离散二项分布双尾精确 p 值计算</span>
 from math import comb
 <span class="cm"># 1. 剔除平局 (Tie) 后的有效配对对比总次数 n_eff</span>
 n_eff = 7
 <span class="cm"># 2. 新策略 v2 胜出的离散观测频次 k</span>
 k = 6
-<span class="cm"># 3. 计算双尾 p 值: 2 * sum_{i=k}^{n} C(n, i) * (0.5)^n</span>
+<span class="cm"># 3. 计算双尾 p 值: 2 * sum_{i=k}^{n} C(n, i) * (0.5)^n（k 取多数侧；若 k&lt;n/2 先用 n-k 代入，否则 p 会超过 1）</span>
 p = 2 * sum(comb(n_eff, i) for i in range(k, n_eff + 1)) / (2 ** n_eff)
 print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># 检验在 alpha=0.05 下是否具备统计学泛化显著性</span></code></pre>
   <p><strong>记录表（照抄进你的台账）</strong>：</p>
   <table class="tbl small">
     <thead><tr><th>日期</th><th>任务</th><th>有效比较 n_eff</th><th>v2 胜次 k</th><th>p 值</th><th>迁移率</th><th>结论（一句话）</th></tr></thead>
     <tbody>
-      <tr><td>2026-10-05</td><td>crossfade 听测注意事项</td><td>7</td><td>6</td><td>0.125</td><td>3/5 = 0.60</td><td>描述度提升方向正确，但 7 次比较不足以证明；需要把任务扩到 20 个以上</td></tr>
+      <tr><td>2026-10-05</td><td>crossfade 听测注意事项</td><td>7</td><td>6</td><td>0.125</td><td>3/6 = 0.50</td><td>描述度提升方向正确，但 7 次比较不足以证明；迁移率低于 0.6，需求要重写；需要把任务扩到 20 个以上</td></tr>
     </tbody>
   </table>
   <p>
@@ -589,7 +589,7 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
     <tbody>
       <tr>
         <td><strong>13</strong> AI 素养框架（4D）</td>
-        <td><strong>高</strong>。它给你一套划边界与签字的语言，直接改善以后写第 16 章这类答辩叙事时的表达</td>
+        <td><strong>高</strong>。它给你一套划边界与签字的语言，直接改善以后写第 29 章这类答辩叙事时的表达</td>
         <td>现在，与第 09 章并行</td>
         <td>4D 分工表 + AI 参与范围声明</td>
       </tr>
@@ -642,43 +642,43 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
       <td>MCP 工具 / 连接器</td>
       <td>把外部能力以统一描述暴露给模型，让模型决定何时调用</td>
       <td><strong>MCP 本身是开放协议、有公开规范</strong>；同层还有通用的函数/工具调用约定，以及各框架自己的工具描述格式</td>
-      <td>20、19</td>
+      <td>19、18</td>
     </tr>
     <tr>
       <td>编码智能体的「读-改-跑」</td>
       <td>带工具循环的编码代理：读文件、改代码、执行测试、看结果再决定下一步</td>
       <td>一类开源编码智能体（如 Aider、OpenHands、Cline 等），或自己用 30 行编排循环实现</td>
-      <td>14、16</td>
+      <td>25、29</td>
     </tr>
     <tr>
       <td>Agent 技能 / 技能库</td>
       <td>把重复任务的输入输出约定固化下来，避免每次重写提示</td>
       <td>朴素做法：一个版本化的提示模板 + 一份示例输入输出；框架无关</td>
-      <td>20</td>
+      <td>19</td>
     </tr>
     <tr>
       <td>子代理 / 并行执行者</td>
       <td>任务分解 + 上下文隔离 + 结果汇总（多智能体编排）</td>
       <td>通用编排框架（如 LangGraph 等），或者最稳的版本：多次独立调用 + 人工汇总</td>
-      <td>20、14</td>
+      <td>19、25</td>
     </tr>
     <tr>
       <td>Bedrock / Vertex 上的模型</td>
       <td>托管推理服务：云厂商负责算力与合规外壳，模型提供方负责权重与行为</td>
       <td>自建推理服务（vLLM、TGI、llama.cpp 等），本地跑开放权重模型</td>
-      <td>10、11</td>
+      <td>10、23</td>
     </tr>
     <tr>
       <td>上下文 / 记忆功能</td>
       <td>上下文窗口内的信息组织与检索增强</td>
       <td>自己搭检索（BM25 / FAISS 等）+ 显式拼接；不依赖任何产品的「记忆」开关</td>
-      <td>19</td>
+      <td>18</td>
     </tr>
     <tr>
       <td>额度、限流、会员档位</td>
       <td>服务等级与成本约束：按 token 计费、按时间窗限流、超额降级</td>
       <td>自建服务时用队列与并发上限表达同一件事；成本口径自己算</td>
-      <td>11、13</td>
+      <td>23、24</td>
     </tr>
   </tbody>
 </table>
@@ -781,43 +781,40 @@ print(f"双尾显著性检验 p 值 = {round(p, 3):.3f}")  <span class="cm"># �
     <li>在交付文档上签名，声明 AI 参与范围</li>
   </ul>
   <p class="why">
-    四个选项正好对应 4D 的其他维度与本题的正确答案：写清需求是 Description，
-    划边界是 Delegation，签名与披露是 Diligence。
-    Discernment 的关键是「不靠读起来觉得不错」：\(N=250\) 时 \(\mathrm{SE}\approx0.15\) 秒、
-    可检测下限约 0.3 秒，因此小于 1 个 SE 的改进不该写进结论。
+    Discernment 的关键是「不靠读起来觉得不错」：\(N=250\) 时 \(\mathrm{SE}\approx0.12\) 秒、
+    可检测下限约 0.24 秒，因此小于 1 个 SE 的改进不该写进结论。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 4</div>
-  <p class="q">课程页上标注了某门课的学时，你的自学计划应该怎么用它？</p>
+  <p class="q">你的四周计划只有 24 小时，而 22 门课按顺序刷完至少 40 小时。按本附录的建议，你该怎么做？</p>
   <ul class="opts">
-    <li>把它当承诺：几小时就该学会，超时说明自己不行</li>
-    <li data-ok>当作课程页当时的量级参考，并记下核对日期；以课程页标注为准，不引用任何二手的精确数字</li>
-    <li>把它乘以三当作实际需要的时间，然后不再核对</li>
-    <li>忽略它，学时与掌握程度完全无关</li>
+    <li>每天多挤 2 小时，硬把 22 门刷完，覆盖面最重要</li>
+    <li data-ok>只上 13 号课（约 4 小时）加做第 6 节 30 分钟实验，拿三个可被别人检查的数字，剩下时间做自己项目的验收</li>
+    <li>每门课只看前 10 分钟，22 门的目录都过一遍就行</li>
+    <li>先花 24 小时刷课，自己的项目以后再说</li>
   </ul>
   <p class="why">
-    学时属于最容易过期的信息（课程会重排、增删模块），所以本附录 22 门课里有 21 门只写「以课程页标注为准」，
-    唯一写出具体数字的 13 号课也标明了出处。正确做法是记下日期与来源，
-    并记住真正的验收标准是第 6 节那三个数字，而不是「我在标注学时内看完了」。
+    40 与 24 差 16 小时，硬刷等于主动放弃项目验收。第 6 节实验产出三个可检查的数字
+    （迁移率、双尾 p 值、带日期命令的台账），13 号课给你 4D 语言；
+    刷完 22 门但零产出，评审那关等于零证据——顺序是先立验收，再扩工具。
   </p>
 </div>
 
 <div class="quiz">
   <div class="qlabel">自测 · 5</div>
-  <p class="q">下面哪一项最能向评审证明你真的掌握了与 AI 协作的能力？</p>
+  <p class="q">评审现场给你一份材料：commit 时间线、可运行仓库、AI 披露声明、一份迁移率 0.2 的记录。按本附录判据，结论是？</p>
   <ul class="opts">
-    <li>收集的课程结业徽章数量</li>
-    <li>看完全部 22 门课的证明材料</li>
-    <li data-ok>可复现的作品 + 带日期与命令的实验台账 + 同一任务在第二个模型上的迁移记录</li>
-    <li>能复述课程里的产品术语与界面位置</li>
+    <li>材料这么全，通过；0.2 说明这个模型太差，换个模型就行</li>
+    <li>只看徽章和学时就够了，0.2 是正常波动</li>
+    <li data-ok>可验证的是仓库跑通、台账日期命令、迁移记录三样；0.2 低于 0.6 说明需求写得不够中性，要重写需求；「已掌握协作能力」这个结论会被追问穿帮</li>
+    <li>材料越多越可信，不用逐项验证</li>
   </ul>
   <p class="why">
-    徽章只证明你走完了流程，术语与界面位置恰恰是最容易随改版失效的部分。
-    评审能当场验证的是三样东西：一条命令能跑通的仓库、记着日期/命令/数字的台账、
-    以及「换一个模型后同一需求仍然通过验收」的迁移记录。这三样合起来，
-    才把「我上过课」换成了「我能交付」。
+    能当场验证的只有三样：一条命令跑通的仓库、记着日期命令数字的台账、换模型重跑的迁移记录。
+    迁移率 0.2 远低于 0.6，判据指向需求本身不中性——换模型解决不了需求的问题。
+    徽章与学时证明的是流程，不是能力；「材料多」不等于「结论成立」。
   </p>
 </div>
 `

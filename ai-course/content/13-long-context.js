@@ -1,4 +1,4 @@
-/* content/16-long-context.js — 模块 16：长上下文与外推 */
+/* content/13-long-context.js — 模块 13：长上下文与外推 */
 COURSE.register({
   id: "m16-long-context",
   part: 3,
@@ -169,26 +169,26 @@ COURSE.register({
   <p><strong>第 4 步：注意力 Softmax 熵与温度缩放（Variance Conservation）</strong></p>
   <p>
     序列长度从 \(L\) 扩展到 \(sL\) 后，注意力 Softmax 聚合的 Token 数量变多，会导致注意力分布变得过于平缓，发生注意力熵漂移（Attention Entropy Drift）。
-    YaRN 证明引入温度缩放因子 \(\sqrt{t}\) 可以严格守恒注意力方差：
+    YaRN 证明乘以缩放因子 \(\sqrt{1/t}\) 可以严格守恒注意力方差：
   </p>
-  \[ \sqrt{t} = 0.1 \ln(s) + 1 \]
+  \[ \sqrt{1/t} = 0.1 \ln(s) + 1 \]
   <p>
-    在执行注意力矩阵点积计算时，将缩放分母由 \(\sqrt{d}\) 修正为：
+    在执行注意力矩阵点积计算时，将缩放系数由 \(1/\sqrt{d}\) 放大为：
   </p>
-  \[ \text{Scale} = \frac{1}{\sqrt{d} \cdot \sqrt{t}} = \frac{1}{\sqrt{d} \cdot (0.1 \ln(s) + 1)} \]
+  \[ \text{Scale} = \frac{\sqrt{1/t}}{\sqrt{d}} = \frac{0.1 \ln(s) + 1}{\sqrt{d}} \]
   <p>
-    对于扩展倍率 \(s=8\)：\(\sqrt{t} = 0.1 \ln(8) + 1 \approx 0.1 \times 2.0794 + 1 \approx 1.2079\)。
-    除以该温度因子使得长上下文下的注意力聚焦能力与短文本训练时严格保持等方差！
+    对于扩展倍率 \(s=8\)：\(\sqrt{1/t} = 0.1 \ln(8) + 1 \approx 0.1 \times 2.0794 + 1 \approx 1.2079\)。
+    乘以该缩放因子使得长上下文下的注意力聚焦能力与短文本训练时严格保持等方差！
   </p>
 </section>
 
-<h3>4. 教科书级实现：YaRN 动态频率分频与温度补偿（PyTorch）</h3>
+<h3>4. 核心代数微算子剖析：YaRN 动态频率分频与温度补偿</h3>
 <p>
-  以下代码展示工业级 YaRN 频率调度算子与注意力缩放计算，带详尽的逐行动态形状剖析：
+  以下代数式给出工业级 YaRN 频率调度与注意力缩放的定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
 
 <p><strong>RoPE 旋转位置编码与角频率缩放微算子演示：</strong></p>
-<p>\[ \theta_i = b^{-2(i-1)/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=1}^{d/2} \right) \]</p>
+<p>\[ \theta_i = b^{-2i/d}, \quad R_{\Theta, m}^d = \text{diag}\left( \begin{pmatrix} \cos m\theta_i & -\sin m\theta_i \\ \sin m\theta_i & \cos m\theta_i \end{pmatrix}_{i=0}^{d/2-1} \right) \]</p>
 <p>
   <strong>逐行代数解析</strong>：<code>freqs</code> 计算特征维度各对通道的基础旋转角频率；在绝对位置 \(m\) 处，向量乘上旋转角度的余弦与正弦项，将绝对位置转化为向量内积中的相对位移 \(m - n\)；YaRN 算法在此基础上对高频与低频分量进行精细化分段插值，实现超长文本的免重训平滑外推。
 </p>
@@ -198,7 +198,7 @@ COURSE.register({
   <ol>
     <li><strong>忽视 KV Cache 显存二次方爆炸</strong>：上下文从 4k 扩至 32k，KV Cache 显存暴涨 8 倍；若并发请求为 16，单卡显存秒爆。必须配合分组查询注意力（GQA）与 PagedAttention 显存分页管理。</li>
     <li><strong>测试集「大海捞针（Needle In A Haystack）」假通过</strong>：有些外推方案在随机插入的字符串查找测试中取得 100% 召回，但在复杂长文本多跳逻辑推理中完全退化。必须在真实连贯文档上评测长程困惑度。</li>
-    <li><strong>注意力温度漏调导致软失活</strong>：仅修改 RoPE 旋转频率而忘记加上 YaRN 温度缩放 \(\sqrt{t}\)，模型生成的文本会呈现散乱、无主题复读与词频均化现象。</li>
+    <li><strong>注意力温度漏调导致软失活</strong>：仅修改 RoPE 旋转频率而忘记乘上 YaRN 缩放因子 \(\sqrt{1/t}\)，模型生成的文本会呈现散乱、无主题复读与词频均化现象。</li>
   </ol>
 </section>
 

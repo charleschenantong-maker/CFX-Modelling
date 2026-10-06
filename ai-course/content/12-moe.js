@@ -1,4 +1,4 @@
-/* content/15-moe.js — 模块 15：混合专家架构 MoE */
+/* content/12-moe.js — 模块 12：混合专家架构 MoE */
 COURSE.register({
   id: "m15-moe",
   part: 3,
@@ -178,7 +178,7 @@ COURSE.register({
 </p>
 
 <section class="blk blk-m">
-  <h4><span class="ic">∑</span>草稿纸演算区 C：辅助损失公式定义与柯西-施瓦茨极小值证明</h4>
+  <h4><span class="ic">∑</span>草稿纸演算区 C：辅助损失公式定义与协方差展开极小值证明</h4>
   <p>
     设当前训练批次（Batch）包含 \(T\) 个 Token，模型共有 \(E\) 个专家，路由策略为 Top-k。
   </p>
@@ -278,9 +278,9 @@ COURSE.register({
   </li>
 </ul>
 
-<h3>5. 教科书级实现：轻量级 Top-2 稀疏门控网络（PyTorch）</h3>
+<h3>5. 核心代数微算子剖析：轻量级 Top-2 稀疏门控网络</h3>
 <p>
-  以下代码包含完整的门控计算、Top-2 索引提取、重新归一化与辅助损失计算，带详尽的逐行动态形状剖析：
+  以下代数式给出完整的门控计算、Top-2 索引提取、重新归一化与辅助损失定义（可运行的 PyTorch 版本见附录 B 对应实验）：
 </p>
 
 <p><strong>MoE 稀疏门控路由微算子演示：</strong></p>

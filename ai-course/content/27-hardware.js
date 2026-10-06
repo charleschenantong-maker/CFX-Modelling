@@ -176,8 +176,8 @@ if not torch.cuda.is_available():
     print("❌ 警告：当前未检测到 GPU 加速器！请检查右侧面板 Settings -> Accelerator 是否已选为 GPU T4。")
 else:
     gpu_name = torch.cuda.get_device_name(0)
-    total_mem_gb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
-    print(f"✅ GPU 激活成功！型号: {gpu_name} (独立显存: {total_mem_gb:.2f} GB)")
+    total_mem_gib = torch.cuda.get_device_properties(0).total_memory / (1024 ** 3)
+    print(f"✅ GPU 激活成功！型号: {gpu_name} (独立显存: {total_mem_gib:.2f} GiB)")
 
     # 2. 矩阵乘法物理吞吐基准测验
     device = torch.device("cuda")
@@ -205,15 +205,17 @@ else:
 
 <div class="quiz">
   <div class="qlabel">自测 · 1</div>
-  <p class="q">在 Kaggle Notebook 中尝试从 Hugging Face 下载开源模型时遇到 <code>ConnectionError</code> 无法连接网络，最可能的原因是：</p>
+  <p class="q">在 T4（16 GB）上用 LoRA（\(r=8\)，只挂 q/v）微调 Qwen2.5-1.5B：\(batch=4\)、\(seq=512\) 时一切正常；把 \(seq\) 拉到 4096（约 8 倍）后 OOM。最可能的主因是：</p>
   <ul class="opts">
-    <li>Kaggle 账号余额不足</li>
-    <li data-ok>未在右侧 Settings 面板中将 "Internet" 开关开启（默认为 OFF 离线状态）</li>
-    <li>Python 版本过低，不支持 HTTPS 协议</li>
-    <li>GPU 显存被占满导致网络断开</li>
+    <li>LoRA 参数量随 seq 变长同步膨胀</li>
+    <li data-ok>激活值随 batch×seq 涨约 8 倍，LoRA 相关开销可忽略</li>
+    <li>fp16 权重从 3.1 GB 翻倍到 6.2 GB</li>
+    <li>batch=4 太大，3.1 GB 权重本来就装不下</li>
   </ul>
   <p class="why">
-    Kaggle 出于反爬虫与安全合规考量，新建 Notebook 默认将 Internet 设为关闭。只要在右侧侧边栏切换为 Internet On，即可自由下载 Hugging Face 权重与数据。
+    底座权重 \(1.54 \times 10^9 \times 2\text{ B} \approx 3.1\text{ GB}\) 与 seq 无关；LoRA 在 q/v 上共约 109 万参数（占 0.071%），参数加梯度加优化器状态也就二三十 MB 量级。
+    真正随 seq 线性膨胀的是前向激活值（\(\propto batch \times seq\)），8 倍即爆——这是在 flash/SDPA 注意力下的账；用 eager 注意力时注意力矩阵是 \(O(S^2)\)，8 倍 seq 会涨 64 倍，更狠。
+    对策按顺序：先降 micro-batch、用梯度累积保全局批大小，再开激活重计算。
   </p>
 </div>
 

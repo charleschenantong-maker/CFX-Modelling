@@ -57,7 +57,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><code>#004</code></td>
-      <td><strong><a href="https://www.cambridge.org/core/books/matrix-analysis/811A1B2D3A1F4C1B62C2E1F8C8A3B2A1" target="_blank" rel="noopener">Matrix Analysis (2nd Edition)</a></strong></td>
+      <td><strong><a href="https://doi.org/10.1017/CBO9781139020411" target="_blank" rel="noopener">Matrix Analysis (2nd Edition)</a></strong></td>
       <td>Roger A. Horn & Charles R. Johnson (Johns Hopkins)</td>
       <td>佩隆-弗罗贝尼乌斯定理（Perron-Frobenius）、舒尔补（Schur Complement）与正定矩阵偏序（Loewner Order）的标准参考书。</td>
       <td>马尔可夫链与非负矩阵谱理论。严密分析 Softmax 概率矩阵的本征值分布与自回归收敛性。</td>
@@ -225,7 +225,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><code>#028</code></td>
-      <td><strong><a href="https://www.cambridge.org/core/books/highdimensional-statistics/8A8C6B1F9F8B52D4D44A68B13D5E4C48" target="_blank" rel="noopener">High-Dimensional Statistics: A Non-Asymptotic Viewpoint</a></strong></td>
+      <td><strong><a href="https://doi.org/10.1017/9781108627771" target="_blank" rel="noopener">High-Dimensional Statistics: A Non-Asymptotic Viewpoint</a></strong></td>
       <td>Martin J. Wainwright (UC Berkeley / MIT)</td>
       <td>高维统计学的圣经：次高斯随机变量（Sub-Gaussian）、集中不等式（Concentration Inequalities）、非渐近矩阵浓度界与稀疏线性模型恢复。</td>
       <td>高维统计与压缩感知核心文献。严格推导正则化项在稀疏参数恢复中的相位转换临界点。</td>
@@ -267,7 +267,7 @@ COURSE.register({
     </tr>
     <tr>
       <td><code>#034</code></td>
-      <td><strong><a href="https://www.cambridge.org/core/books/sparse-image-and-signal-processing/DEBEA224FA264878A86BCFEEAC0A4EBE" target="_blank" rel="noopener">Sparse Image and Signal Processing: Wavelets, Curvelets, Morphological Diversity</a></strong></td>
+      <td><strong><a href="https://www.cambridge.org/core/books/sparse-image-and-signal-processing/DEB12FE2C4D26FA58359B28D3F9550F3" target="_blank" rel="noopener">Sparse Image and Signal Processing: Wavelets, Curvelets, Morphological Diversity</a></strong></td>
       <td>Jean-Luc Starck, Fionn Murtagh, Jalal Fadili (Cambridge Univ Press)</td>
       <td>多尺度几何分析与稀疏过完备基表示；证明了在非平稳突变信号处理中，小波与曲波基较傅里叶基具有指数级更低的重构吉布斯效应。</td>
       <td>针对音频渐变过渡点出现的瞬态冲击（Percussive Transients / Drums），提供基于稀疏基分离过渡特征的最佳数学方法。</td>
@@ -511,7 +511,7 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Self-Consistency Improves Chain of Thought Reasoning in Language Models</a></strong></td>
       <td>Xuezhi Wang et al. (Google Research, ICLR)</td>
       <td>提出自洽性采样（Self-Consistency）：在多路径思考轨迹中取边际概率最大或多数投票的结果，利用蒙特卡洛采样显著提升复杂推理任务准确率。</td>
-      <td>课程模块 18 核心代码的数学源头。在音频决策不确定时，多次采样转场参数并进行核密度估计（KDE），选取模式峰值作为最稳健选择。</td>
+      <td>课程模块 17 核心代码的数学源头。在音频决策不确定时，多次采样转场参数并进行核密度估计（KDE），选取模式峰值作为最稳健选择。</td>
     </tr>
     <tr>
       <td><code>#068</code></td>
@@ -787,7 +787,7 @@ COURSE.register({
       <td><strong><a href="https://arxiv.org/abs/1503.02531" target="_blank" rel="noopener">Distilling the Knowledge in a Neural Network</a></strong></td>
       <td>Geoffrey Hinton, Oriol Vinyals, Jeff Dean (Google, NIPS Workshop)</td>
       <td>知识蒸馏奠基之作：引入温度因子 T 软化教师模型的输出 Softmax 分布，使暗知识（Dark Knowledge，各非目标类别之间的相对几何概率）显式回传指导学生网络学习。</td>
-      <td>课程模块 17 的理论源泉。在温度平滑下，交叉熵损失的梯度在小对数比值下渐进收敛为均方误差（MSE），揭示了软目标蒸馏的几何本质。</td>
+      <td>课程模块 16 的理论源泉。在温度平滑下，交叉熵损失的梯度在小对数比值下渐进收敛为均方误差（MSE），揭示了软目标蒸馏的几何本质。</td>
     </tr>
     <tr>
       <td><code>#106</code></td>
@@ -1098,7 +1098,7 @@ COURSE.register({
       <td><strong><a href="http://phontron.com/class/anlp2024/" target="_blank" rel="noopener">CS 11-711: Advanced Natural Language Processing</a></strong></td>
       <td>Graham Neubig et al. (Carnegie Mellon University)</td>
       <td>CMU 语言技术研究所（LTI）高阶公开课：深入前沿模型缩放、检索增强生成（RAG）、Agent 推理机制与自动化评测方法论。</td>
-      <td>对标课程模块 18-20。适合在完成基础理论后，追踪当前最前沿学术研讨课的必选项目。</td>
+      <td>对标课程模块 17-19。适合在完成基础理论后，追踪当前最前沿学术研讨课的必选项目。</td>
     </tr>
     <tr>
       <td><code>#149</code></td>
@@ -1140,7 +1140,7 @@ COURSE.register({
       <td><strong><a href="https://www.aisafetybook.com/" target="_blank" rel="noopener">Introduction to AI Safety, Ethics, and Society</a></strong></td>
       <td>Dan Hendrycks et al. (Center for AI Safety / UC Berkeley)</td>
       <td>系统性阐述 AI 安全性前沿：对抗攻击、奖励黑客行为（Reward Hacking）、模型内部可解释性、涌现欺骗以及模型权重合规准则。</td>
-      <td>对标课程模块 21 与附录 D，为剑桥大学学术面试中极高频出现的技术伦理与系统安全性问题提供扎实学术口径。</td>
+      <td>对标课程模块 20 与附录 D，为剑桥大学学术面试中极高频出现的技术伦理与系统安全性问题提供扎实学术口径。</td>
     </tr>
     <tr>
       <td><code>#155</code></td>

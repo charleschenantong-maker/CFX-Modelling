@@ -1,4 +1,4 @@
-/* content/19-rag.js — 模块 19：检索增强与上下文工程 */
+/* content/18-rag.js — 模块 18：检索增强与上下文工程 */
 COURSE.register({
   id: "m18",
   part: 4,
@@ -63,7 +63,7 @@ COURSE.register({
   在当时三个开放域问答任务上取得最好成绩，并且生成的文本更具体、更多样、更符合事实。
   注意成本结构不同：RAG 把成本放在<em>每一次请求</em>（输入 token 变多），
   微调把成本放在<em>一次性训练</em>。请求量大时，这个差别会被放大到完全不同的量级
-  （见 <a href="#m11">模块 11</a> 算力法则与训练规模）
+  （见 <a href="#m23">模块 23</a> 算力法则与训练规模）
 </p>
 
 <h3>2. 完整管线：七个必须分开调试的环节</h3>
@@ -328,7 +328,7 @@ COURSE.register({
   他们据此提出 Self-Route：让模型自评「检索到的资料够不够回答」，
   够就用 RAG 的短上下文，不够再退回长上下文，从而在保持接近 LC 表现的同时大幅降低计算成本。
 </p>
-<p>把成本算清楚，选择就变得具体了（沿用模块 18 的口径：一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB）：</p>
+<p>把成本算清楚，选择就变得具体了（沿用模块 17 的口径：一个 8B 级 GQA 模型每 token 的 KV cache 是 128 KiB）：</p>
 <table class="tbl small">
   <thead><tr><th>方案</th><th>每问输入 token</th><th>KV cache（单序列）</th><th>prefill</th><th>适合</th></tr></thead>
   <tbody>
@@ -358,7 +358,7 @@ COURSE.register({
 </p>
 <p>
   长上下文一侧的机制（位置编码外推、KV 预算、注意力下沉）见
-  <a href="#m16-long-context">模块 16（长上下文）</a>；本讲只保留 RAG 决策需要的接口：多少 token 时该切、切过去要多花多少钱。
+  <a href="#m16-long-context">模块 13（长上下文）</a>；本讲只保留 RAG 决策需要的接口：多少 token 时该切、切过去要多花多少钱。
 </p>
 
 <h3>5. 上下文工程：把提示当成一种数据结构</h3>
@@ -702,7 +702,7 @@ COURSE.register({
   <p>
     限制条件：只用 Python 标准库加 numpy，不调任何托管 API、不装向量数据库。
     稀疏一路用 SQLite 自带的 FTS5（SQLite 3.9.0 起内置，2015-10-14 发布；FTS5 提供 bm25() 排名函数），
-    稠密一路用下面这 10 行哈希向量（零下载、零模型），融合用 RRF。
+    稠密一路的下限做法是一段 10 行左右的哈希向量伪代码（零下载、零模型），两路融合的接口约定为下面的 RRF 公式。
     这是教学用的下限实现：真实项目里把哈希向量换成 <code>sentence-transformers</code> 等本地模型，
     再把 FTS5 换成 <code>rank_bm25</code> 或自己的倒排索引即可，接口不变。
   </p>

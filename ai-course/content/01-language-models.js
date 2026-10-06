@@ -1,17 +1,4 @@
-/* co
-<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
-  <div class="qlabel">填空 · 计算推演</div>
-  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
-  <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入计算数值（如 0.693）..." />
-    <button class="blank-btn">提交验证</button>
-    <span class="blank-feedback"></span>
-  </div>
-  <p class="why">
-    首先计算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失！
-  </p>
-</div>
-ntent/01-language-models.js — 模块 01：语言模型在算什么 */
+/* content/01-language-models.js — 模块 01：语言模型在算什么 */
 COURSE.register({
   id: "m1",
   part: 1,
@@ -26,6 +13,19 @@ COURSE.register({
   推理、对话、写代码，都是把这一步重复很多次接起来的。
   这一讲全程用日常话和比喻，不写代码，不推公式。动手和计算都放在附录 B 实验手册 E1 里。
 </p>
+
+<div class="quiz quiz-blank" data-ans="0.693" data-tol="0.01">
+  <div class="qlabel">填空 · 计算推演</div>
+  <p class="q">某二分类玩具词表未归一化分数为 \(z_1 = 0, z_2 = 0\)。若目标真实词是第 1 项（即 \(y_1 = 1\)），根据 Softmax 与交叉熵公式 \(\mathcal{L} = -\ln p_1\)，该预测的交叉熵损失 \(\mathcal{L}\) 数值精确等于多少？（精确到小数点后三位，输入如 0.693）</p>
+  <div class="blank-wrap">
+    <input type="text" class="blank-input" placeholder="输入计算数值后点提交验证..." />
+    <button class="blank-btn">提交验证</button>
+    <span class="blank-feedback"></span>
+  </div>
+  <p class="why">
+    首先计算 Softmax 预测概率：\(p_1 = \frac{e^0}{e^0 + e^0} = \frac{1}{2} = 0.5\)。交叉熵损失 \(\mathcal{L} = -\ln(0.5) = \ln 2 \approx 0.693\)。这也是未经训练模型均匀猜测时的基准损失！
+  </p>
+</div>
 
 <section class="blk blk-tip">
   <h4><span class="ic">✓</span>先把扣分翻译成使用者的话</h4>

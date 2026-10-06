@@ -1,4 +1,4 @@
-/* content/23-compression.js — 模块 23：压缩与合并 */
+/* content/14-compression.js — 模块 14：压缩与合并 */
 COURSE.register({
   id: "m14",
   part: 3,
@@ -594,7 +594,7 @@ COURSE.register({
   它的核心假设是：权重空间里的算术是有意义的。
 </p>
 <p>
-  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 15（MoE）</a>；
+  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>；
   这里只讨论「把稠密权重变成 MoE」的 upcycling 算术，以及它和量化的配合顺序。
 </p>
 
@@ -847,7 +847,7 @@ COURSE.register({
   结论很直接：<strong>长上下文服务里只量化权重几乎没用，必须同时处理 KV。</strong>
   把 KV 也压到 int4（约 34 KiB/token，含缩放开销），这一步的流量降到约 \(1.8\times10^{10}\) B，
   步时从 72 ms 回到 22 ms，4 条序列合计约 180 tok/s。
-  第 24 章第 8 节会用同一套式子做架构选型。
+  模块 21 第 7 节会用同一套式子做架构选型。
 </p>
 
 <h3>8. 该不该压：先看卡在哪，再选手段</h3>
@@ -1068,7 +1068,7 @@ COURSE.register({
   </p>
   <p>
     <strong>⑤ 把「PTQ 掉点」直接当成「必须上 QAT」。</strong>
-    先试更好的 PTQ（GPTQ / AWQ / NF4）；QAT 的实测收益是把差距捡回约 33%–67%，
+    先试更好的 PTQ（GPTQ / AWQ / NF4）；QAT 的实测收益是把差距捡回约 34%–45%（本讲 torchao 实测：wikitext 34%、bbh 45%），
     它值得做，但它不是万能的，而且成本与一次微调同量级。
   </p>
 </section>

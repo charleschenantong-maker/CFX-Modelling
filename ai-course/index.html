@@ -809,6 +809,30 @@ window.COURSE = (function () {
         li.addEventListener('click', pick);
         li.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
       });
+      /* 填空题：按 data-ans / data-tol 做容差判定 */
+      if (quiz.classList.contains('quiz-blank') && !$('.opts li', quiz)) {
+        const btn = $('.blank-btn', quiz), input = $('.blank-input', quiz), fb = $('.blank-feedback', quiz);
+        const ans = parseFloat(quiz.dataset.ans), tol = parseFloat(quiz.dataset.tol || '0');
+        const check = () => {
+          if (!input || quiz.classList.contains('revealed')) return;
+          const v = parseFloat((input.value || '').trim());
+          const ok = isFinite(v) && isFinite(ans) && Math.abs(v - ans) <= tol + 1e-12;
+          quiz.classList.add('revealed');
+          if (fb) { fb.textContent = ok ? '✓ 正确' : ('再想想（答案 ≈ ' + quiz.dataset.ans + '）'); fb.classList.add(ok ? 'ok' : 'bad'); }
+          if (btn) btn.disabled = true;
+          const why = $('.why', quiz); if (why) why.setAttribute('aria-live', 'polite');
+          const mod = quiz.closest('.mod');
+          const mid = (mod && mod.id) || 'unknown';
+          const rec = PROG.data.quizzes[mid] || { attempted: 0, correct: 0 };
+          rec.attempted += 1;
+          if (ok) rec.correct += 1;
+          PROG.data.quizzes[mid] = rec;
+          PROG.data.last = { id: mid, at: new Date().toISOString() };
+          PROG.touch(); paintProgress();
+        };
+        if (btn) btn.addEventListener('click', check);
+        if (input) input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); check(); } });
+      }
     });
   }
 

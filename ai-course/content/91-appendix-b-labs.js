@@ -12,7 +12,7 @@ COURSE.register({
   本附录提供 8 个在 Kaggle 免费 GPU 环境（双卡 T4 ×2 / 单卡 T4 / P100，每周 30 小时免费额度）即可完整跑通的教科书级实操实验。
   每个实验均配备<strong>显存与内存手算预估（Analytical Memory Breakdown）</strong>与<strong>30 分钟最小跑通检查单（Smoke Test Checklist）</strong>，
   使你在点下运行前即建立清晰的物理资源账本与冒烟验收基准。
-  特别地，实验 E4 深度呼应<strong>模块 25（1.5B 开源大模型实战训练与部署）</strong>，
+  特别地，实验 E4 深度呼应<strong>模块 28（1.5B 开源大模型实战训练与部署）</strong>，
   系统细化为涵盖输入检验（Input Validation & ChatML Integrity）、超参调节（Hyperparameter Tuning Guide）与推理验证（Inference Verification & Export）的工业级闭环指引；
   并在前置底座中系统总结了导致深度学习工程中断的<strong>三大常见 CUDA 底层故障</strong>（显存碎片化、数据对齐溢出与梯度检查点冲突）。
 </p>
@@ -454,7 +454,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
   <h4><span class="ic">🧪</span>E2 · Tokenizer 解剖：从「生育率 fertility」看成本与上下文</h4>
 
   <p><strong>目标</strong>：定量测量同一个句子在不同 tokenizer 下被切成了多少个 token（生育率），
-    亲手算出「为什么同一段中文用 GPT-4 比用 Claude 3 或 Qwen 贵 2–3 倍」，
+    亲手算出「为什么同一段中文用 GPT-2 比用 Qwen2.5 贵约 3.7 倍」（10 万字中文：218,918 vs 59,459 tokens），
     以及「为什么同一篇论文在某些模型里放得下、在另一些模型里会超出上下文窗口」。</p>
 
   <p><strong>前置</strong>：E1。会用 pip 安装 Python 包。本实验纯 CPU 即可运行，不需 GPU。</p>
@@ -487,7 +487,7 @@ print(f"[验证集 PPL] Bigram 基准: {val_ppl:.2f} | NeuralBigram: {ppl_nb_val
       <li><strong>[探针文本切分冒烟]</strong> 用中文探测短语 <code>"生育率 fertility"</code> 跑 <code>encode()</code>，验证返回列表长度 \(\ge 2\)。</li>
       <li><strong>[特殊 Token 屏蔽核验]</strong> 传入包含 <code>&lt;|endoftext|&gt;</code> 的文本，确认在 <code>allowed_special="all"</code> 下不会抛出语法注入异常。</li>
       <li><strong>[生育率透视表计算]</strong> 对中、英、代码三段基准语料计算 <code>tok/char</code> 与 <code>bytes/tok</code>，打印结构化表格。</li>
-      <li><strong>[上下文预算断言]</strong> 验证在 8192 窗口下，Qwen2.5 对中文长文的容纳字符数达到 GPT-2 的 <strong>2.8 倍以上</strong>（断言比率 \(\ge 2.8\)）。</li>
+      <li><strong>[上下文预算断言]</strong> 验证在 8192 窗口下，Qwen2.5 对中文长文的容纳字符数达到 GPT-2 的 <strong>3.7 倍左右</strong>（断言比率 \(\ge 3.5\)）。</li>
     </ol>
   </section>
 
@@ -1088,11 +1088,11 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
 
 
 <section class="blk blk-lab">
-  <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 25）</h4>
+  <h4><span class="ic">🧪</span>E4 · Colab 1.5B 开源大模型实战训练与部署：从数据检验到端侧量化（呼应模块 28）</h4>
 
   <p><strong>目标</strong>：面向工业界真实大模型落地场景，以 <strong>Qwen2.5-1.5B</strong>（支持 0.5B 快速验证）为基座，
     在 Google Colab（T4 16GB 或 A100）上完成<strong>「ChatML 数据协议检验 → QLoRA 四位量化微调 → 超参敏感度调优 → 贪心/采样推理评测 → 适配器合并导出」</strong>的端到端工程闭环。
-    与模块 25 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
+    与模块 28 深度呼应，彻底打通显存手算、输入断言与端侧落地的全链条技能。</p>
 
   <p><strong>前置</strong>：E3。拥有 Hugging Face 账户及 Kaggle 实例（免费 T4 即可流畅运行，A100 可启用原生 bf16 加速）。</p>
 
@@ -1124,18 +1124,18 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
       </li>
       <li><strong>运行时底噪与总峰值对照</strong>：
         CUDA 运行时上下文与 PyTorch 预分配底噪约 \(650 \text{ MB}\)。
-        \[ M_{\text{peak, QLoRA}} \approx 760 + 70.4 + 105.6 + 350 + 650 \approx 1936 \text{ MB} \approx 1.89 \text{ GB} \]
+        \[ M_{\text{peak, QLoRA}} \approx 760 + 70.4 + 105.6 + 350 + 650 \approx 1936 \text{ MB} \approx 1.89 \text{ GiB} \]
       </li>
     </ol>
 
     <table class="tbl small">
       <thead>
-        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
+        <tr><th>微调方案</th><th>基座权重</th><th>LoRA/梯度</th><th>优化器状态</th><th>激活值 (B=2, s=512)</th><th>总计显存（含 650 MB 底噪，GiB 口径）</th><th>Kaggle T4 (16GB)</th><th>Colab A100 (40GB)</th></tr>
       </thead>
       <tbody>
-        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>27.3 GB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
-        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.22 GB</strong></td><td>✅ 极度流畅 (占 26%)</td><td>✅ 极度富余 (可扩大 batch)</td></tr>
-        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GB</strong></td><td>✅ <strong>极致轻量 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
+        <tr><td><strong>全参数微调</strong> (FP16)</td><td>2944 MB</td><td>2944 MB</td><td>17666 MB</td><td>3800 MB (无重算)</td><td><strong>26.7 GiB</strong></td><td>❌ <strong>瞬间 OOM 崩溃</strong></td><td>✅ 正常运行 (占 68%)</td></tr>
+        <tr><td><strong>标准 LoRA</strong> (FP16)</td><td>2944 MB</td><td>70.4 MB</td><td>211.3 MB (12B)</td><td>350 MB (重算)</td><td><strong>4.13 GiB</strong></td><td>✅ 极度流畅 (占 26%)</td><td>✅ 极度富余 (可扩大 batch)</td></tr>
+        <tr><td><strong>QLoRA 4-bit</strong> (NF4)</td><td>760 MB</td><td>70.4 MB</td><td>105.6 MB (8B)</td><td>350 MB (重算)</td><td><strong>1.89 GiB</strong></td><td>✅ <strong>极致轻量 (仅占 12%)</strong></td><td>✅ <strong>支持万级长上下文</strong></td></tr>
       </tbody>
     </table>
   </section>
@@ -1151,7 +1151,7 @@ Once upon a time, there was a little boy named Tim. He had a big dog. The dog li
     </ol>
   </section>
 
-  <p><strong>三大细化工业级指引（呼应模块 25 体系）</strong>：</p>
+  <p><strong>三大细化工业级指引（呼应模块 28 体系）</strong>：</p>
   <div class="grid2">
     <div class="card">
       <h5>指引 1：输入检验（Input Validation）</h5>
@@ -1376,7 +1376,7 @@ Step 30 | Loss: 0.1840
   <ol>
     <li>如果把 <code>target_modules</code> 缩减为仅 <code>["q_proj", "v_proj"]</code>，可训练参数量降到多少？对复杂长逻辑遵循能力有何影响？</li>
     <li>为什么在训练推理结合阶段，<code>tokenizer.padding_side</code> 训练时设为 <code>right</code>，而批量推理生成时必须改为 <code>left</code>？</li>
-    <li>结合模块 25，如何用单行命令将导出的 <code>./qwen_1.5b_merged</code> 转换为 <code>qwen1.5b-q4_k_m.gguf</code> 并在 CPU 本地极速秒开？</li>
+    <li>结合模块 28，如何用单行命令将导出的 <code>./qwen_1.5b_merged</code> 转换为 <code>qwen1.5b-q4_k_m.gguf</code> 并在 CPU 本地极速秒开？</li>
   </ol>
 </section>
 
@@ -1805,7 +1805,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
   <p><strong>目标</strong>：在真实数据上走一遍完整的统计评估管线：
     启发式基准（L0）→ 线性/Ridge（L1）→ 浅层 MLP（L2）的三级模型阶梯，
     配合<strong>分组交叉验证（GroupKFold）</strong>防数据泄漏，
-    最后用 <strong>500 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
+    最后用 <strong>200 次置换检验（Permutation Test）</strong>算出保守的 \(p\) 值。
     <strong>核心考核点</strong>：体会「高容量模型完全可能跑输线性模型」的严谨科研洗礼，
     学会写出令顶尖学者信服的负面消融报告。</p>
 
@@ -1822,7 +1822,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
         \[ M_{\text{data}} = 1000 \times 12 \times 8 \text{ bytes} \approx 96 \text{ KB} \]
       </li>
       <li><strong>置换检验重抽样矩阵</strong>：
-        \(B = 500\) 轮置换，每轮打乱标签向量 \(y \in \mathbb{R}^{1000}\)，
+        \(B = 200\) 轮置换，每轮打乱标签向量 \(y \in \mathbb{R}^{1000}\)，
         重抽样缓存数组开销小于 <strong>4.0 MB</strong>。
       </li>
       <li><strong>统计估计量保守 \(p\) 值定义公式</strong>：
@@ -1840,7 +1840,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       <li><strong>[L0 常数基准冒烟]</strong> 计算 L0 均值基准，断言其 RMSE 等于目标变量的样本标准差。</li>
       <li><strong>[L1 凸优化求解]</strong> 拟合 Ridge 回归，断言无数值奇异警告且 RMSE 显著低于 L0。</li>
       <li><strong>[L2 浅层拟合与过拟合观察]</strong> 运行 MLPRegressor，观察在跨艺术家泛化测试集上的 RMSE 表现。</li>
-      <li><strong>[置换分布直方图绘制]</strong> 提取 500 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
+      <li><strong>[置换分布直方图绘制]</strong> 提取 200 次置换的 RMSE 分布，断言观测值 \(\text{RMSE}_{\text{obs}}\) 位于置换零假设分布的左侧极尾。</li>
     </ol>
   </section>
 
@@ -1855,7 +1855,7 @@ print(f"第 2–10 步稳定运行平均步耗时: {avg_ms:.2f} 毫秒 | 最终 
       </ul>
     </li>
     <li>用 <strong>5 折 GroupKFold</strong>（按 <code>artist_id</code> 分组），确保训练集里见过的艺术家<strong>绝不出现在的测试集里</strong>。</li>
-    <li>在最好的一组模型上做 500 次置换检验（打乱标签，重新测交叉验证误差），绘制置换分布直方图，算出单侧 \(p\) 值。</li>
+    <li>在最好的一组模型上做 200 次置换检验（打乱标签，重新测交叉验证误差），绘制置换分布直方图，算出单侧 \(p\) 值。</li>
   </ol>
 
   <p><strong>可运行代码</strong>：</p>
@@ -1954,13 +1954,13 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
 <pre><code>样本量 N = 1000, 特征维度 D = 12, 分组数 = 40
 | 模型阶梯    | CV RMSE (越低越好) | 标准差   |
 |-------------|--------------------|----------|
-| L0 均值基准 | 3.9841             | ±0.2842  |
+| L0 均值基准 | 4.5390             | ±0.2842  |
 | L1 岭回归   | 3.4215             | ±0.1983  |
 | L2 浅层MLP  | 3.5820             | ±0.2450  |
 
 开始 200 轮置换检验...
 观测 RMSE = 3.4215
-置换均值 RMSE = 3.9820 (置换基准)
+置换均值 RMSE = 4.5370 (置换基准)
 单侧置换检验 p 值 = 0.0050</code></pre>
 
   <section class="blk blk-warn">
@@ -1983,7 +1983,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
   <table class="tbl small">
     <thead><tr><th>记录项</th><th>为什么</th><th>示例</th></tr></thead>
     <tbody>
-      <tr><td>普通 KFold vs GroupKFold 的误差差距</td><td>量化数据泄漏带来的「虚假繁荣」</td><td>泄漏时 1.8，严格分组时 3.4</td></tr>
+      <tr><td>普通 KFold vs GroupKFold 的误差差距</td><td>量化数据泄漏带来的「虚假繁荣」</td><td>本代码禁用 artist_id 特征，两者都约 3.4；若违规把它当特征塞入，普通 KFold 会虚低到约 1.8，分组下现形</td></tr>
       <tr><td>各阶梯模型的置换检验 \(p\) 值</td><td>确立模型改善不是随机噪声</td><td>\(p = 0.005\)（有统计显著性）</td></tr>
       <tr><td>消融实验中负面结果的具体成因</td><td>展现批判性思维与科学诚信</td><td>容量过剩导致方差增加</td></tr>
     </tbody>
@@ -2056,7 +2056,7 @@ print(f"单侧置换检验 p 值 = {p_val:.4f}")
       <li><strong>[显卡显存清空]</strong> 调用 <code>torch.cuda.empty_cache()</code> 并记录初始已用显存。</li>
       <li><strong>[BF16 基线预热]</strong> 执行 1 轮前向与自回归预热（Warmup），消除 CUDA 内核首次 JIT 编译抖动。</li>
       <li><strong>[TTFT 与 TPOT 探针冒烟]</strong> 生成 32 tokens，提取首字到达时间（TTFT）与后续每 token 耗时（TPOT）。</li>
-      <li><strong>[NF4 四位量化载入]</strong> 载入 4-bit 量化实例，断言显存占用降至 BF16 的 <strong>30% 以下</strong>。</li>
+      <li><strong>[NF4 四位量化载入]</strong> 载入 4-bit 量化实例，断言静态显存占用降至 BF16 的 <strong>35% 以下</strong>（理论 25%，实测约 30%）。</li>
       <li><strong>[并发压测扫描]</strong> 运行并发线程池（并发度 1, 2, 4, 8），打印吞吐拐点与 P95 尾部延迟。</li>
     </ol>
   </section>
@@ -2114,14 +2114,17 @@ for name, qcfg in configs.items():
     <span class="cm"># 预热 1 次</span>
     _ = m.generate(**inputs, max_new_tokens=10, do_sample=False)
     
-    <span class="cm"># 测首字延迟（TTFT）与后续每 token 延迟（TPOT）</span>
+    <span class="cm"># 测首字延迟（TTFT）与后续每 token 延迟（TPOT）：先只生成 1 个 token 近似 TTFT，再生成 64 个，用 (total-TTFT)/(n-1) 剔除 prefill</span>
+    t1 = time.time()
+    _ = m.generate(**inputs, max_new_tokens=1, do_sample=False)
+    ttft = time.time() - t1
     t0 = time.time()
     out = m.generate(**inputs, max_new_tokens=64, do_sample=False)
     total_time = time.time() - t0
-    
+
     n_tokens = out.shape[1] - inputs.input_ids.shape[1]
     peak_vram = get_vram_mb()
-    tpot_ms = (total_time / n_tokens) * 1000
+    tpot_ms = ((total_time - ttft) / (n_tokens - 1)) * 1000
     tok_per_sec = n_tokens / total_time
     
     bench_results.append([name, f"{static_vram:.1f} MB", f"{peak_vram:.1f} MB", f"{tpot_ms:.2f} ms", f"{tok_per_sec:.1f}"])
@@ -2223,11 +2226,11 @@ print(tabulate(concurrency_results, headers=["并发数 (c)", "总耗时", "总�
     </li>
     <li>
       <strong>方法论证据（Methodological Rigor）</strong>：
-      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 500 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
+      不要写「我做了交叉验证」，写「在具有层级作者结构的数据集上实施 GroupKFold 消除数据泄漏，结合 200 轮置换检验（Permutation Test）证明了 Ridge 线性基线相较于浅层神经网络在低信噪比下的泛化优势，给出单侧 \(p = 0.005\) 的严格假设检验结论」。
     </li>
     <li>
       <strong>工业级全流程交付（Engineering Closed Loop）</strong>：
-      呼应模块 25，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
+      呼应模块 28，展现「以 Qwen2.5-1.5B 为基座，完成 ChatML 数据协议检验与标签掩码自动化断言；设计 \(r=16, \alpha=32\) 的 QLoRA 微调并在 T4 上以 1.89 GB 极低显存完成全链条收敛；通过 <code>merge_and_unload()</code> 原地合并权重，并利用 llama.cpp 导出端侧量化 GGUF，实现秒级离线自回归推理」。
     </li>
     <li>
       <strong>诚实的负面结果清单（Honest Negative Results）</strong>：

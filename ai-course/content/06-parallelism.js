@@ -192,7 +192,7 @@ COURSE.register({
     <li><strong>激活值显存（Activations）：</strong>
       在选择性激活重计算（Selective Activation Recomputation）下，注意力与 MLP 的线性投影被释放，仅保留必须的输入，单卡激活量为：
       \[ M_{\text{act}} \approx \frac{L}{p} \cdot \frac{b \cdot S \cdot d}{t} \cdot c_{\text{act}} \quad (\text{bytes}) \]
-      其中 \(c_{\text{act}}\) 为单层保留张量常数（通常约 10–14 字节）。
+      其中 \(c_{\text{act}}\) 为单层保留张量常数（通常约 10–14 字节）；\(/t\) 一项仅在开启 Sequence Parallel 时成立，普通 TP 下激活仍完整复制。
     </li>
   </ul>
   <p><strong>2. 通信量代数手算与拓扑映射原则：</strong></p>
@@ -200,7 +200,7 @@ COURSE.register({
   <table class="tbl small">
     <thead><tr><th>并行维度</th><th>每步发生通信的频次</th><th>单卡单步通信量代数式</th><th>硬件映射要求与理由</th></tr></thead>
     <tbody>
-      <tr><td><strong>TP（张量并行）</strong></td><td>每层前向 2 次 + 反向 2 次（共 \(4L\) 次 All-Reduce）</td><td>\(4L \cdot 2 \frac{t-1}{t} \cdot b S d \times c\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
+      <tr><td><strong>TP（张量并行）</strong></td><td>每层 2 次（共 \(2L\) 次 All-Reduce，前向计；含反向则翻倍）</td><td>\(2L \cdot 2 \frac{t-1}{t} \cdot b S d \times c\) 字节</td><td><strong>必须在单机 NVLink 域内（900 GB/s）</strong>。若跨机走 IB（50 GB/s），每步通信耗时将超过计算时间 5 倍以上。</td></tr>
       <tr><td><strong>PP（流水线并行）</strong></td><td>仅在 stage 边界传递边界激活与梯度，每 micro-batch 1 次前向 + 1 次反向</td><td>\(2 \cdot m \cdot b S d \times c\) 字节（\(m\) 为 micro-batch 数量）</td><td><strong>适合跨机（走 InfiniBand）</strong>。通信量极小，只传单层输出，但需通过增加 \(m\) 压缩气泡率 \(\frac{p-1}{m+p-1}\)。</td></tr>
       <tr><td><strong>DP（数据并行）</strong></td><td>每步反向结束对梯度做 1 次 All-Reduce</td><td>\(2 \frac{d_p-1}{d_p} \cdot \frac{c\,\Phi}{t \cdot p}\) 字节</td><td><strong>适合跨节点机架间</strong>。通信量只与参数量相关，与上下文长度 \(S\) 无关，可完全与反向计算重叠（Overlap）。</td></tr>
     </tbody>
@@ -267,7 +267,7 @@ COURSE.register({
     <li>先降<strong>批大小 × 序列长度</strong>（对激活值是线性因子，最有效）。</li>
     <li>打开<strong>激活重计算</strong>（省 60%–80% 激活显存，代价约 30% 算力）。</li>
     <li>打开<strong>梯度累积</strong>：用更小的 micro-batch 达到同样的全局批大小。</li>
-    <li>换<strong>优化器</strong>：8-bit Adam / Adafactor 可把优化器状态从 8 字节/参数降到 2 字节。</li>
+    <li>换<strong>优化器</strong>：8-bit Adam / Adafactor 可把优化器动量从 8 字节/参数（一、二阶矩，不含主权重）降到 2 字节（含 fp32 主权重则从 12 字节降到约 6 字节）。</li>
     <li>上 <strong>FSDP / ZeRO-3</strong>，或改用 LoRA/QLoRA（不训练绝大多数参数）。</li>
     <li>还没解决？<em>模型太大，换小的。</em>在 1B 以下把方法验证清楚，收益远大于硬撑 7B。</li>
   </ol>
@@ -357,7 +357,7 @@ COURSE.register({
         <tr><td>TP</td><td>8</td><td>正好用满机内 NVLink 域，通信最贵的部分不跨机</td></tr>
         <tr><td>PP</td><td>2–4</td><td>跨机通信量小；用足量 micro-batch 压气泡</td></tr>
         <tr><td>DP</td><td>其余（64/(TP×PP)）</td><td>扩大全局批大小，收敛更稳</td></tr>
-        <tr><td>优化器状态</td><td>ZeRO-1/2（配合 DP）</td><td>把 8 字节/参数的状态均摊，避免显存成为瓶颈</td></tr>
+        <tr><td>优化器状态</td><td>ZeRO-1/2（配合 DP）</td><td>把 12 字节/参数（含 fp32 主权重）的状态均摊，避免显存成为瓶颈</td></tr>
         <tr><td>激活</td><td>全部重计算</td><td>激活是唯一随序列长度爆炸的项</td></tr>
       </tbody>
     </table>

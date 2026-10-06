@@ -428,12 +428,12 @@ COURSE.register({
         <ul>
           <li>静态模型权重（2 字节/参数）：\(14.46\text{ M} \times 2\text{ B} \approx 28.9\text{ MB}\)</li>
           <li>梯度反向传播（2 字节/参数）：\(28.9\text{ MB}\)</li>
-          <li>AdamW 优化器状态（一阶动量 4 字节 + 二阶动量 4 字节 = 8 字节/参数）：\(14.46\text{ M} \times 8\text{ B} \approx 115.7\text{ MB}\)</li>
-          <li><strong>训练总静态显存</strong>：\(28.9 + 28.9 + 115.7 \approx 173.5\text{ MB}\)</li>
+          <li>AdamW 优化器状态（fp32 主权重 4 字节 + 一阶动量 4 字节 + 二阶动量 4 字节 = 12 字节/参数）：\(14.46\text{ M} \times 12\text{ B} \approx 173.5\text{ MB}\)</li>
+          <li><strong>训练总静态显存</strong>：\(28.9 + 28.9 + 173.5 \approx 231.3\text{ MB}\)</li>
         </ul>
       </li>
     </ol>
-    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.1%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
+    <p><em>复盘收获</em>：在拥有 16GB（\(16{,}384\text{ MB}\)）显存的 T4 上，14.5M 的模型静态占用仅约 <strong>1.4%</strong>！剩下超过 15GB 的充裕空间完全可以开大批次（Batch Size = 32 或 64），半小时内就能收敛。</p>
   </div>
 </div>
 
@@ -470,12 +470,12 @@ COURSE.register({
   <p class="q">为什么现代超深层大语言模型普遍放弃 Post-norm 结构，而全面拥抱 Pre-norm 残差结构？</p>
   <ul class="opts">
     <li>因为 Pre-norm 的前向矩阵乘法速度快一倍</li>
-    <li data-ok>Pre-norm 的残差主干在反向传播时始终包含一个干净的单位矩阵恒等直通项 \(\mathbf{I}\)，显著改善了深层网络梯度弥散与爆炸的问题，极大提升了超深网络训练的稳定性</li>
+    <li data-ok>Pre-norm 的残差主干恒含单位矩阵直通项 \(\mathbf{I}\)，深层梯度多一条直接通道（仍需配合初始化与步长，见正文限定）</li>
     <li>因为 Pre-norm 不需要使用任何学习率</li>
     <li>为了让模型参数量缩减一半</li>
   </ul>
   <p class="why">
-    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导展开后恒定包含单位矩阵项 \(\frac{\partial \mathcal{L}}{\partial x_0} = \frac{\partial \mathcal{L}}{\partial x_L}(\mathbf{I} + \dots)\)，保证梯度可以在残差流中更顺畅地反向流动；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
+    在 Pre-norm 下，总输出为输入与各层增量的直接累加。全微分链式求导是各层 \((\mathbf{I}+J_lR_l)\) 的有序连乘，展开后恒定包含单位矩阵项 \(\mathbf{I}\)，保证残差流中有一条直通的梯度通道；而 Post-norm 每次残差后都做归一化，深层求导时面临雅可比矩阵连乘衰减。
   </p>
 </div>
 
@@ -496,7 +496,7 @@ COURSE.register({
   <div class="qlabel">填空 · 计算推演</div>
   <p class="q">根据 Transformer 非嵌入层参数量估算公式 \(N \approx 12 L d^2\)，若模型堆叠层数 \(L=6\)，隐藏维度 \(d=512\)。该主干网络的参数量约为多少 M（百万）？（填入整数，如 19）</p>
   <div class="blank-wrap">
-    <input type="text" class="blank-input" placeholder="输入整数参数量（如 19）..." />
+    <input type="text" class="blank-input" placeholder="输入整数参数量后点提交验证..." />
     <button class="blank-btn">提交验证</button>
     <span class="blank-feedback"></span>
   </div>
