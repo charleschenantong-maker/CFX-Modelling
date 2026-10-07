@@ -63,14 +63,24 @@ class ProgressHandler(SimpleHTTPRequestHandler):
             return self._send_json({})
         return super().do_GET()
 
+    # 进度 payload 上限 1MB：正常进度只有几十 KB，超限直接拒绝，避免误写大文件。
+    MAX_BODY = 1 << 20
+
     def do_POST(self):  # noqa: N802
         if self._api_path() != "/api/progress":
             self.send_error(404, "only /api/progress accepts POST")
             return
+        # 只接受同源（课程页 fetch）或无 Origin（curl/脚本）；拒绝跨站表单 POST 覆盖进度。
+        origin = self.headers.get("Origin")
+        if origin and not origin.startswith(f"http://127.0.0.1:{self.server.server_port}") \
+                and not origin.startswith(f"http://localhost:{self.server.server_port}"):
+            return self._send_json({"ok": False, "error": "cross-origin POST rejected"}, 403)
         try:
             length = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             length = 0
+        if length <= 0 or length > self.MAX_BODY:
+            return self._send_json({"ok": False, "error": f"Content-Length must be 1..{self.MAX_BODY}"}, 400)
         raw = self.rfile.read(length) if length else b""
         try:
             payload = json.loads(raw.decode("utf-8"))
@@ -78,6 +88,8 @@ class ProgressHandler(SimpleHTTPRequestHandler):
             return self._send_json({"ok": False, "error": f"invalid JSON: {exc}"}, 400)
         if not isinstance(payload, dict):
             return self._send_json({"ok": False, "error": "payload must be a JSON object"}, 400)
+        if len(payload) > 64:
+            return self._send_json({"ok": False, "error": "payload has too many top-level keys"}, 400)
 
         # 原子写入：先写临时文件再替换，避免中途失败把进度写坏
         tmp = self.progress_file.with_suffix(self.progress_file.suffix + ".tmp")

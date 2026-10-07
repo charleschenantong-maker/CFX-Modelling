@@ -113,7 +113,7 @@ function balances(s) {
 
 function checkHtmlBalance(mod, html) {
   const stack = [];
-  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)(?=[\s/>])[^>]*>/g;
+  const re = /<(\/?)([a-zA-Z][a-zA-Z0-9]*)([^>]*)>/g;
   let m;
   while ((m = re.exec(html))) {
     const closing = m[1] === '/';
@@ -178,8 +178,13 @@ for (const item of active) {
   stats.quizzes += (body.match(/class="quiz"/g) || []).length;
   stats.labs += (body.match(/class="blk blk-lab"/g) || []).length;
   stats.h3 += (body.match(/<h3>/g) || []).length;
-  stats.glossaryRows += (body.match(/<tbody>[\s\S]*?<\/tbody>/g) || [])
-    .reduce((n, t) => n + (t.match(/<tr>/g) || []).length, 0);
+  stats.terms += (body.match(/class="t" data-tterm/g) || []).length;
+  // glossaryRows 只统计附录 A（appA），与 tools/stats.mjs 口径一致；
+  // 全文件 <tbody><tr> 总数是表格行，不是术语数（曾误报 1782）。
+  if (item.id === 'appA') {
+    stats.glossaryRows += (body.match(/<tbody>[\s\S]*?<\/tbody>/g) || [])
+      .reduce((n, t) => n + (t.match(/<tr>/g) || []).length, 0);
+  }
 
   // HTML / class / math
   const htmlOk = checkHtmlBalance(id, body);
@@ -239,12 +244,14 @@ for (const item of active) {
     if (!/<h4>/.test(bm[1])) err(id, `版块 ${bi} 缺少 <h4> 标题`);
   }
 
-  // internal anchors must exist
+  // internal anchors must exist.
+  // #s-* 是每讲顶部「本讲速查」由 index.html 运行时生成的子锚点，
+  // #quiz* 是自测块锚点，均不在 COURSE.register id 体系内，故跳过（计数备查）。
   const linkRe = /href="#([^"]+)"/g;
   let lm;
   while ((lm = linkRe.exec(body))) {
     const target = lm[1];
-    if (target.startsWith('s-') || target.startsWith('quiz')) continue;
+    if (target.startsWith('s-') || target.startsWith('quiz')) { stats.skippedSubAnchors = (stats.skippedSubAnchors || 0) + 1; continue; }
     if (!allIds.has(target)) err(id, `死链 #${target}（没有这个模块 id）`);
   }
 
@@ -279,9 +286,9 @@ if (!asJson) {
   console.log(`\n内容静态自检  node tools/validate.mjs`);
   console.log(`${'='.repeat(74)}`);
   console.log(`文件 ${stats.files} 个 · 模块 ${stats.modules} 个 · 正文 ${(stats.characters / 1000).toFixed(1)}k 字符`);
-  console.log(`公式 ${stats.formulas} 处（行间 ${stats.displayFormulas}）· 自测 ${stats.quizzes} · 术语 ${stats.terms} · 动手版块 ${stats.labs}`);
+  console.log(`公式 ${stats.formulas} 处（行间 ${stats.displayFormulas}）· 自测 ${stats.quizzes} · 术语悬浮 ${stats.terms} · 动手版块 ${stats.labs}`);
   console.log(`表格 ${stats.tables} · 折叠块 ${stats.accordions} · h3 ${stats.h3} · 色彩版块 ${stats.blockSections}`);
-  console.log(`术语表表格行 ${stats.glossaryRows}`);
+  console.log(`附录A术语行 ${stats.glossaryRows}（仅 appA，与 tools/stats.mjs glossaryRows 口径一致）`);
   if (statLines.length) {
     console.log(`\n前沿拓展章规模（16–22）：`);
     statLines.forEach(l => console.log('  ' + l));
