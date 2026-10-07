@@ -35,7 +35,7 @@
 
   --bg:#f6f5f1; --bg-2:#efece5; --surface:#ffffff; --surface-2:#faf9f6;
   --ink:#15181e; --ink-2:#3b4250; --muted:#6b7382; --line:#e2ded5; --line-2:#d3cec2;
-  --accent:#0f6b63; --accent-ink:#0b4f49; --accent-soft:#e4f2ef;
+  --accent:#3b52d4; --accent-ink:#1e3a8a; --accent-soft:#eff6ff;
   --amber:#a8630a; --amber-soft:#fdf3e3;
   --indigo:#3f3fa0; --indigo-soft:#eeeefb;
   --red:#a52121; --red-soft:#fdeeee;
@@ -47,17 +47,17 @@
   --radius:14px; --radius-sm:9px;
 }
 html[data-theme="dark"]{
-  --bg:#05070b; --bg-2:#0a0e15; --surface:#0b1018; --surface-2:#0e141d;
-  --ink:#e9f1ea; --ink-2:#c6d2c9; --muted:#8fa098; --line:#1d2632; --line-2:#2b3a4d;
-  --accent:#46ffa2; --accent-ink:#8dffc6; --accent-soft:#06231a;
-  --amber:#f2b95c; --amber-soft:#2c2009;
-  --indigo:#a8b0ff; --indigo-soft:#171c3d;
-  --red:#ff9393; --red-soft:#371717;
-  --green:#46ffa2; --green-soft:#06231a;
-  --violet:#d3a8ff; --violet-soft:#251834;
-  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
-  --shadow-md:0 8px 24px rgba(0,0,0,.45);
-  --shadow-lg:0 20px 60px rgba(0,0,0,.55);
+  --bg:#080c14; --bg-2:#0e1422; --surface:#111827; --surface-2:#162032;
+  --ink:#f1f5f9; --ink-2:#cbd5e1; --muted:#7888a0; --line:#1f2d42; --line-2:#2c3e5a;
+  --accent:#60a5fa; --accent-ink:#93c5fd; --accent-soft:rgba(96,165,250,0.12);
+  --amber:#fbbf24; --amber-soft:rgba(251,191,36,0.12);
+  --indigo:#818cf8; --indigo-soft:rgba(129,140,248,0.12);
+  --red:#f87171; --red-soft:rgba(248,113,113,0.12);
+  --green:#34d399; --green-soft:rgba(52,211,153,0.12);
+  --violet:#c084fc; --violet-soft:rgba(192,132,252,0.12);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.5);
+  --shadow-md:0 8px 24px rgba(0,0,0,.55);
+  --shadow-lg:0 20px 60px rgba(0,0,0,.65);
 }
 *,*::before,*::after{box-sizing:border-box}
 /* 隐藏所有滚动条（滚动功能保留：滚轮 / 触控板 / 键盘 / 屏幕阅读器都不受影响） */
@@ -144,8 +144,12 @@ html[data-theme="light"] .icon-swap .i-sun,
 html[data-theme="dark"]  .icon-swap .i-moon{opacity:1; transform:none; filter:none}
 
 .readbar{position:fixed; top:0; left:0; height:2.5px; width:0; z-index:70;
-  background:linear-gradient(90deg,var(--accent),var(--amber));
+  background:linear-gradient(90deg,var(--accent),var(--indigo) 60%,var(--violet));
   transition:width var(--duration-micro) var(--ease-linear)}
+html[data-theme="dark"] .readbar{
+  background:linear-gradient(90deg,#60a5fa 0%,#818cf8 48%,#c084fc 100%);
+  box-shadow:0 0 10px rgba(96,165,250,0.45);
+}
 
 /* search */
 .search-wrap{position:relative; min-width:190px}
@@ -257,6 +261,12 @@ body.view-home #home {
   background-clip: text;
   color: transparent;
 }
+html[data-theme="dark"] .hero h1 .grad {
+  background: linear-gradient(100deg, #60a5fa 0%, #818cf8 48%, #c084fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 .hero .lede {
   font-family: var(--font-display);
@@ -307,7 +317,10 @@ body.view-home #home {
   font-weight: 600;
 }
 html[data-theme="dark"] .hero-cta a.primary {
-  color: #0b1018;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  border-color: #60a5fa;
+  box-shadow: 0 2px 14px rgba(96, 165, 250, 0.35);
 }
 .hero-cta a:hover {
   border-color: var(--accent);
@@ -319,7 +332,9 @@ html[data-theme="dark"] .hero-cta a.primary {
   filter: brightness(1.08);
 }
 html[data-theme="dark"] .hero-cta a.primary:hover {
-  color: #000;
+  color: #ffffff;
+  background: linear-gradient(135deg, #60a5fa, #818cf8);
+  box-shadow: 0 4px 20px rgba(96, 165, 250, 0.5);
 }
 
 .hero-cards {
@@ -387,9 +402,13 @@ html[data-theme="dark"] .hero-cta a.primary:hover {
 .side .progress-card .n{font-family:var(--font-display); font-size:22px; color:var(--accent)}
 .side .progress-card .lbl{font-size:12.5px; color:var(--muted)}
 .bar{height:6px; border-radius:99px; background:var(--bg-2); overflow:hidden; margin-top:9px}
-html[data-theme="dark"] .bar{background:#222a36}
+html[data-theme="dark"] .bar{background:#162032}
+html[data-theme="dark"] .bar>i{
+  background:linear-gradient(90deg,#60a5fa,#818cf8 60%,#c084fc);
+  box-shadow:0 0 10px rgba(96,165,250,0.35);
+}
 .bar>i{display:block; height:100%; width:0; border-radius:99px;
-  background:linear-gradient(90deg,var(--accent),var(--green));
+  background:linear-gradient(90deg,var(--accent),#6366f1);
   transition:width var(--duration-slow) var(--ease-smooth-out)}
 /* 进度落盘 */
 .prog-stats{display:flex; justify-content:space-between; gap:8px; margin-top:10px;
@@ -414,14 +433,20 @@ html[data-theme="dark"] .sync-actions .tb-btn.on{color:var(--accent)}
              transform var(--duration-quick) var(--ease-smooth-out)}
 .nav a:hover{background:var(--surface); color:var(--ink); transform:translateX(2px)}
 .nav a.active{background:var(--accent-soft); color:var(--accent-ink); font-weight:600}
-html[data-theme="dark"] .nav a.active{color:var(--accent)}
+html[data-theme="dark"] .nav a.active{
+  color:#93c5fd;
+  background:rgba(96, 165, 250, 0.12);
+  border-left:2px solid #60a5fa;
+}
 .nav a .num{font-family:var(--font-mono); font-size:11.5px; color:var(--muted); padding-top:3px; min-width:22px}
 .nav a.active .num{color:inherit}
 .nav a .dot{margin-left:auto; width:7px; height:7px; border-radius:50%; margin-top:8px; flex:none;
   background:var(--line-2); transition:background var(--duration-quick) var(--ease-in-out),
   transform var(--duration-very-slow) var(--ease-bounce)}
-.nav a.done .dot{background:var(--green); transform:scale(1.25)}
-.nav a.done .num{color:var(--green)}
+.nav a.done .dot{background:#6366f1; transform:scale(1.25)}
+.nav a.done .num{color:#6366f1}
+html[data-theme="dark"] .nav a.done .dot{background:#818cf8}
+html[data-theme="dark"] .nav a.done .num{color:#818cf8}
 .nav.collapsed-on-search a.hide{display:none}
 main{min-width:0; padding:26px 0 0 40px}
 .mod{scroll-margin-top:70px; padding:8px 0 36px; border-bottom:1px dashed var(--line); margin-bottom:0}
@@ -436,7 +461,8 @@ main{min-width:0; padding:26px 0 0 40px}
   font-family:var(--font-display); font-size:19px; color:#fff; background:var(--accent); box-shadow:var(--shadow-sm)}
 .mod-num.p0{background:#5b6472}.mod-num.p1{background:var(--accent)}
 .mod-num.p2{background:var(--indigo)}.mod-num.p3{background:var(--violet)}
-.mod-num.p4{background:var(--amber)}.mod-num.p5{background:var(--green)}
+.mod-num.p4{background:var(--amber)}.mod-num.p5{background:#0284c7}
+html[data-theme="dark"] .mod-num.p5{background:#818cf8}
 .mod-head h2{font-size:clamp(22px,2.9vw,30px); margin:2px 0 4px}
 .mod-head .en{font-family:var(--font-display); font-size:13.5px; color:var(--muted); letter-spacing:.04em}
 .mod-tags{display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 4px}
@@ -574,9 +600,9 @@ hr{border:0; border-top:1px solid var(--line); margin:26px 0}
 .blk-q>h4{color:var(--amber)}
 .blk-m{border-color:color-mix(in srgb,var(--indigo) 30%,#e3d9bd); background-color:#f8f3e4;
   background-image:repeating-linear-gradient(to bottom,transparent 0 27px,color-mix(in srgb,var(--indigo) 13%,transparent) 27px 28px)}
-html[data-theme="dark"] .blk-m{background-color:#161409;
-  background-image:repeating-linear-gradient(to bottom,transparent 0 27px,color-mix(in srgb,var(--indigo) 20%,transparent) 27px 28px);
-  border-color:color-mix(in srgb,var(--indigo) 42%,var(--indigo-soft))}
+html[data-theme="dark"] .blk-m{background-color:#101524;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 27px,color-mix(in srgb,var(--indigo) 18%,transparent) 27px 28px);
+  border-color:color-mix(in srgb,var(--indigo) 38%,var(--indigo-soft))}
 .blk-m>h4{color:var(--indigo)}
 .blk-lab{border-color:color-mix(in srgb,var(--accent) 38%,var(--accent-soft)); background:var(--accent-soft)}
 .blk-lab>h4{color:var(--accent-ink)}
@@ -599,12 +625,12 @@ html[data-theme="dark"] .blk-lab>h4{color:var(--accent)}
 /* code */
 pre{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm);
   padding:13px 15px; overflow:auto; font-size:13.2px; line-height:1.6; margin:13px 0}
-html[data-theme="dark"] pre{background:#0d1320;
-  border-color:color-mix(in srgb,var(--accent) 22%,var(--line));
-  box-shadow:0 0 26px rgba(70,255,162,.06)}
+html[data-theme="dark"] pre{background:#0d131f;
+  border-color:#1e2b40;
+  box-shadow:0 4px 20px rgba(0,0,0,.35)}
 pre code{white-space:pre}
 code{font-size:.92em; background:var(--bg-2); padding:1.5px 5px; border-radius:5px; color:var(--ink)}
-html[data-theme="dark"] code{background:#222a36}
+html[data-theme="dark"] code{background:#182234; color:#e2e8f0}
 pre code{background:none; padding:0; color:var(--ink)}
 .cm{color:var(--muted); font-style:italic}
 .kw{color:var(--indigo); font-weight:600}
@@ -745,23 +771,37 @@ html[data-theme="dark"] .flow .nd.hi{color:var(--accent)}
 
 html[data-theme="light"] .blank-btn {
   color: #ffffff !important;
-  background: var(--accent) !important;
-  border: 1px solid color-mix(in srgb, var(--accent) 80%, black) !important;
-  box-shadow: 0 1px 3px rgba(15, 107, 99, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #3b52d4, #4f46e5) !important;
+  border: 1px solid #3b52d4 !important;
+  box-shadow: 0 2px 8px rgba(59, 82, 212, 0.25), 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 html[data-theme="light"] .blank-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--accent) 88%, white) !important;
-  box-shadow: 0 4px 12px rgba(15, 107, 99, 0.32);
+  background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+  box-shadow: 0 4px 14px rgba(59, 82, 212, 0.35);
 }
 html[data-theme="dark"] .blank-btn {
-  color: #04120c !important;
-  background: var(--accent) !important;
-  border: 1px solid var(--accent) !important;
-  box-shadow: 0 2px 8px rgba(70, 255, 162, 0.25);
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  border: 1px solid #60a5fa !important;
+  box-shadow: 0 2px 12px rgba(96, 165, 250, 0.35);
 }
 html[data-theme="dark"] .blank-btn:hover:not(:disabled) {
-  background: #6effb5 !important;
-  box-shadow: 0 4px 16px rgba(70, 255, 162, 0.4);
+  background: linear-gradient(135deg, #60a5fa, #818cf8) !important;
+  box-shadow: 0 4px 18px rgba(96, 165, 250, 0.5);
+}
+html[data-theme="dark"] .blank-input {
+  background: #111827 !important;
+  border-color: #1f2d42 !important;
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .blank-input:hover {
+  border-color: color-mix(in srgb, var(--accent) 45%, #2c3e5a) !important;
+  background: #162032 !important;
+}
+html[data-theme="dark"] .blank-input:focus {
+  border-color: var(--accent) !important;
+  background: #162032 !important;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
 }
 .blank-btn {
   display: inline-flex;
@@ -849,7 +889,13 @@ html[data-theme="dark"] .blank-btn:hover:not(:disabled) {
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7382' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat; background-position:right 10px center; padding-right:28px}
 html[data-theme="dark"] .calc select{
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238fa098' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-color:#162032;
+  border-color:#1f2d42;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237888a0' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+html[data-theme="dark"] .calc input[type=number]{
+  background-color:#162032;
+  border-color:#1f2d42;
 }
 .calc .out{margin-top:15px; display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:11px}
 .calc .out div{background:var(--surface-2); border:1px solid var(--line); border-radius:10px; padding:10px 13px}
@@ -877,8 +923,10 @@ html[data-theme="dark"] .calc select{
 .mark-done .box::after{content:""; position:absolute; left:5px; top:1.5px; width:4px; height:9px;
   border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg) scale(0); transform-origin:center;
   transition:transform var(--duration-fast) var(--ease-bounce)}
-.mark-done.on{background:var(--green-soft); border-color:var(--green); color:var(--green)}
-.mark-done.on .box{background:var(--green); border-color:var(--green)}
+.mark-done.on{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+.mark-done.on .box{background:var(--accent); border-color:var(--accent)}
+html[data-theme="dark"] .mark-done.on{background:rgba(129,140,248,0.15); border-color:#818cf8; color:#a5b4fc}
+html[data-theme="dark"] .mark-done.on .box{background:#818cf8; border-color:#818cf8}
 .mark-done.on .box::after{transform:rotate(45deg) scale(1)}
 .modnav{display:flex; gap:10px}
 .modnav a{font-size:14px; padding:7px 14px; border:1px solid var(--line); border-radius:999px; border-bottom-width:1px;
@@ -996,7 +1044,7 @@ html[data-theme="dark"] .calc select{
         <span class="lbl">已标记读完</span></div>
       <div class="bar"><i id="progBar"></i></div>
       <div class="row" style="margin-top:11px">
-        <span class="lbl">全局阅读进度 <b id="scrollPct" style="color:var(--ink-2)">0%</b></span>
+        <span class="lbl">全局阅读进度 <b id="scrollPct" style="color:var(--accent)">0%</b> <span style="font-weight:normal;color:var(--muted);font-size:12px;margin-left:4px">（本章 <b id="chapPct" style="font-weight:600;color:var(--ink-2)">0%</b>）</span></span>
         <button class="tb-btn" id="resetBtn" style="padding:3px 10px;font-size:12px">重置</button>
       </div>
       <div class="prog-stats">
@@ -1162,6 +1210,8 @@ window.COURSE = (function () {
     document.body.classList.add('view-home');
     currentMod = null;
     setActiveNav('__home');
+    const cp = $('#chapPct'); if (cp) cp.textContent = '0%';
+    const bar = $('#readbar'); if (bar) bar.style.width = '0%';
     if (window.__refreshTotalH) requestAnimationFrame(() => { window.__refreshTotalH(); });
     window.scrollTo(0, 0);
 
@@ -1189,7 +1239,14 @@ window.COURSE = (function () {
     paintRead();
 
     // 延迟异步更新总高度，绝不阻塞点击瞬间与动画首帧
-    if (window.__refreshTotalH) requestAnimationFrame(() => { window.__refreshTotalH(); });
+    if (window.__refreshTotalH) requestAnimationFrame(() => {
+      window.__refreshTotalH();
+      const cp = $('#chapPct');
+      if (cp) {
+        const curV = (totalHCache > 0) ? Math.min(1, Math.max(0, window.scrollY / totalHCache)) : ((PROG.data.read && PROG.data.read[m.id]) ? Math.round(PROG.data.read[m.id] * 100) + '%' : '0%');
+        cp.textContent = typeof curV === 'string' ? curV : Math.round(curV * 100) + '%';
+      }
+    });
 
     if (sub) scrollToId(sub);
     else window.scrollTo(0, 0);
@@ -1481,7 +1538,7 @@ window.COURSE = (function () {
     return set.map(id => ID_ALIASES[id] || id).filter((id, i, a) => a.indexOf(id) === i);
   }
   const PROG = {
-    data: { version: 1, course: 'LLM Crash Course', updated_at: '', done: [], quizzes: {},
+    data: { version: 1, course: 'LLM Crash Course', updated_at: '', done: [], read: {}, quizzes: {},
             last: null, time_spent_sec: 0, theme: 'light' },
     mode: 'browser', dirHandle: null, _t: 0, _ticks: 0,
     load() {
@@ -1489,6 +1546,7 @@ window.COURSE = (function () {
       if (raw && typeof raw === 'object') this.data = Object.assign(this.data, raw);
       if (!Array.isArray(this.data.done)) this.data.done = [];
       this.data.done = migrateIds(this.data.done);
+      if (!this.data.read || typeof this.data.read !== 'object') this.data.read = {};
       if (this.data.last && ID_ALIASES[this.data.last.id]) this.data.last.id = ID_ALIASES[this.data.last.id];
       if (!this.data.quizzes || typeof this.data.quizzes !== 'object') this.data.quizzes = {};
     },
@@ -1500,6 +1558,12 @@ window.COURSE = (function () {
       if (!other || typeof other !== 'object') return;
       const d = this.data;
       migrateIds(other.done || []).forEach(id => { if (d.done.indexOf(id) < 0) d.done.push(id); });
+      if (other.read && typeof other.read === 'object') {
+        if (!d.read) d.read = {};
+        Object.keys(other.read).forEach(k => {
+          d.read[k] = Math.max(d.read[k] || 0, other.read[k] || 0);
+        });
+      }
       Object.keys(other.quizzes || {}).forEach(k => {
         const a = d.quizzes[k] || { attempted: 0, correct: 0 }, b = other.quizzes[k] || {};
         d.quizzes[k] = { attempted: Math.max(a.attempted || 0, b.attempted || 0),
@@ -1641,6 +1705,20 @@ window.COURSE = (function () {
 
   /* ---------- read state ---------- */
   function readSet() { return PROG.data.done; }
+  function calcGlobalProgress() {
+    const total = (COURSE && COURSE.items && COURSE.items.length) || 1;
+    const set = readSet();
+    const read = (PROG && PROG.data && PROG.data.read) || {};
+    let sum = 0;
+    (COURSE.items || []).forEach(m => {
+      if (set.indexOf(m.id) >= 0) {
+        sum += 1;
+      } else {
+        sum += Math.min(1, Math.max(0, read[m.id] || 0));
+      }
+    });
+    return Math.min(100, Math.round(100 * sum / total));
+  }
   function paintRead() {
     const set = readSet();
     $$('.mark-done').forEach(el => {
@@ -1650,8 +1728,8 @@ window.COURSE = (function () {
       el.querySelector('.box').style.background = '';
     });
     $$('.nav a').forEach(a => a.classList.toggle('done', set.indexOf(a.dataset.id) >= 0));
-    const total = COURSE.items.length || 1;
-    const globalPercent = Math.round(100 * set.length / total) + '%';
+    const total = (COURSE.items && COURSE.items.length) || 1;
+    const globalPercent = calcGlobalProgress() + '%';
     $('#progNum').innerHTML = set.length + '<span style="font-size:14px;color:var(--muted)">/' + total + '</span>';
     $('#progBar').style.width = globalPercent;
     const pct = $('#scrollPct');
@@ -1677,7 +1755,13 @@ window.COURSE = (function () {
     document.addEventListener('click', e => {
       const el = e.target.closest && e.target.closest('.mark-done'); if (!el) return;
       const id = el.dataset.mark; const set = readSet(); const i = set.indexOf(id);
-      if (i >= 0) set.splice(i, 1); else set.push(id);
+      if (i >= 0) {
+        set.splice(i, 1);
+      } else {
+        set.push(id);
+        if (!PROG.data.read) PROG.data.read = {};
+        PROG.data.read[id] = 1;
+      }
       if (i < 0) PROG.data.last = { id: id, at: new Date().toISOString() };
       PROG.touch(); paintRead();
     });
@@ -1846,13 +1930,25 @@ window.COURSE = (function () {
       requestAnimationFrame(() => {
         scrollTick = false;
         const totalH = totalHCache;
-        if (totalH <= 0) {
-          if (bar) bar.style.width = '0%';
-          return;
-        }
-        // 屏幕最上方的微光滚动进度条：精准反映当前章节的阅读进度
-        const v = Math.min(1, Math.max(0, window.scrollY / totalH));
+        const v = totalH > 0 ? Math.min(1, Math.max(0, window.scrollY / totalH)) : 0;
         if (bar) bar.style.width = (v * 100).toFixed(1) + '%';
+        const cp = $('#chapPct');
+        if (cp) cp.textContent = Math.round(v * 100) + '%';
+
+        if (currentMod) {
+          if (!PROG.data.read) PROG.data.read = {};
+          const oldV = PROG.data.read[currentMod] || 0;
+          const effectiveV = v >= 0.88 ? 1 : v;
+          if (effectiveV > oldV) {
+            PROG.data.read[currentMod] = effectiveV;
+            const newGlobal = calcGlobalProgress() + '%';
+            const sp = $('#scrollPct');
+            if (sp) sp.textContent = newGlobal;
+            const pb = $('#progBar');
+            if (pb) pb.style.width = newGlobal;
+            PROG.schedule();
+          }
+        }
       });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -2028,8 +2124,9 @@ window.COURSE = (function () {
     });
     $('#printBtn').addEventListener('click', () => window.print());
     $('#resetBtn').addEventListener('click', () => {
-      PROG.data.done = []; PROG.data.quizzes = {}; PROG.data.time_spent_sec = 0;
+      PROG.data.done = []; PROG.data.read = {}; PROG.data.quizzes = {}; PROG.data.time_spent_sec = 0;
       PROG.data.last = null; PROG.touch();
+      const cp = $('#chapPct'); if (cp) cp.textContent = '0%';
       paintRead(); paintProgress();
     });
     // 进度落盘：优先本地服务，其次浏览器文件夹，最后导出/导入
