@@ -47,14 +47,14 @@
   --radius:14px; --radius-sm:9px;
 }
 html[data-theme="dark"]{
-  --bg:#0e1116; --bg-2:#131821; --surface:#171c25; --surface-2:#1c222c;
-  --ink:#e9ebef; --ink-2:#c3c9d4; --muted:#98a2b3; --line:#262d3a; --line-2:#333c4c;
-  --accent:#4fd1c5; --accent-ink:#8fe6dd; --accent-soft:#12302f;
-  --amber:#e0a44a; --amber-soft:#31240f;
-  --indigo:#9aa2ff; --indigo-soft:#1b2040;
-  --red:#f08a8a; --red-soft:#3a1c1c;
-  --green:#77d39b; --green-soft:#12301f;
-  --violet:#c39cf0; --violet-soft:#2a1c3a;
+  --bg:#05070b; --bg-2:#0a0e15; --surface:#0b1018; --surface-2:#0e141d;
+  --ink:#e9f1ea; --ink-2:#c6d2c9; --muted:#8fa098; --line:#1d2632; --line-2:#2b3a4d;
+  --accent:#46ffa2; --accent-ink:#8dffc6; --accent-soft:#06231a;
+  --amber:#f2b95c; --amber-soft:#2c2009;
+  --indigo:#a8b0ff; --indigo-soft:#171c3d;
+  --red:#ff9393; --red-soft:#371717;
+  --green:#46ffa2; --green-soft:#06231a;
+  --violet:#d3a8ff; --violet-soft:#251834;
   --shadow-sm:0 1px 2px rgba(0,0,0,.4);
   --shadow-md:0 8px 24px rgba(0,0,0,.45);
   --shadow-lg:0 20px 60px rgba(0,0,0,.55);
@@ -250,11 +250,36 @@ html[data-theme="dark"] .nav a.active{color:var(--accent)}
 .nav a.done .dot{background:var(--green); transform:scale(1.25)}
 .nav a.done .num{color:var(--green)}
 .nav.collapsed-on-search a.hide{display:none}
+/* 学习路线图：三轨纵向 rail，状态跟已读走 */
+.route{position:relative; margin:0 0 16px 2px; padding-left:20px}
+.route::before{content:""; position:absolute; left:6px; top:12px; bottom:12px; width:2px;
+  border-radius:2px; background:var(--line-2)}
+.rt{position:relative; display:flex; align-items:center; gap:9px; padding:7px 9px 7px 0;
+  border-radius:var(--radius-sm); color:var(--ink-2); border-bottom-width:1px}
+.rt:hover{color:var(--ink)}
+.rt .rdot{position:absolute; left:-19px; top:50%; transform:translateY(-50%);
+  width:11px; height:11px; border-radius:50%; background:var(--surface);
+  border:2px solid var(--line-2);
+  transition:border-color var(--duration-quick) var(--ease-in-out),
+             background-color var(--duration-quick) var(--ease-in-out),
+             box-shadow var(--duration-quick) var(--ease-in-out)}
+.rt .rtx b{display:block; font-size:13.5px}
+.rt .rtx i{display:block; font-style:normal; font-size:11.5px; color:var(--muted)}
+.rt .rstat{margin-left:auto; font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.rt.active .rdot{border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.rt.active .rstat{color:var(--accent)}
+.rt.done .rdot{border-color:var(--green); background:var(--green)}
+.rt.done .rstat{color:var(--green)}
 
 main{min-width:0; padding:26px 0 0 40px}
 .mod{scroll-margin-top:70px; padding:8px 0 40px; border-bottom:1px dashed var(--line); margin-bottom:26px}
 .mod:last-of-type{border-bottom:0}
-.mod-head{display:flex; gap:16px; align-items:flex-start; margin-bottom:6px}
+.mod-head{position:relative; display:flex; gap:16px; align-items:flex-start; margin-bottom:6px}
+.mod-water{position:absolute; right:2px; top:-26px; z-index:0; pointer-events:none; user-select:none;
+  font-family:var(--font-display); font-size:96px; line-height:1; font-weight:600;
+  color:color-mix(in srgb,var(--accent) 9%,transparent)}
+.mod-head>*:not(.mod-water){position:relative; z-index:1}
+.mod-meta{font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-top:5px; letter-spacing:.03em}
 .mod-num{flex:none; width:46px; height:46px; border-radius:13px; display:grid; place-items:center;
   font-family:var(--font-display); font-size:19px; color:#fff; background:var(--accent); box-shadow:var(--shadow-sm)}
 .mod-num.p0{background:#5b6472}.mod-num.p1{background:var(--accent)}
@@ -283,7 +308,11 @@ hr{border:0; border-top:1px solid var(--line); margin:26px 0}
 .blk>:last-child{margin-bottom:0}
 .blk-q{border-color:color-mix(in srgb,var(--amber) 38%,var(--amber-soft)); background:var(--amber-soft)}
 .blk-q>h4{color:var(--amber)}
-.blk-m{border-color:color-mix(in srgb,var(--indigo) 38%,var(--indigo-soft)); background:var(--indigo-soft)}
+.blk-m{border-color:color-mix(in srgb,var(--indigo) 30%,#e3d9bd); background-color:#f8f3e4;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 27px,color-mix(in srgb,var(--indigo) 13%,transparent) 27px 28px)}
+html[data-theme="dark"] .blk-m{background-color:#161409;
+  background-image:repeating-linear-gradient(to bottom,transparent 0 27px,color-mix(in srgb,var(--indigo) 20%,transparent) 27px 28px);
+  border-color:color-mix(in srgb,var(--indigo) 42%,var(--indigo-soft))}
 .blk-m>h4{color:var(--indigo)}
 .blk-lab{border-color:color-mix(in srgb,var(--accent) 38%,var(--accent-soft)); background:var(--accent-soft)}
 .blk-lab>h4{color:var(--accent-ink)}
@@ -306,7 +335,9 @@ html[data-theme="dark"] .blk-lab>h4{color:var(--accent)}
 /* code */
 pre{background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm);
   padding:13px 15px; overflow:auto; font-size:13.2px; line-height:1.6; margin:13px 0}
-html[data-theme="dark"] pre{background:#11151d}
+html[data-theme="dark"] pre{background:#0d1320;
+  border-color:color-mix(in srgb,var(--accent) 22%,var(--line));
+  box-shadow:0 0 26px rgba(70,255,162,.06)}
 pre code{white-space:pre}
 code{font-size:.92em; background:var(--bg-2); padding:1.5px 5px; border-radius:5px; color:var(--ink)}
 html[data-theme="dark"] code{background:#222a36}
@@ -588,6 +619,11 @@ footer b{color:var(--ink-2)}
         <input type="file" id="importFile" accept=".json,application/json" hidden />
       </div>
     </div>
+    <div class="route" id="route" title="三条学习轨道：先走 A，再走 B，之后常驻 C">
+      <a class="rt" data-track="A" href="#mP"><span class="rdot"></span><span class="rtx"><b>A · 最小闭环</b><i>P→01–05→08→07→E7 · 8–10h</i></span><span class="rstat"></span></a>
+      <a class="rt" data-track="B" href="#m0"><span class="rdot"></span><span class="rtx"><b>B · 完整通读</b><i>00→…→29 · ~30h · 12周</i></span><span class="rstat"></span></a>
+      <a class="rt" data-track="C" href="#appF"><span class="rdot"></span><span class="rtx"><b>C · 按需查表</b><i>附录F/A · 1–3分钟</i></span><span class="rstat">查</span></a>
+    </div>
     <nav class="nav" id="nav"></nav>
   </aside>
   <main id="content"></main>
@@ -686,9 +722,12 @@ window.COURSE = (function () {
     const prev = COURSE.items[i - 1], next = COURSE.items[i + 1];
     sec.innerHTML =
       '<div class="mod-head">' +
+        '<div class="mod-water" aria-hidden="true">' + esc(m.num || '') + '</div>' +
         '<div class="mod-num p' + m.part + '">' + esc(m.num || '§') + '</div>' +
         '<div><h2>' + esc(m.title) + '</h2>' +
-        (m.en ? '<div class="en">' + esc(m.en) + '</div>' : '') + '</div>' +
+        (m.en ? '<div class="en">' + esc(m.en) + '</div>' : '') +
+        '<div class="mod-meta">' + ((m.body || '').match(/class="quiz(?=["\s])/g) || []).length +
+        ' 道自测' + (m.minutes ? ' · ≈ ' + m.minutes + ' 分钟' : '') + '</div></div>' +
       '</div>' +
       (m.tags && m.tags.length ? '<div class="mod-tags">' +
         m.tags.map(t => '<span class="tag' + (t === '核心' || t === '必做' ? ' min' : '') + '">' + esc(t) + '</span>').join('') +
@@ -1146,6 +1185,24 @@ window.COURSE = (function () {
     $('#progNum').innerHTML = set.length + '<span style="font-size:14px;color:var(--muted)">/' + total + '</span>';
     $('#progBar').style.width = Math.round(100 * set.length / total) + '%';
     paintProgress();
+    paintRoute(set, total);
+  }
+  // 路线图状态：A 先行（9 站），A 通关后 B 接棒，全通后常驻 C 查表
+  var TRACK_A = ['mP', 'm1', 'm2', 'm3', 'm4', 'm5', 'm8', 'm7', 'appF'];
+  function paintRoute(set, total) {
+    const rA = document.querySelector('.rt[data-track="A"]'),
+          rB = document.querySelector('.rt[data-track="B"]'),
+          rC = document.querySelector('.rt[data-track="C"]');
+    if (!rA || !rB || !rC) return;
+    const aN = TRACK_A.filter(id => set.indexOf(id) >= 0).length;
+    const aDone = aN >= TRACK_A.length, bDone = set.length >= total;
+    rA.querySelector('.rstat').textContent = aDone ? '✓' : aN + '/' + TRACK_A.length;
+    rB.querySelector('.rstat').textContent = bDone ? '✓' : Math.round(100 * set.length / total) + '%';
+    const cur = !aDone ? 'A' : (!bDone ? 'B' : 'C');
+    [['A', rA, aDone], ['B', rB, bDone], ['C', rC, false]].forEach(([t, el, done]) => {
+      el.classList.toggle('done', !!done);
+      el.classList.toggle('active', t === cur && !done);
+    });
   }
   function wireRead() {
     document.addEventListener('click', e => {
