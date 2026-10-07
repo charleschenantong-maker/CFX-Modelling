@@ -144,7 +144,7 @@ COURSE.register({
   </tbody>
 </table>
 <p class="cm">
-  <strong>核心原则</strong>：在云端训练，Checkpoint 一定要外存到 Google Drive 或 Hugging Face Hub，别只留在实例里；详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
+  <strong>核心原则</strong>：在云端训练，Checkpoint 一定要外存到 Google Drive 或 Hugging Face Hub，别只留在实例里；详见<a href="#m24">模块 24（断点续训与检查点）</a>。
 </p>
 <h3>7. 命令速查</h3>
 <pre><code><span class="cm"># git（实验管理）</span>

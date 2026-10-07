@@ -5,7 +5,7 @@ COURSE.register({
   num: "14",
   title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
   en: "Compression & Model Merging",
-  minutes: 42,
+  minutes: 65,
   tags: ["高阶", "部署", "实用"],
   body: String.raw`
 <p class="lead">
@@ -619,7 +619,7 @@ COURSE.register({
   它的核心假设是：权重空间里的算术是有意义的。
 </p>
 <p>
-  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>；
+  MoE 本体的结构、路由与专家并行见 <a href="#m12-moe">模块 12（MoE）</a>；
   这里只讨论「把稠密权重变成 MoE」的 upcycling 算术，以及它和量化的配合顺序。
 </p>
 

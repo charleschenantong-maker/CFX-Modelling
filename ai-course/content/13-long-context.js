@@ -1,6 +1,6 @@
 /* content/13-long-context.js — 模块 13：长上下文与外推 */
 COURSE.register({
-  id: "m16-long-context",
+  id: "m13-long-context",
   part: 3,
   num: "13",
   title: "长上下文与外推：RoPE 旋转、频率分频与 YaRN 插值",

@@ -5,7 +5,7 @@ COURSE.register({
   num: "D",
   title: "附录 D · 合规、安全与学术诚信",
   en: "Appendix D — Compliance & Integrity",
-  minutes: 20,
+  minutes: 25,
   tags: ["附录", "风险", "合规"],
   body: String.raw`
 <p class="lead">

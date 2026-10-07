@@ -16,8 +16,32 @@ COURSE.register({
   以及怎么用本课程（尤其是第 09 章）的方法证明自己真的学到了东西——
   而不是学会了某一家产品的按钮。
 </p>
+<section class="blk blk-warn">
+
+  <h4><span class="ic">⚠</span>来源声明：下面 22 个链接是同一家厂商的，这是有意的——但要先说清楚</h4>
+
+  <p>
+    截至核对日期 <strong>2026-10-05</strong>，本附录的课程链接 <strong>100% 指向 Anthropic 的 academy.claude.com</strong>。
+    只收录这一套的原因只有一个：它是作者逐门打开核对过的、唯一成体系的免费官方素养课目录。
+    这<strong>不是</strong>对该厂商的背书，也不意味着其它家没有好课——
+    只是其它家的目录作者没有逐门核对过，不敢写进链接表里。
+  </p>
+
+  <p>
+    去厂商化的做法有三层（由浅入深）：
+    先看第 8 节「表 5」，把每门课的说法翻译成通用概念与开放/开源替代；
+    再用第 4 节的厂商中立检查表给自己体检；
+    最后用下面这些厂商无关的入口交叉验证同一能力——
+    <a href="https://huggingface.co/learn" target="_blank" rel="noopener">Hugging Face Learn</a>（开源模型实操）、
+    <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP 开放协议规范</a>（智能体接法，不依赖任何一家 SDK）、
+    <a href="https://platform.openai.com/docs" target="_blank" rel="noopener">OpenAI 平台文档</a>（另一家的 API 语义对照）。
+    如果你发现某家新出了成体系的免费素养课，按第 8 节表 5 的三列格式补一行即可。
+  </p>
+
+</section>
 
 <section class="blk blk-q">
+
   <h4><span class="ic">◆</span>先说结论：课值得上，但别只会上某一家的产品</h4>
   <p>
     这些官方课确实<strong>免费、成体系、有练习</strong>，比绝大多数二手教程可靠：

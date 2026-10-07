@@ -1,6 +1,6 @@
 /* content/12-moe.js — 模块 12：混合专家架构 MoE */
 COURSE.register({
-  id: "m15-moe",
+  id: "m12-moe",
   part: 3,
   num: "12",
   title: "混合专家架构：稀疏门控、Top-k 路由与负载均衡",

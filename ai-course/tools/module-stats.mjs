@@ -17,7 +17,7 @@ let terms = 0;
 for (const m of (appA?.body || '').matchAll(/<tbody>([\s\S]*?)<\/tbody>/g)) terms += (m[1].match(/<tr>/g) || []).length;
 for (const it of items) {
   const b = it.body || '';
-  quiz += (b.match(/class="quiz"/g) || []).length;
+  quiz += (b.match(/class="quiz(?=["\s])/g) || []).length;
   lab += (b.match(/class="blk blk-lab"/g) || []).length;
   chars += b.replace(/<[^>]*>/g, '').length;
   disp += (b.match(/(?<!\\)\\\[/g) || []).length;

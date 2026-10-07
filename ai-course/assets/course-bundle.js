@@ -156,13 +156,13 @@ COURSE.register({
 
     <tr>
 
-      <td><strong>第一次：通读</strong><br />（约 28 小时阅读：正文约 21 小时＋附录约 7 小时，另加实验 4–12 小时）</td>
+      <td><strong>第一次：通读</strong><br />（约 30 小时阅读：正文约 22 小时＋附录约 8 小时，另加实验 4–12 小时）</td>
 
       <td>按顺序读 00 → P → 01 → … → 29，每讲结束做自测；折叠的「深入」可以先跳过，
 
           等真正用到时再回来。时间不够先走下面的最小闭环（8–10 小时），再按 12 周计划补完</td>
 
-      <td>正文 31 讲（00＋P＋01–29）；每讲 15–60 分钟，全量共 1,684 分钟。零基础务必先读 <strong>P 预备课</strong></td>
+      <td>正文 31 讲（00＋P＋01–29）；每讲 15–90 分钟，全量共 1,795 分钟。零基础务必先读 <strong>P 预备课</strong></td>
 
     </tr>
 
@@ -188,7 +188,7 @@ COURSE.register({
 
   <h4><span class="ic">✓</span>三条轨道：按你的时间选一条（不要线性硬刷 99.5 万字符）</h4>
 
-  <p>全量阅读约 1,684 分钟（正文 1,274 分钟＋附录 410 分钟），另加实验 4–12 小时。先选一条，达到出口标准再进入下一条。</p>
+  <p>全量阅读约 1,795 分钟（正文 1,335 分钟＋附录 460 分钟），另加实验 4–12 小时。先选一条，达到出口标准再进入下一条。</p>
 
   <table class="tbl small">
 
@@ -198,7 +198,7 @@ COURSE.register({
 
       <tr><td><strong>A 最小闭环</strong></td><td>P → 01–05 → 08 → 07 → 附录B E7 → 附录F</td><td>8–10 小时</td><td>能手算 softmax＋交叉熵、说清 KV 显存公式、跑通 E7 并讲出结论</td></tr>
 
-      <tr><td><strong>B 完整通读</strong></td><td>00 → P → 01 → … → 29（折叠深入可跳过）＋附录 E 自测 ≥17/20</td><td>约 28 小时＋实验</td><td>附录 E ≥17 分，且能复算 LoRA 参数量与 DPO 单步</td></tr>
+      <tr><td><strong>B 完整通读</strong></td><td>00 → P → 01 → … → 29（折叠深入可跳过）＋附录 E 自测 ≥17/20</td><td>约 30 小时＋实验</td><td>附录 E ≥17 分，且能复算 LoRA 参数量与 DPO 单步</td></tr>
 
       <tr><td><strong>C 按需查表</strong></td><td>附录 F＋附录 A＋各讲失败模式表</td><td>每次 1–3 分钟</td><td>遇到报错 3 分钟内定位到对策表</td></tr>
 
@@ -6657,7 +6657,7 @@ COURSE.register({
 /* --- content/12-moe.js --- */
 /* content/12-moe.js — 模块 12：混合专家架构 MoE */
 COURSE.register({
-  id: "m15-moe",
+  id: "m12-moe",
   part: 3,
   num: "12",
   title: "混合专家架构：稀疏门控、Top-k 路由与负载均衡",
@@ -7023,7 +7023,7 @@ COURSE.register({
 /* --- content/13-long-context.js --- */
 /* content/13-long-context.js — 模块 13：长上下文与外推 */
 COURSE.register({
-  id: "m16-long-context",
+  id: "m13-long-context",
   part: 3,
   num: "13",
   title: "长上下文与外推：RoPE 旋转、频率分频与 YaRN 插值",
@@ -7302,7 +7302,7 @@ COURSE.register({
   num: "14",
   title: "压缩与合并：剪枝、稀疏、量化感知与模型融合",
   en: "Compression & Model Merging",
-  minutes: 42,
+  minutes: 65,
   tags: ["高阶", "部署", "实用"],
   body: String.raw`
 <p class="lead">
@@ -7916,7 +7916,7 @@ COURSE.register({
   它的核心假设是：权重空间里的算术是有意义的。
 </p>
 <p>
-  MoE 本体的结构、路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>；
+  MoE 本体的结构、路由与专家并行见 <a href="#m12-moe">模块 12（MoE）</a>；
   这里只讨论「把稠密权重变成 MoE」的 upcycling 算术，以及它和量化的配合顺序。
 </p>
 
@@ -9985,7 +9985,7 @@ COURSE.register({
   <li>与单次生成对比：基线是 \(1200 \times 2000 = 2.4\) M/天，所以账单正好是 <strong>6 倍</strong>，与 \(n\) 相同——
       采样法在线性成本上没有任何折扣。</li>
   <li>换算成钱：把 14.4 M 乘上你的「每百万输出 token 单价」。本课不给价格快照（价格变动快、各家差异大，
-      见 <a href="#m11">模块 11</a>），但方案里必须写出这个乘法，而不是「大概会贵一点」。</li>
+             见 <a href="#m23">模块 23（预算与订阅）</a>），但方案里必须写出这个乘法，而不是「大概会贵一点」。</li>
   <li>前提修正：如果裁判精度 \(q < 1\)，交付准确率还要乘 \(q\)。此时把预算投到验证器上，
       比把 \(n\) 从 6 加到 12 更划算——后者的边际收益已经很小。</li>
 </ol>
@@ -10842,7 +10842,7 @@ COURSE.register({
 </p>
 <p>
   长上下文一侧的机制（位置编码外推、KV 预算、注意力下沉）见
-  <a href="#m16-long-context">模块 13（长上下文）</a>；本讲只保留 RAG 决策需要的接口：多少 token 时该切、切过去要多花多少钱。
+  <a href="#m13-long-context">模块 13（长上下文）</a>；本讲只保留 RAG 决策需要的接口：多少 token 时该切、切过去要多花多少钱。
 </p>
 
 <h3>5. 上下文工程：把提示当成一种数据结构</h3>
@@ -12496,7 +12496,7 @@ COURSE.register({
   num: "20",
   title: "安全、对齐与可解释性：我们怎么知道模型在做什么",
   en: "Safety, Alignment & Interpretability",
-  minutes: 40,
+  minutes: 45,
   tags: ["高阶", "安全", "可解释性"],
   body: String.raw`
 <p class="lead">
@@ -13497,7 +13497,7 @@ COURSE.register({
   num: "21",
   title: "前沿架构与多模态：注意力之外的世界",
   en: "Frontier Architectures & Multimodality",
-  minutes: 42,
+  minutes: 70,
   tags: ["高阶", "前沿", "多模态"],
   body: String.raw`
 <p class="lead">
@@ -14418,7 +14418,7 @@ COURSE.register({
 <p>
   下面是一次完整的选型推演。约束是硬的：<strong>一张 24 GB 卡、128K 上下文、同时服务 4 条序列、单序列解码要能看。</strong>
   参考配置沿用第 1 节那个 GQA 模型（\(L=32\)、\(h_{kv}=8\)、\(d_h=128\)），KV 先用 fp16。
-  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 13（长上下文）</a>，这里只做选型算术。
+  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m13-long-context">模块 13（长上下文）</a>，这里只做选型算术。
 </p>
 <p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉（基座权重已按 int4 量化计 3.9 GB，运行时底噪计 2.0 GB）：</p>
 \[ 24 - 3.9 - 2.0 \approx 18 \qquad (\text{GB}) \]
@@ -14489,7 +14489,7 @@ COURSE.register({
       没有辅助损失时，路由器会把几乎所有 token 扔给少数几个专家（赢者通吃），其余专家等于白占显存——
       此时 \(N_{\text{total}}\) 里的大部分参数从没被训练好。部署视角：aux-loss 只在训练时存在，
       推理侧零成本；但它决定了你下载的 MoE 权重里有多少参数是真正可用的。
-      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>。
+      MoE 本体的路由与专家并行见 <a href="#m12-moe">模块 12（MoE）</a>。
       什么时候不值：单卡场景直接选稠密（本节已算过），连 aux 的存在都不需要知道。
     </p>
     <p>
@@ -17341,7 +17341,7 @@ COURSE.register({
   num: "A",
   title: "附录 A · 术语表（中英对照）",
   en: "Appendix A — Glossary",
-  minutes: 25,
+  minutes: 45,
   tags: ["附录", "术语"],
   body: String.raw`
 <p class="lead">
@@ -20190,7 +20190,7 @@ COURSE.register({
   num: "C",
   title: "附录 C · 资源地图与阅读路径",
   en: "Appendix C — Resource Map",
-  minutes: 60,
+  minutes: 90,
   tags: ["附录", "资源", "阅读路径"],
   body: String.raw`
 <p class="lead">
@@ -21878,7 +21878,7 @@ COURSE.register({
   num: "D",
   title: "附录 D · 合规、安全与学术诚信",
   en: "Appendix D — Compliance & Integrity",
-  minutes: 20,
+  minutes: 25,
   tags: ["附录", "风险", "合规"],
   body: String.raw`
 <p class="lead">
@@ -23145,7 +23145,7 @@ COURSE.register({
   </tbody>
 </table>
 <p class="cm">
-  <strong>核心原则</strong>：在云端训练，Checkpoint 一定要外存到 Google Drive 或 Hugging Face Hub，别只留在实例里；详见<a href="#m10">模块 10</a>与<a href="#m11">模块 11</a>。
+  <strong>核心原则</strong>：在云端训练，Checkpoint 一定要外存到 Google Drive 或 Hugging Face Hub，别只留在实例里；详见<a href="#m24">模块 24（断点续训与检查点）</a>。
 </p>
 <h3>7. 命令速查</h3>
 <pre><code><span class="cm"># git（实验管理）</span>
@@ -23327,8 +23327,32 @@ COURSE.register({
   以及怎么用本课程（尤其是第 09 章）的方法证明自己真的学到了东西——
   而不是学会了某一家产品的按钮。
 </p>
+<section class="blk blk-warn">
+
+  <h4><span class="ic">⚠</span>来源声明：下面 22 个链接是同一家厂商的，这是有意的——但要先说清楚</h4>
+
+  <p>
+    截至核对日期 <strong>2026-10-05</strong>，本附录的课程链接 <strong>100% 指向 Anthropic 的 academy.claude.com</strong>。
+    只收录这一套的原因只有一个：它是作者逐门打开核对过的、唯一成体系的免费官方素养课目录。
+    这<strong>不是</strong>对该厂商的背书，也不意味着其它家没有好课——
+    只是其它家的目录作者没有逐门核对过，不敢写进链接表里。
+  </p>
+
+  <p>
+    去厂商化的做法有三层（由浅入深）：
+    先看第 8 节「表 5」，把每门课的说法翻译成通用概念与开放/开源替代；
+    再用第 4 节的厂商中立检查表给自己体检；
+    最后用下面这些厂商无关的入口交叉验证同一能力——
+    <a href="https://huggingface.co/learn" target="_blank" rel="noopener">Hugging Face Learn</a>（开源模型实操）、
+    <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP 开放协议规范</a>（智能体接法，不依赖任何一家 SDK）、
+    <a href="https://platform.openai.com/docs" target="_blank" rel="noopener">OpenAI 平台文档</a>（另一家的 API 语义对照）。
+    如果你发现某家新出了成体系的免费素养课，按第 8 节表 5 的三列格式补一行即可。
+  </p>
+
+</section>
 
 <section class="blk blk-q">
+
   <h4><span class="ic">◆</span>先说结论：课值得上，但别只会上某一家的产品</h4>
   <p>
     这些官方课确实<strong>免费、成体系、有练习</strong>，比绝大多数二手教程可靠：

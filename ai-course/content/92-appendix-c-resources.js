@@ -5,7 +5,7 @@ COURSE.register({
   num: "C",
   title: "附录 C · 资源地图与阅读路径",
   en: "Appendix C — Resource Map",
-  minutes: 60,
+  minutes: 90,
   tags: ["附录", "资源", "阅读路径"],
   body: String.raw`
 <p class="lead">

@@ -9,7 +9,7 @@ const files = fs.readdirSync(contentDir).filter(f => f.endsWith('.js')).sort();
 let total = 0;
 for (const f of files) {
   const content = fs.readFileSync(join(contentDir, f), 'utf8');
-  const count = (content.match(/class="quiz"/g) || []).length;
+  const count = (content.match(/class="quiz(?=["\s])/g) || []).length;
   total += count;
   console.log(`${f.padEnd(30)}: ${count}`);
 }

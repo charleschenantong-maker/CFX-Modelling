@@ -5,7 +5,7 @@ COURSE.register({
   num: "A",
   title: "附录 A · 术语表（中英对照）",
   en: "Appendix A — Glossary",
-  minutes: 25,
+  minutes: 45,
   tags: ["附录", "术语"],
   body: String.raw`
 <p class="lead">

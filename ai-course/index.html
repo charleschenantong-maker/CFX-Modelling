@@ -534,7 +534,7 @@ footer b{color:var(--ink-2)}
 
 <section class="hero">
   <div class="reveal-stagger" id="heroReveal">
-    <div class="eyebrow">Introductory Course · v1.2 · 2026</div>
+    <div class="eyebrow">Introductory Course · v1.4 · 2026</div>
     <h1>从 Token 到自主智能体：<br /><span class="grad">LLM 的底座与训练全栈</span></h1>
     <p class="lede">
       这是一门写给<em>数学系申请者</em>的 LLM 入门课：从 next-token prediction 的概率分解，
@@ -542,10 +542,10 @@ footer b{color:var(--ink-2)}
       最后把全部知识接回你的 <em>Mathematical Crossfade Modelling</em> 研究指南。
       <strong>零基础友好</strong>：不知道注意力、梯度、损失是什么也没关系，预备课会手把手把它们讲一遍。
     </p>
-    <p class="meta">19 讲 + 7 个附录 · 内嵌自测与计算器 · 离线可读（KaTeX 已本地化）· 额度数据取自官方文档</p>
+    <p class="meta">31 讲 + 7 个附录（38 个模块）· 内嵌自测与计算器 · 离线可读（KaTeX 已本地化）· 额度数据取自官方文档</p>
   </div>
   <div class="hero-cards reveal-stagger" id="heroCards">
-    <div class="hero-card"><b id="statMods">17</b><span>模块：底座 → 训练 → 算力 → 系统 → 项目</span></div>
+    <div class="hero-card"><b id="statMods">38</b><span>模块：底座 → 训练 → 算力 → 系统 → 项目</span></div>
     <div class="hero-card"><b id="statQuizzes">0</b><span>道即时判定的自测题</span></div>
     <div class="hero-card"><b id="statTerms">0</b><span>条中英对照术语</span></div>
     <div class="hero-card"><b id="statLabs">0</b><span>个可在 Colab 跑的动手实验</span></div>
@@ -555,7 +555,7 @@ footer b{color:var(--ink-2)}
 <div class="shell">
   <aside class="side">
     <div class="progress-card">
-      <div class="row"><span class="n" id="progNum">0<span style="font-size:14px;color:var(--muted)">/34</span></span>
+      <div class="row"><span class="n" id="progNum">0<span style="font-size:14px;color:var(--muted)">/38</span></span>
         <span class="lbl">已标记读完</span></div>
       <div class="bar"><i id="progBar"></i></div>
       <div class="row" style="margin-top:11px">
@@ -950,6 +950,12 @@ window.COURSE = (function () {
      ③ File System Access API 直接写你选的文件夹；都不可用时用「导出 / 导入」兜底 */
   const API = 'api/progress';
   const PROG_FILE = 'llm-crash-course-progress.json';
+  // v1.4 模块 id 重命名对照：老进度里的旧 id 自动迁移（m15-moe→m12-moe，m16-long-context→m13-long-context）
+  const ID_ALIASES = { 'm15-moe': 'm12-moe', 'm16-long-context': 'm13-long-context' };
+  function migrateIds(set) {
+    if (!Array.isArray(set)) return set;
+    return set.map(id => ID_ALIASES[id] || id).filter((id, i, a) => a.indexOf(id) === i);
+  }
   const PROG = {
     data: { version: 1, course: 'LLM Crash Course', updated_at: '', done: [], quizzes: {},
             last: null, time_spent_sec: 0, theme: 'light' },
@@ -958,6 +964,8 @@ window.COURSE = (function () {
       const raw = LS.get('progress', null);
       if (raw && typeof raw === 'object') this.data = Object.assign(this.data, raw);
       if (!Array.isArray(this.data.done)) this.data.done = [];
+      this.data.done = migrateIds(this.data.done);
+      if (this.data.last && ID_ALIASES[this.data.last.id]) this.data.last.id = ID_ALIASES[this.data.last.id];
       if (!this.data.quizzes || typeof this.data.quizzes !== 'object') this.data.quizzes = {};
     },
     stamp() { this.data.updated_at = new Date().toISOString(); },
@@ -967,7 +975,7 @@ window.COURSE = (function () {
     merge(other) {
       if (!other || typeof other !== 'object') return;
       const d = this.data;
-      (other.done || []).forEach(id => { if (d.done.indexOf(id) < 0) d.done.push(id); });
+      migrateIds(other.done || []).forEach(id => { if (d.done.indexOf(id) < 0) d.done.push(id); });
       Object.keys(other.quizzes || {}).forEach(k => {
         const a = d.quizzes[k] || { attempted: 0, correct: 0 }, b = other.quizzes[k] || {};
         d.quizzes[k] = { attempted: Math.max(a.attempted || 0, b.attempted || 0),
@@ -1319,12 +1327,16 @@ window.COURSE = (function () {
     let quizzes = 0, labs = 0, tterms = 0, glossRows = 0;
     COURSE.items.forEach(m => {
       const b = m.body || '';
-      quizzes += (b.match(/class="quiz"/g) || []).length;
+      quizzes += (b.match(/class="quiz(?=["\s])/g) || []).length;
       labs += (b.match(/class="blk blk-lab"/g) || []).length;
       tterms += (b.match(/class="t"/g) || []).length;
-      (b.match(/<tbody>[\s\S]*?<\/tbody>/g) || []).forEach(t => {
-        glossRows += (t.match(/<tr>/g) || []).length;
-      });
+      // 术语行只数附录 A（与 tools/stats.mjs glossaryRows 口径一致）；
+      // 全文件 <tbody><tr> 是表格行，不是术语（曾误显示 1785）。
+      if (m.id === 'appA') {
+        (b.match(/<tbody>[\s\S]*?<\/tbody>/g) || []).forEach(t => {
+          glossRows += (t.match(/<tr>/g) || []).length;
+        });
+      }
     });
     const defs = glossRows || tterms || $$('#content .t[data-d]').length;
     $('#statQuizzes').textContent = quizzes;

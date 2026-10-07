@@ -175,7 +175,7 @@ for (const item of active) {
   stats.blockSections += (body.match(/class="blk\b/g) || []).length;
   stats.tables += (body.match(/<table class="tbl/g) || []).length;
   stats.accordions += (body.match(/class="acc"/g) || []).length;
-  stats.quizzes += (body.match(/class="quiz"/g) || []).length;
+  stats.quizzes += (body.match(/class="quiz(?=["\s])/g) || []).length;
   stats.labs += (body.match(/class="blk blk-lab"/g) || []).length;
   stats.h3 += (body.match(/<h3>/g) || []).length;
   stats.terms += (body.match(/class="t" data-tterm/g) || []).length;

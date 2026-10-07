@@ -5,7 +5,7 @@ COURSE.register({
   num: "21",
   title: "前沿架构与多模态：注意力之外的世界",
   en: "Frontier Architectures & Multimodality",
-  minutes: 42,
+  minutes: 70,
   tags: ["高阶", "前沿", "多模态"],
   body: String.raw`
 <p class="lead">
@@ -926,7 +926,7 @@ COURSE.register({
 <p>
   下面是一次完整的选型推演。约束是硬的：<strong>一张 24 GB 卡、128K 上下文、同时服务 4 条序列、单序列解码要能看。</strong>
   参考配置沿用第 1 节那个 GQA 模型（\(L=32\)、\(h_{kv}=8\)、\(d_h=128\)），KV 先用 fp16。
-  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m16-long-context">模块 13（长上下文）</a>，这里只做选型算术。
+  长上下文的通用机制（窗口、预算、失效模式）见 <a href="#m13-long-context">模块 13（长上下文）</a>，这里只做选型算术。
 </p>
 <p><strong>第一步：算 KV 预算。</strong>先把权重与运行时开销扣掉（基座权重已按 int4 量化计 3.9 GB，运行时底噪计 2.0 GB）：</p>
 \[ 24 - 3.9 - 2.0 \approx 18 \qquad (\text{GB}) \]
@@ -997,7 +997,7 @@ COURSE.register({
       没有辅助损失时，路由器会把几乎所有 token 扔给少数几个专家（赢者通吃），其余专家等于白占显存——
       此时 \(N_{\text{total}}\) 里的大部分参数从没被训练好。部署视角：aux-loss 只在训练时存在，
       推理侧零成本；但它决定了你下载的 MoE 权重里有多少参数是真正可用的。
-      MoE 本体的路由与专家并行见 <a href="#m15-moe">模块 12（MoE）</a>。
+      MoE 本体的路由与专家并行见 <a href="#m12-moe">模块 12（MoE）</a>。
       什么时候不值：单卡场景直接选稠密（本节已算过），连 aux 的存在都不需要知道。
     </p>
     <p>

@@ -17,7 +17,7 @@ for (const it of items) {
   const b = it.body || '';
   formulas += (b.match(/(?<!\\)\\\(/g) || []).length + (b.match(/(?<!\\)\\\[/g) || []).length;
   display += (b.match(/(?<!\\)\\\[/g) || []).length;
-  quizzes += (b.match(/class="quiz"/g) || []).length;
+  quizzes += (b.match(/class="quiz(?=["\s])/g) || []).length;
   termSpans += (b.match(/class="t" data-tterm/g) || []).length;
   labs += (b.match(/class="blk blk-lab"/g) || []).length;
   tables += (b.match(/<table class="tbl/g) || []).length;
@@ -32,13 +32,14 @@ let appendixRows = 0;
 for (const it of items.filter(i => i.part === 9)) {
   for (const m of (it.body || '').matchAll(/<tabular>([\s\S]*?)<\/tabular>/g)) void m;
 }
-const chapters = items.filter(i => /^\d+$/.test(String(i.num)) && Number(i.num) <= 24).length;
+const chapters = items.filter(i => /^(0[1-9]|[12][0-9])$/.test(String(i.num))).length;
+const lectures = items.filter(i => /^\d+$/.test(String(i.num)) || i.num === '00' || i.num === 'P').length;
 const appendices = items.filter(i => i.part === 9).length;
 
 console.log(JSON.stringify({
   files: readdirSync(contentDir).filter(x => x.endsWith('.js')).length,
   modules: items.length,
-  chapters,
+  chapters, lectures,
   appendices,
   formulas, displayFormulas: display,
   quizzes, termSpans, glossaryRows: glossRows,

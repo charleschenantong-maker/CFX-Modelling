@@ -5,7 +5,7 @@ COURSE.register({
   num: "20",
   title: "安全、对齐与可解释性：我们怎么知道模型在做什么",
   en: "Safety, Alignment & Interpretability",
-  minutes: 40,
+  minutes: 45,
   tags: ["高阶", "安全", "可解释性"],
   body: String.raw`
 <p class="lead">
