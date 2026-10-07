@@ -189,14 +189,23 @@ body.view-mod #home{display:none}
 /* 迎宾首页：侧边栏整个收起（目录/进度/路线都不露），hero 保持原版式 */
 body.view-home .side{display:none}
 body.view-home .shell{grid-template-columns:minmax(0,1fr); padding-bottom:0}
-/* 首页整体缩小一号，保证一屏定住、无滚动条 */
-body.view-home .hero{padding-top:34px}
-body.view-home .hero h1{font-size:clamp(28px,3.6vw,44px)}
-body.view-home .hero-cards{margin-top:22px}
-body.view-home .hero-card{padding:13px 16px}
-body.view-home .hero-card b{font-size:22px}
-body.view-home .playnet{margin-top:18px; padding:12px 20px 10px}
-body.view-home .play-title{font-size:15px}
+/* 首页双栏迎宾：左文右图，字全部放大，保证一屏定住、无滚动条 */
+body.view-home .hero{display:grid; grid-template-columns:1.05fr .95fr; gap:6px 44px;
+  padding-top:52px; align-items:start}
+body.view-home #heroReveal{grid-column:1}
+body.view-home #heroCta{grid-column:1}
+body.view-home #heroCards{grid-column:1 / -1}
+body.view-home .playnet{grid-column:2; grid-row:1 / span 2; margin-top:0; align-self:start}
+body.view-home .hero h1{font-size:clamp(38px,5vw,64px)}
+body.view-home .hero .lede{font-size:20px}
+body.view-home .hero-cta a{font-size:16px; padding:11px 24px}
+body.view-home .hero-card b{font-size:30px}
+body.view-home .hero-card span{font-size:14px}
+body.view-home .play-title{font-size:17px}
+@media (max-width:900px){
+  body.view-home .hero{grid-template-columns:1fr}
+  body.view-home .playnet{grid-column:1; grid-row:auto}
+}
 body.view-home .hero{padding-top:44px}
 body.view-home .playnet{margin-top:20px; padding:12px 22px}
 #pnetSvg{display:block; height:142px; width:auto; max-width:100%; margin:2px auto 0}
@@ -1558,23 +1567,10 @@ window.COURSE = (function () {
   // 侧边栏高光管理：点击时零毫秒响应高亮，并让高光项在侧边栏视野内可见
   function setActiveNav(id) {
     if (!id) return;
-    const links = $$('.nav a');
-    let activeEl = null;
-    links.forEach(a => {
-      const isMatch = a.dataset.id === id;
-      a.classList.toggle('active', isMatch);
-      if (isMatch) activeEl = a;
+    // 只点高光，不碰滚动：目录滚不滚完全由用户自己说了算
+    $$('.nav a').forEach(a => {
+      a.classList.toggle('active', a.dataset.id === id);
     });
-    if (activeEl) {
-      // 侧边栏只在高光项滚出视野时才跟随，且用瞬时跳（不再平滑乱滑）
-      const nav = $('#nav');
-      if (nav) {
-        const r = activeEl.getBoundingClientRect(), n = nav.getBoundingClientRect();
-        if (r.top < n.top || r.bottom > n.bottom) activeEl.scrollIntoView({ block: 'nearest' });
-      } else {
-        activeEl.scrollIntoView({ block: 'nearest' });
-      }
-    }
   }
 
   // 精准平滑滚动核心：计算准确像素偏移，并在滑行期间加锁防止途经章节篡夺高光
