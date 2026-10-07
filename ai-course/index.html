@@ -110,6 +110,8 @@ code,pre,.mono{font-family:var(--font-mono)}
   border-bottom:1px solid var(--line);
 }
 .topbar .brand{font-family:var(--font-display); font-size:15px; font-weight:600; white-space:nowrap; letter-spacing:.02em}
+/* 左上品牌、侧边栏（进度卡/导航标题/模块链接）与模块编号用楷体 */
+.topbar .brand,.side .progress-card,.nav-part,.nav a,.mod-num{font-family:"Kaiti SC","KaiTi","STKaiti","TW-Kai","AR PL UKai CN","KaiU",cursive,serif}
 .topbar .brand i{font-style:normal; color:var(--accent)}
 .topbar .spacer{flex:1}
 .tb-btn{
@@ -279,18 +281,18 @@ hr{border:0; border-top:1px solid var(--line); margin:26px 0}
   letter-spacing:.02em; display:flex; align-items:center; gap:8px}
 .blk>h4 .ic{font-size:15px}
 .blk>:last-child{margin-bottom:0}
-.blk-q{background:var(--amber-soft)}
+.blk-q{border-color:color-mix(in srgb,var(--amber) 38%,var(--amber-soft)); background:var(--amber-soft)}
 .blk-q>h4{color:var(--amber)}
-.blk-m{background:var(--indigo-soft)}
+.blk-m{border-color:color-mix(in srgb,var(--indigo) 38%,var(--indigo-soft)); background:var(--indigo-soft)}
 .blk-m>h4{color:var(--indigo)}
-.blk-lab{background:var(--accent-soft)}
+.blk-lab{border-color:color-mix(in srgb,var(--accent) 38%,var(--accent-soft)); background:var(--accent-soft)}
 .blk-lab>h4{color:var(--accent-ink)}
 html[data-theme="dark"] .blk-lab>h4{color:var(--accent)}
-.blk-warn{background:var(--red-soft)}
+.blk-warn{border-color:color-mix(in srgb,var(--red) 38%,var(--red-soft)); background:var(--red-soft)}
 .blk-warn>h4{color:var(--red)}
-.blk-tip{background:var(--green-soft)}
+.blk-tip{border-color:color-mix(in srgb,var(--green) 38%,var(--green-soft)); background:var(--green-soft)}
 .blk-tip>h4{color:var(--green)}
-.blk-eco{background:var(--violet-soft)}
+.blk-eco{border-color:color-mix(in srgb,var(--violet) 38%,var(--violet-soft)); background:var(--violet-soft)}
 .blk-eco>h4{color:var(--violet)}
 
 /* 小节引桥：进入本节前的一段引导。比 .blk-* 更轻，只为建立坐标，不抢正文 */
