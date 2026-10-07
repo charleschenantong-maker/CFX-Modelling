@@ -2,21 +2,16 @@ import glob
 import os
 import re
 
-files = sorted(glob.glob('content/*.js'))
+files = sorted(glob.glob('ai-course/content/*.js'))
 print(f'Total files: {len(files)}')
 
 patterns = {
     'svg': re.compile(r'<svg', re.I),
     'canvas': re.compile(r'<canvas', re.I),
-    'flow': re.compile(r'class=["\']flow["\']'),
-    'grid': re.compile(r'class=["\']grid2["\']'),
+    'flow': re.compile(r'class=[\"\']flow[\"\']'),
+    'grid2': re.compile(r'class=[\"\']grid2[\"\']'),
     'table': re.compile(r'<table', re.I),
-    'quiz': re.compile(r'class=["\']quiz["\']'),
-    'acc': re.compile(r'class=["\']acc["\']'),
-    'input': re.compile(r'<input|<button', re.I),
-    'slider': re.compile(r'type=["\']range["\']', re.I),
-    'chart': re.compile(r'chart|plot|graph', re.I),
-    'interactive': re.compile(r'interactive|slider|calc|demo', re.I),
+    'calc': re.compile(r'class=[\"\']calc[\"\']'),
 }
 
 for f in files:
