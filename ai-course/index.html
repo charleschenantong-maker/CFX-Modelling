@@ -189,6 +189,9 @@ body.view-mod #home{display:none}
 /* 迎宾首页：侧边栏整个收起（目录/进度/路线都不露），hero 保持原版式 */
 body.view-home .side{display:none}
 body.view-home .shell{grid-template-columns:minmax(0,1fr); padding-bottom:0}
+body.view-home .hero{padding-top:44px}
+body.view-home .playnet{margin-top:20px; padding:12px 22px}
+#pnetSvg{display:block; height:172px; width:auto; max-width:100%; margin:2px auto 0}
 body.view-home main{padding-top:0}
 /* 首页按钮与数据卡跟大标题同一套衬线 */
 .hero-cta a,.hero-card span{font-family:var(--font-display)}
@@ -639,7 +642,7 @@ html[data-theme="dark"] .flow .nd.hi{color:var(--accent)}
       <div class="play-title">跑一次前向传播 <span>3→4→2 小网络：线越粗权重越大，绿边正权重、橙边负权重</span></div>
       <button id="pnetRun">再跑一次 →</button>
     </div>
-    <svg id="pnetSvg" viewBox="0 0 640 200" role="img" aria-label="三层神经网络前向传播演示"></svg>
+    <svg id="pnetSvg" viewBox="0 0 640 172" role="img" aria-label="三层神经网络前向传播演示"></svg>
     <div class="pnet-out">输出概率 <b id="pnetProb">–</b> · 交叉熵 <b id="pnetLoss">–</b></div>
   </div>
 </section>
@@ -1028,9 +1031,10 @@ window.COURSE = (function () {
     const svg = $('#pnetSvg'); if (!svg) return;
     const NS = 'http://www.w3.org/2000/svg';
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const XS = [70, 320, 570], R = 17;
-    const YS = [[50, 100, 150], [28, 76, 124, 172], [72, 128]];
+    const XS = [80, 320, 560], R = 15;
+    const YS = [[48, 88, 128], [28, 68, 108, 148], [68, 108]];
     const NL = [3, 4, 2];
+    const NAMES = ['输入层', '隐藏层', '输出层'];
     let W1, B1, W2, B2, runToken = 0;
     const gN = [];
     const rnd = () => Math.random() * 2 - 1;
@@ -1044,8 +1048,9 @@ window.COURSE = (function () {
       const n = gN[l][i];
       const v = Math.max(0, Math.min(1, a));
       n.c.style.fill = 'var(--accent)';
-      n.c.style.fillOpacity = 0.1 + 0.9 * v;
+      n.c.style.fillOpacity = 0.12 + 0.88 * v;
       n.c.style.stroke = 'var(--accent)';
+      n.halo.style.opacity = (0.35 * v).toFixed(2);
       n.t.textContent = v.toFixed(2);
       n.ti.textContent = '激活值 ' + v.toFixed(3);
     }
@@ -1062,24 +1067,33 @@ window.COURSE = (function () {
         W.forEach((row, j) => row.forEach((w, i) => {
           const ln = el('line', { x1: XS[l], y1: YS[l][i], x2: XS[l + 1], y2: YS[l + 1][j] });
           ln.style.stroke = w >= 0 ? 'var(--accent)' : 'var(--amber)';
-          ln.style.strokeOpacity = 0.18 + 0.5 * Math.min(1, Math.abs(w));
-          ln.style.strokeWidth = 1 + 2.2 * Math.min(1, Math.abs(w));
+          ln.style.strokeOpacity = 0.2 + 0.55 * Math.min(1, Math.abs(w));
+          ln.style.strokeWidth = 1 + 2.4 * Math.min(1, Math.abs(w));
+          ln.style.strokeLinecap = 'round';
           ge.appendChild(ln);
         }));
       }
       NL.forEach((n, l) => {
+        const lab = el('text', { x: XS[l], y: 12, 'text-anchor': 'middle' });
+        lab.style.fontSize = '11px'; lab.style.fill = 'var(--muted)';
+        lab.style.fontFamily = 'var(--font-mono)'; lab.style.letterSpacing = '.2em';
+        lab.textContent = NAMES[l];
+        svg.appendChild(lab);
         gN[l] = [];
         for (let i = 0; i < n; i++) {
           const g = el('g', {});
+          const halo = el('circle', { cx: XS[l], cy: YS[l][i], r: R + 7 });
+          halo.style.fill = 'var(--accent)'; halo.style.opacity = 0;
           const c = el('circle', { cx: XS[l], cy: YS[l][i], r: R });
           c.style.fill = 'var(--surface)'; c.style.stroke = 'var(--line-2)'; c.style.strokeWidth = 1.5;
           const t = el('text', { x: XS[l], y: YS[l][i] + 4, 'text-anchor': 'middle' });
-          t.style.fontSize = '11px'; t.style.fill = 'var(--ink-2)';
+          t.style.fontSize = '10.5px'; t.style.fill = 'var(--ink-2)';
+          t.style.fontVariantNumeric = 'tabular-nums';
           const ti = el('title', {});
           ti.textContent = '神经元';
-          g.appendChild(c); g.appendChild(t); g.appendChild(ti);
+          g.appendChild(halo); g.appendChild(c); g.appendChild(t); g.appendChild(ti);
           svg.appendChild(g);
-          gN[l].push({ c, t, ti });
+          gN[l].push({ c, t, ti, halo });
         }
       });
     }
@@ -1630,6 +1644,13 @@ window.COURSE = (function () {
       });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
+    // 到顶/到底的硬截停：越界方向的滚轮直接吞掉，屏幕纹丝不动（目录滚动与输入框不受影响）
+    window.addEventListener('wheel', e => {
+      if (e.target.closest && (e.target.closest('#nav') || e.target.closest('input,select,textarea'))) return;
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) { e.preventDefault(); return; }
+      if ((e.deltaY > 0 && window.scrollY >= max - 1) || (e.deltaY < 0 && window.scrollY <= 0)) e.preventDefault();
+    }, { passive: false });
     window.addEventListener('resize', () => { refreshTotalH(); onScroll(); });
     window.addEventListener('load', refreshTotalH);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refreshTotalH);
