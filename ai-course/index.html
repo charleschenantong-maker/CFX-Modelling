@@ -94,6 +94,8 @@ p, li {
 a{color:var(--accent); text-decoration:none; border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
 a:hover{border-bottom-color:var(--accent)}
 h1,h2,h3,h4{font-family:var(--font-display); line-height:1.25; letter-spacing:.01em}
+/* 标题与顶部引言用衬线（被撤掉那版的标题栈），正文保持黑体不动 */
+h1,h2,h3,.hero .lede{font-family:"Iowan Old Style","Palatino Linotype","Book Antiqua",Georgia,"Songti SC","Source Han Serif SC","Source Han Serif CN","Noto Serif SC","STSong","AR PL New Sung",SimSun,serif}
 code,pre,.mono{font-family:var(--font-mono)}
 ::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
 
@@ -271,24 +273,24 @@ main{min-width:0; padding:26px 0 0 40px}
 hr{border:0; border-top:1px solid var(--line); margin:26px 0}
 
 /* blocks */
-.blk{border:1px solid var(--line); border-left:3px solid var(--muted); border-radius:var(--radius);
+.blk{border:1px solid var(--line-2); border-radius:var(--radius);
   background:var(--surface); padding:15px 19px 16px; margin:18px 0; box-shadow:var(--shadow-sm)}
 .blk>h4{margin:0 0 9px; font-size:15px; font-family:var(--font-body); font-weight:700;
   letter-spacing:.02em; display:flex; align-items:center; gap:8px}
 .blk>h4 .ic{font-size:15px}
 .blk>:last-child{margin-bottom:0}
-.blk-q{border-left-color:var(--amber); background:var(--amber-soft)}
+.blk-q{background:var(--amber-soft)}
 .blk-q>h4{color:var(--amber)}
-.blk-m{border-left-color:var(--indigo); background:var(--indigo-soft)}
+.blk-m{background:var(--indigo-soft)}
 .blk-m>h4{color:var(--indigo)}
-.blk-lab{border-left-color:var(--accent); background:var(--accent-soft)}
+.blk-lab{background:var(--accent-soft)}
 .blk-lab>h4{color:var(--accent-ink)}
 html[data-theme="dark"] .blk-lab>h4{color:var(--accent)}
-.blk-warn{border-left-color:var(--red); background:var(--red-soft)}
+.blk-warn{background:var(--red-soft)}
 .blk-warn>h4{color:var(--red)}
-.blk-tip{border-left-color:var(--green); background:var(--green-soft)}
+.blk-tip{background:var(--green-soft)}
 .blk-tip>h4{color:var(--green)}
-.blk-eco{border-left-color:var(--violet); background:var(--violet-soft)}
+.blk-eco{background:var(--violet-soft)}
 .blk-eco>h4{color:var(--violet)}
 
 /* 小节引桥：进入本节前的一段引导。比 .blk-* 更轻，只为建立坐标，不抢正文 */
