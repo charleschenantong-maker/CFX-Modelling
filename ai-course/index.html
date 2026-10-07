@@ -189,9 +189,17 @@ body.view-mod #home{display:none}
 /* 迎宾首页：侧边栏整个收起（目录/进度/路线都不露），hero 保持原版式 */
 body.view-home .side{display:none}
 body.view-home .shell{grid-template-columns:minmax(0,1fr); padding-bottom:0}
+/* 首页整体缩小一号，保证一屏定住、无滚动条 */
+body.view-home .hero{padding-top:34px}
+body.view-home .hero h1{font-size:clamp(28px,3.6vw,44px)}
+body.view-home .hero-cards{margin-top:22px}
+body.view-home .hero-card{padding:13px 16px}
+body.view-home .hero-card b{font-size:22px}
+body.view-home .playnet{margin-top:18px; padding:12px 20px 10px}
+body.view-home .play-title{font-size:15px}
 body.view-home .hero{padding-top:44px}
 body.view-home .playnet{margin-top:20px; padding:12px 22px}
-#pnetSvg{display:block; height:172px; width:auto; max-width:100%; margin:2px auto 0}
+#pnetSvg{display:block; height:142px; width:auto; max-width:100%; margin:2px auto 0}
 body.view-home main{padding-top:0}
 /* 首页按钮与数据卡跟大标题同一套衬线 */
 .hero-cta a,.hero-card span{font-family:var(--font-display)}
@@ -235,7 +243,7 @@ body.view-home main{padding-top:0}
    3. Layout
    ============================================================ */
 .shell{display:grid; grid-template-columns:296px minmax(0,1fr); gap:0; max-width:1400px; margin:0 auto;
-  padding:0 30px 48px; align-items:start}
+  padding:0 30px 12px; align-items:start}
 .side{position:sticky; top:52px; height:calc(100vh - 52px); display:flex; flex-direction:column;
   min-height:0; overflow:hidden; padding:22px 18px 12px 0; border-right:1px solid var(--line)}
 .side .progress-card{flex:none}
@@ -315,7 +323,7 @@ html[data-theme="dark"] .nav a.active{color:var(--accent)}
 .rt.done .rstat{color:var(--green)}
 
 main{min-width:0; padding:26px 0 0 40px}
-.mod{scroll-margin-top:70px; padding:8px 0 40px; border-bottom:1px dashed var(--line); margin-bottom:26px}
+.mod{scroll-margin-top:70px; padding:8px 0 24px; border-bottom:1px dashed var(--line); margin-bottom:0}
 .mod:last-of-type{border-bottom:0}
 .mod-head{position:relative; display:flex; gap:16px; align-items:flex-start; margin-bottom:6px}
 .mod-water{position:absolute; right:2px; top:-26px; z-index:0; pointer-events:none; user-select:none;
@@ -1558,7 +1566,14 @@ window.COURSE = (function () {
       if (isMatch) activeEl = a;
     });
     if (activeEl) {
-      activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      // 侧边栏只在高光项滚出视野时才跟随，且用瞬时跳（不再平滑乱滑）
+      const nav = $('#nav');
+      if (nav) {
+        const r = activeEl.getBoundingClientRect(), n = nav.getBoundingClientRect();
+        if (r.top < n.top || r.bottom > n.bottom) activeEl.scrollIntoView({ block: 'nearest' });
+      } else {
+        activeEl.scrollIntoView({ block: 'nearest' });
+      }
     }
   }
 
