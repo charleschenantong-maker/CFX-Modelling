@@ -206,8 +206,19 @@ html[data-theme="dark"]  .icon-swap .i-moon{opacity:1; transform:none; filter:no
    ============================================================ */
 .shell{display:grid; grid-template-columns:296px minmax(0,1fr); gap:0; max-width:1400px; margin:0 auto;
   padding:0 30px 90px; align-items:start}
-.side{position:sticky; top:52px; height:calc(100vh - 52px); overflow-y:auto; padding:22px 18px 60px 0;
-  border-right:1px solid var(--line)}
+.side{position:sticky; top:52px; height:calc(100vh - 52px); display:flex; flex-direction:column;
+  min-height:0; overflow:hidden; padding:22px 18px 12px 0; border-right:1px solid var(--line)}
+.side .progress-card{flex:none}
+.route{flex:none}
+.nav{flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:2px 2px 12px 0;
+  --edge:16px;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,#000 var(--edge),#000 calc(100% - var(--edge)),transparent);
+  mask-image:linear-gradient(to bottom,transparent,#000 var(--edge),#000 calc(100% - var(--edge)),transparent)}
+.nav.at-top{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - var(--edge)),transparent);
+  mask-image:linear-gradient(to bottom,#000 calc(100% - var(--edge)),transparent)}
+.nav.at-bottom{-webkit-mask-image:linear-gradient(to bottom,transparent,#000 var(--edge));
+  mask-image:linear-gradient(to bottom,transparent,#000 var(--edge))}
+.nav.at-top.at-bottom{-webkit-mask-image:none; mask-image:none}
 .side .progress-card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
   padding:13px 15px; margin-bottom:18px; box-shadow:var(--shadow-sm)}
 .side .progress-card .row{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
@@ -251,7 +262,9 @@ html[data-theme="dark"] .nav a.active{color:var(--accent)}
 .nav a.done .num{color:var(--green)}
 .nav.collapsed-on-search a.hide{display:none}
 /* 学习路线图：三轨纵向 rail，状态跟已读走 */
-.route{position:relative; margin:0 0 16px 2px; padding-left:20px}
+.route{position:relative; margin:0 0 14px 2px; padding-left:20px}
+.route-cap{font-family:var(--font-mono); font-size:11px; letter-spacing:.12em; color:var(--muted);
+  margin:0 0 6px -20px}
 .route::before{content:""; position:absolute; left:6px; top:12px; bottom:12px; width:2px;
   border-radius:2px; background:var(--line-2)}
 .rt{position:relative; display:flex; align-items:center; gap:9px; padding:7px 9px 7px 0;
@@ -620,6 +633,7 @@ footer b{color:var(--ink-2)}
       </div>
     </div>
     <div class="route" id="route" title="三条学习轨道：先走 A，再走 B，之后常驻 C">
+      <div class="route-cap">学习路线 · 先A后B常驻C</div>
       <a class="rt" data-track="A" href="#mP"><span class="rdot"></span><span class="rtx"><b>A · 最小闭环</b><i>P→01–05→08→07→E7 · 8–10h</i></span><span class="rstat"></span></a>
       <a class="rt" data-track="B" href="#m0"><span class="rdot"></span><span class="rtx"><b>B · 完整通读</b><i>00→…→29 · ~30h · 12周</i></span><span class="rstat"></span></a>
       <a class="rt" data-track="C" href="#appF"><span class="rdot"></span><span class="rtx"><b>C · 按需查表</b><i>附录F/A · 1–3分钟</i></span><span class="rstat">查</span></a>
@@ -1196,13 +1210,28 @@ window.COURSE = (function () {
     if (!rA || !rB || !rC) return;
     const aN = TRACK_A.filter(id => set.indexOf(id) >= 0).length;
     const aDone = aN >= TRACK_A.length, bDone = set.length >= total;
-    rA.querySelector('.rstat').textContent = aDone ? '✓' : aN + '/' + TRACK_A.length;
-    rB.querySelector('.rstat').textContent = bDone ? '✓' : Math.round(100 * set.length / total) + '%';
+    rA.querySelector('.rstat').textContent = aDone ? '✓ 通关' : aN + '/' + TRACK_A.length + ' 站';
+    rB.querySelector('.rstat').textContent = bDone ? '✓ 通关' : set.length + '/' + total + ' 已读';
     const cur = !aDone ? 'A' : (!bDone ? 'B' : 'C');
     [['A', rA, aDone], ['B', rB, bDone], ['C', rC, false]].forEach(([t, el, done]) => {
       el.classList.toggle('done', !!done);
       el.classList.toggle('active', t === cur && !done);
     });
+  }
+  // 目录柔边：只在目录可滚动时显示，不到顶/底才在对应方向露出边缘
+  function paintNavEdge() {
+    const nav = $('#nav'); if (!nav) return;
+    nav.classList.toggle('at-top', nav.scrollTop <= 1);
+    nav.classList.toggle('at-bottom', nav.scrollHeight - nav.scrollTop - nav.clientHeight <= 1);
+  }
+  let navTick = false;
+  function wireNavEdge() {
+    const nav = $('#nav'); if (!nav || wireNavEdge._done) return; wireNavEdge._done = true;
+    nav.addEventListener('scroll', () => {
+      if (navTick) return; navTick = true;
+      requestAnimationFrame(() => { navTick = false; paintNavEdge(); });
+    }, { passive: true });
+    window.addEventListener('resize', paintNavEdge);
   }
   function wireRead() {
     document.addEventListener('click', e => {
@@ -1480,8 +1509,8 @@ window.COURSE = (function () {
     renderNav();
     renderSections();
 
-    wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks();
-    paintRead(); stats(); syncUI('browser');
+    wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireNavEdge();
+    paintRead(); stats(); syncUI('browser'); paintNavEdge();
 
     const t0 = targetFromHash();
     const firstId = (t0 && t0.mod) || (COURSE.items[0] && COURSE.items[0].id);
