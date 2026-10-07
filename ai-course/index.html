@@ -64,7 +64,8 @@ html[data-theme="dark"]{
 html, body, *{scrollbar-width:none; -ms-overflow-style:none}
 *::-webkit-scrollbar{width:0; height:0; display:none; background:transparent}
 *::-webkit-scrollbar-track,*::-webkit-scrollbar-thumb{background:transparent; border:0}
-html{scroll-behavior:smooth; -webkit-text-size-adjust:100%}
+html{scroll-behavior:auto; -webkit-text-size-adjust:100%; overscroll-behavior:none}
+/* 程序触发的跳转仍用 behavior:'smooth' 参数（见 scrollToId/回到顶部），滚轮本身不再被全局平滑拖住，到底即停 */
 @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
 body{
   margin:0; background:var(--bg); color:var(--ink);
@@ -191,27 +192,18 @@ body.view-home .shell{grid-template-columns:minmax(0,1fr); padding-bottom:0}
 body.view-home main{padding-top:0}
 /* 首页按钮与数据卡跟大标题同一套衬线 */
 .hero-cta a,.hero-card span{font-family:var(--font-display)}
-/* 首页可交互小玩意儿：softmax 拨盘（01 章第一个手算的活版本） */
-.play{display:flex; gap:24px; margin-top:26px; padding:16px 22px; background:var(--surface);
+/* 首页可交互小玩意儿：3→4→2 小网络，前向传播是真的在算 */
+.playnet{margin-top:26px; padding:16px 22px 14px; background:var(--surface);
   border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); text-align:left}
-.play-ctl{flex:1; min-width:200px}
-.play-title{font-family:var(--font-display); font-size:16.5px; margin-bottom:6px}
+.playnet-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:2px}
+.play-title{font-family:var(--font-display); font-size:16.5px}
 .play-title span{font-size:12px; color:var(--muted); font-family:var(--font-body)}
-.play-ctl label{display:flex; align-items:center; gap:9px; font-size:13px; color:var(--muted); margin:7px 0}
-.play-ctl input[type=range]{flex:1; accent-color:var(--accent)}
-.play-true{display:flex; gap:6px; align-items:center; margin-top:9px; font-size:13px; color:var(--muted)}
-.play-true button{font-size:12.5px; padding:3px 12px; border-radius:99px; cursor:pointer;
-  border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2)}
-.play-true button.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
-.play-out{flex:1.2; min-width:200px; display:flex; flex-direction:column; justify-content:center; gap:9px}
-.prow{display:grid; grid-template-columns:16px 1fr 54px; gap:9px; align-items:center; font-size:13px}
-.pbar{height:9px; border-radius:99px; background:var(--bg-2); overflow:hidden}
-.pbar i{display:block; height:100%; width:0; border-radius:99px;
-  background:linear-gradient(90deg,var(--accent),var(--indigo)); transition:width 120ms linear}
-.prow b{font-variant-numeric:tabular-nums; text-align:right; font-weight:600}
-.ploss{font-size:13px; color:var(--muted)}
-.ploss b{color:var(--ink); font-variant-numeric:tabular-nums}
-@media (max-width:720px){.play{flex-direction:column}}
+#pnetRun{margin-left:auto; font-size:13px; padding:6px 18px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--accent); background:var(--accent); color:#fff; font-weight:600}
+#pnetRun:hover{filter:brightness(1.08)}
+#pnetSvg{display:block; width:100%; height:auto}
+.pnet-out{font-size:13px; color:var(--muted); margin-top:2px}
+.pnet-out b{color:var(--ink); font-variant-numeric:tabular-nums}
 .hero-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
 .hero-cta a{font-size:14.5px; padding:9px 20px; border-radius:999px; border:1px solid var(--line);
   background:var(--surface); color:var(--ink-2)}
@@ -240,7 +232,7 @@ body.view-home main{padding-top:0}
    3. Layout
    ============================================================ */
 .shell{display:grid; grid-template-columns:296px minmax(0,1fr); gap:0; max-width:1400px; margin:0 auto;
-  padding:0 30px 90px; align-items:start}
+  padding:0 30px 48px; align-items:start}
 .side{position:sticky; top:52px; height:calc(100vh - 52px); display:flex; flex-direction:column;
   min-height:0; overflow:hidden; padding:22px 18px 12px 0; border-right:1px solid var(--line)}
 .side .progress-card{flex:none}
@@ -642,21 +634,13 @@ html[data-theme="dark"] .flow .nd.hi{color:var(--accent)}
     <div class="hero-card"><b id="statTerms">0</b><span>条中英对照术语</span></div>
     <div class="hero-card"><b id="statLabs">0</b><span>个可在 Colab 跑的动手实验</span></div>
   </div>
-  <div class="play" id="playSoftmax" title="动手拨一下：softmax 与温度">
-    <div class="play-ctl">
-      <div class="play-title">拨一下 Softmax <span>01 章第一个手算，不用看懂公式也能玩</span></div>
-      <label>z₁ <input type="range" id="pz1" min="-2" max="4" step="0.1" value="2"></label>
-      <label>z₂ <input type="range" id="pz2" min="-2" max="4" step="0.1" value="1"></label>
-      <label>温度 T <input type="range" id="pzT" min="0.2" max="2" step="0.05" value="1"></label>
-      <div class="play-true">真值是
-        <button data-k="0" class="on">A</button><button data-k="1">B</button>
-      </div>
+  <div class="playnet" id="playNet" title="三层小网络：每次点的权重和输入都重抽，脉冲是真的前向">
+    <div class="playnet-head">
+      <div class="play-title">跑一次前向传播 <span>3→4→2 小网络：线越粗权重越大，绿边正权重、橙边负权重</span></div>
+      <button id="pnetRun">再跑一次 →</button>
     </div>
-    <div class="play-out">
-      <div class="prow"><span>A</span><div class="pbar"><i id="pb0"></i></div><b id="pv0"></b></div>
-      <div class="prow"><span>B</span><div class="pbar"><i id="pb1"></i></div><b id="pv1"></b></div>
-      <div class="ploss">交叉熵损失 <b id="ploss"></b>（和 01 章手算对一下：0.313）</div>
-    </div>
+    <svg id="pnetSvg" viewBox="0 0 640 200" role="img" aria-label="三层神经网络前向传播演示"></svg>
+    <div class="pnet-out">输出概率 <b id="pnetProb">–</b> · 交叉熵 <b id="pnetLoss">–</b></div>
   </div>
 </section>
 
@@ -1039,28 +1023,130 @@ window.COURSE = (function () {
     window.addEventListener('scroll', hide, { passive: true });
   }
 
-  /* ---------- homepage playground: softmax dial (mirrors 01 hand calc) ---------- */
+  /* ---------- homepage playground: tiny 3-4-2 net, real forward pass ---------- */
   function wirePlayground() {
-    const z1 = $('#pz1'), z2 = $('#pz2'), tp = $('#pzT');
-    if (!z1 || !z2 || !tp) return;
-    let truth = 0;
-    const btns = $$('.play-true button');
-    btns.forEach(b => b.addEventListener('click', () => {
-      btns.forEach(x => x.classList.remove('on'));
-      b.classList.add('on'); truth = +b.dataset.k || 0; upd();
-    }));
-    function upd() {
-      const T = Math.max(0.05, parseFloat(tp.value));
-      const e = [parseFloat(z1.value) / T, parseFloat(z2.value) / T].map(Math.exp);
-      const s = e[0] + e[1], p = e.map(x => x / s);
-      p.forEach((v, i) => {
-        $('#pb' + i).style.width = (v * 100).toFixed(1) + '%';
-        $('#pv' + i).textContent = v.toFixed(3);
-      });
-      $('#ploss').textContent = (-Math.log(p[truth])).toFixed(3) + ' nats';
+    const svg = $('#pnetSvg'); if (!svg) return;
+    const NS = 'http://www.w3.org/2000/svg';
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const XS = [70, 320, 570], R = 17;
+    const YS = [[50, 100, 150], [28, 76, 124, 172], [72, 128]];
+    const NL = [3, 4, 2];
+    let W1, B1, W2, B2, runToken = 0;
+    const gN = [];
+    const rnd = () => Math.random() * 2 - 1;
+    const sig = x => 1 / (1 + Math.exp(-x));
+    function el(n, at) {
+      const e = document.createElementNS(NS, n);
+      for (const k in at) e.setAttribute(k, at[k]);
+      return e;
     }
-    [z1, z2, tp].forEach(el => el.addEventListener('input', upd));
-    upd();
+    function setNeuron(l, i, a) {
+      const n = gN[l][i];
+      const v = Math.max(0, Math.min(1, a));
+      n.c.style.fill = 'var(--accent)';
+      n.c.style.fillOpacity = 0.1 + 0.9 * v;
+      n.c.style.stroke = 'var(--accent)';
+      n.t.textContent = v.toFixed(2);
+      n.ti.textContent = '激活值 ' + v.toFixed(3);
+    }
+    function build() {
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      gN.length = 0;
+      W1 = []; B1 = []; W2 = []; B2 = [];
+      for (let i = 0; i < 4; i++) { W1.push([rnd(), rnd(), rnd()]); B1.push(rnd() * 0.6); }
+      for (let i = 0; i < 2; i++) { W2.push([rnd(), rnd(), rnd(), rnd()]); B2.push(rnd() * 0.6); }
+      const ge = el('g', {});
+      svg.appendChild(ge);
+      for (let l = 0; l < 2; l++) {
+        const W = l === 0 ? W1 : W2;
+        W.forEach((row, j) => row.forEach((w, i) => {
+          const ln = el('line', { x1: XS[l], y1: YS[l][i], x2: XS[l + 1], y2: YS[l + 1][j] });
+          ln.style.stroke = w >= 0 ? 'var(--accent)' : 'var(--amber)';
+          ln.style.strokeOpacity = 0.18 + 0.5 * Math.min(1, Math.abs(w));
+          ln.style.strokeWidth = 1 + 2.2 * Math.min(1, Math.abs(w));
+          ge.appendChild(ln);
+        }));
+      }
+      NL.forEach((n, l) => {
+        gN[l] = [];
+        for (let i = 0; i < n; i++) {
+          const g = el('g', {});
+          const c = el('circle', { cx: XS[l], cy: YS[l][i], r: R });
+          c.style.fill = 'var(--surface)'; c.style.stroke = 'var(--line-2)'; c.style.strokeWidth = 1.5;
+          const t = el('text', { x: XS[l], y: YS[l][i] + 4, 'text-anchor': 'middle' });
+          t.style.fontSize = '11px'; t.style.fill = 'var(--ink-2)';
+          const ti = el('title', {});
+          ti.textContent = '神经元';
+          g.appendChild(c); g.appendChild(t); g.appendChild(ti);
+          svg.appendChild(g);
+          gN[l].push({ c, t, ti });
+        }
+      });
+    }
+    function paintOut(p, loss, my) {
+      if (my !== runToken) return;
+      $('#pnetProb').textContent = 'A ' + p[0].toFixed(3) + ' · B ' + p[1].toFixed(3);
+      $('#pnetLoss').textContent = loss.toFixed(3) + ' nats（真值按 A 算）';
+    }
+    function run() {
+      const my = ++runToken;
+      build();
+      const x = [rnd(), rnd(), rnd()];
+      const h = W1.map((row, j) => sig(row[0] * x[0] + row[1] * x[1] + row[2] * x[2] + B1[j]));
+      const z = W2.map((row, j) => row[0] * h[0] + row[1] * h[1] + row[2] * h[2] + row[3] * h[3] + B2[j]);
+      const ez = z.map(Math.exp), s = ez[0] + ez[1], p = ez.map(v => v / s);
+      const loss = -Math.log(Math.max(1e-9, p[0]));
+      x.forEach((v, i) => setNeuron(0, i, sig(v)));
+      if (reduce) {
+        h.forEach((v, i) => setNeuron(1, i, v));
+        p.forEach((v, i) => setNeuron(2, i, v));
+        paintOut(p, loss, my);
+        return;
+      }
+      const dots = [];
+      const DUR = 480, GAP = 620, T0 = 120;
+      for (let l = 0; l < 2; l++) {
+        for (let i = 0; i < NL[l]; i++) for (let j = 0; j < NL[l + 1]; j++) {
+          const d = el('circle', { r: 4 });
+          d.style.fill = 'var(--accent)';
+          d.style.opacity = 0;
+          svg.appendChild(d);
+          dots.push({ x1: XS[l], y1: YS[l][i], x2: XS[l + 1], y2: YS[l + 1][j],
+                      t0: T0 + l * GAP, dur: DUR, el: d, l: l + 1, j, done: false });
+        }
+      }
+      const vals = { 1: h, 2: p };
+      const tStart = performance.now();
+      (function frame(now) {
+        if (my !== runToken) return;
+        const t = now - tStart;
+        let alive = false;
+        dots.forEach(d => {
+          if (d.done) return;
+          const k = (t - d.t0) / d.dur;
+          if (k < 0) {
+            alive = true;
+            d.el.setAttribute('cx', d.x1); d.el.setAttribute('cy', d.y1);
+            return;
+          }
+          if (k >= 1) {
+            d.done = true;
+            if (d.el.parentNode) d.el.parentNode.removeChild(d.el);
+            setNeuron(d.l, d.j, vals[d.l][d.j]);
+            return;
+          }
+          alive = true;
+          d.el.style.opacity = 1;
+          d.el.setAttribute('cx', d.x1 + (d.x2 - d.x1) * k);
+          d.el.setAttribute('cy', d.y1 + (d.y2 - d.y1) * k);
+        });
+        if (alive) requestAnimationFrame(frame);
+        else paintOut(p, loss, my);
+      })(tStart);
+    }
+    const btn = $('#pnetRun');
+    if (btn) btn.addEventListener('click', run);
+    run();
   }
 
   /* ---------- calculators ---------- */
