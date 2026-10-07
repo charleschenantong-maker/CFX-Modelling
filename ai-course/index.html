@@ -760,27 +760,62 @@ window.COURSE = (function () {
     return sec;
   }
 
-  function renderSections() {
-    const root = $('#content'); const frag = document.createDocumentFragment();
-    COURSE.items.forEach((m, i) => { frag.appendChild(buildSection(m, i)); });
-    root.innerHTML = ''; root.appendChild(frag);
-
-    COURSE.items.forEach(m => {
-      const sec = document.getElementById(m.id);
-      if (sec) {
-        buildMiniToc(sec);
-        wireAccordions(sec);
-        wireQuizzes(sec);
-        renderMath(sec);
-        wireCalcs(sec);
-      }
-    });
+  /* ---------- 单章视图：一次只显示一章 ----------
+     章节 DOM 建一次进缓存（切章只是换上已建好的节点，自测/折叠状态不丢）；
+     数学只渲染可见章，首屏不再一次性算 3967 个公式 */
+  var secCache = {};
+  var currentMod = null;
+  function modIndex(id) {
+    for (let i = 0; i < COURSE.items.length; i++) if (COURSE.items[i].id === id) return i;
+    return -1;
+  }
+  function getSection(m, i) {
+    if (!secCache[m.id]) {
+      const sec = buildSection(m, i);
+      buildMiniToc(sec);
+      wireAccordions(sec);
+      wireQuizzes(sec);
+      wireCalcs(sec);
+      secCache[m.id] = sec;
+    }
+    return secCache[m.id];
+  }
+  function showModule(id, sub) {
+    let i = modIndex(id); if (i < 0) i = 0;
+    const m = COURSE.items[i]; if (!m) return;
+    const sec = getSection(m, i);
+    const root = $('#content');
+    if (root.firstChild !== sec) { root.innerHTML = ''; root.appendChild(sec); }
+    if (!sec.dataset.mathDone) { renderMath(sec); sec.dataset.mathDone = '1'; }
+    currentMod = m.id;
+    if (typeof spyObs !== 'undefined' && spyObs) { try { spyObs.observe(sec); } catch (e) {} }
+    setActiveNav(m.id);
+    paintRead();
+    if (window.__refreshTotalH) window.__refreshTotalH();
+    if (sub) scrollToId(sub);
+    else window.scrollTo(0, 0);
+  }
+  function routeFromHash() {
+    const t = targetFromHash();
+    if (!t) return false;
+    showModule(t.mod, t.sub);
+    return true;
   }
 
   function ensureRendered(id) {
-    return document.getElementById(id);
+    const i = modIndex(id); if (i < 0) return null;
+    return getSection(COURSE.items[i], i);
   }
-  function renderAll() {}
+  function renderAll() {
+    // 打印前展开全部章节（含数学），打印后恢复单章
+    const root = $('#content');
+    root.innerHTML = '';
+    COURSE.items.forEach((m, i) => {
+      const s = getSection(m, i);
+      if (!s.dataset.mathDone) { renderMath(s); s.dataset.mathDone = '1'; }
+      root.appendChild(s);
+    });
+  }
 
   /* ---------- mini table of contents (reference use) ---------- */
   function buildMiniToc(root) {
@@ -1293,19 +1328,25 @@ window.COURSE = (function () {
         rows.forEach((r, i) => r.classList.toggle('sel', i === sel));
         rows[sel].scrollIntoView({ block: 'nearest' });
       } else if (e.key === 'Enter') {
-        const target = rows[sel >= 0 ? sel : 0]; if (target) { location.hash = target.getAttribute('href'); input.blur(); close(); }
+        const target = rows[sel >= 0 ? sel : 0];
+        if (target) {
+          const frag = (target.getAttribute('href') || '').replace(/^#/, '');
+          input.blur(); close();
+          if (frag && location.hash.replace(/^#/, '') === frag) showModule(frag);
+          else location.hash = target.getAttribute('href');
+        }
       }
     });
     clr.addEventListener('click', () => { input.value = ''; run(); input.focus(); });
-    // 点搜索结果：精准平滑滚动至对应章节，侧边栏高光立刻点亮
+    // 点搜索结果：切到对应章节（单章视图），侧边栏高光立刻点亮
     box.addEventListener('click', e => {
       const a = e.target.closest && e.target.closest('a.r'); if (!a) return;
       const id = (a.getAttribute('href') || '').replace(/^#/, '');
       close(); input.blur();
       if (modById(id)) {
         e.preventDefault();
-        setActiveNav(id);
-        scrollToId(id);
+        if (location.hash.replace(/^#/, '') === id) showModule(id);
+        else location.hash = '#' + id;
       }
     });
     document.addEventListener('click', e => { if (!wrap.contains(e.target)) close(); });
@@ -1427,9 +1468,7 @@ window.COURSE = (function () {
       const toggleTop = () => toTop.classList.toggle('show', window.scrollY > 700);
       window.addEventListener('scroll', toggleTop, { passive: true });
       toTop.addEventListener('click', () => {
-        const firstId = COURSE.items[0] && COURSE.items[0].id;
-        if (firstId) setActiveNav(firstId);
-        scrollToId(firstId || 'heroReveal');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
       toggleTop();
     }
@@ -1479,27 +1518,23 @@ window.COURSE = (function () {
       if (!frag) return;
 
       let mod = modById(frag) ? frag : null;
+      let sub = null;
       if (!mod) {
         const base = frag.replace(/-s\d+$/, '');
-        if (modById(base)) mod = base;
+        if (modById(base)) { mod = base; sub = frag; }
       }
       if (!mod) return;
 
       e.preventDefault();
-
-      // 点击瞬间：立刻点亮侧边栏高光，绝无延迟！
-      setActiveNav(mod);
-
-      // 直接平滑滚动至目标，绝不中途停止！
-      scrollToId(frag);
+      if (location.hash.replace(/^#/, '') === frag) {
+        // 同一锚点重复点：直接路由（滚到位），hash 不变不会触发 hashchange
+        showModule(mod, sub);
+      } else {
+        location.hash = frag; // hashchange 会路由并入历史，后退键可逐章返回
+      }
     });
 
-    window.addEventListener('hashchange', () => {
-      const t = targetFromHash();
-      if (!t) return;
-      setActiveNav(t.mod);
-      scrollToId(t.sub || t.mod);
-    });
+    window.addEventListener('hashchange', () => { routeFromHash(); });
   }
 
   /* ---------- boot ---------- */
@@ -1507,18 +1542,13 @@ window.COURSE = (function () {
     PROG.load();
     initTheme();
     renderNav();
-    renderSections();
 
     wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireNavEdge();
-    paintRead(); stats(); syncUI('browser'); paintNavEdge();
 
     const t0 = targetFromHash();
     const firstId = (t0 && t0.mod) || (COURSE.items[0] && COURSE.items[0].id);
-    setActiveNav(firstId);
-
-    if (t0) {
-      setTimeout(() => scrollToId(t0.sub || t0.mod), 100);
-    }
+    showModule(firstId, t0 && t0.sub);
+    paintRead(); stats(); syncUI('browser'); paintNavEdge();
 
     requestAnimationFrame(() => {
       $('#heroReveal').classList.add('in'); $('#heroCards').classList.add('in');
@@ -1553,9 +1583,9 @@ window.COURSE = (function () {
       if (document.visibilityState === 'hidden') PROG.push();
     });
     window.addEventListener('beforeunload', () => { PROG.local(); });
-    // 打印导出全部内容
+    // 打印导出全部内容，打完恢复单章视图
     window.addEventListener('beforeprint', renderAll);
-    window.addEventListener('afterprint', () => {});
+    window.addEventListener('afterprint', () => { if (currentMod) showModule(currentMod); });
   };
 
   document.addEventListener('DOMContentLoaded', () => window.COURSE.boot());

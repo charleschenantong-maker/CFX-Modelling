@@ -274,7 +274,10 @@ COURSE.register({
 
 <ul>
 
-  <li><strong>左侧目录</strong>会跟着滚动高亮；点圆圈「标记为已读完」，进度会存在浏览器本地。</li>
+   <li><strong>左侧目录</strong>会跟着当前章节高亮；点圆圈「标记为已读完」，进度会存在浏览器本地。</li>
+
+   <li><strong>正文一次只显示一章</strong>：点目录、章末「上一章 / 下一章」、搜索结果都会切章；
+   浏览器后退键可逐章返回；点右上角<strong>打印</strong>会自动展开全部章节再导出。</li>
 
   <li><strong>搜索框</strong>（快捷键 <code>/</code>）搜标题、正文与公式；<code>↑ ↓</code> 选择，<code>Enter</code> 跳转。</li>
 
