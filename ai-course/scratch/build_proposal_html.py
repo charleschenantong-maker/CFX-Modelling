@@ -1,0 +1,690 @@
+# Script to build and preview the HTML visualization proposal
+import json
+
+html_content = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: var(--background, #0d1117);
+    --fg: var(--foreground, #e6edf3);
+    --muted-fg: var(--muted-foreground, #8b949e);
+    --border-c: var(--border, #30363d);
+    --card-bg: var(--card, #161b22);
+    --card-fg: var(--card-foreground, #c9d1d9);
+    --accent-c: var(--accent, #2ea043);
+    --accent-surf: var(--accent-surface, #1f6feb22);
+    --primary-c: var(--primary, #388bfd);
+    --warn-c: var(--warning, #d29922);
+    --err-c: var(--destructive, #f85149);
+    --purple-c: #a371f7;
+    --teal-c: #39c5bb;
+    --radius-m: 8px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+    --font-mono: "JetBrains Mono", Consolas, Monaco, monospace;
+  }
+
+  body {
+    margin: 0;
+    padding: 16px 20px 24px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    box-sizing: border-box;
+  }
+
+  .header {
+    border-bottom: 1px solid var(--border-c);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+  }
+  .header h2 {
+    margin: 0 0 6px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header p {
+    margin: 0;
+    color: var(--muted-fg);
+    font-size: 13.5px;
+  }
+
+  /* Metric cards */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .metric-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-c);
+    border-radius: var(--radius-m);
+    padding: 12px 14px;
+    text-align: left;
+  }
+  .metric-val {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+  .metric-lbl {
+    font-size: 12px;
+    color: var(--muted-fg);
+  }
+  .metric-tag {
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+  }
+
+  /* Category tabs */
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 22px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--fg);
+  }
+  .section-desc {
+    color: var(--muted-fg);
+    font-size: 13px;
+    margin: -4px 0 14px;
+  }
+
+  /* 4 Pillars Grid */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+  .pillar {
+    background: var(--card-bg);
+    border: 1px solid var(--border-c);
+    border-radius: var(--radius-m);
+    padding: 14px;
+  }
+  .pillar-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+  .pillar-head .icon {
+    font-size: 16px;
+  }
+  .pillar p {
+    font-size: 12.5px;
+    color: var(--muted-fg);
+    margin: 0 0 10px;
+  }
+  .pill-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pill {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-c);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 11.5px;
+    color: var(--fg);
+    font-family: var(--font-mono);
+  }
+
+  /* Detailed Table */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-c);
+    border-radius: var(--radius-m);
+    background: var(--card-bg);
+    margin-bottom: 24px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+  }
+  th {
+    background: rgba(255,255,255,0.03);
+    padding: 9px 12px;
+    color: var(--muted-fg);
+    font-weight: 600;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border-c);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    vertical-align: top;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--font-mono);
+    white-space: nowrap;
+  }
+  .badge-p1 { background: rgba(56,139,253,0.15); color: #58a6ff; border: 1px solid rgba(56,139,253,0.3); }
+  .badge-p2 { background: rgba(163,113,247,0.15); color: #bc8cff; border: 1px solid rgba(163,113,247,0.3); }
+  .badge-p3 { background: rgba(46,160,67,0.15); color: #3fb950; border: 1px solid rgba(46,160,67,0.3); }
+  .badge-p4 { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.3); }
+
+  /* Interactive Sandbox Demo Area */
+  .demo-container {
+    background: var(--card-bg);
+    border: 1px solid var(--border-c);
+    border-radius: var(--radius-m);
+    padding: 16px;
+    margin-top: 14px;
+  }
+  .demo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-c);
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+  .demo-title {
+    font-weight: 600;
+    font-size: 14.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .demo-tag {
+    font-size: 11px;
+    color: #39c5bb;
+    background: rgba(57,197,187,0.15);
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+  .controls-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .control-group {
+    background: rgba(0,0,0,0.15);
+    border: 1px solid var(--border-c);
+    border-radius: 6px;
+    padding: 10px 12px;
+  }
+  .control-group label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted-fg);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .control-group label span.val {
+    color: var(--primary-c);
+    font-family: var(--font-mono);
+    font-weight: 600;
+  }
+  input[type="range"] {
+    width: 100%;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--primary-c);
+  }
+  .bars-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0,0,0,0.2);
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-c);
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 85px 1fr 65px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+  }
+  .bar-token {
+    font-family: var(--font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bar-track {
+    background: rgba(255,255,255,0.06);
+    height: 16px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #388bfd, #58a6ff);
+    transition: width 0.15s ease-out;
+    border-radius: 4px;
+  }
+  .bar-fill.cutoff {
+    background: rgba(255,255,255,0.15);
+  }
+  .bar-pct {
+    font-family: var(--font-mono);
+    text-align: right;
+    font-size: 11.5px;
+    color: var(--muted-fg);
+  }
+  .demo-note {
+    font-size: 11.5px;
+    color: var(--muted-fg);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+
+  /* Memory Calc Demo */
+  .vram-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .vram-block {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-c);
+    text-align: center;
+  }
+  .vram-b-title {
+    font-size: 11px;
+    color: var(--muted-fg);
+  }
+  .vram-b-val {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h2><span>⚡</span> LLM Crash Course 可视化与互动 Demo 改造升级方案</h2>
+  <p>对 38 个全景模块（31 讲正文 + 7 附录）的系统性调研与高杠杆可视化赋能蓝图</p>
+</div>
+
+<!-- Metrics Bar -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <div class="metric-val" style="color:#58a6ff;">38 模块</div>
+    <div class="metric-lbl">课程模块覆盖</div>
+    <span class="metric-tag" style="background:#58a6ff22; color:#58a6ff;">全栈深度递进</span>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val" style="color:#bc8cff;">3,967+</div>
+    <div class="metric-lbl">全书数学公式</div>
+    <span class="metric-tag" style="background:#bc8cff22; color:#bc8cff;">手算完备但视觉空白</span>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val" style="color:#d29922;">0 处</div>
+    <div class="metric-lbl">动态图表 / Canvas</div>
+    <span class="metric-tag" style="background:#d2992222; color:#d29922;">当前全为静态文字/表</span>
+  </div>
+  <div class="metric-card">
+    <div class="metric-val" style="color:#3fb950;">24 个</div>
+    <div class="metric-lbl">高杠杆落地点建议</div>
+    <span class="metric-tag" style="background:#3fb95022; color:#3fb950;">4 大形态系统布局</span>
+  </div>
+</div>
+
+<!-- 4 Pillars -->
+<div class="section-title"><span>🧩</span> 四大核心可视化赋能形态分类</div>
+<div class="section-desc">将目前高度密集但抽象的文字推导与手算，转化为认知负荷低、即时反馈强的交互组件</div>
+
+<div class="pillars">
+  <div class="pillar">
+    <div class="pillar-head"><span class="icon">🎛️</span> A. 交互式算法沙盒 (Interactive Playgrounds)</div>
+    <p>提供动态滑块调节关键超参，实时更新状态变化与概率分布，打破“只看公式不懂直觉”的瓶颈。</p>
+    <div class="pill-list">
+      <span class="pill">#01 Softmax 温度/Top-p</span>
+      <span class="pill">#02 BPE 分词切分合并</span>
+      <span class="pill">#03 注意力热力矩阵</span>
+      <span class="pill">#05 学习率 Cosine 曲线</span>
+    </div>
+  </div>
+
+  <div class="pillar">
+    <div class="pillar-head"><span class="icon">🗺️</span> B. 系统拓扑与数据流动态图 (Architecture Flow)</div>
+    <p>展示张量形状流动 (B,T,d)、GPU 切分拓扑与内存分页映射，取代枯燥的文字步骤说明。</p>
+    <div class="pill-list">
+      <span class="pill">#04 Transformer 张量流</span>
+      <span class="pill">#06 3D并行 (TP/PP/DP)</span>
+      <span class="pill">#12 MoE Top-2 路由</span>
+      <span class="pill">#15 PagedAttention 页表</span>
+    </div>
+  </div>
+
+  <div class="pillar">
+    <div class="pillar-head"><span class="icon">🧮</span> C. 显存 / 算力 / 成本模拟计算器 (Calculators)</div>
+    <p>允许用户自由输入硬件配置、参数量、上下文长度，动态生成堆叠显存占用与训练/推理耗时。</p>
+    <div class="pill-list">
+      <span class="pill">#04 显存四大件堆叠图</span>
+      <span class="pill">#10 Roofline 算力瓶颈</span>
+      <span class="pill">#14 量化压缩显存收益</span>
+      <span class="pill">#23 Chinchilla 边界计算</span>
+    </div>
+  </div>
+
+  <div class="pillar">
+    <div class="pillar-head"><span class="icon">📊</span> D. 实验基准与前沿对比图表 (Scientific Benchmarks)</div>
+    <p>将抽象的评测与架构演化转化为对比清晰的雷达图、热力矩阵与 Pareto 前沿折线图。</p>
+    <div class="pill-list">
+      <span class="pill">#09 Elo 天梯置信区间</span>
+      <span class="pill">#13 大海捞针 (NIAH) 热力图</span>
+      <span class="pill">#17 测试时计算扩展曲线</span>
+      <span class="pill">#21 Mamba vs Transformer</span>
+    </div>
+  </div>
+</div>
+
+<!-- Detailed Table of Top Recommendations -->
+<div class="section-title"><span>🎯</span> 重点章节可视化与 Demo 建议方案明细表</div>
+<div class="section-desc">挑选教学收益最大、读者卡点最多的核心章节与对应落地方案</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:110px;">章节模块</th>
+        <th style="width:120px;">当前痛点/抽象点</th>
+        <th>建议图表 / Demo 形态</th>
+        <th style="width:140px;">核心交互 / 展示亮点</th>
+        <th style="width:90px;">形态分类</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>P 预备课</b></td>
+        <td>梯度下降与学习率步长难以感知</td>
+        <td><b>2D/3D 损失曲面梯度下降沙箱</b></td>
+        <td>滑块调节 LR（过小/合适/过大），观察参数球在碗底的震荡与飞出</td>
+        <td><span class="badge badge-p1">交互沙盒</span></td>
+      </tr>
+      <tr>
+        <td><b>01 语言模型</b></td>
+        <td>Softmax 温度与采样截断仅有公式</td>
+        <td><b>Softmax 温度与 Top-p/k 采样器</b></td>
+        <td>拖动 T 和 p 实时更新柱状图概率、采样轮盘与截断阴影（见下方原型）</td>
+        <td><span class="badge badge-p1">交互沙盒</span></td>
+      </tr>
+      <tr>
+        <td><b>02 Tokenizer</b></td>
+        <td>BPE 合并过程与 UTF-8 fallback 抽象</td>
+        <td><b>交互式分词与高亮颜色切分器</b></td>
+        <td>输入任意中英混合句子，逐步展示高频 pair 合并过程及词表 ID 色块</td>
+        <td><span class="badge badge-p1">交互沙盒</span></td>
+      </tr>
+      <tr>
+        <td><b>03 注意力机制</b></td>
+        <td>QK^T/根号d 与因果掩码的计算流</td>
+        <td><b>注意力分数热力图 + MHA/GQA 切分</b></td>
+        <td>可交互悬停查看每个词对其他词的权重分布；3D切片展示 MHA/GQA/MQA</td>
+        <td><span class="badge badge-p2">拓扑流图</span></td>
+      </tr>
+      <tr>
+        <td><b>04 Transformer</b></td>
+        <td>训练显存四大件为何爆卡难以心算</td>
+        <td><b>模型显存四大件动态堆叠柱状图</b></td>
+        <td>切换 7B/13B/70B、Batch、上下文长度与重计算开关，标注 24G/80G 红线</td>
+        <td><span class="badge badge-p3">动态计算器</span></td>
+      </tr>
+      <tr>
+        <td><b>05 预训练</b></td>
+        <td>bf16 vs fp16 阶码尾数与溢出原因</td>
+        <td><b>浮点格式二进制标尺与指数范围尺</b></td>
+        <td>交互式滑块显示符号位、阶码位、尾数位，直观演示为何 fp16 极易下溢</td>
+        <td><span class="badge badge-p1">交互沙盒</span></td>
+      </tr>
+      <tr>
+        <td><b>06 并行训练</b></td>
+        <td>3D 并行切分与 1F1B 气泡率难以想象</td>
+        <td><b>3D 并行立方体 + 1F1B 流水线甘特图</b></td>
+        <td>拖动微批次 M 与流水级数 P，动态高亮计算与通信时间块及气泡比率</td>
+        <td><span class="badge badge-p2">拓扑流图</span></td>
+      </tr>
+      <tr>
+        <td><b>07 微调与对齐</b></td>
+        <td>LoRA 低秩分解 $B \times A$ 参数量压缩</td>
+        <td><b>矩阵低秩分解体积对比图</b></td>
+        <td>拖动 Rank $r \in [4, 64]$，直观看到原矩阵 $16.7M$ 参数与两小矩阵的体积锐减</td>
+        <td><span class="badge badge-p3">动态计算器</span></td>
+      </tr>
+      <tr>
+        <td><b>08 推理部署</b></td>
+        <td>Prefill 算力瓶颈 vs Decode 访存瓶颈</td>
+        <td><b>Arithmetic Intensity 算力/访存对比图</b></td>
+        <td>对比首字生成（计算密集）与逐字生成（带宽密集每次搬全量权重）消耗</td>
+        <td><span class="badge badge-p4">基准图表</span></td>
+      </tr>
+      <tr>
+        <td><b>10 算力法则</b></td>
+        <td>Roofline 模型转折点与 MFU 计算</td>
+        <td><b>交互式 Roofline 曲线绘制器</b></td>
+        <td>切换 A100/H100/T4/4090，标出模型当前工作点，直观显示卡在内存还是算力</td>
+        <td><span class="badge badge-p3">动态计算器</span></td>
+      </tr>
+      <tr>
+        <td><b>12 MoE</b></td>
+        <td>Top-2 门控路由与专家容量溢出丢弃</td>
+        <td><b>动态 Token 路由分配与溢出指示器</b></td>
+        <td>模拟 16 个 token 流入 8 个专家，显示路由 Softmax 分布与容量超限丢弃</td>
+        <td><span class="badge badge-p2">拓扑流图</span></td>
+      </tr>
+      <tr>
+        <td><b>13 长上下文</b></td>
+        <td>大海捞针评估与 YaRN 分频机制</td>
+        <td><b>大海捞针 (Needle In A Haystack) 热力矩阵</b></td>
+        <td>横轴 1k~128k 上下文，纵轴 0%~100% 检索深度，渲染准确率绿/红热力方格</td>
+        <td><span class="badge badge-p4">基准图表</span></td>
+      </tr>
+      <tr>
+        <td><b>14 模型压缩</b></td>
+        <td>量化网格截断误差与 AWQ 通道保护</td>
+        <td><b>FP16 到 INT4 离散化网格直方图</b></td>
+        <td>连续正态分布映射到 16 个整型桶，展示离散化误差与突出通道保护效果</td>
+        <td><span class="badge badge-p1">交互沙盒</span></td>
+      </tr>
+      <tr>
+        <td><b>15 推理服务</b></td>
+        <td>PagedAttention 解决显存碎片</td>
+        <td><b>虚拟内存逻辑块到物理块映射演示</b></td>
+        <td>并发请求到达时，展示逻辑连续 KV Cache 如何被按需切入物理页，碎片率为 0</td>
+        <td><span class="badge badge-p2">拓扑流图</span></td>
+      </tr>
+      <tr>
+        <td><b>17 推理模型</b></td>
+        <td>测试时计算 (Test-Time Compute) 扩展</td>
+        <td><b>准确率 vs 思考 Token 扩展曲线图</b></td>
+        <td>动态曲线对比困难题与简单题随 CoT 长度增加或分支搜索的准确率收敛趋势</td>
+        <td><span class="badge badge-p4">基准图表</span></td>
+      </tr>
+      <tr>
+        <td><b>18 RAG</b></td>
+        <td>BM25 + 向量检索 RRF 倒数排名融合</td>
+        <td><b>双路检索与 RRF 融合动态重排列表</b></td>
+        <td>左侧 BM25 排名，右侧密集向量排名，展示融合后重新洗牌的 top-k 过程</td>
+        <td><span class="badge badge-p1">交互沙盒</span></td>
+      </tr>
+      <tr>
+        <td><b>19 智能体</b></td>
+        <td>ReAct 循环与工具调用时序</td>
+        <td><b>ReAct 状态机单步追踪器</b></td>
+        <td>步进按钮：Thought -> Action (调用工具) -> Observation (环境响应) -> Final Answer</td>
+        <td><span class="badge badge-p2">拓扑流图</span></td>
+      </tr>
+      <tr>
+        <td><b>21 前沿架构</b></td>
+        <td>Mamba 选择性状态空间 vs Transformer</td>
+        <td><b>时空复杂度随序列长度增长对比曲线</b></td>
+        <td>序列长度从 1k 放大至 1M，对比 $O(N)$ 线性扫描与 $O(N^2)$ 注意力的内存与耗时</td>
+        <td><span class="badge badge-p4">基准图表</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Live Interactive Demo Prototype -->
+<div class="section-title"><span>🕹️</span> 可落地组件原型效果展示：Softmax 温度与采样调节器 (第 01 讲落地示例)</div>
+<div class="section-desc">直接在浏览器中运行的原生纯 JS/CSS 交互组件，零外部依赖，天然适配当前课程的离线架构</div>
+
+<div class="demo-container">
+  <div class="demo-header">
+    <div class="demo-title"><span>📊</span> 交互实验：Softmax 温度 (Temperature) 与 Top-p (Nucleus) 采样调节</div>
+    <span class="demo-tag">可交互原型演示</span>
+  </div>
+
+  <div class="controls-row">
+    <div class="control-group">
+      <label>
+        <span>温度系数 Temperature (T)</span>
+        <span class="val" id="tempVal">0.70</span>
+      </label>
+      <input type="range" id="tempSlider" min="0.1" max="2.0" step="0.05" value="0.7">
+      <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted-fg); margin-top:4px;">
+        <span>0.1 (贪婪极值)</span>
+        <span>1.0 (原始分布)</span>
+        <span>2.0 (均匀混沌)</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label>
+        <span>核采样阈值 Top-p</span>
+        <span class="val" id="topPVal">0.90</span>
+      </label>
+      <input type="range" id="topPSlider" min="0.1" max="1.0" step="0.05" value="0.9">
+      <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--muted-fg); margin-top:4px;">
+        <span>0.1 (只留龙头)</span>
+        <span>0.9 (标准设定)</span>
+        <span>1.0 (不截断)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bars-container" id="barsWrap">
+    <!-- Populated by JS -->
+  </div>
+
+  <div class="demo-note">
+    💡 <b>直觉观察</b>：当 $T \to 0.1$ 时，头部 token 占据几乎 100% 概率（确定性输出）；当 $T \to 2.0$ 时，分布极其平坦，模型输出更具创意但也更容易胡言乱语；调小 Top-p 则会直接将灰色虚线框内的长尾低概率词全部丢弃（重整化为 0）。这种直观体验远超单独手算 $\frac{e^{z_i/T}}{\sum e^{z_j/T}}$。
+  </div>
+</div>
+
+<script>
+(function() {
+  const logits = [
+    { token: '"Paris"', z: 4.2 },
+    { token: '"London"', z: 3.1 },
+    { token: '"Berlin"', z: 2.0 },
+    { token: '"Madrid"', z: 1.2 },
+    { token: '"Rome"', z: 0.8 },
+    { token: '"banana"', z: -1.5 },
+    { token: '"quantum"', z: -2.8 }
+  ];
+
+  const tempSlider = document.getElementById('tempSlider');
+  const tempVal = document.getElementById('tempVal');
+  const topPSlider = document.getElementById('topPSlider');
+  const topPVal = document.getElementById('topPVal');
+  const barsWrap = document.getElementById('barsWrap');
+
+  function update() {
+    const T = parseFloat(tempSlider.value);
+    const topP = parseFloat(topPSlider.value);
+    tempVal.textContent = T.toFixed(2);
+    topPVal.textContent = topP.toFixed(2);
+
+    // Compute Softmax with temperature
+    const scaled = logits.map(item => ({ ...item, sz: item.z / T }));
+    const maxSz = Math.max(...scaled.map(i => i.sz));
+    const exps = scaled.map(i => Math.exp(i.sz - maxSz));
+    const sumExp = exps.reduce((a, b) => a + b, 0);
+    const probs = exps.map(e => e / sumExp);
+
+    let items = logits.map((item, idx) => ({
+      token: item.token,
+      z: item.z,
+      prob: probs[idx]
+    }));
+
+    // Sort descending for Top-p
+    items.sort((a, b) => b.prob - a.prob);
+
+    // Apply Top-p cutoff
+    let cum = 0;
+    items.forEach(item => {
+      cum += item.prob;
+      item.inTopP = (cum - item.prob < topP);
+      item.cumProb = cum;
+    });
+
+    // Render bars
+    barsWrap.innerHTML = items.map(item => {
+      const pct = (item.prob * 100).toFixed(1);
+      const isCutoff = !item.inTopP;
+      const barColor = isCutoff 
+        ? 'background:rgba(255,255,255,0.08);' 
+        : 'background:linear-gradient(90deg, #388bfd, #58a6ff);';
+      const textStyle = isCutoff ? 'color:var(--muted-fg); opacity:0.6;' : 'color:var(--fg);';
+      const badge = isCutoff ? '<span style="color:#f85149; font-size:10px; margin-left:4px;">[截断]</span>' : '';
+
+      return `
+        <div class="bar-row" style="${textStyle}">
+          <div class="bar-token">${item.token}${badge}</div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width: ${Math.max(1, pct)}%; ${barColor}"></div>
+          </div>
+          <div class="bar-pct">${pct}%</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  tempSlider.addEventListener('input', update);
+  topPSlider.addEventListener('input', update);
+  update();
+})();
+</script>
+
+</body>
+</html>
+"""
+
+with open('scratch/proposal.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+print(f"Generated proposal.html ({len(html_content)} bytes)")
