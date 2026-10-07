@@ -183,6 +183,14 @@ html[data-theme="dark"]  .icon-swap .i-moon{opacity:1; transform:none; filter:no
 .hero h1 .grad{background:linear-gradient(100deg,var(--accent),var(--indigo) 55%,var(--amber));
   -webkit-background-clip:text; background-clip:text; color:transparent}
 .hero .lede{font-size:18.5px; color:var(--ink-2); max-width:62ch; margin:0 0 8px}
+/* 首页视图：hero 独占一屏；正文视图：hero 隐藏、只留章节 */
+body.view-mod #home{display:none}
+.hero-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+.hero-cta a{font-size:14.5px; padding:9px 20px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--ink-2)}
+.hero-cta a.primary{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.hero-cta a:hover{border-color:var(--accent); color:var(--accent)}
+.hero-cta a.primary:hover{color:#fff; filter:brightness(1.07)}
 .hero .lede em{font-style:normal; color:var(--ink); font-weight:600}
 .hero .meta{font-family:var(--font-mono); font-size:12.5px; color:var(--muted); margin-top:14px}
 .reveal-stagger>*{opacity:0; transform:translateY(var(--distance-medium)); filter:blur(var(--blur-medium));
@@ -587,7 +595,7 @@ footer b{color:var(--ink-2)}
   </button>
 </header>
 
-<section class="hero">
+<section class="hero" id="home">
   <div class="reveal-stagger" id="heroReveal">
     <div class="eyebrow">Introductory Course · v1.4 · 2026</div>
     <h1>从 Token 到自主智能体：<br /><span class="grad">LLM 的底座与训练全栈</span></h1>
@@ -598,6 +606,11 @@ footer b{color:var(--ink-2)}
       <strong>零基础友好</strong>：不知道注意力、梯度、损失是什么也没关系，预备课会手把手把它们讲一遍。
     </p>
     <p class="meta">31 讲 + 7 个附录（38 个模块）· 内嵌自测与计算器 · 离线可读（KaTeX 已本地化）· 额度数据取自官方文档</p>
+  </div>
+  <div class="hero-cta reveal-stagger" id="heroCta">
+    <a class="primary" href="#m0">开始学习 →</a>
+    <a href="#mP">零基础先读预备课</a>
+    <a href="#appF">直接查速查手册</a>
   </div>
   <div class="hero-cards reveal-stagger" id="heroCards">
     <div class="hero-card"><b id="statMods">38</b><span>模块：底座 → 训练 → 算力 → 系统 → 项目</span></div>
@@ -702,6 +715,10 @@ window.COURSE = (function () {
 
   function renderNav() {
     const nav = $('#nav'); const frag = document.createDocumentFragment();
+    const homeA = document.createElement('a');
+    homeA.href = '#home'; homeA.dataset.id = '__home';
+    homeA.innerHTML = '<span class="num">⌂</span><span class="ttl">首页</span><span class="dot"></span>';
+    frag.appendChild(homeA);
     const parts = [...new Set(COURSE.items.map(m => m.part))].sort((a, b) => a - b);
     parts.forEach(p => {
       const h = document.createElement('div');
@@ -752,8 +769,8 @@ window.COURSE = (function () {
         '<label class="mark-done" data-mark="' + m.id + '"><span class="box"></span>标记为已读完</label>' +
         '<span class="grow"></span>' +
         '<span class="modnav">' +
-          (prev ? '<a href="#' + prev.id + '">← ' + esc(prev.num || '') + '</a>' : '') +
-          (next ? '<a href="#' + next.id + '">' + esc(next.num || '') + ' →</a>' : '') +
+          (prev ? '<a href="#' + prev.id + '">← ' + esc(prev.num || '') + '</a>' : '<a href="#home">← 首页</a>') +
+          (next ? '<a href="#' + next.id + '">' + esc(next.num || '') + ' →</a>' : '<a href="#home">首页 →</a>') +
         '</span>' +
       '</div>';
     sec.dataset.rendered = '1';
@@ -780,7 +797,17 @@ window.COURSE = (function () {
     }
     return secCache[m.id];
   }
+  function showHome() {
+    const root = $('#content');
+    if (root.firstChild) root.innerHTML = '';
+    document.body.classList.remove('view-mod');
+    currentMod = null;
+    setActiveNav('__home');
+    if (window.__refreshTotalH) window.__refreshTotalH();
+    window.scrollTo(0, 0);
+  }
   function showModule(id, sub) {
+    document.body.classList.add('view-mod');
     let i = modIndex(id); if (i < 0) i = 0;
     const m = COURSE.items[i]; if (!m) return;
     const sec = getSection(m, i);
@@ -798,7 +825,8 @@ window.COURSE = (function () {
   function routeFromHash() {
     const t = targetFromHash();
     if (!t) return false;
-    showModule(t.mod, t.sub);
+    if (t.home) showHome();
+    else showModule(t.mod, t.sub);
     return true;
   }
 
@@ -1502,7 +1530,7 @@ window.COURSE = (function () {
   /* ---------- deep links ---------- */
   function targetFromHash() {
     const h = (location.hash || '').replace(/^#/, '');
-    if (!h) return null;
+    if (!h || h === 'home') return { home: true };
     if (modById(h)) return { mod: h, sub: null };
     const base = h.replace(/-s\d+$/, '');
     if (modById(base)) return { mod: base, sub: h };
@@ -1516,7 +1544,12 @@ window.COURSE = (function () {
       const href = a.getAttribute('href') || '';
       const frag = href.replace(/^#/, '');
       if (!frag) return;
-
+      if (frag === 'home') {
+        e.preventDefault();
+        if (location.hash.replace(/^#/, '') === 'home') showHome();
+        else location.hash = 'home';
+        return;
+      }
       let mod = modById(frag) ? frag : null;
       let sub = null;
       if (!mod) {
@@ -1546,12 +1579,13 @@ window.COURSE = (function () {
     wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireNavEdge();
 
     const t0 = targetFromHash();
-    const firstId = (t0 && t0.mod) || (COURSE.items[0] && COURSE.items[0].id);
-    showModule(firstId, t0 && t0.sub);
+    if (t0 && t0.mod) showModule(t0.mod, t0.sub);
+    else showHome();
     paintRead(); stats(); syncUI('browser'); paintNavEdge();
 
     requestAnimationFrame(() => {
       $('#heroReveal').classList.add('in'); $('#heroCards').classList.add('in');
+      const hc = $('#heroCta'); if (hc) hc.classList.add('in');
     });
     $('#themeBtn').addEventListener('click', () => {
       const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
@@ -1583,9 +1617,15 @@ window.COURSE = (function () {
       if (document.visibilityState === 'hidden') PROG.push();
     });
     window.addEventListener('beforeunload', () => { PROG.local(); });
-    // 打印导出全部内容，打完恢复单章视图
-    window.addEventListener('beforeprint', renderAll);
-    window.addEventListener('afterprint', () => { if (currentMod) showModule(currentMod); });
+    // 打印导出全部内容，打完恢复之前的视图（首页或单章）
+    window.addEventListener('beforeprint', () => {
+      document.body.classList.remove('view-mod');
+      renderAll();
+    });
+    window.addEventListener('afterprint', () => {
+      if (currentMod) showModule(currentMod);
+      else showHome();
+    });
   };
 
   document.addEventListener('DOMContentLoaded', () => window.COURSE.boot());
