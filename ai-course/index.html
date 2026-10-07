@@ -187,7 +187,31 @@ html[data-theme="dark"]  .icon-swap .i-moon{opacity:1; transform:none; filter:no
 body.view-mod #home{display:none}
 /* 迎宾首页：侧边栏整个收起（目录/进度/路线都不露），hero 保持原版式 */
 body.view-home .side{display:none}
-body.view-home .shell{grid-template-columns:minmax(0,1fr)}
+body.view-home .shell{grid-template-columns:minmax(0,1fr); padding-bottom:0}
+body.view-home main{padding-top:0}
+/* 首页按钮与数据卡跟大标题同一套衬线 */
+.hero-cta a,.hero-card span{font-family:var(--font-display)}
+/* 首页可交互小玩意儿：softmax 拨盘（01 章第一个手算的活版本） */
+.play{display:flex; gap:24px; margin-top:26px; padding:16px 22px; background:var(--surface);
+  border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow-sm); text-align:left}
+.play-ctl{flex:1; min-width:200px}
+.play-title{font-family:var(--font-display); font-size:16.5px; margin-bottom:6px}
+.play-title span{font-size:12px; color:var(--muted); font-family:var(--font-body)}
+.play-ctl label{display:flex; align-items:center; gap:9px; font-size:13px; color:var(--muted); margin:7px 0}
+.play-ctl input[type=range]{flex:1; accent-color:var(--accent)}
+.play-true{display:flex; gap:6px; align-items:center; margin-top:9px; font-size:13px; color:var(--muted)}
+.play-true button{font-size:12.5px; padding:3px 12px; border-radius:99px; cursor:pointer;
+  border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2)}
+.play-true button.on{background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600}
+.play-out{flex:1.2; min-width:200px; display:flex; flex-direction:column; justify-content:center; gap:9px}
+.prow{display:grid; grid-template-columns:16px 1fr 54px; gap:9px; align-items:center; font-size:13px}
+.pbar{height:9px; border-radius:99px; background:var(--bg-2); overflow:hidden}
+.pbar i{display:block; height:100%; width:0; border-radius:99px;
+  background:linear-gradient(90deg,var(--accent),var(--indigo)); transition:width 120ms linear}
+.prow b{font-variant-numeric:tabular-nums; text-align:right; font-weight:600}
+.ploss{font-size:13px; color:var(--muted)}
+.ploss b{color:var(--ink); font-variant-numeric:tabular-nums}
+@media (max-width:720px){.play{flex-direction:column}}
 .hero-cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
 .hero-cta a{font-size:14.5px; padding:9px 20px; border-radius:999px; border:1px solid var(--line);
   background:var(--surface); color:var(--ink-2)}
@@ -618,6 +642,22 @@ html[data-theme="dark"] .flow .nd.hi{color:var(--accent)}
     <div class="hero-card"><b id="statTerms">0</b><span>条中英对照术语</span></div>
     <div class="hero-card"><b id="statLabs">0</b><span>个可在 Colab 跑的动手实验</span></div>
   </div>
+  <div class="play" id="playSoftmax" title="动手拨一下：softmax 与温度">
+    <div class="play-ctl">
+      <div class="play-title">拨一下 Softmax <span>01 章第一个手算，不用看懂公式也能玩</span></div>
+      <label>z₁ <input type="range" id="pz1" min="-2" max="4" step="0.1" value="2"></label>
+      <label>z₂ <input type="range" id="pz2" min="-2" max="4" step="0.1" value="1"></label>
+      <label>温度 T <input type="range" id="pzT" min="0.2" max="2" step="0.05" value="1"></label>
+      <div class="play-true">真值是
+        <button data-k="0" class="on">A</button><button data-k="1">B</button>
+      </div>
+    </div>
+    <div class="play-out">
+      <div class="prow"><span>A</span><div class="pbar"><i id="pb0"></i></div><b id="pv0"></b></div>
+      <div class="prow"><span>B</span><div class="pbar"><i id="pb1"></i></div><b id="pv1"></b></div>
+      <div class="ploss">交叉熵损失 <b id="ploss"></b>（和 01 章手算对一下：0.313）</div>
+    </div>
+  </div>
 </section>
 
 <div class="shell">
@@ -997,6 +1037,30 @@ window.COURSE = (function () {
       if (el) show(el); else hide();
     });
     window.addEventListener('scroll', hide, { passive: true });
+  }
+
+  /* ---------- homepage playground: softmax dial (mirrors 01 hand calc) ---------- */
+  function wirePlayground() {
+    const z1 = $('#pz1'), z2 = $('#pz2'), tp = $('#pzT');
+    if (!z1 || !z2 || !tp) return;
+    let truth = 0;
+    const btns = $$('.play-true button');
+    btns.forEach(b => b.addEventListener('click', () => {
+      btns.forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); truth = +b.dataset.k || 0; upd();
+    }));
+    function upd() {
+      const T = Math.max(0.05, parseFloat(tp.value));
+      const e = [parseFloat(z1.value) / T, parseFloat(z2.value) / T].map(Math.exp);
+      const s = e[0] + e[1], p = e.map(x => x / s);
+      p.forEach((v, i) => {
+        $('#pb' + i).style.width = (v * 100).toFixed(1) + '%';
+        $('#pv' + i).textContent = v.toFixed(3);
+      });
+      $('#ploss').textContent = (-Math.log(p[truth])).toFixed(3) + ' nats';
+    }
+    [z1, z2, tp].forEach(el => el.addEventListener('input', upd));
+    upd();
   }
 
   /* ---------- calculators ---------- */
@@ -1570,7 +1634,7 @@ window.COURSE = (function () {
     initTheme();
     renderNav();
 
-    wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireNavEdge();
+    wireTooltips(); wireRead(); wireSearch(); wireScroll(); wireDeepLinks(); wireNavEdge(); wirePlayground();
 
     const t0 = targetFromHash();
     if (t0 && t0.mod) showModule(t0.mod, t0.sub);
